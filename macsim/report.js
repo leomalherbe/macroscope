@@ -23,13 +23,14 @@ var MSReport = (function () {
     { id: 'pubbal',     re: /ecart du solde public en valeur par rapport au compte de reference \(en points de pib\)\s*/ },
     { id: 'tradebal',   re: /ecart du solde commercial en valeur par rapport au compte de reference \(en points de pib\)\s*/ }
   ];
-  var NUM = '(-?\\d+(?:[.,]\\d+)?)';
-  var BLOCK = new RegExp(NUM + '\\s*effets des chocs\\s*' + NUM + '\\s*politique nationale seule\\s*' + NUM + '\\s*politiques etrangeres seules\\s*' + NUM + '\\s*ensemble');
+  var NUMS = '((?:-?\\d+(?:[.,]\\d+)?\\s+)+)';
+  var BLOCK = new RegExp(NUMS + 'effets des chocs\\s+' + NUMS + 'politique nationale seule\\s+' + NUMS + 'politiques etrangeres seules\\s+' + NUMS + 'ensemble');
 
   function norm(t) {
     return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ');
   }
   function num(s) { return Math.round(parseFloat(String(s).replace(',', '.')) * 1000) / 1000; }
+  function nums(s) { return s.trim().split(/\s+/).map(num); }
   function countryCode(name) {
     var n = norm(name).toUpperCase().replace(/[^A-Z -]/g, '').trim();
     if (NAMES[n]) return NAMES[n];
@@ -37,27 +38,41 @@ var MSReport = (function () {
     for (var i = 0; i < keys.length; i++) if (n.indexOf(keys[i]) >= 0) return NAMES[keys[i]];
     return null;
   }
+  /* which years the columns of a page stand for: the "annee 1 annee 2 …" line under the title, else 1..n */
+  function pageYears(t, headerYear, n) {
+    var m = /objectifs principaux[ .]*((?:annee \d+ ?)+)/.exec(t);
+    if (m) { var ys = []; m[1].replace(/annee (\d+)/g, function (_, y) { ys.push(Number(y)); }); if (ys.length) return ys; }
+    if (n === 1) return [headerYear];
+    var out = []; for (var i = 1; i <= n; i++) out.push(i); return out;
+  }
 
   /* pagesText: array of strings (one per PDF page). Returns {years:{<year>:{<country>:{R:{shock,nat,foreign,total},gdp:{…},…}}}, warnings:[]} */
   function parse(pagesText) {
-    var years = {}, warnings = [];
+    var years = {}, warnings = [], colYears = {};
     (pagesText || []).forEach(function (raw, idx) {
       var t = norm(raw);
       if (t.indexOf('objectifs principaux') < 0) return;
       var head = /annee\s+(\d+)\s+pays\s+(\d+)\s*:\s*([a-z' -]+?)\s+\d{2}\/\d{2}\/\d{4}/.exec(t) || /annee\s+(\d+)\s+pays\s+(\d+)\s*:\s*([a-z' -]+)/.exec(t);
       if (!head) { warnings.push('Page ' + (idx + 1) + ': header not recognised.'); return; }
-      var year = Number(head[1]);
+      var headerYear = Number(head[1]);
       var code = countryCode(head[3]);
       if (!code) { warnings.push('Page ' + (idx + 1) + ': unknown country "' + head[3].trim() + '".'); return; }
-      var y = years[year] = years[year] || {};
-      var c = y[code] = y[code] || {};
       FIELDS.forEach(function (f) {
         var m = f.re.exec(t);
         if (!m) return;
         var rest = t.slice(m.index + m[0].length);
         var b = BLOCK.exec(rest);
         if (!b || b.index > 40) return;
-        c[f.id] = { shock: num(b[1]), nat: num(b[2]), foreign: num(b[3]), total: num(b[4]) };
+        var sh = nums(b[1]), na = nums(b[2]), fo = nums(b[3]), to = nums(b[4]);
+        var n = to.length;
+        var ys = pageYears(t, headerYear, n);
+        if (ys.length === n) colYears[code] = ys; else ys = colYears[code] && colYears[code].length === n ? colYears[code] : pageYears('', headerYear, n);
+        for (var k = 0; k < n; k++) {
+          var yr = ys[k];
+          var y = years[yr] = years[yr] || {};
+          var c = y[code] = y[code] || {};
+          c[f.id] = { shock: sh[k], nat: na[k], foreign: fo[k], total: to[k] };
+        }
       });
     });
     Object.keys(years).forEach(function (yr) {
