@@ -7,6 +7,7 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;line-height:1.5;font-size:15px}
+p,li,details,.pledge,.communique,td:not(.num),.err,.ok,.note{overflow-wrap:anywhere}
 a{color:var(--blue)}
 h1,h2,h3,h4{font-family:"Source Serif 4",Georgia,serif;letter-spacing:-.01em;margin:0;color:var(--navy)}
 h1{font-size:clamp(1.5rem,3.4vw,2.1rem);line-height:1.1}
@@ -146,8 +147,10 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
   .entry{page-break-inside:avoid}
 }
 
-.resgrid input[type=number]{width:86px}
+.resgrid input[type=number]{width:104px;font-size:.9rem;padding:6px 8px}
+.resgrid input.nz{font-weight:500}
 .resgrid th{white-space:normal;line-height:1.25}
+.resgrid td{padding:5px 6px}
 
 /* board */
 body.board{font-size:17px}
