@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MacSim 2 · Policy desk</title>
+<meta name="description" content="Submit your group's macroeconomic policy decisions for the MacSim 2 simulation game.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="app-common.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div>
+      <div class="kicker" id="courseLabel">International Financial Macroeconomics</div>
+      <h1>MacSim 2 · Policy desk</h1>
+      <p class="sub">Submit your group's policy decisions. <a id="homeLink" href="#">← Course home</a></p>
+    </div>
+    <div class="who" id="who"></div>
+  </div>
+</div>
+
+<main><div class="wrap" id="app"><div class="card"><p class="muted">Loading…</p></div></div></main>
+
+<footer><div class="wrap"><span>MacSim 2 · Brillet, Cette &amp; Gambini · Policy desk by the IFM course team</span><span id="footTime"></span></div></footer>
+
+<script>
+(function () {
+  'use strict';
+  var $ = UI.$, el = UI.el, esc = UI.esc;
+  var cfg = window.MACSIM_CONFIG || {};
+  $('#courseLabel').textContent = cfg.COURSE_LABEL || 'International Financial Macroeconomics';
+  $('#homeLink').href = cfg.COURSE_HOME || '#';
+
+  var app = $('#app');
+  var pin = new URLSearchParams(location.search).get('pin') || UI.read('macsim.pin') || '';
+  var data = null;            // last server answer
+  var offset = 0;             // server time − client time (ms)
+  var formKey = null;         // phase|round of the form currently built
+  var councilKey = null;
+  var pollTimer = null, tick = null;
+
+  /* ---------------- login ---------------- */
+  function renderLogin(msg) {
+    app.innerHTML = '';
+    var input = el('input', { type: 'text', inputmode: 'numeric', placeholder: '4-digit PIN', style: 'font-size:1.3rem;width:160px;text-align:center;letter-spacing:.2em', autofocus: true });
+    var btn = el('button', { class: 'btn primary', onclick: function () { go(); } }, ['Enter the desk']);
+    function go() { pin = input.value.trim(); if (!pin) return; UI.store('macsim.pin', pin); load(); }
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+    app.appendChild(el('div', { class: 'card', style: 'max-width:520px;margin:30px auto' }, [
+      el('h2', {}, ['Your group PIN']),
+      el('p', { class: 'muted' }, ['Each group received a 4-digit PIN from the instructor. One submission per group: agree on your decisions, then one of you submits.']),
+      msg ? el('div', { class: 'err' }, [msg]) : null,
+      el('div', { class: 'inline', style: 'margin-top:10px' }, [input, btn])
+    ]));
+    if (!MSApi.apiUrl()) app.appendChild(el('div', { class: 'card alert' }, [el('b', {}, ['No backend configured. ']), 'The site administrator must set API_URL in config.js.']));
+    input.focus();
+  }
+
+  /* ---------------- loading ---------------- */
+  async function load(quiet) {
+    if (!pin) { renderLogin(); return; }
+    try {
+      var r = await MSApi.call('state', { pin: pin });
+      if (!r.ok) { if (/PIN/i.test(r.error || '')) { UI.store('macsim.pin', null); pin = ''; renderLogin(r.error); } else UI.toast(r.error || 'Error'); return; }
+      data = r;
+      offset = Date.parse(r.now) - Date.now();
+      render();
+      $('#footTime').textContent = 'Updated ' + UI.fmtTime(r.now);
+    } catch (e) {
+      if (!quiet) { app.innerHTML = ''; app.appendChild(el('div', { class: 'card alert' }, [el('b', {}, ['Cannot reach the server. ']), String(e.message || e), ' ', el('button', { class: 'btn sm', onclick: function () { load(); } }, ['Retry'])])); }
+    }
+  }
+
+  /* ---------------- rendering ---------------- */
+  function phaseLabel(st) {
+    if (st.phase === 'warmup') return 'Warm-up · ' + MS.countryName(st.warmup.country) + ' · ' + st.warmup.years + '-year plan';
+    return 'The game · Year ' + st.round + ' of ' + st.years;
+  }
+  function render() {
+    var st = data.state, g = data.group;
+    $('#who').innerHTML = '<b>' + esc(g.name) + '</b>' + (st.phase === 'game' ? (g.country ? esc(MS.countryName(g.country)) : '<span class="pill">no country yet</span>') : esc(MS.countryName(st.warmup.country)) + ' <span class="pill">warm-up</span>') +
+      ' · <a href="#" id="switch">switch group</a>';
+    $('#switch').onclick = function (e) { e.preventDefault(); UI.store('macsim.pin', null); pin = ''; formKey = null; renderLogin(); };
+
+    var key = st.phase + '|' + st.round;
+    if (!$('#strip')) {
+      app.innerHTML = '';
+      app.appendChild(el('div', { id: 'strip', class: 'strip' }));
+      app.appendChild(el('div', { id: 'communique' }));
+      app.appendChild(el('div', { id: 'council' }));
+      app.appendChild(el('div', { id: 'form' }));
+      app.appendChild(el('div', { id: 'results' }));
+      app.appendChild(el('div', { id: 'reveals' }));
+      app.appendChild(el('div', { id: 'alldecisions' }));
+      app.appendChild(el('div', { id: 'history' }));
+    }
+    renderStrip();
+    var com = $('#communique');
+    com.innerHTML = st.communique ? '<div class="communique"><div class="kicker">Administrator’s communiqué</div>' + esc(st.communique) + '</div><div style="height:18px"></div>' : '';
+
+    if (formKey !== key) { buildForm(); formKey = key; }
+    else updateFormStatus();
+    renderCouncil();
+    renderResults();
+    renderReveals();
+    renderAllDecisions();
+    renderHistory();
+  }
+
+  function renderStrip() {
+    var st = data.state, strip = $('#strip');
+    strip.innerHTML = '';
+    strip.appendChild(el('span', { class: 'big' }, [phaseLabel(st)]));
+    strip.appendChild(el('span', { class: 'pill ' + (data.roundOpen ? 'open' : 'closed') }, [data.roundOpen ? 'Submissions open' : 'Submissions closed']));
+    if (st.deadline && data.roundOpen) strip.appendChild(el('span', { class: 'countdown', id: 'countdown' }, ['–:––']));
+    if (st.phase === 'game' && st.councilOpen) strip.appendChild(el('span', { class: 'pill gold' }, ['Council in session']));
+    strip.appendChild(el('span', { class: 'spacer' }));
+    strip.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { load(); UI.toast('Refreshed'); } }, ['↻ Refresh']));
+    updateCountdown();
+  }
+  function updateCountdown() {
+    var c = $('#countdown'); if (!c || !data) return;
+    var t = UI.countdownText(data.state.deadline, offset);
+    if (!t) return; c.textContent = (t.late ? 'Time is up ' : '') + t.text; c.classList.toggle('late', t.late);
+  }
+
+  /* ---------------- decision form ---------------- */
+  function formConfig() {
+    var st = data.state, isWarm = st.phase === 'warmup';
+    var allowed = isWarm ? st.warmup.allowed : MS.LEVERS.map(function (l) { return l.id; });
+    return {
+      isWarm: isWarm,
+      nYears: isWarm ? st.warmup.years : 1,
+      levers: MS.LEVERS.filter(function (l) { return allowed.indexOf(l.id) >= 0; }),
+      tariff: isWarm ? allowed.indexOf('tariff') >= 0 : st.game.allowTariff !== false,
+      euro: isWarm ? allowed.indexOf('euro') >= 0 : !!st.game.allowEuro,
+      tfp: isWarm ? allowed.indexOf('tfp') >= 0 : !!st.game.allowTfp,
+      maxNonZero: isWarm ? st.warmup.maxNonZero : st.game.maxNonZero,
+      minText: isWarm ? st.warmup.minText : st.game.minText,
+      country: isWarm ? st.warmup.country : data.group.country,
+      bounds: st.bounds
+    };
+  }
+  function myDecision(phase, round) {
+    return (data.myDecisions || []).filter(function (d) { return d.phase === phase && Number(d.round) === Number(round); })[0] || null;
+  }
+  function numInput(name, value, bound, step) {
+    var inp = el('input', { type: 'number', name: name, step: step || 0.1, min: -bound, max: bound, value: value || 0 });
+    inp.addEventListener('input', onInput);
+    inp.addEventListener('focus', function () { inp.select(); });
+    if (MS.num(inp.value)) inp.classList.add('nz');
+    return inp;
+  }
+  function onInput() {
+    var f = formConfig();
+    UI.$$('#form input[type=number]').forEach(function (i) {
+      var v = MS.num(i.value); var b = Number(i.max);
+      i.classList.toggle('nz', !!v); i.classList.toggle('bad', isNaN(v) || Math.abs(v) > b + 1e-9);
+    });
+    var used = MS.usedInstruments(readForm());
+    var c = $('#usedCounter'); if (c) { c.textContent = 'Instruments used: ' + used.length + (f.maxNonZero ? ' / ' + f.maxNonZero : ''); c.classList.toggle('bad', f.maxNonZero && used.length > f.maxNonZero); }
+    var ta = $('#decisionText'), tc = $('#textCounter');
+    if (ta && tc) { tc.textContent = ta.value.trim().length + ' / ' + f.minText + ' characters minimum'; tc.classList.toggle('bad', ta.value.trim().length < f.minText); }
+  }
+  function readForm() {
+    var f = formConfig(); var years = [];
+    for (var y = 0; y < f.nYears; y++) {
+      var yr = MS.emptyYear();
+      f.levers.forEach(function (l) { var i = $('#form [name="L_' + l.id + '_' + y + '"]'); if (i) yr.levers[l.id] = i.value; });
+      if (f.tariff) MS.COUNTRIES.concat([MS.ROW]).forEach(function (c) { var i = $('#form [name="T_' + c.id + '_' + y + '"]'); if (i && MS.num(i.value)) yr.tariffs[c.id] = i.value; });
+      if (f.euro) { var s = $('#form [name="E_' + y + '"]'); if (s) yr.euro = s.value; }
+      if (f.tfp) { var t = $('#form [name="P_' + y + '"]'); if (t) yr.tfp = t.value; }
+      years.push(yr);
+    }
+    var ta = $('#decisionText');
+    return { years: years, text: ta ? ta.value : '' };
+  }
+
+  function buildForm() {
+    var st = data.state, f = formConfig(), box = $('#form');
+    box.innerHTML = '';
+    if (st.phase === 'game' && !f.country) {
+      box.appendChild(el('div', { class: 'card alert' }, [el('b', {}, ['No country assigned yet. ']), 'The administrator will assign a country to your group before the game starts.']));
+      return;
+    }
+    var prev = myDecision(st.phase, st.round);
+    var pv = prev ? prev.payload : null;
+    var card = el('div', { class: 'card' });
+    var title = f.isWarm ? 'Your ' + f.nYears + '-year plan for ' + MS.countryName(f.country) : 'Decisions for year ' + st.round + ' · ' + MS.countryName(f.country);
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title]), el('span', { id: 'formStatus', class: 'small muted' })]));
+
+    var rules = [];
+    rules.push('every lever is a relative variation, in %, of your country’s own reference level (VAT +5 means the VAT rate rises by 5 % of its current level, e.g. from 20 % to 21 %); tariffs are absolute variations in points');
+    rules.push('each variation between −' + f.bounds.lever + ' % and +' + f.bounds.lever + ' %');
+    if (f.maxNonZero) rules.push('at most ' + f.maxNonZero + ' instruments');
+    if (f.isWarm) rules.push('all other countries keep their policies unchanged');
+    rules.push('0 = no change');
+    card.appendChild(el('p', { class: 'muted small' }, ['Rules: ' + rules.join(' · ') + '.']));
+
+    /* lever table */
+    var tbl = el('table'); var thead = el('thead'); var hr = el('tr', {}, [el('th', {}, ['Instrument']), el('th', {}, ['Unit'])]);
+    for (var y = 0; y < f.nYears; y++) hr.appendChild(el('th', { class: 'num' }, [f.nYears > 1 ? 'Year ' + (y + 1) : 'Change']));
+    thead.appendChild(hr); tbl.appendChild(thead);
+    var tbody = el('tbody');
+    f.levers.forEach(function (l) {
+      var tr = el('tr', {}, [el('td', { html: '<span class="n muted">' + l.n + '.</span> ' + esc(l.label) + '<span class="hint">' + esc(l.hint) + ' · <i>' + esc(MS.CATS[l.cat].replace(' policies', '')) + '</i></span>' }), el('td', { class: 'unit' }, ['% of ref.'])]);
+      for (var y2 = 0; y2 < f.nYears; y2++) tr.appendChild(el('td', { class: 'num' }, [numInput('L_' + l.id + '_' + y2, pv && pv.years[y2] ? pv.years[y2].levers[l.id] : 0, f.bounds.lever)]));
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    card.appendChild(el('div', { class: 'tablewrap' }, [tbl]));
+
+    /* tariffs */
+    if (f.tariff) {
+      var det = el('details', {}, [el('summary', {}, ['11. Import tariffs by partner country (ABSOLUTE variation of the tariff rate, in points of %, between −' + f.bounds.tariff + ' and +' + f.bounds.tariff + ')'])]);
+      var tt = el('table'); var tb = el('tbody');
+      MS.COUNTRIES.concat([MS.ROW]).forEach(function (c) {
+        if (c.id === f.country) return;
+        var tr = el('tr', {}, [el('td', {}, [c.id + ' · ' + c.name]), el('td', { class: 'unit' }, ['pt (absolute)'])]);
+        for (var y3 = 0; y3 < f.nYears; y3++) tr.appendChild(el('td', { class: 'num' }, [numInput('T_' + c.id + '_' + y3, pv && pv.years[y3] && pv.years[y3].tariffs ? pv.years[y3].tariffs[c.id] : 0, f.bounds.tariff, 0.5)]));
+        tb.appendChild(tr);
+      });
+      tt.appendChild(tb); det.appendChild(el('div', { class: 'tablewrap' }, [tt]));
+      card.appendChild(det);
+    }
+    /* euro + tfp */
+    if (f.euro || f.tfp) {
+      var ot = el('table'); var ob = el('tbody');
+      ob.appendChild(el('tr', { class: 'cat' }, [el('td', { colspan: 2 + f.nYears }, ['Monetary & structural options (subject to the administrator’s approval)'])]));
+      var ctry = MS.countryById(f.country);
+      if (f.euro) {
+        var tr1 = el('tr', {}, [el('td', { html: esc(MS.EURO.label) + '<span class="hint">' + (ctry && ctry.euro ? 'your country is a member of the euro area' : 'your country keeps its own currency') + '</span>' }), el('td', { class: 'unit' }, ['—'])]);
+        for (var y4 = 0; y4 < f.nYears; y4++) {
+          var sel = el('select', { name: 'E_' + y4 });
+          sel.appendChild(el('option', { value: 'none' }, ['no change']));
+          sel.appendChild(el('option', { value: ctry && ctry.euro ? 'leave' : 'join' }, [ctry && ctry.euro ? 'leave the euro area' : 'join the euro area']));
+          if (pv && pv.years[y4]) sel.value = pv.years[y4].euro || 'none';
+          sel.addEventListener('change', onInput);
+          tr1.appendChild(el('td', { class: 'num' }, [sel]));
+        }
+        ob.appendChild(tr1);
+      }
+      if (f.tfp) {
+        var tr2 = el('tr', {}, [el('td', { html: esc(MS.TFP.label) + '<span class="hint">' + esc(MS.TFP.hint) + '</span>' }), el('td', { class: 'unit' }, ['%'])]);
+        for (var y5 = 0; y5 < f.nYears; y5++) tr2.appendChild(el('td', { class: 'num' }, [numInput('P_' + y5, pv && pv.years[y5] ? pv.years[y5].tfp : 0, f.bounds.tfp)]));
+        ob.appendChild(tr2);
+      }
+      ot.appendChild(ob); card.appendChild(el('div', { class: 'tablewrap' }, [ot]));
+    }
+    card.appendChild(el('div', { class: 'counter', id: 'usedCounter', style: 'margin-top:8px' }));
+
+    /* text */
+    var fld = el('div', { class: 'field' });
+    fld.appendChild(el('label', { for: 'decisionText' }, [f.isWarm ? 'Your strategy, a priori' : 'Justification']));
+    fld.appendChild(el('p', { class: 'muted small', style: 'margin:0 0 6px' }, [f.isWarm
+      ? 'Which objective does each instrument target, and through which mechanism of the model? What do you expect for GDP, unemployment, inflation, the public balance and the trade balance?'
+      : 'What did you learn from last year’s results, and what do you expect from this year’s decisions? (Mention foreign decisions if they matter.)']));
+    var ta = el('textarea', { id: 'decisionText', placeholder: 'Write here…' }); ta.value = pv ? (pv.text || '') : '';
+    ta.addEventListener('input', onInput);
+    fld.appendChild(ta); fld.appendChild(el('div', { class: 'counter', id: 'textCounter' }));
+    card.appendChild(fld);
+
+    card.appendChild(el('div', { id: 'formErrors' }));
+    var row = el('div', { class: 'btnrow' });
+    row.appendChild(el('button', { class: 'btn primary', id: 'submitBtn', onclick: submit }, [prev ? 'Update our decisions' : 'Submit our decisions']));
+    row.appendChild(el('span', { class: 'small muted' }, ['You can update your submission until the round closes; only the last one counts.']));
+    card.appendChild(row);
+    box.appendChild(card);
+    onInput();
+    updateFormStatus();
+  }
+  function updateFormStatus() {
+    var st = data.state, s = $('#formStatus'); if (!s) return;
+    var prev = myDecision(st.phase, st.round);
+    s.innerHTML = prev ? '<span class="pill open">submitted</span> ' + esc(UI.fmtDateTime(prev.ts)) : '<span class="pill">not submitted yet</span>';
+    var open = data.roundOpen;
+    UI.$$('#form input, #form select, #form textarea, #form button').forEach(function (i) { i.disabled = !open; });
+    var e = $('#formErrors');
+    if (e && !open) e.innerHTML = '<div class="note">Submissions are closed for this round' + (prev ? ' — your last submission is shown above.' : '.') + '</div>';
+  }
+  async function submit() {
+    var st = data.state, f = formConfig();
+    var payload = readForm();
+    var v = MS.validateDecision(st, st.phase, f.country, payload);
+    var e = $('#formErrors');
+    if (!v.ok) { e.innerHTML = '<div class="err"><b>Please fix the following:</b><ul>' + v.errors.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>'; return; }
+    var btn = $('#submitBtn'); btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      var r = await MSApi.call('submit', { pin: pin, phase: st.phase, round: st.round, payload: v.clean });
+      if (!r.ok) { e.innerHTML = '<div class="err"><b>' + esc(r.error) + '</b>' + (r.errors ? '<ul>' + r.errors.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') + '</div>'; if (/round has changed/i.test(r.error)) load(); }
+      else { e.innerHTML = '<div class="ok">Decisions received at ' + esc(UI.fmtTime(r.ts)) + ' · instruments used: ' + esc(r.used.join(', ') || 'none') + '.</div>'; UI.toast('Decisions submitted'); await load(true); }
+    } catch (err) { e.innerHTML = '<div class="err">Network error: ' + esc(err.message) + '</div>'; }
+    btn = $('#submitBtn'); if (btn) { btn.disabled = !data.roundOpen; btn.textContent = 'Update our decisions'; }
+  }
+
+  /* ---------------- council of ministers ---------------- */
+  function renderCouncil() {
+    var st = data.state, box = $('#council');
+    if (st.phase !== 'game' || !st.councilOpen || !data.group.country) { box.innerHTML = ''; councilKey = null; return; }
+    var key = 'c|' + st.round;
+    if (councilKey !== key) {
+      box.innerHTML = '';
+      var card = el('div', { class: 'card tint' });
+      card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Council of ministers · year ' + st.round]), el('span', { class: 'pill gold' }, ['in session'])]));
+      card.appendChild(el('p', { class: 'muted small' }, ['Pledges are public and visible to every country; actual decisions stay private until the year is simulated. After the run, the administrator may reveal who kept their word.']));
+      var mine = (data.myPledges || []).filter(function (p) { return Number(p.round) === Number(st.round); })[0];
+      var ta = el('textarea', { id: 'pledgeText', placeholder: 'e.g. "We will raise public demand by 0.5 pt of GDP if Germany does the same."', style: 'min-height:70px' });
+      if (mine) ta.value = mine.text || '';
+      card.appendChild(el('div', { class: 'field' }, [el('label', { for: 'pledgeText' }, ['Our pledge']), ta]));
+      var det = el('details', {}, [el('summary', {}, ['Attach numbers to the pledge (optional)'])]);
+      var tt = el('table'); var tb = el('tbody');
+      MS.LEVERS.forEach(function (l) {
+        var v = mine && mine.payload && mine.payload.year ? mine.payload.year.levers[l.id] : 0;
+        var inp = el('input', { type: 'number', name: 'PL_' + l.id, step: 0.1, min: -st.bounds.lever, max: st.bounds.lever, value: v || 0 });
+        inp.addEventListener('input', function () { inp.classList.toggle('nz', !!MS.num(inp.value)); });
+        if (v) inp.classList.add('nz');
+        tb.appendChild(el('tr', {}, [el('td', {}, [l.n + '. ' + l.label]), el('td', { class: 'unit' }, ['% of ref.']), el('td', { class: 'num' }, [inp])]));
+      });
+      tt.appendChild(tb); det.appendChild(el('div', { class: 'tablewrap' }, [tt])); card.appendChild(det);
+      card.appendChild(el('div', { id: 'pledgeMsg' }));
+      card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: postPledge }, [mine ? 'Update our pledge' : 'Post our pledge'])]));
+      card.appendChild(el('h3', { style: 'margin-top:18px' }, ['Pledges on the table']));
+      card.appendChild(el('div', { id: 'pledgeList' }));
+      box.appendChild(card);
+      councilKey = key;
+    }
+    var list = $('#pledgeList');
+    var pledges = (data.pledges || []).slice().sort(function (a, b) { return String(a.ts) < String(b.ts) ? -1 : 1; });
+    list.innerHTML = pledges.length ? pledges.map(function (p) {
+      return '<div class="pledge"><b>' + esc(MS.countryName(p.country)) + '</b> <span class="muted small">' + esc(UI.fmtTime(p.ts)) + '</span><br>' + esc(p.text) +
+        (p.payload && p.payload.year ? '<div class="vals">' + UI.chipsHtml(p.payload.year) + '</div>' : '') + '</div>';
+    }).join('') : '<p class="muted">No pledge yet.</p>';
+  }
+  async function postPledge() {
+    var year = MS.emptyYear();
+    MS.LEVERS.forEach(function (l) { var i = $('#council [name="PL_' + l.id + '"]'); if (i) year.levers[l.id] = i.value; });
+    var m = $('#pledgeMsg');
+    try {
+      var r = await MSApi.call('pledge', { pin: pin, payload: { text: $('#pledgeText').value, year: year } });
+      if (!r.ok) { m.innerHTML = '<div class="err">' + esc(r.error) + '</div>'; return; }
+      m.innerHTML = '<div class="ok">Pledge posted at ' + esc(UI.fmtTime(r.ts)) + '.</div>'; UI.toast('Pledge posted'); load(true);
+    } catch (e) { m.innerHTML = '<div class="err">Network error: ' + esc(e.message) + '</div>'; }
+  }
+
+  /* ---------------- results ---------------- */
+  function breakdownRows(r) {
+    var d = r.detail; if (!d || typeof d !== 'object') return '';
+    var parts = [['nat', 'of which your own policy'], ['foreign', 'of which foreign policies'], ['shock', 'of which the shocks']];
+    return parts.map(function (pp) {
+      var any = MS.INDICATORS.some(function (i) { return d[i.id] && d[i.id][pp[0]] !== undefined; }) || (d.R && d.R[pp[0]] !== undefined);
+      if (!any) return '';
+      return '<tr class="bd"><td class="small muted" style="padding-left:1.6em">' + pp[1] + '</td>' + MS.INDICATORS.map(function (i) { var x = d[i.id] ? d[i.id][pp[0]] : null; return '<td class="num small ' + (x === null || x === undefined ? '' : UI.signedClass(i.sign * x)) + '">' + esc(x === null || x === undefined ? '' : MS.fmt(x, 3, true)) + '</td>'; }).join('') +
+        '<td class="num small ' + (d.R ? UI.signedClass(d.R[pp[0]]) : '') + '">' + esc(d.R && d.R[pp[0]] !== undefined ? MS.fmt(d.R[pp[0]], 3, true) : '') + '</td></tr>';
+    }).join('');
+  }
+  function resultsTable(rows, firstCol) {
+    var h = '<div class="tablewrap"><table><thead><tr><th>' + esc(firstCol || 'Year') + '</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R (objective)</th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      h += '<tr' + (r._me ? ' class="me"' : '') + '><td>' + esc(r._label) + '</td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(r[i.id])) + '">' + esc(MS.fmt(r[i.id], 3, true)) + '</td>'; }).join('') +
+        '<td class="num ' + UI.signedClass(r.R) + '"><b>' + esc(MS.fmt(r.R, 3, true)) + '</b></td></tr>' + breakdownRows(r);
+    });
+    return h + '</tbody></table></div>';
+  }
+  function weightsLine(w) {
+    return 'Deviations from the reference run (GDP in %, the rest in points). R is MacSim’s objective function: higher GDP, lower unemployment and inflation, better public and trade balances raise it. The lines « of which » split each result between your own policy, the other countries’ policies and the administrator’s shocks.';
+  }
+  function renderResults() {
+    var st = data.state, box = $('#results');
+    var snap = {}; UI.$$('#results textarea').forEach(function (t) { snap[t.id] = t.value; });
+    box.innerHTML = '';
+    var w = st.weights;
+    if (st.phase === 'warmup') {
+      var mine = (data.myResults || []).filter(function (r) { return r.phase === 'warmup'; }).sort(function (a, b) { return a.year - b.year; });
+      var card = el('div', { class: 'card' });
+      card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Your results']), el('span', { class: 'small muted' }, [weightsLine(w)])]));
+      if (!mine.length) card.appendChild(el('p', { class: 'muted' }, ['Results will appear here once the administrator has run your plan in MacSim.']));
+      else {
+        card.appendChild(el('div', { html: resultsTable(mine.map(function (r) { return Object.assign({ _label: 'Year ' + r.year }, r); })) }));
+        var cm = (data.myComments || []).filter(function (c) { return c.phase === 'warmup'; })[0];
+        var fld = el('div', { class: 'field' }, [el('label', { for: 'commentText' }, ['Your analysis, a posteriori']),
+          el('p', { class: 'muted small', style: 'margin:0 0 6px' }, ['Compare the results with what you expected. Which mechanisms of the model explain the gaps (restoring forces, trade leakages, interest rates)?'])]);
+        var ta = el('textarea', { id: 'commentText' }); ta.value = snap.commentText !== undefined ? snap.commentText : (cm ? cm.text : '');
+        fld.appendChild(ta); card.appendChild(fld);
+        card.appendChild(el('div', { id: 'commentMsg' }, cm ? [el('div', { class: 'ok' }, ['Comment saved at ' + UI.fmtDateTime(cm.ts) + ' — you can still edit it.'])] : []));
+        card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () { postComment('warmup', 1); } }, [cm ? 'Update our analysis' : 'Submit our analysis'])]));
+      }
+      box.appendChild(card);
+      if (st.revealWarmup && (data.warmupAll || []).length) {
+        var byG = {}; data.warmupAll.forEach(function (r) { (byG[r.key] = byG[r.key] || {})[r.year] = r; });
+        var years = []; for (var y = 1; y <= st.warmup.years; y++) years.push(y);
+        var h = '<div class="tablewrap"><table><thead><tr><th>Group</th>' + years.map(function (y) { return '<th class="num">R · year ' + y + '</th>'; }).join('') + '<th class="num">Average</th></tr></thead><tbody>';
+        var rows = Object.keys(byG).map(function (k) { var rs = years.map(function (y) { return byG[k][y] ? byG[k][y].R : null; }); var vals = rs.filter(function (x) { return x !== null; }); var avg = vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null; return { key: k, rs: rs, avg: avg }; });
+        rows.sort(function (a, b) { return (b.avg === null ? -1e9 : b.avg) - (a.avg === null ? -1e9 : a.avg); });
+        rows.forEach(function (r) {
+          var gname = ((data.groups || []).filter(function (g) { return g.groupId === r.key; })[0] || {}).name || r.key;
+          var plan = (data.warmupPlans || []).filter(function (pl) { return pl.groupId === r.key; })[0];
+          var planHtml = plan ? plan.payload.years.map(function (yy, i) { return '<div class="small"><span class="muted">Y' + (i + 1) + '</span> ' + UI.chipsHtml(yy) + '</div>'; }).join('') : '';
+          h += '<tr' + (r.key === data.group.groupId ? ' class="me"' : '') + '><td>' + esc(gname) + (planHtml ? '<details class="small"><summary>plan</summary>' + planHtml + '</details>' : '') + '</td>' + r.rs.map(function (x) { return '<td class="num ' + UI.signedClass(x) + '">' + esc(MS.fmt(x, 3, true)) + '</td>'; }).join('') + '<td class="num"><b>' + esc(MS.fmt(r.avg, 3, true)) + '</b></td></tr>';
+        });
+        box.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['All groups · warm-up debrief']), el('div', { html: h + '</tbody></table></div>' })]));
+      }
+      return;
+    }
+    /* game */
+    var mineG = (data.myResults || []).filter(function (r) { return r.phase === 'game'; }).sort(function (a, b) { return a.year - b.year; });
+    var cardG = el('div', { class: 'card' });
+    cardG.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [MS.countryName(data.group.country) + ' · results so far']), el('span', { class: 'small muted' }, [weightsLine(w)])]));
+    if (!mineG.length) cardG.appendChild(el('p', { class: 'muted' }, ['No year has been simulated yet.']));
+    else cardG.appendChild(el('div', { html: resultsTable(mineG.map(function (r) { return Object.assign({ _label: 'Year ' + r.year }, r); })) }));
+    box.appendChild(cardG);
+    if (st.publishLeaderboard) {
+      var lb = MS.leaderboard(data.gameResults || [], w);
+      var cardL = el('div', { class: 'card' });
+      cardL.appendChild(el('h2', {}, ['Ranking']));
+      if (!lb.length) cardL.appendChild(el('p', { class: 'muted' }, ['The ranking appears after the first simulated year.']));
+      else {
+        var maxAbs = Math.max.apply(null, lb.map(function (r) { return Math.abs(r.latestR || 0); }).concat([0.01]));
+        var yrs = {}; lb.forEach(function (r) { Object.keys(r.years).forEach(function (y) { yrs[y] = true; }); });
+        var yl = Object.keys(yrs).map(Number).sort(function (a, b) { return a - b; });
+        var hh = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Country</th>' + yl.map(function (y) { return '<th class="num">R · y' + y + '</th>'; }).join('') + '<th class="num">Latest R</th><th></th></tr></thead><tbody>';
+        lb.forEach(function (r) {
+          var pct = Math.abs(r.latestR || 0) / maxAbs * 50;
+          hh += '<tr' + (r.key === data.group.country ? ' class="me"' : '') + '><td class="rank">' + r.rank + '</td><td>' + esc(MS.countryName(r.key)) + '</td>' +
+            yl.map(function (y) { var e = r.years[y]; return '<td class="num ' + (e ? UI.signedClass(e.R) : '') + '">' + esc(e ? MS.fmt(e.R, 3, true) : '—') + '</td>'; }).join('') +
+            '<td class="num ' + UI.signedClass(r.latestR) + '"><b>' + esc(MS.fmt(r.latestR, 3, true)) + '</b></td><td><div class="bar"><i class="' + ((r.latestR || 0) < 0 ? 'neg' : '') + '" style="left:' + ((r.latestR || 0) < 0 ? 50 - pct : 50) + '%;width:' + pct + '%"></i></div></td></tr>';
+        });
+        cardL.appendChild(el('div', { html: hh + '</tbody></table></div>' }));
+      }
+      box.appendChild(cardL);
+    }
+  }
+  async function postComment(phase, round) {
+    var m = $('#commentMsg'), ta = $('#commentText');
+    try {
+      var r = await MSApi.call('comment', { pin: pin, phase: phase, round: round, text: ta.value });
+      if (!r.ok) { m.innerHTML = '<div class="err">' + esc(r.error) + '</div>'; return; }
+      UI.toast('Analysis saved'); load(true);
+    } catch (e) { m.innerHTML = '<div class="err">Network error: ' + esc(e.message) + '</div>'; }
+  }
+
+  /* ---------------- pledges vs decisions ---------------- */
+  function renderReveals() {
+    var box = $('#reveals'); box.innerHTML = '';
+    (data.reveals || []).forEach(function (rv) {
+      var h = '<div class="tablewrap"><table><thead><tr><th>Country</th><th>Pledge</th><th>Actual decision</th><th>Verdict</th></tr></thead><tbody>';
+      var countries = {};
+      rv.pledges.forEach(function (p) { countries[p.country] = true; }); rv.decisions.forEach(function (d) { countries[d.country] = true; });
+      Object.keys(countries).sort().forEach(function (c) {
+        var p = rv.pledges.filter(function (x) { return x.country === c; })[0];
+        var d = rv.decisions.filter(function (x) { return x.country === c; })[0];
+        var verdict = '<span class="muted">no pledge</span>';
+        if (p) { var k = MS.pledgeKept(p.payload && p.payload.year, d && d.payload ? d.payload.years[0] : null); verdict = !k.items.length ? '<span class="muted">words only</span>' : (k.kept ? '<span class="kept">✓ kept</span>' : '<span class="broken">✗ broken</span>'); }
+        h += '<tr' + (c === data.group.country ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(c)) + '</b></td><td>' + (p ? esc(p.text) + (p.payload && p.payload.year ? '<div class="vals">' + UI.chipsHtml(p.payload.year) + '</div>' : '') : '<span class="muted">—</span>') + '</td><td>' + (d ? UI.chipsHtml(d.payload.years[0]) : '<span class="muted">no decision</span>') + '</td><td>' + verdict + '</td></tr>';
+      });
+      box.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['Pledges vs decisions · year ' + rv.round]), el('div', { html: h + '</tbody></table></div>' })]));
+    });
+  }
+
+  /* ---------------- everyone's decisions, once a round is over ---------------- */
+  function renderAllDecisions() {
+    var box = $('#alldecisions'); box.innerHTML = '';
+    var st = data.state;
+    if (st.phase !== 'game') return;
+    var list = (data.decisionsAll || []).slice().sort(function (a, b) { return b.round - a.round; });
+    if (!list.length) {
+      if (data.roundOpen) box.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['Other countries’ decisions']), el('p', { class: 'muted' }, ['Hidden while the round is open — everyone’s decisions for year ' + st.round + ' are shown once the round is closed.'])]));
+      return;
+    }
+    list.forEach(function (rd, idx) {
+      var h = '<div class="tablewrap"><table><thead><tr><th>Country</th><th>Group</th><th>Decisions</th><th>Submitted</th></tr></thead><tbody>';
+      var rows = rd.decisions.slice().sort(function (a, b) { return MS.countryName(a.country).localeCompare(MS.countryName(b.country)); });
+      rows.forEach(function (d) {
+        var g = (data.groups || []).filter(function (x) { return x.groupId === d.groupId; })[0];
+        h += '<tr' + (d.country === data.group.country ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(d.country)) + '</b></td><td class="small muted">' + esc(g ? g.name : '') + '</td><td>' + UI.chipsHtml(d.payload.years[0]) + '</td><td class="small muted">' + esc(UI.fmtTime(d.ts)) + '</td></tr>';
+      });
+      var missing = (data.groups || []).filter(function (g) { return g.country && !rd.decisions.some(function (d) { return d.groupId === g.groupId; }); });
+      missing.forEach(function (g) { h += '<tr><td><b>' + esc(MS.countryName(g.country)) + '</b></td><td class="small muted">' + esc(g.name) + '</td><td><span class="chip zero">no decision submitted</span></td><td></td></tr>'; });
+      var card = el('div', { class: 'card' });
+      var title = 'Everyone’s decisions · year ' + rd.round + (rd.round === Number(st.round) ? ' (round closed)' : '');
+      if (idx === 0) { card.appendChild(el('h2', {}, [title])); card.appendChild(el('div', { html: h + '</tbody></table></div>' })); }
+      else { var det = el('details', {}, [el('summary', {}, [title])]); det.appendChild(el('div', { html: h + '</tbody></table></div>' })); card.appendChild(det); }
+      box.appendChild(card);
+    });
+  }
+
+  /* ---------------- history ---------------- */
+  function renderHistory() {
+    var st = data.state, box = $('#history'); box.innerHTML = '';
+    var past = (data.myDecisions || []).filter(function (d) { return d.phase === 'game' && Number(d.round) < Number(st.round); }).sort(function (a, b) { return a.round - b.round; });
+    if (st.phase !== 'game' || !past.length) return;
+    var det = el('details', {}, [el('summary', {}, ['Your previous decisions (' + past.length + ')'])]);
+    past.forEach(function (d) { det.appendChild(el('div', { class: 'pledge', html: '<b>Year ' + d.round + '</b> <span class="muted small">' + esc(UI.fmtDateTime(d.ts)) + '</span><br>' + UI.chipsHtml(d.payload.years[0]) + '<p class="small" style="margin:6px 0 0">' + esc(d.payload.text) + '</p>' })); });
+    box.appendChild(el('div', { class: 'card' }, [det]));
+  }
+
+  /* ---------------- timers ---------------- */
+  tick = setInterval(updateCountdown, 1000);
+  pollTimer = setInterval(function () { if (!document.hidden && pin) load(true); }, 30000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && pin) load(true); });
+  load();
+})();
+</script>
+</body>
+</html>

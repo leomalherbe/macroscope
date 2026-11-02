@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MacSim 2 · Board</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="app-common.js"></script>
+</head>
+<body class="board">
+
+<div class="topbar">
+  <div class="wrap">
+    <div>
+      <div class="kicker" id="courseLabel">International Financial Macroeconomics</div>
+      <h1 id="title">MacSim 2</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="who" id="who"></div>
+  </div>
+</div>
+
+<main><div class="wrap" id="app"><div class="card"><p class="muted">Loading…</p></div></div></main>
+<footer><div class="wrap"><span>MacSim 2 · live board</span><span id="footTime"></span></div></footer>
+
+<script>
+(function () {
+  'use strict';
+  var $ = UI.$, el = UI.el, esc = UI.esc;
+  var cfg = window.MACSIM_CONFIG || {};
+  $('#courseLabel').textContent = cfg.COURSE_LABEL || 'International Financial Macroeconomics';
+  var classId = new URLSearchParams(location.search).get('class') || '';
+  var app = $('#app'), data = null, offset = 0;
+
+  async function load() {
+    if (!classId) { app.innerHTML = '<div class="card alert">Missing <span class="mono">?class=</span> in the URL — open the board from the administrator console.</div>'; return; }
+    try {
+      var r = await MSApi.call('board', { classId: classId });
+      if (!r.ok) { app.innerHTML = '<div class="card alert">' + esc(r.error) + '</div>'; return; }
+      data = r; offset = Date.parse(r.now) - Date.now();
+      render(); $('#footTime').textContent = 'Updated ' + UI.fmtTime(r.now);
+    } catch (e) { $('#footTime').textContent = 'Connection lost… retrying'; }
+  }
+  function phaseLabel(st) { return st.phase === 'warmup' ? 'Warm-up · ' + MS.countryName(st.warmup.country) + ' · ' + st.warmup.years + '-year plan' : 'Year ' + st.round + ' of ' + st.years; }
+  function groupName(id) { var g = (data.groups || []).filter(function (x) { return x.groupId === id; })[0]; return g ? g.name : id; }
+
+  function render() {
+    var st = data.state;
+    $('#title').textContent = 'MacSim 2 · ' + data.className;
+    $('#sub').textContent = st.phase === 'warmup' ? 'Every group governs ' + MS.countryName(st.warmup.country) + ' for ' + st.warmup.years + ' years while the other economies stand still.' : 'Seven economies, one world: your decisions move everyone else.';
+    var who = $('#who'); who.innerHTML = '';
+    who.appendChild(el('span', { class: 'big', style: 'color:#fff' }, [phaseLabel(st)]));
+    who.appendChild(el('br'));
+    who.appendChild(el('span', { class: 'pill ' + (data.roundOpen ? 'open' : 'closed') }, [data.roundOpen ? 'submissions open' : 'submissions closed']));
+    if (st.phase === 'game' && st.councilOpen) who.appendChild(el('span', { class: 'pill gold', style: 'margin-left:6px' }, ['council in session']));
+    if (st.deadline && data.roundOpen) who.appendChild(el('span', { class: 'countdown', id: 'countdown', style: 'margin-left:10px' }, ['–:––']));
+    updateCountdown();
+
+    app.innerHTML = '';
+    if (st.communique) app.appendChild(el('div', { class: 'communique', style: 'margin-bottom:18px;font-size:1.15rem' }, [el('div', { class: 'kicker' }, ['Administrator’s communiqué']), st.communique]));
+
+    var left = el('div'), right = el('div'), reveals = [];
+    /* submissions */
+    var subCard = el('div', { class: 'card' }); subCard.appendChild(el('h2', {}, ['Submissions']));
+    var grid = el('div', { class: 'status-grid' });
+    (data.groups || []).slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (g) {
+      var inn = (data.submitted || []).indexOf(g.groupId) >= 0;
+      grid.appendChild(el('div', { class: 'g ' + (inn ? 'in' : 'missing') }, [el('b', {}, [st.phase === 'game' && g.country ? MS.countryName(g.country) : g.name]), el('span', { class: 'small' }, [st.phase === 'game' && g.country ? g.name + ' · ' : '', inn ? 'submitted ✓' : 'waiting…'])]));
+    });
+    subCard.appendChild(grid);
+    right.appendChild(subCard);
+
+    if (st.phase === 'game') {
+      /* ranking */
+      var lb = MS.leaderboard(data.gameResults || [], st.weights);
+      var c = el('div', { class: 'card' }); c.appendChild(el('h2', {}, ['Ranking']));
+      if (!st.publishLeaderboard) c.appendChild(el('p', { class: 'muted' }, ['The ranking is hidden for now.']));
+      else if (!lb.length) c.appendChild(el('p', { class: 'muted' }, ['The ranking appears after the first simulated year.']));
+      else {
+        var maxAbs = Math.max.apply(null, lb.map(function (r) { return Math.abs(r.latestR || 0); }).concat([0.01]));
+        var yrs = {}; lb.forEach(function (r) { Object.keys(r.years).forEach(function (y) { yrs[y] = true; }); });
+        var yl = Object.keys(yrs).map(Number).sort(function (a, b) { return a - b; });
+        var h = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Country</th>' + yl.map(function (y) { return '<th class="num">R · y' + y + '</th>'; }).join('') + '<th class="num">Latest R</th><th></th></tr></thead><tbody>';
+        lb.forEach(function (r) {
+          var pct = Math.abs(r.latestR || 0) / maxAbs * 50;
+          h += '<tr><td class="rank">' + r.rank + '</td><td><b>' + esc(MS.countryName(r.key)) + '</b><br><span class="small muted">' + esc(groupName(((data.groups || []).filter(function (g) { return g.country === r.key; })[0] || {}).groupId)) + '</span></td>' +
+            yl.map(function (y) { var e = r.years[y]; return '<td class="num ' + (e ? UI.signedClass(e.R) : '') + '">' + esc(e ? MS.fmt(e.R, 3, true) : '—') + '</td>'; }).join('') +
+            '<td class="num ' + UI.signedClass(r.latestR) + '"><b>' + esc(MS.fmt(r.latestR, 3, true)) + '</b></td><td><div class="bar"><i class="' + ((r.latestR || 0) < 0 ? 'neg' : '') + '" style="left:' + ((r.latestR || 0) < 0 ? 50 - pct : 50) + '%;width:' + pct + '%"></i></div></td></tr>';
+        });
+        c.appendChild(el('div', { html: h + '</tbody></table></div>' }));
+        c.appendChild(el('p', { class: 'muted small' }, ['R = ' + st.weights.gdp + '·ΔGDP − ' + st.weights.unemp + '·Δunemployment − ' + st.weights.infl + '·Δinflation + ' + st.weights.pubbal + '·Δpublic balance + ' + st.weights.tradebal + '·Δtrade balance']));
+        /* latest year detail */
+        var latestYear = Math.max.apply(null, yl);
+        var det = el('div', { class: 'card' }); det.appendChild(el('h2', {}, ['Year ' + latestYear + ' in detail']));
+        var hd = '<div class="tablewrap"><table><thead><tr><th>Country</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R</th></tr></thead><tbody>';
+        lb.forEach(function (r) { var e = r.years[latestYear]; if (!e) return; hd += '<tr><td><b>' + esc(MS.countryName(r.key)) + '</b></td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(e[i.id])) + '">' + esc(MS.fmt(e[i.id], 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(e.R) + '"><b>' + esc(MS.fmt(e.R, 3, true)) + '</b></td></tr>'; });
+        det.appendChild(el('div', { html: hd + '</tbody></table></div>' }));
+        left.appendChild(c); left.appendChild(det);
+      }
+      if (!lb.length || !st.publishLeaderboard) left.appendChild(c);
+      /* council */
+      if (st.councilOpen) {
+        var cc = el('div', { class: 'card tint' }); cc.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Council of ministers · year ' + st.round]), el('span', { class: 'pill gold' }, ['in session'])]));
+        var pl = (data.pledges || []).slice().sort(function (a, b) { return String(a.ts) < String(b.ts) ? -1 : 1; });
+        if (!pl.length) cc.appendChild(el('p', { class: 'muted' }, ['No pledge on the table yet.']));
+        pl.forEach(function (p) { cc.appendChild(el('div', { class: 'pledge', html: '<b>' + esc(MS.countryName(p.country)) + '</b> <span class="muted small">' + esc(UI.fmtTime(p.ts)) + '</span><br>' + esc(p.text) + (p.payload && p.payload.year ? '<div class="vals">' + UI.chipsHtml(p.payload.year) + '</div>' : '') })); });
+        right.appendChild(cc);
+      }
+      /* everyone's decisions once the round is over */
+      var dl = (data.decisionsAll || []).slice().sort(function (a, b) { return b.round - a.round; })[0];
+      if (dl) {
+        var hd2 = '<div class="tablewrap"><table><thead><tr><th>Country</th><th>Decisions</th></tr></thead><tbody>';
+        dl.decisions.slice().sort(function (a, b) { return MS.countryName(a.country).localeCompare(MS.countryName(b.country)); }).forEach(function (d) { hd2 += '<tr><td><b>' + esc(MS.countryName(d.country)) + '</b><br><span class="small muted">' + esc(groupName(d.groupId)) + '</span></td><td>' + UI.chipsHtml(d.payload.years[0]) + '</td></tr>'; });
+        (data.groups || []).filter(function (g) { return g.country && !dl.decisions.some(function (d) { return d.groupId === g.groupId; }); }).forEach(function (g) { hd2 += '<tr><td><b>' + esc(MS.countryName(g.country)) + '</b><br><span class="small muted">' + esc(g.name) + '</span></td><td><span class="chip zero">no decision submitted</span></td></tr>'; });
+        right.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['Everyone’s decisions · year ' + dl.round]), el('div', { html: hd2 + '</tbody></table></div>' })]));
+      } else if (data.roundOpen) {
+        right.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['Decisions']), el('p', { class: 'muted' }, ['Each country’s decisions stay secret until the round is closed.'])]));
+      }
+      /* reveals */
+      (data.reveals || []).slice().sort(function (a, b) { return b.round - a.round; }).forEach(function (rv) {
+        var h2 = '<div class="tablewrap"><table><thead><tr><th>Country</th><th>Pledge</th><th>Decision</th><th>Verdict</th></tr></thead><tbody>';
+        var countries = {}; rv.pledges.forEach(function (p) { countries[p.country] = 1; }); rv.decisions.forEach(function (d) { countries[d.country] = 1; });
+        Object.keys(countries).sort().forEach(function (cid) {
+          var p = rv.pledges.filter(function (x) { return x.country === cid; })[0], d = rv.decisions.filter(function (x) { return x.country === cid; })[0];
+          var verdict = '<span class="muted">no pledge</span>';
+          if (p) { var k = MS.pledgeKept(p.payload && p.payload.year, d && d.payload ? d.payload.years[0] : null); verdict = !k.items.length ? '<span class="muted">words only</span>' : (k.kept ? '<span class="kept">✓ kept</span>' : '<span class="broken">✗ broken</span>'); }
+          h2 += '<tr><td><b>' + esc(MS.countryName(cid)) + '</b></td><td>' + (p ? esc(p.text) + (p.payload && p.payload.year ? '<div class="vals">' + UI.chipsHtml(p.payload.year) + '</div>' : '') : '—') + '</td><td>' + (d ? UI.chipsHtml(d.payload.years[0]) : '<span class="muted">no decision</span>') + '</td><td>' + verdict + '</td></tr>';
+        });
+        reveals.push(el('div', { class: 'card' }, [el('h2', {}, ['Pledges vs decisions · year ' + rv.round]), el('div', { html: h2 + '</tbody></table></div>' })]));
+      });
+    } else {
+      /* warm-up */
+      var wc = el('div', { class: 'card' }); wc.appendChild(el('h2', {}, ['Warm-up']));
+      wc.appendChild(el('p', {}, ['Each group submits a ' + st.warmup.years + '-year plan for ' + MS.countryName(st.warmup.country) + ' (at most ' + (st.warmup.maxNonZero || 'any number of') + ' instruments, each within ±' + st.bounds.lever + '). The administrator runs the plans one by one in MacSim; results come back to each group.']));
+      if (st.revealWarmup && (data.warmupAll || []).length) {
+        var byG = {}; data.warmupAll.forEach(function (r) { (byG[r.key] = byG[r.key] || {})[r.year] = r; });
+        var years = []; for (var y = 1; y <= st.warmup.years; y++) years.push(y);
+        var rows = Object.keys(byG).map(function (k) { var rs = years.map(function (yy) { return byG[k][yy] ? byG[k][yy].R : null; }); var vals = rs.filter(function (x) { return x !== null; }); return { key: k, rs: rs, avg: vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null }; });
+        rows.sort(function (a, b) { return (b.avg === null ? -1e9 : b.avg) - (a.avg === null ? -1e9 : a.avg); });
+        var hw = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Group</th>' + years.map(function (yy) { return '<th class="num">R · year ' + yy + '</th>'; }).join('') + '<th class="num">Average R</th></tr></thead><tbody>';
+        rows.forEach(function (r, i) { hw += '<tr><td class="rank">' + (i + 1) + '</td><td><b>' + esc(groupName(r.key)) + '</b></td>' + r.rs.map(function (x) { return '<td class="num ' + UI.signedClass(x) + '">' + esc(MS.fmt(x, 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(r.avg) + '"><b>' + esc(MS.fmt(r.avg, 3, true)) + '</b></td></tr>'; });
+        wc.appendChild(el('h3', { style: 'margin-top:12px' }, ['Debrief · all groups'])); wc.appendChild(el('div', { html: hw + '</tbody></table></div>' }));
+      }
+      left.appendChild(wc);
+    }
+    app.appendChild(el('div', { class: 'grid2' }, [left, right]));
+    reveals.forEach(function (c) { app.appendChild(c); });
+  }
+  function updateCountdown() {
+    var c = $('#countdown'); if (!c || !data) return;
+    var t = UI.countdownText(data.state.deadline, offset); if (!t) return;
+    c.textContent = (t.late ? 'time is up ' : '') + t.text; c.classList.toggle('late', t.late);
+  }
+  setInterval(updateCountdown, 1000);
+  setInterval(load, 15000);
+  load();
+})();
+</script>
+</body>
+</html>
