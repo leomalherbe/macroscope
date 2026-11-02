@@ -323,11 +323,12 @@ var MS = (function () {
      listGroups() -> [{classId, groupId, name, pin, country, members}]
      replaceGroups(classId, groups)
      appendRow(table, obj) ; readRows(table) -> [obj]      tables: decisions, results, pledges, comments, log
+     deleteRows(table, predicate) -> number removed ; deleteConfig(key)
      now() -> Date
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.0';
+  var VERSION = '1.1';
   var GRACE_MS = 60 * 1000;
 
   function fail(msg) { return { ok: false, error: msg }; }
@@ -586,6 +587,20 @@ var MSService = (function () {
     setClasses(st, list);
     return { ok: true, classes: list };
   }
+  function actAdminClassDelete(st, p) {
+    var list = getClasses(st);
+    var cls = list.filter(function (x) { return x.id === p.classId; })[0];
+    if (!cls) return fail('Unknown class.');
+    if (String(p.name || '').trim() !== cls.name) return fail('Type the exact class name to confirm the deletion.');
+    var id = cls.id;
+    setClasses(st, list.filter(function (x) { return x.id !== id; }));
+    st.deleteConfig('state:' + id);
+    st.replaceGroups(id, []);
+    var n = 0;
+    ['decisions', 'results', 'pledges', 'comments', 'log'].forEach(function (t) { n += st.deleteRows(t, function (r) { return String(r.classId) === id; }); });
+    log(st, 'class.delete', '', 'admin', cls.name + ' (' + n + ' rows removed)');
+    return { ok: true, classes: getClasses(st), removed: n };
+  }
   function actAdminStateSet(st, p) {
     if (!classExists(st, p.classId)) return fail('Unknown class.');
     var state = MS.mergeState(getState(st, p.classId), p.patch || {});
@@ -652,7 +667,7 @@ var MSService = (function () {
 
   /* ---------- dispatcher ---------- */
   var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard };
-  var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename,
+  var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename, 'admin.class.delete': actAdminClassDelete,
     'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.results.set': actAdminResultsSet };
 
   function handle(action, params, storage) {
@@ -816,7 +831,35 @@ function makeStorage_(ss) {
       sheet(k).appendRow(toRow(k, obj));
       cache[k] = null;
     },
-    readRows: function (k) { return readAll(k); }
+    readRows: function (k) { return readAll(k); },
+    deleteConfig: function (key) {
+      var sh = sheet('config');
+      var values = sh.getDataRange().getValues();
+      for (var i = values.length - 1; i >= 1; i--) if (String(values[i][0]) === key) sh.deleteRow(i + 1);
+      cache.config = null;
+    },
+    /* rewrites the tab without the rows matching pred (append-only tabs, so this is the only destructive operation) */
+    deleteRows: function (k, pred) {
+      var sh = sheet(k);
+      var header = SHEETS[k].header;
+      var values = sh.getDataRange().getValues();
+      if (values.length < 2) return 0;
+      var keep = [values[0]], removed = 0;
+      for (var i = 1; i < values.length; i++) {
+        var r = values[i];
+        if (r.join('') === '') continue;
+        var o = {};
+        for (var j = 0; j < header.length; j++) o[header[j]] = normalizeCell_(r[j]);
+        if (pred(o)) removed++; else keep.push(r.map(cellSafe_));
+      }
+      if (removed) {
+        sh.clearContents();
+        sh.getRange(1, 1, keep.length, keep[0].length).setValues(keep);
+        sh.getRange(1, 1, 1, header.length).setFontWeight('bold');
+      }
+      cache[k] = null;
+      return removed;
+    }
   };
 }
 

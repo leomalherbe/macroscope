@@ -120,7 +120,19 @@
       bar.appendChild(el('a', { class: 'btn sm ghost', href: boardUrl(), target: '_blank' }, ['Open the board ↗']));
       bar.appendChild(el('a', { class: 'btn sm ghost', href: studentUrl(), target: '_blank' }, ['Student page ↗']));
     }
+    if (classId) bar.appendChild(el('button', { class: 'btn sm danger', onclick: deleteClass }, ['Delete class…']));
     bar.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { key = ''; UI.store('macsim.adminKey', null); renderLogin(); } }, ['Log out']));
+  }
+  async function deleteClass() {
+    var cls = classes.filter(function (c) { return c.id === classId; })[0]; if (!cls) return;
+    var typed = prompt('Delete the class « ' + cls.name + ' » with all its groups, PINs, decisions, results, pledges and analyses? This cannot be undone.\n\nType the class name to confirm:');
+    if (typed === null) return;
+    if (typed.trim() !== cls.name) { UI.toast('Name does not match — nothing deleted', 4000); return; }
+    var r = await MSApi.call('admin.class.delete', { key: key, classId: classId, name: typed.trim() });
+    if (!r.ok) { UI.toast(r.error || 'Error', 5000); return; }
+    classes = r.classes; classId = classes.length ? classes[0].id : ''; UI.store('macsim.classId', classId);
+    UI.toast('Class deleted (' + r.removed + ' rows removed)', 4000);
+    renderClassBar(); if (classId) refresh(); else renderNoClass();
   }
   async function createClass() {
     var name = prompt('Name of the class (e.g. "M1 Finance – group A")');
@@ -140,7 +152,7 @@
       var r = await MSApi.call('admin.overview', { key: key, classId: classId });
       if (!r.ok) { if (/administrator key/i.test(r.error)) { key = ''; renderLogin(r.error); } else UI.toast(r.error); return; }
       ov = r; offset = Date.parse(r.now) - Date.now();
-      $('#footTime').textContent = 'Updated ' + UI.fmtTime(r.now);
+      $('#footTime').textContent = 'Updated ' + UI.fmtTime(r.now) + ' · backend v' + (r.version || '?');
       renderStrip(); renderTabs();
       if (quiet) { if (tab === 'control') renderStatusGrid(); else if (tab === 'entry') renderEntry(); else if (tab === 'council') renderCouncil(); }
       else renderTab();
