@@ -25,7 +25,7 @@ Tout est en anglais côté étudiants (langue du cours).
 
 À tester avant la séance : ouvrir la page étudiants avec un PIN depuis votre téléphone, soumettre un plan, le voir apparaître dans **Entry sheets**.
 
-> Après toute modification de `Code.gs`, il faut **Déployer → Gérer les déploiements → ✎ → Version : Nouvelle version → Déployer** (l'URL ne change pas). Modifier les pages HTML ne demande rien de plus qu'un push.
+> Après toute modification de `Code.gs` (nouvelle version de l'interface) : dans l'éditeur Apps Script, remplacer tout le contenu de `Code.gs` par le nouveau fichier, enregistrer, puis **Déployer → Gérer les déploiements → ✎ (modifier) → Version : « Nouvelle version » → Déployer**. L'URL ne change pas, rien à refaire côté site. Modifier les pages HTML ne demande rien de plus qu'un push. La console affiche la version du script dans son pied de page après connexion ; « Unknown action » signale un script pas encore republié.
 
 ---
 
@@ -75,6 +75,7 @@ Plusieurs classes : **+ New class** ; chaque classe a ses groupes, son état et 
 - Les pages fonctionnent aussi sans `config.js` renseigné : ajouter `?api=URL_DU_SCRIPT` à l'adresse (utile pour tester avant le push).
 - La Sheet est la vérité : tout est append-only (la dernière ligne par groupe/tour l'emporte), l'onglet `Log` trace chaque action. Vous pouvez la consulter pendant la séance sans rien casser ; évitez d'y écrire à la main.
 - Un groupe a perdu son PIN : onglet *Groups* de la console.
+- Supprimer une classe (par ex. une classe de test) : bouton **Delete class…** dans la barre du haut de la console ; il faut retaper le nom exact de la classe. Ses groupes, PIN, décisions, résultats, engagements et analyses sont retirés de la Sheet (les autres classes ne bougent pas). Irréversible.
 - L'import PDF ne remplit rien : vérifier que le fichier est le rapport complet (pages « Objectifs Principaux ») et que l'année du rapport correspond au tour sélectionné ; le message sous le bouton indique les pays/années lus et ignorés. La lecture se fait dans votre navigateur (pdf.js chargé depuis cdnjs) : rien n'est envoyé ailleurs que dans votre Sheet.
 
 ---
