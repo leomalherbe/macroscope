@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MacSim 2 · Policy desk</title>
-<meta name="description" content="Submit your group's macroeconomic policy decisions for the MacSim 2 simulation game.">
+<title>OPEN-MU · Policy desk</title>
+<meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -18,7 +18,7 @@
   <div class="wrap">
     <div>
       <div class="kicker" id="courseLabel">International Financial Macroeconomics</div>
-      <h1>MacSim 2 · Policy desk</h1>
+      <h1>OPEN-MU · Policy desk</h1>
       <p class="sub">Submit your group's policy decisions. <a id="homeLink" href="#">← Course home</a></p>
     </div>
     <div class="who" id="who"></div>
@@ -27,7 +27,7 @@
 
 <main><div class="wrap" id="app"><div class="card"><p class="muted">Loading…</p></div></div></main>
 
-<footer><div class="wrap"><span>MacSim 2 · Brillet, Cette &amp; Gambini · Policy desk by the IFM course team</span><span id="footTime"></span></div></footer>
+<footer><div class="wrap"><span>OPEN-MU · a stock-flow consistent model of a monetary union, after Godley &amp; Lavoie · Policy desk by the IFM course team</span><span id="footTime"></span></div></footer>
 
 <script>
 (function () {
@@ -196,11 +196,11 @@
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title]), el('span', { id: 'formStatus', class: 'small muted' })]));
 
     var rules = [];
-    rules.push('every lever is a relative variation, in %, of your country’s own reference level (VAT +5 means the VAT rate rises by 5 % of its current level, e.g. from 20 % to 21 %); tariffs are absolute variations in points');
+    rules.push('every value is a relative variation, in %, of your country’s reference level (public demand +5 = 5 % more public spending; income tax +5 = a tax rate 5 % higher, e.g. from 20 % to 21 %)');
     rules.push('each variation between −' + f.bounds.lever + ' % and +' + f.bounds.lever + ' %');
     if (f.maxNonZero) rules.push('at most ' + f.maxNonZero + ' instruments');
     if (f.isWarm) rules.push('all other countries keep their policies unchanged');
-    rules.push('0 = no change');
+    rules.push('0 = no change from the reference');
     card.appendChild(el('p', { class: 'muted small' }, ['Rules: ' + rules.join(' · ') + '.']));
 
     /* lever table */
@@ -368,7 +368,28 @@
     return h + '</tbody></table></div>';
   }
   function weightsLine(w) {
-    return 'Deviations from the reference run (GDP in %, the rest in points). R is MacSim’s objective function: higher GDP, lower unemployment and inflation, better public and trade balances raise it. The lines « of which » split each result between your own policy, the other countries’ policies and the administrator’s shocks.';
+    return 'Deviations from the reference path (GDP in %, the rest in points). R is the objective function: higher GDP, lower unemployment and inflation, better public and trade balances raise it. The lines « of which » split each result between your own policy, the other countries’ policies and the administrator’s shocks.';
+  }
+  function ratiosLine(rows) {
+    var last = rows.filter(function (r) { return r.detail && r.detail.extra && (r.detail.extra.debt !== undefined || r.detail.extra.wealth !== undefined); }).sort(function (a, b) { return b.year - a.year; })[0];
+    if (!last) return null;
+    var x = last.detail.extra;
+    return el('p', { class: 'small muted', style: 'margin:.4em 0 0' }, ['End of year ' + last.year + ': public debt ' + MS.fmt(x.debt, 1) + ' % of GDP · household wealth ' + MS.fmt(x.wealth, 1) + ' % of GDP' + (x.gap !== undefined ? ' · output gap ' + MS.fmt(x.gap, 2, true) + ' %' : '') + '.']);
+  }
+  function unionPanel(rows, title) {
+    var last = (rows || []).filter(function (r) { return r.detail && r.detail.extra; }).sort(function (a, b) { return b.year - a.year; })[0];
+    if (!last) return null;
+    var u = last.detail.extra;
+    var pct = u.R0 ? Math.max(0, Math.min(100, 100 * u.R / u.R0)) : 0;
+    var card = el('div', { class: 'card' });
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title || 'The monetary union']), el('span', { class: 'small muted' }, ['after year ' + last.year])]));
+    card.appendChild(el('div', { class: 'union', html:
+      '<div class="urow"><span>Foreign reserves of the common central bank</span><span class="num">' + esc(MS.fmt(u.months, 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+      '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>' +
+      '<div class="urow"><span>Current account of the union with the rest of the world</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
+      '<div class="urow"><span>Exchange rate (union currency per unit of world currency; up = devaluation)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' }));
+    card.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the administrator may decree a devaluation.']));
+    return card;
   }
   function renderResults() {
     var st = data.state, box = $('#results');
@@ -379,7 +400,7 @@
       var mine = (data.myResults || []).filter(function (r) { return r.phase === 'warmup'; }).sort(function (a, b) { return a.year - b.year; });
       var card = el('div', { class: 'card' });
       card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Your results']), el('span', { class: 'small muted' }, [weightsLine(w)])]));
-      if (!mine.length) card.appendChild(el('p', { class: 'muted' }, ['Results will appear here once the administrator has run your plan in MacSim.']));
+      if (!mine.length) card.appendChild(el('p', { class: 'muted' }, ['Results will appear here once the administrator has run your plan.']));
       else {
         card.appendChild(el('div', { html: resultsTable(mine.map(function (r) { return Object.assign({ _label: 'Year ' + r.year }, r); })) }));
         var cm = (data.myComments || []).filter(function (c) { return c.phase === 'warmup'; })[0];
@@ -390,7 +411,9 @@
         card.appendChild(el('div', { id: 'commentMsg' }, cm ? [el('div', { class: 'ok' }, ['Comment saved at ' + UI.fmtDateTime(cm.ts) + ' — you can still edit it.'])] : []));
         card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () { postComment('warmup', 1); } }, [cm ? 'Update our analysis' : 'Submit our analysis'])]));
       }
+      var rl = ratiosLine(mine); if (rl) card.appendChild(rl);
       box.appendChild(card);
+      var up = unionPanel((data.union || []).filter(function (r) { return r.phase === 'warmup'; }), 'The monetary union during your plan'); if (up) box.appendChild(up);
       if (st.revealWarmup && (data.warmupAll || []).length) {
         var byG = {}; data.warmupAll.forEach(function (r) { (byG[r.key] = byG[r.key] || {})[r.year] = r; });
         var years = []; for (var y = 1; y <= st.warmup.years; y++) years.push(y);
@@ -412,8 +435,9 @@
     var cardG = el('div', { class: 'card' });
     cardG.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [MS.countryName(data.group.country) + ' · results so far']), el('span', { class: 'small muted' }, [weightsLine(w)])]));
     if (!mineG.length) cardG.appendChild(el('p', { class: 'muted' }, ['No year has been simulated yet.']));
-    else cardG.appendChild(el('div', { html: resultsTable(mineG.map(function (r) { return Object.assign({ _label: 'Year ' + r.year }, r); })) }));
+    else { cardG.appendChild(el('div', { html: resultsTable(mineG.map(function (r) { return Object.assign({ _label: 'Year ' + r.year }, r); })) })); var rlG = ratiosLine(mineG); if (rlG) cardG.appendChild(rlG); }
     box.appendChild(cardG);
+    var upG = unionPanel((data.union || []).filter(function (r) { return r.phase === 'game'; }), 'The monetary union'); if (upG) box.appendChild(upG);
     if (st.publishLeaderboard) {
       var lb = MS.leaderboard(data.gameResults || [], w);
       var cardL = el('div', { class: 'card' });

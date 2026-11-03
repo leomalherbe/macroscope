@@ -1,4 +1,4 @@
-/* MacSim policy desk — browser helpers shared by the three pages (requires core.js + config.js) */
+/* OPEN-MU policy desk — browser helpers shared by the three pages (requires core.js + config.js) */
 var MSApi = (function () {
   'use strict';
   var JSONP_N = 0;

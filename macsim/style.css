@@ -1,4 +1,4 @@
-/* MacSim policy desk — shared styles (house style of the IFM course site) */
+/* OPEN-MU policy desk — shared styles (house style of the IFM course site) */
 :root{
   --ink:#1b2437; --muted:#5b6475; --bg:#fbfaf6; --card:#ffffff; --line:#e6e2d6; --line-strong:#cfc9b8;
   --gold:#c29d2c; --gold-soft:#f5ecd2; --navy:#14213d; --blue:#2f5d9e; --blue-soft:#e6eef9;
@@ -151,6 +151,19 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .resgrid input.nz{font-weight:500}
 .resgrid th{white-space:normal;line-height:1.25}
 .resgrid td{padding:5px 6px}
+.resgrid td:first-child{white-space:nowrap}
+.resgrid th.num{min-width:72px}
+
+/* union panel (reserves, current account, exchange rate) */
+.union h3{margin-bottom:.4em}
+.union .urow{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:5px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+.union .urow:last-child{border-bottom:none}
+.union .num{font-family:var(--mono);white-space:nowrap}
+.bar.reserves{margin:8px 0 10px;height:16px;background:#f1eee4}
+.bar.reserves i{left:0;background:var(--green)}
+.bar.reserves i.neg{background:var(--red)}
+.bar.reserves b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--red);opacity:.6}
+.board .union .urow{font-size:1.05rem}
 
 /* board */
 body.board{font-size:17px}
