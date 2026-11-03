@@ -374,7 +374,12 @@
     var last = rows.filter(function (r) { return r.detail && r.detail.extra && (r.detail.extra.debt !== undefined || r.detail.extra.wealth !== undefined); }).sort(function (a, b) { return b.year - a.year; })[0];
     if (!last) return null;
     var x = last.detail.extra;
-    return el('p', { class: 'small muted', style: 'margin:.4em 0 0' }, ['End of year ' + last.year + ': public debt ' + MS.fmt(x.debt, 1) + ' % of GDP · household wealth ' + MS.fmt(x.wealth, 1) + ' % of GDP' + (x.gap !== undefined ? ' · output gap ' + MS.fmt(x.gap, 2, true) + ' %' : '') + '.']);
+    var parts = ['public debt ' + MS.fmt(x.debt, 1) + ' % of GDP', 'household wealth ' + MS.fmt(x.wealth, 1) + ' % of GDP'];
+    if (x.inv !== undefined) parts.push('investment ' + MS.fmt(x.inv, 1, true) + ' % vs reference');
+    if (x.loans !== undefined) parts.push('firms’ bank debt ' + MS.fmt(x.loans, 1) + ' % of GDP');
+    if (x.deposits !== undefined) parts.push('bank deposits ' + MS.fmt(x.deposits, 1) + ' % of GDP');
+    if (x.gap !== undefined) parts.push('output gap ' + MS.fmt(x.gap, 2, true) + ' %');
+    return el('p', { class: 'small muted', style: 'margin:.4em 0 0' }, ['End of year ' + last.year + ': ' + parts.join(' · ') + '.']);
   }
   function unionPanel(rows, title) {
     var last = (rows || []).filter(function (r) { return r.detail && r.detail.extra; }).sort(function (a, b) { return b.year - a.year; })[0];
