@@ -179,7 +179,48 @@
       years.push(yr);
     }
     var ta = $('#decisionText');
-    return { years: years, text: ta ? ta.value : '' };
+    var out = { years: years, text: ta ? ta.value : '' };
+    if (!f.isWarm && votesConfig().on) {
+      var vr = $('#form input[name="V_rate"]:checked'), vc = $('#form input[name="V_crisis"]:checked');
+      out.votes = { rate: vr ? vr.value : 'hold', crisis: vc ? vc.value : 'austerity' };
+    }
+    return out;
+  }
+  /* votes at the central bank: rules from the state, crisis question only when the union ended the last published year under alert */
+  function votesConfig() {
+    var st = data.state, sim = Object.assign({}, MS.defaultState().sim, st.sim || {});
+    var last = (data.union || []).filter(function (r) { return r.phase === 'game' && r.detail && r.detail.extra && Number(r.year) === Number(st.round) - 1; })[0];
+    var u = last ? last.detail.extra : null;
+    return { on: st.phase === 'game' && sim.votes !== false, step: sim.voteStep, cap: sim.austerityCap, deval: sim.devalSize, forced: sim.forcedDeval,
+      crisis: !!(u && u.alert && u.R > 0), exhausted: !!(u && u.R <= 0), lastYear: last ? last.year : null };
+  }
+  /* was a crisis vote held in year y? (from the published union rows: the run of year y, or the alert at the end of y−1) */
+  function crisisHeld(y) {
+    var rows = (data.union || []).filter(function (r) { return r.phase === 'game' && r.detail && r.detail.extra; });
+    var run = rows.filter(function (r) { return Number(r.year) === Number(y); })[0], prev = rows.filter(function (r) { return Number(r.year) === Number(y) - 1; })[0];
+    if (run && run.detail.extra.votes) return !!(run.detail.extra.votes.crisis && run.detail.extra.votes.crisis.active);
+    return !!(prev && prev.detail.extra.alert && prev.detail.extra.R > 0);
+  }
+  function votesBlock(pv) {
+    var vc = votesConfig(); if (!vc.on) return null;
+    var prevV = MS.cleanVotes(pv && pv.votes);
+    function q(name, title, hint, opts, cur, cls) {
+      var box = el('div', { class: 'q' + (cls ? ' ' + cls : '') }); box.appendChild(el('b', {}, [title])); box.appendChild(el('span', { class: 'hint' }, [hint]));
+      var row = el('div', { class: 'opts' });
+      opts.forEach(function (o) { var r = el('input', { type: 'radio', name: name, value: o[0] }); r.checked = cur === o[0]; r.addEventListener('change', onInput); row.appendChild(el('label', {}, [r, o[1]])); });
+      box.appendChild(row); return box;
+    }
+    var wrap = el('div', { class: 'votes' });
+    wrap.appendChild(q('V_rate', 'The central bank’s rate', 'One country, one vote. A majority of the countries moves the rate by ' + MS.fmt(vc.step, 2) + ' pt, permanently. It acts on investment next year and on every budget’s debt service at once.',
+      [['cut', 'Cut −' + MS.fmt(vc.step, 2) + ' pt'], ['hold', 'Hold'], ['hike', 'Hike +' + MS.fmt(vc.step, 2) + ' pt']], prevV.rate));
+    if (vc.crisis) wrap.appendChild(q('V_crisis', 'Reserves crisis: austerity or devaluation?', 'The union’s reserves ended year ' + vc.lastYear + ' below the alert line. Austerity caps every member’s public demand and benefits at ' + MS.fmt(vc.cap, 0) + ' % of the reference this year; a devaluation of ' + MS.fmt(vc.deval, 0) + ' % restores exports with a lag but raises import prices and inflation.',
+      [['austerity', 'Austerity'], ['devaluation', 'Devaluation']], prevV.crisis, 'crisis'));
+    else if (vc.exhausted) wrap.appendChild(el('div', { class: 'q crisis' }, [el('b', {}, ['Reserves exhausted']), el('span', { class: 'hint' }, ['The central bank has no reserves left: a devaluation of ' + MS.fmt(vc.forced, 0) + ' % is forced this year, whatever anyone votes.'])]));
+    var card = el('div');
+    card.appendChild(el('h3', { style: 'margin:14px 0 2px' }, ['Votes at the central bank']));
+    card.appendChild(el('p', { class: 'muted small', style: 'margin:0' }, ['Your votes travel with your decisions and stay secret while the round is open; they are revealed with everyone’s decisions once it is closed.']));
+    card.appendChild(wrap);
+    return card;
   }
 
   function buildForm() {
@@ -201,6 +242,7 @@
     if (f.maxNonZero) rules.push('at most ' + f.maxNonZero + ' instruments');
     if (f.isWarm) rules.push('all other countries keep their policies unchanged');
     rules.push('0 = no change from the reference');
+    if (!f.isWarm && votesConfig().on) rules.push('your votes at the central bank go with your decisions');
     card.appendChild(el('p', { class: 'muted small' }, ['Rules: ' + rules.join(' · ') + '.']));
 
     /* lever table */
@@ -254,6 +296,9 @@
       ot.appendChild(ob); card.appendChild(el('div', { class: 'tablewrap' }, [ot]));
     }
     card.appendChild(el('div', { class: 'counter', id: 'usedCounter', style: 'margin-top:8px' }));
+
+    /* votes (game) */
+    var vb = votesBlock(pv); if (vb) card.appendChild(vb);
 
     /* text */
     var fld = el('div', { class: 'field' });
@@ -389,11 +434,14 @@
     var card = el('div', { class: 'card' });
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title || 'The monetary union']), el('span', { class: 'small muted' }, ['after year ' + last.year])]));
     card.appendChild(el('div', { class: 'union', html:
-      '<div class="urow"><span>Foreign reserves of the common central bank</span><span class="num">' + esc(MS.fmt(u.months, 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+      '<div class="urow"><span>Foreign reserves of the common central bank</span><span class="num">' + esc(MS.fmt(Math.max(0, u.months), 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
       '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>' +
       '<div class="urow"><span>Current account of the union with the rest of the world</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
-      '<div class="urow"><span>Exchange rate (union currency per unit of world currency; up = devaluation)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' }));
-    card.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the administrator may decree a devaluation.']));
+      '<div class="urow"><span>Exchange rate (union currency per unit of world currency; up = devaluation)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
+      UI.voteLinesHtml(u) }));
+    card.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, [u.votes && u.votes.rate
+      ? 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the next round carries a vote between austerity and devaluation; exhausted reserves force a devaluation.'
+      : 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the administrator may decree a devaluation.']));
     return card;
   }
   function renderResults() {
@@ -502,14 +550,18 @@
       return;
     }
     list.forEach(function (rd, idx) {
-      var h = '<div class="tablewrap"><table><thead><tr><th>Country</th><th>Group</th><th>Decisions</th><th>Submitted</th></tr></thead><tbody>';
+      var hasVotes = rd.decisions.some(function (d) { return d.payload && d.payload.votes; });
+      var runRow = (data.union || []).filter(function (r) { return r.phase === 'game' && r.detail && r.detail.extra && Number(r.year) === Number(rd.round); })[0];
+      var crisisShown = crisisHeld(rd.round);
+      var h = '<div class="tablewrap"><table><thead><tr><th>Country</th><th>Group</th><th>Decisions</th>' + (hasVotes ? '<th>Votes</th>' : '') + '<th>Submitted</th></tr></thead><tbody>';
       var rows = rd.decisions.slice().sort(function (a, b) { return MS.countryName(a.country).localeCompare(MS.countryName(b.country)); });
       rows.forEach(function (d) {
         var g = (data.groups || []).filter(function (x) { return x.groupId === d.groupId; })[0];
-        h += '<tr' + (d.country === data.group.country ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(d.country)) + '</b></td><td class="small muted">' + esc(g ? g.name : '') + '</td><td>' + UI.chipsHtml(d.payload.years[0]) + '</td><td class="small muted">' + esc(UI.fmtTime(d.ts)) + '</td></tr>';
+        h += '<tr' + (d.country === data.group.country ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(d.country)) + '</b></td><td class="small muted">' + esc(g ? g.name : '') + '</td><td>' + UI.chipsHtml(d.payload.years[0]) + '</td>' + (hasVotes ? '<td>' + (UI.voteChipsHtml(d.payload.votes, { crisis: crisisShown }) || '<span class="muted">—</span>') + '</td>' : '') + '<td class="small muted">' + esc(UI.fmtTime(d.ts)) + '</td></tr>';
       });
       var missing = (data.groups || []).filter(function (g) { return g.country && !rd.decisions.some(function (d) { return d.groupId === g.groupId; }); });
-      missing.forEach(function (g) { h += '<tr><td><b>' + esc(MS.countryName(g.country)) + '</b></td><td class="small muted">' + esc(g.name) + '</td><td><span class="chip zero">no decision submitted</span></td><td></td></tr>'; });
+      missing.forEach(function (g) { h += '<tr><td><b>' + esc(MS.countryName(g.country)) + '</b></td><td class="small muted">' + esc(g.name) + '</td><td><span class="chip zero">no decision submitted</span></td>' + (hasVotes ? '<td><span class="chip zero">hold' + (crisisShown ? ' · austerity' : '') + '</span></td>' : '') + '<td></td></tr>'; });
+      if (runRow && runRow.detail.extra.votes) h += '<tr><td colspan="' + (hasVotes ? 5 : 4) + '" class="small muted">' + UI.voteLinesHtml(runRow.detail.extra).replace(/class="urow"/g, 'class="urow inline"') + '</td></tr>';
       var card = el('div', { class: 'card' });
       var title = 'Everyone’s decisions · year ' + rd.round + (rd.round === Number(st.round) ? ' (round closed)' : '');
       if (idx === 0) { card.appendChild(el('h2', {}, [title])); card.appendChild(el('div', { html: h + '</tbody></table></div>' })); }
@@ -524,7 +576,7 @@
     var past = (data.myDecisions || []).filter(function (d) { return d.phase === 'game' && Number(d.round) < Number(st.round); }).sort(function (a, b) { return a.round - b.round; });
     if (st.phase !== 'game' || !past.length) return;
     var det = el('details', {}, [el('summary', {}, ['Your previous decisions (' + past.length + ')'])]);
-    past.forEach(function (d) { det.appendChild(el('div', { class: 'pledge', html: '<b>Year ' + d.round + '</b> <span class="muted small">' + esc(UI.fmtDateTime(d.ts)) + '</span><br>' + UI.chipsHtml(d.payload.years[0]) + '<p class="small" style="margin:6px 0 0">' + esc(d.payload.text) + '</p>' })); });
+    past.forEach(function (d) { det.appendChild(el('div', { class: 'pledge', html: '<b>Year ' + d.round + '</b> <span class="muted small">' + esc(UI.fmtDateTime(d.ts)) + '</span><br>' + UI.chipsHtml(d.payload.years[0]) + UI.voteChipsHtml(d.payload.votes, { crisis: crisisHeld(d.round) }) + '<p class="small" style="margin:6px 0 0">' + esc(d.payload.text) + '</p>' })); });
     box.appendChild(el('div', { class: 'card' }, [det]));
   }
 

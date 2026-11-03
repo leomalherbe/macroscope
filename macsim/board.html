@@ -57,10 +57,11 @@
     var c = el('div', { class: 'card' + (u.alert ? ' alert' : '') });
     c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title]), el('span', { class: 'small muted' }, ['after year ' + last.year])]));
     c.appendChild(el('div', { class: 'union', html:
-      '<div class="urow"><span>Foreign reserves</span><span class="num">' + esc(MS.fmt(u.months, 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+      '<div class="urow"><span>Foreign reserves</span><span class="num">' + esc(MS.fmt(Math.max(0, u.months), 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
       '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>' +
       '<div class="urow"><span>Current account with the rest of the world</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
-      '<div class="urow"><span>Exchange rate</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' }));
+      '<div class="urow"><span>Exchange rate</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
+      UI.voteLinesHtml(u) }));
     return c;
   }
   function render() {

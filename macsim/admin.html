@@ -284,7 +284,7 @@
 
     /* parameters */
     var c5 = el('div', { class: 'card' });
-    var det = el('details', {}, [el('summary', {}, ['Parameters (bounds, instruments allowed, objective weights)'])]);
+    var det = el('details', {}, [el('summary', {}, ['Parameters (bounds, instruments allowed, votes, objective weights)'])]);
     var box = el('div', { style: 'margin-top:12px' });
     function numField(label, val, step) { var i = el('input', { type: 'number', step: step || 0.05, value: val }); return { el: el('div', {}, [el('label', { class: 'small' }, [label]), el('br'), i]), input: i }; }
     var pb = numField('Bound on levers (± %, relative variation)', s.bounds.lever, 0.5), pt = numField('Bound on tariffs (± points, absolute)', s.bounds.tariff, 0.5), pp = numField('Bound on TFP shock (± %)', s.bounds.tfp, 0.5);
@@ -307,6 +307,13 @@
     var gTfp = el('input', { type: 'checkbox' }); gTfp.checked = !!s.game.allowTfp;
     box.appendChild(el('div', { class: 'params' }, [gy.el, gm.el, gt.el]));
     box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', {}, [gTar, ' tariffs allowed']), el('label', {}, [gEu, ' leaving/joining the euro allowed']), el('label', {}, [gTfp, ' TFP shock allowed'])]));
+    box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Votes at the central bank (game)']));
+    var simNow = Object.assign({}, MS.defaultState().sim, s.sim || {});
+    var vOn = el('input', { type: 'checkbox' }); vOn.checked = simNow.votes !== false;
+    var vStep = numField('Rate step per majority vote (pt)', simNow.voteStep, 0.25), vCap = numField('Austerity cap on public demand and benefits (% of ref.)', simNow.austerityCap, 1), vDev = numField('Devaluation if voted (%)', simNow.devalSize, 1), vForced = numField('Forced devaluation when reserves are exhausted (%)', simNow.forcedDeval, 1);
+    box.appendChild(el('div', { class: 'checks', style: 'margin:0 0 8px' }, [el('label', {}, [vOn, ' votes enabled (rate: cut / hold / hike; reserves crisis: austerity / devaluation)'])]));
+    box.appendChild(el('div', { class: 'params' }, [vStep.el, vCap.el, vDev.el, vForced.el]));
+    box.appendChild(el('p', { class: 'muted small' }, ['One country, one vote; a majority of the playing countries is needed (a country without a decision votes hold / austerity). The crisis vote is held only when the union’s reserves ended the previous year below the alert line.']));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Objective function weights']));
     var wInputs = {};
     box.appendChild(el('div', { class: 'params' }, MS.INDICATORS.map(function (i) { var f = numField((i.sign > 0 ? '+ ' : '− ') + i.label, s.weights[i.id]); wInputs[i.id] = f.input; return f.el; })));
@@ -317,7 +324,8 @@
       patch({ bounds: { lever: MS.num(pb.input.value), tariff: MS.num(pt.input.value), tfp: MS.num(pp.input.value) },
         warmup: { country: wc.value, years: Math.max(1, Math.min(3, Math.round(MS.num(wy.input.value)) || 3)), allowed: allowed, maxNonZero: Math.round(MS.num(wm.input.value)), minText: Math.round(MS.num(wt.input.value)) },
         game: { allowTariff: gTar.checked, allowEuro: gEu.checked, allowTfp: gTfp.checked, maxNonZero: Math.round(MS.num(gm.input.value)), minText: Math.round(MS.num(gt.input.value)) },
-        years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w }, 'Parameters saved');
+        years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w,
+        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15 } }, 'Parameters saved');
     } }, ['Save parameters'])]));
     det.appendChild(box); c5.appendChild(det); v.appendChild(c5);
   }
@@ -539,7 +547,8 @@
   function engineParams() {
     var p = OPENMU.defaultParams();
     var ov_ = st().sim || {};
-    Object.keys(ov_).forEach(function (k) { if (k !== 'countries') p[k] = ov_[k]; });
+    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, forcedDeval: 1 };   // console rules, not engine parameters
+    Object.keys(ov_).forEach(function (k) { if (k !== 'countries' && !rules[k]) p[k] = ov_[k]; });
     return p;
   }
   function shocksList(nYears) {
@@ -551,10 +560,12 @@
     }
     return list;
   }
-  function unionRow(u, year, key) {
-    return { key: key || 'UNION', year: year, gdp: '', unemp: '', infl: '', pubbal: '', tradebal: '', R: '',
-      detail: { extra: roundDeep({ CA: u.CA, R: u.R, R0: u.R0, xr: u.xr, alert: !!u.alert, months: u.months, gdp: u.gdp, rate: u.r }, 4) } };
+  function unionRow(u, year, key, extra) {
+    var x = { CA: u.CA, R: u.R, R0: u.R0, xr: u.xr, alert: !!u.alert, months: u.months, gdp: u.gdp, rate: u.r };
+    if (extra) Object.keys(extra).forEach(function (k) { x[k] = extra[k]; });
+    return { key: key || 'UNION', year: year, gdp: '', unemp: '', infl: '', pubbal: '', tradebal: '', R: '', detail: { extra: roundDeep(x, 4) } };
   }
+  function gameRules() { return Object.assign({}, MS.defaultState().sim, st().sim || {}); }
   function roundDeep(o, d) {
     if (typeof o === 'number') return Math.round(o * Math.pow(10, d)) / Math.pow(10, d);
     if (Array.isArray(o)) return o.map(function (x) { return roundDeep(x, d); });
@@ -573,10 +584,11 @@
     if (!u) return '<p class="muted small">No union data yet.</p>';
     var pct = u.R0 ? Math.max(0, Math.min(100, 100 * u.R / u.R0)) : 0;
     return '<div class="union">' + (title ? '<h3>' + esc(title) + '</h3>' : '') +
-      '<div class="urow"><span>Foreign reserves</span><span class="num">' + esc(MS.fmt(u.months, 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+      '<div class="urow"><span>Foreign reserves</span><span class="num">' + esc(MS.fmt(Math.max(0, u.months), 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
       '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>' +
       '<div class="urow"><span>Current account of the union</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
-      '<div class="urow"><span>Exchange rate (union currency per unit of world currency)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div></div>';
+      '<div class="urow"><span>Exchange rate (union currency per unit of world currency)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
+      UI.voteLinesHtml(u) + '</div>';
   }
   function renderRun() {
     var v = $('#view'); v.innerHTML = '';
@@ -623,7 +635,7 @@
     var row = el('div', { class: 'btnrow' });
     if (!isGame) row.appendChild(el('button', { class: 'btn primary', id: 'runBtn', onclick: runWarmup }, ['▶ Run all submitted plans']));
     else row.appendChild(el('button', { class: 'btn primary', id: 'runBtn', onclick: runGameYear }, ['▶ Run year ' + s.round]));
-    row.appendChild(el('span', { class: 'small muted' }, [isGame ? 'Replays years 1–' + s.round + ' from the stored decisions and shocks; countries without a decision keep their reference policy.' : 'Each plan is run alone: ' + MS.countryName(s.warmup.country) + ' follows the group’s plan, every other member stays at its reference policy.']));
+    row.appendChild(el('span', { class: 'small muted' }, [isGame ? 'Replays years 1–' + s.round + ' from the stored decisions, shocks and votes; countries without a decision keep their reference policy and vote hold / austerity.' : 'Each plan is run alone: ' + MS.countryName(s.warmup.country) + ' follows the group’s plan, every other member stays at its reference policy.']));
     c.appendChild(row);
     c.appendChild(el('div', { id: 'runPreview' }));
     v.appendChild(c);
@@ -650,10 +662,11 @@
   function policiesFromPayload(payload) {
     return (payload && payload.years ? payload.years : []).map(function (y) { var o = {}; MS.LEVERS.forEach(function (l) { o[l.id] = MS.num(y.levers ? y.levers[l.id] : 0) || 0; }); return o; });
   }
-  function runWarmup() {
-    var s = st(); var decs = decisionsFor('warmup', 1);
-    if (!decs.length) { UI.toast('No plan submitted yet'); return; }
+  async function runWarmup() {
     var btn = $('#runBtn'); btn.disabled = true; btn.textContent = 'Running…';
+    await refresh(true);   /* fresh decisions and shocks before simulating */
+    var s = st(); var decs = decisionsFor('warmup', 1);
+    if (!decs.length) { UI.toast('No plan submitted yet'); btn.disabled = false; btn.textContent = '▶ Run all submitted plans'; return; }
     try {
       var params = engineParams(); var T = Number(s.warmup.years || 3); var shocks = shocksList(T);
       var rows = [];
@@ -671,28 +684,79 @@
     } catch (e) { UI.toast('Engine error: ' + (e.message || e), 6000); }
     btn.disabled = false; btn.textContent = '▶ Run all submitted plans';
   }
-  function runGameYear() {
-    var s = st(); var N = Number(s.round);
-    if (ov.roundOpen) { UI.toast('Close the round first (Control → Close submissions), then run.', 5000); return; }
-    var btn = $('#runBtn'); btn.disabled = true; btn.textContent = 'Running…';
-    try {
-      var params = engineParams(); var shocks = shocksList(N);
-      var policies = {};
-      ov.groups.forEach(function (g) {
-        if (!g.country) return;
-        var plan = [];
-        for (var y = 1; y <= N; y++) {
-          var d = decisionsFor('game', y).filter(function (x) { return x.groupId === g.groupId; })[0];
-          plan.push(d ? policiesFromPayload(d.payload)[0] || {} : {});
+  /* tally of the votes of year y among the playing countries (a missing decision votes hold / austerity) */
+  function tallyVotes(y, playing) {
+    var decs = decisionsFor('game', y);
+    var t = { rate: { cut: 0, hold: 0, hike: 0 }, crisis: { austerity: 0, devaluation: 0 } };
+    playing.forEach(function (g) {
+      var d = decs.filter(function (x) { return x.groupId === g.groupId; })[0];
+      var v = MS.cleanVotes(d && d.payload ? d.payload.votes : null);
+      t.rate[v.rate]++; t.crisis[v.crisis]++;
+    });
+    return t;
+  }
+  /* replay years 1..N with the votes: returns the effective inputs and, per year, the tallies and caps (spec §7.3) */
+  function replayWithVotes(N, params) {
+    var s = st(), rules = gameRules(), votesOn = rules.votes !== false;
+    var playing = ov.groups.filter(function (g) { return !!g.country; });
+    var adminShocks = shocksList(N);
+    var policies = {};
+    playing.forEach(function (g) {
+      var plan = [];
+      for (var y = 1; y <= N; y++) {
+        var d = decisionsFor('game', y).filter(function (x) { return x.groupId === g.groupId; })[0];
+        plan.push(d ? (policiesFromPayload(d.payload)[0] || {}) : {});
+      }
+      policies[g.country] = plan;
+    });
+    var shocks = [], tallies = {}, caps = {}, cum = 0, rStar = params.r * 100, half = playing.length / 2;
+    for (var y = 1; y <= N; y++) {
+      var alert = false, exhausted = false;
+      if (y > 1) {
+        var pre = OPENMU.simulate({ params: params, years: y - 1, policies: policies, shocks: shocks });
+        var u = pre.years[y - 2].union; alert = !!u.alert; exhausted = u.R <= 0;
+      }
+      var t = tallyVotes(y, playing);
+      var delta = 0;
+      if (votesOn) { if (t.rate.cut > half) delta = -rules.voteStep; else if (t.rate.hike > half) delta = rules.voteStep; }
+      cum += delta;
+      var rateShock = (adminShocks[y - 1].rate || 0) + cum;
+      rateShock = Math.max(-rStar, Math.min(10 - rStar, rateShock));
+      var shock = Object.assign({}, adminShocks[y - 1], { rate: rateShock });
+      var crisis = { active: false, austerity: t.crisis.austerity, devaluation: t.crisis.devaluation, outcome: null };
+      var capped = [];
+      if (exhausted) { shock.deval = (shock.deval || 0) + rules.forcedDeval; crisis.outcome = 'forced'; }
+      else if (alert && votesOn) {
+        crisis.active = true;
+        if (t.crisis.devaluation > half) { shock.deval = (shock.deval || 0) + rules.devalSize; crisis.outcome = 'devaluation'; }
+        else {
+          crisis.outcome = 'austerity';
+          playing.forEach(function (g) {
+            var pol = policies[g.country][y - 1];
+            ['pubdem', 'benefits'].forEach(function (k) { if ((pol[k] || 0) > rules.austerityCap) { pol[k] = rules.austerityCap; if (capped.indexOf(g.country) < 0) capped.push(g.country); } });
+          });
         }
-        policies[g.country] = plan;
-      });
-      var rep = OPENMU.report({ params: params, years: N, policies: policies, shocks: shocks });
+      }
+      shocks.push(shock);
+      tallies[y] = { rate: votesOn ? { cut: t.rate.cut, hold: t.rate.hold, hike: t.rate.hike, outcome: delta, level: rStar + rateShock } : null, crisis: crisis };
+      caps[y] = capped;
+    }
+    return { policies: policies, shocks: shocks, tallies: tallies, caps: caps };
+  }
+  async function runGameYear() {
+    var btn = $('#runBtn'); btn.disabled = true; btn.textContent = 'Running…';
+    await refresh(true);   /* fresh decisions, votes and shocks before simulating */
+    var s = st(); var N = Number(s.round);
+    if (ov.roundOpen) { UI.toast('Close the round first (Control → Close submissions), then run.', 5000); btn.disabled = false; btn.textContent = '▶ Run year ' + N; return; }
+    try {
+      var params = engineParams();
+      var rp = replayWithVotes(N, params);
+      var rep = OPENMU.report({ params: params, years: N, policies: rp.policies, shocks: rp.shocks });
       var yr = rep.years[N - 1];
       var rows = [];
       ov.groups.forEach(function (g) { var cc = g.country && yr.countries[g.country]; if (!cc) return; var r = countryRow(cc, g.country, N, s.weights); r._group = g; rows.push(r); });
-      rows.push(unionRow(yr.union, N, 'UNION'));
-      runPreview = { phase: 'game', round: N, rows: rows, ts: new Date().toISOString(), history: rep.years.slice(0, N - 1) };
+      rows.push(unionRow(yr.union, N, 'UNION', { votes: rp.tallies[N], caps: rp.caps[N], shock: rp.shocks[N - 1] }));
+      runPreview = { phase: 'game', round: N, rows: rows, ts: new Date().toISOString(), history: rep.years.slice(0, N - 1), tally: rp.tallies[N], caps: rp.caps[N], shock: rp.shocks[N - 1] };
       renderRunPreview(); UI.toast('Year ' + N + ' simulated');
     } catch (e) { UI.toast('Engine error: ' + (e.message || e), 6000); }
     btn.disabled = false; btn.textContent = '▶ Run year ' + N;
@@ -712,10 +776,21 @@
     });
     card.appendChild(el('div', { html: h + '</tbody></table></div>' }));
     var unions = runPreview.rows.filter(function (r) { return String(r.key).indexOf('UNION') === 0; });
+    if (isGame && runPreview.tally) {
+      var t = runPreview.tally, cr = t.crisis || {}, sh = runPreview.shock || {};
+      var lines = [];
+      if (t.rate) lines.push('<b>Votes of year ' + runPreview.round + '</b> — rate: ' + t.rate.cut + ' cut · ' + t.rate.hold + ' hold · ' + t.rate.hike + ' hike → ' + (t.rate.outcome ? esc(MS.fmt(t.rate.outcome, 2, true)) + ' pt' : 'unchanged') + ' · effective rate ' + esc(MS.fmt(t.rate.level, 2)) + ' % (administrator shock ' + esc(MS.fmt(((st().shocks || {})[String(runPreview.round)] || {}).rate || 0, 2, true)) + ' pt included).');
+      else lines.push('<b>Votes disabled</b> (Control → Parameters).');
+      if (cr.outcome === 'forced') lines.push('<span class="neg">Reserves exhausted at the end of year ' + (runPreview.round - 1) + ': forced devaluation of ' + esc(MS.fmt(gameRules().forcedDeval, 0)) + ' %.</span>');
+      else if (cr.active) lines.push('Reserves crisis (alert at the end of year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' austerity · ' + cr.devaluation + ' devaluation → <b>' + esc(cr.outcome) + '</b>' + (cr.outcome === 'devaluation' ? ' (' + esc(MS.fmt(gameRules().devalSize, 0)) + ' % devaluation applied)' : (runPreview.caps && runPreview.caps.length ? ' — public demand and benefits capped at ' + esc(MS.fmt(gameRules().austerityCap, 0)) + ' % for: ' + esc(runPreview.caps.map(MS.countryName).join(', ')) : ' — nobody above the cap')) + '.');
+      else lines.push('No reserves crisis this year.');
+      if (MS.num(sh.deval)) lines.push('Devaluation applied this year: ' + esc(MS.fmt(sh.deval, 1)) + ' %.');
+      card.appendChild(el('div', { class: 'note small', html: lines.join('<br>') }));
+    }
     if (isGame && unions.length) card.appendChild(el('div', { html: unionPanelHtml(unions[0].detail.extra, 'Monetary union · end of year ' + runPreview.round) }));
     else if (unions.length) {
       var u = unions[unions.length - 1].detail.extra;
-      card.appendChild(el('p', { class: 'small muted' }, ['Union at the end of the plans (last group run): reserves ' + MS.fmt(u.months, 1) + ' months of imports' + (u.alert ? ' · ALERT' : '') + ', exchange rate ' + MS.fmt(u.xr, 3) + '.']));
+      card.appendChild(el('p', { class: 'small muted' }, ['Union at the end of the plans (last group run): reserves ' + MS.fmt(Math.max(0, u.months), 1) + ' months of imports' + (u.alert ? ' · ALERT' : '') + ', exchange rate ' + MS.fmt(u.xr, 3) + '.']));
     }
     card.appendChild(el('div', { class: 'btnrow' }, [
       el('button', { class: 'btn primary', onclick: function () { publishRun(true); } }, ['Save and publish all']),

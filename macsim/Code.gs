@@ -107,9 +107,10 @@ var MS = (function () {
       /* OPEN-MU engine inputs. `shocks`: key = year as a string ('1', '2', …), value =
          {world, rate, confidence, imports, deval} (world/confidence/imports/deval in %, rate in points).
          A patch of `shocks` replaces the WHOLE object (mergeState merges one level deep only),
-         so the console always sends the complete map. `sim`: engine parameter overrides (may stay empty). */
+         so the console always sends the complete map. `sim`: game rules computed in the console
+         (votes at the central bank, see spec §7) and engine parameter overrides. */
       shocks: {},
-      sim: {}
+      sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15 }
     };
   }
 
@@ -166,6 +167,16 @@ var MS = (function () {
      warm-up: years.length === state.warmup.years ; game: years.length === 1
   */
   function emptyYear() { return { levers: {}, tariffs: {}, euro: 'none', tfp: 0 }; }
+  /* votes at the central bank (game phase): one country, one vote — see spec §7 */
+  var VOTE_RATE = ['cut', 'hold', 'hike'];
+  var VOTE_CRISIS = ['austerity', 'devaluation'];
+  function cleanVotes(v) {
+    v = v || {};
+    return {
+      rate: VOTE_RATE.indexOf(v.rate) >= 0 ? v.rate : 'hold',
+      crisis: VOTE_CRISIS.indexOf(v.crisis) >= 0 ? v.crisis : 'austerity'
+    };
+  }
 
   function usedInstruments(payload) {
     var used = {};
@@ -190,6 +201,12 @@ var MS = (function () {
     var allowTfp = isWarm ? allowed.indexOf('tfp') >= 0 : !!cfg.allowTfp;
     var country = countryById(countryId);
     var clean = { years: [], text: String((payload && payload.text) || '').trim() };
+    if (!isWarm) {
+      var rawVotes = (payload && payload.votes) || {};
+      if (rawVotes.rate !== undefined && VOTE_RATE.indexOf(rawVotes.rate) < 0) errors.push('Rate vote must be cut, hold or hike.');
+      if (rawVotes.crisis !== undefined && VOTE_CRISIS.indexOf(rawVotes.crisis) < 0) errors.push('Crisis vote must be austerity or devaluation.');
+      clean.votes = cleanVotes(rawVotes);
+    }
     var years = (payload && payload.years) || [];
     if (years.length !== nYears) errors.push('Expected ' + nYears + ' year(s) of decisions, got ' + years.length + '.');
 
@@ -308,6 +325,7 @@ var MS = (function () {
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
     scoreR: scoreR, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision,
     leaderboard: leaderboard, pledgeKept: pledgeKept,
+    VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
 })();
@@ -327,7 +345,7 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.2';
+  var VERSION = '1.3';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { return String(k || '').indexOf('UNION') === 0; }
   var GRACE_MS = 60 * 1000;
