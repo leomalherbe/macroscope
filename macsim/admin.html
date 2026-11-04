@@ -738,7 +738,9 @@
       var alert = false, exhausted = false;
       if (y > 1) {
         var pre = OPENMU.simulate({ params: params, years: y - 1, policies: policies, shocks: shocks });
-        var u = pre.years[y - 2].union; alert = !!u.alert; exhausted = u.R <= 0;
+        /* forced devaluation only while the drain continues: net reserves at or below zero AND a current-account deficit last year;
+           once the current account is back in surplus the union repays its foreign borrowing and the crisis vote takes over */
+        var u = pre.years[y - 2].union; alert = !!u.alert; exhausted = u.R <= 0 && u.CA < 0;
       }
       var t = tallyVotes(y, playing);
       var delta = 0;
@@ -805,7 +807,7 @@
       var lines = [];
       if (t.rate) lines.push('<b>Votes of year ' + runPreview.round + '</b> — rate: ' + t.rate.cut + ' cut · ' + t.rate.hold + ' hold · ' + t.rate.hike + ' hike → ' + (t.rate.outcome ? esc(MS.fmt(t.rate.outcome, 2, true)) + ' pt' : 'unchanged') + ' · effective rate ' + esc(MS.fmt(t.rate.level, 2)) + ' % (administrator shock ' + esc(MS.fmt(((st().shocks || {})[shockKey(runPreview.round, 'game')] || {}).rate || 0, 2, true)) + ' pt included).');
       else lines.push('<b>Votes disabled</b> (Control → Parameters).');
-      if (cr.outcome === 'forced') lines.push('<span class="neg">Reserves exhausted at the end of year ' + (runPreview.round - 1) + ': forced devaluation of ' + esc(MS.fmt(gameRules().forcedDeval, 0)) + ' %.</span>');
+      if (cr.outcome === 'forced') lines.push('<span class="neg">Reserves exhausted at the end of year ' + (runPreview.round - 1) + ' with the current account still in deficit: forced devaluation of ' + esc(MS.fmt(gameRules().forcedDeval, 0)) + ' %.</span>');
       else if (cr.active) lines.push('Reserves crisis (alert at the end of year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' austerity · ' + cr.devaluation + ' devaluation → <b>' + esc(cr.outcome) + '</b>' + (cr.outcome === 'devaluation' ? ' (' + esc(MS.fmt(gameRules().devalSize, 0)) + ' % devaluation applied)' : (runPreview.caps && runPreview.caps.length ? ' — public demand and benefits capped at ' + esc(MS.fmt(gameRules().austerityCap, 0)) + ' % for: ' + esc(runPreview.caps.map(MS.countryName).join(', ')) : ' — nobody above the cap')) + '.');
       else lines.push('No reserves crisis this year.');
       if (MS.num(sh.deval)) lines.push('Devaluation applied this year: ' + esc(MS.fmt(sh.deval, 1)) + ' %.');
