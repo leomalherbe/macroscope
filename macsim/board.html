@@ -158,9 +158,20 @@
         var years = []; for (var y = 1; y <= st.warmup.years; y++) years.push(y);
         var rows = Object.keys(byG).map(function (k) { var rs = years.map(function (yy) { return byG[k][yy] ? byG[k][yy].R : null; }); var vals = rs.filter(function (x) { return x !== null; }); return { key: k, rs: rs, avg: vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null }; });
         rows.sort(function (a, b) { return (b.avg === null ? -1e9 : b.avg) - (a.avg === null ? -1e9 : a.avg); });
-        var hw = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Group</th>' + years.map(function (yy) { return '<th class="num">R · year ' + yy + '</th>'; }).join('') + '<th class="num">Average R</th></tr></thead><tbody>';
-        rows.forEach(function (r, i) { hw += '<tr><td class="rank">' + (i + 1) + '</td><td><b>' + esc(groupName(r.key)) + '</b></td>' + r.rs.map(function (x) { return '<td class="num ' + UI.signedClass(x) + '">' + esc(MS.fmt(x, 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(r.avg) + '"><b>' + esc(MS.fmt(r.avg, 3, true)) + '</b></td></tr>'; });
+        var lastY = years[years.length - 1];
+        var hw = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Group · plan</th>' + years.map(function (yy) { return '<th class="num">R · year ' + yy + '</th>'; }).join('') + '<th class="num">Average R</th></tr></thead><tbody>';
+        rows.forEach(function (r, i) {
+          var plan = (data.warmupPlans || []).filter(function (pl) { return pl.groupId === r.key; })[0];
+          var planHtml = plan && plan.payload && plan.payload.years ? '<div class="small" style="margin-top:2px">' + plan.payload.years.map(function (yy, k) {
+            var ch = UI.yearChips(yy); return '<span class="muted">Y' + (k + 1) + '</span> ' + (ch.length ? ch.map(function (c) { return esc(c.label) + ' <b>' + esc(MS.fmt(c.value, 1, true)) + esc(c.unit || '') + '</b>'; }).join(', ') : '<span class="muted">no change</span>');
+          }).join(' &nbsp;·&nbsp; ') + '</div>' : '';
+          var last = byG[r.key][lastY];
+          var SHORT = { gdp: 'GDP', unemp: 'U', infl: 'π', pubbal: 'PB', tradebal: 'TB' };
+          var lastHtml = last ? '<div class="small muted" style="margin-top:3px">year ' + lastY + ': ' + MS.INDICATORS.map(function (ind) { return esc(SHORT[ind.id] || ind.label) + ' <span class="' + UI.signedClass(ind.sign * MS.num(last[ind.id])) + '">' + esc(MS.fmt(last[ind.id], 2, true)) + '</span>'; }).join(' · ') + '</div>' : '';
+          hw += '<tr><td class="rank">' + (i + 1) + '</td><td><b>' + esc(groupName(r.key)) + '</b>' + planHtml + lastHtml + '</td>' + r.rs.map(function (x) { return '<td class="num ' + UI.signedClass(x) + '">' + esc(MS.fmt(x, 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(r.avg) + '"><b>' + esc(MS.fmt(r.avg, 3, true)) + '</b></td></tr>';
+        });
         wc.appendChild(el('h3', { style: 'margin-top:12px' }, ['Debrief · all groups'])); wc.appendChild(el('div', { html: hw + '</tbody></table></div>' }));
+        wc.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['Ranked by the average R over the plan (GDP in %, the rest in points, deviations from the reference path). Each group governed ' + MS.countryName(st.warmup.country) + ' alone, under the same shocks.']));
       }
       left.appendChild(wc);
     }

@@ -578,6 +578,14 @@
     var dev = {};
     MS.INDICATORS.forEach(function (i) { row[i.id] = MS.round3(MS.num(c[i.id])); dev[i.id] = row[i.id]; });
     row.R = MS.scoreR(dev, weights);
+    /* R is linear in the indicators: split it the same way (own policy / foreign policies / shocks) */
+    var Rparts = {}, anyPart = false;
+    ['shock', 'nat', 'foreign'].forEach(function (p) {
+      var pd = {}, has = false;
+      MS.INDICATORS.forEach(function (i) { var x = det[i.id] && det[i.id][p]; if (x !== undefined && x !== null) { pd[i.id] = x; has = true; } });
+      if (has) { Rparts[p] = MS.scoreR(pd, weights); anyPart = true; }
+    });
+    if (anyPart) row.detail.R = Rparts;
     return row;
   }
   function unionPanelHtml(u, title) {
