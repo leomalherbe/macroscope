@@ -23,7 +23,7 @@ Tout est en anglais côté étudiants (langue du cours).
 
 À tester avant la séance : ouvrir la page étudiants avec un PIN depuis votre téléphone, soumettre un plan, le voir en vert dans l'onglet **Run**, cliquer **Run all submitted plans** puis **Save and publish all**, et voir les résultats arriver sur le téléphone.
 
-> Après toute modification de `Code.gs` (nouvelle version de l'interface) : dans l'éditeur Apps Script, remplacer tout le contenu de `Code.gs` par le nouveau fichier, enregistrer, puis **Déployer → Gérer les déploiements → ✎ (modifier) → Version : « Nouvelle version » → Déployer**. L'URL ne change pas, rien à refaire côté site. Modifier les pages HTML ne demande rien de plus qu'un push. La console affiche la version du script dans son pied de page après connexion (**v1.3** pour OPEN-MU avec les votes ; v1.2 = chocs et lignes « union », sans les votes) ; « Unknown action » ou des chocs qui ne s'enregistrent pas signalent un script pas encore republié.
+> Après toute modification de `Code.gs` (nouvelle version de l'interface) : dans l'éditeur Apps Script, remplacer tout le contenu de `Code.gs` par le nouveau fichier, enregistrer, puis **Déployer → Gérer les déploiements → ✎ (modifier) → Version : « Nouvelle version » → Déployer**. L'URL ne change pas, rien à refaire côté site. Modifier les pages HTML ne demande rien de plus qu'un push. La console affiche la version du script dans son pied de page après connexion (**v1.4** = votes annoncés au conseil ; v1.3 = votes dans les décisions ; v1.2 = chocs et lignes « union », sans les votes) ; « Unknown action » ou des chocs qui ne s'enregistrent pas signalent un script pas encore republié.
 
 ---
 
@@ -40,9 +40,9 @@ Tout est en anglais côté étudiants (langue du cours).
 
 **La partie (un pays par groupe, année par année)**
 1. *Control* → **Start the game → year 1** (les soumissions sont fermées). *Run* : chocs de l'année 1 → **Save shocks**. Communiqué, puis **Open submissions** / **Open with timer**.
-2. Quand vous le souhaitez : **Convene the council**. Les engagements sont publics (page étudiants + board) ; les décisions restent privées. **Adjourn** quand la négociation est finie.
+2. Quand vous le souhaitez : **Convene the council**. Les engagements sont publics (page étudiants + board) ; les décisions restent privées. Un engagement est une phrase, à laquelle le groupe peut attacher des chiffres (leviers) et/ou **le vote qu'il annonce** à la banque centrale (cut / hold / hike, et austerity / devaluation en période d'alerte) ; sans chiffres ni vote annoncé, la puce « words only » s'affiche. **Adjourn** quand la négociation est finie.
 3. **Close submissions** : dès la clôture, les décisions et les votes de tous les pays deviennent visibles (page étudiants + board). *Run* → **▶ Run year N** (refusé tant que le tour est ouvert) : le modèle rejoue les années 1 à N à partir des décisions enregistrées, des chocs et des votes (un pays sans décision garde sa politique de référence et vote hold / austerity) → aperçu, avec le dépouillement des votes et leur effet → **Save and publish all** : le classement et le panneau de l'union se mettent à jour.
-4. *Control* → cocher **Reveal pledges vs decisions for year N** : le tableau « engagements vs décisions » (✓ kept / ✗ broken) s'affiche partout.
+4. *Control* → cocher **Reveal pledges vs decisions for year N** : le tableau « engagements vs décisions » (✓ kept / ✗ broken) s'affiche partout ; il compare les chiffres annoncés aux leviers décidés et le vote annoncé au vote réel.
 5. **Next year → N+1**, et on recommence. Les étudiants voient leurs résultats et leurs décisions passées, puis justifient l'année suivante.
 
 **Votes (partie seulement).** Avec ses décisions annuelles, chaque pays vote ; un pays = une voix ; il faut une majorité des pays qui jouent (strictement plus de la moitié des groupes ayant un pays ; un groupe qui ne soumet pas vote « hold » et « austerity »). Les votes restent secrets tant que le tour est ouvert et sont révélés avec les décisions à la clôture.
@@ -86,7 +86,7 @@ Plusieurs classes : **+ New class** ; chaque classe a ses groupes, son état et 
 - Supprimer une classe (par ex. une classe de test) : bouton **Delete class…** dans la barre du haut de la console ; il faut retaper le nom exact de la classe. Ses groupes, PIN, décisions, résultats, engagements et analyses sont retirés de la Sheet (les autres classes ne bougent pas). Irréversible.
 - « engine not loaded » dans l'onglet *Run* : `macsim/engine.js` manque sur le site ou n'a pas chargé ; recharger la page. Les résultats restent saisissables à la main dans *Results*.
 - « Close the round first » : le bouton Run year refuse de tourner tant que les soumissions sont ouvertes (*Control* → **Close submissions**).
-- Les chocs ne s'enregistrent pas, ou les votes sont refusés / absents des décisions : le script Apps Script n'est pas en v1.3 (voir le pied de page de la console) ; recoller `Code.gs` et republier une version.
+- Les chocs ne s'enregistrent pas, ou les votes sont refusés / absents des décisions : le script Apps Script n'est pas en v1.3 au moins (voir le pied de page de la console) ; les votes annoncés au conseil disparaissent des engagements : script en v1.3, il faut la v1.4 ; recoller `Code.gs` et republier une version.
 - La question « austerity or devaluation » n'apparaît pas chez les étudiants alors que l'union est en alerte : l'année précédente n'a pas été **publiée** (Save and publish all), ou la page n'a pas été rafraîchie.
 
 ---

@@ -358,7 +358,18 @@
       var ta = el('textarea', { id: 'pledgeText', placeholder: 'e.g. "We will raise public demand by 0.5 pt of GDP if Germany does the same."', style: 'min-height:70px' });
       if (mine) ta.value = mine.text || '';
       card.appendChild(el('div', { class: 'field' }, [el('label', { for: 'pledgeText' }, ['Our pledge']), ta]));
-      var det = el('details', {}, [el('summary', {}, ['Attach numbers to the pledge (optional)'])]);
+      var det = el('details', {}, [el('summary', {}, ['Attach numbers or the vote you announce (optional)'])]);
+      var vc = votesConfig(), mv = (mine && mine.payload && mine.payload.votes) || {};
+      if (vc.on) {
+        var selR = el('select', { id: 'PL_vote_rate' }); [['', 'no announcement'], ['cut', 'we will vote CUT'], ['hold', 'we will vote HOLD'], ['hike', 'we will vote HIKE']].forEach(function (o) { selR.appendChild(el('option', { value: o[0] }, [o[1]])); }); selR.value = mv.rate || '';
+        var vrow = el('div', { class: 'field', style: 'margin:8px 0' }, [el('label', { for: 'PL_vote_rate', class: 'small' }, ['Vote on the central bank’s rate we announce']), selR]);
+        if (vc.crisis) {
+          var selC = el('select', { id: 'PL_vote_crisis' }); [['', 'no announcement'], ['austerity', 'we will vote AUSTERITY'], ['devaluation', 'we will vote DEVALUATION']].forEach(function (o) { selC.appendChild(el('option', { value: o[0] }, [o[1]])); }); selC.value = mv.crisis || '';
+          vrow.appendChild(el('label', { for: 'PL_vote_crisis', class: 'small', style: 'margin-top:6px' }, ['Reserves crisis vote we announce'])); vrow.appendChild(selC);
+        }
+        vrow.appendChild(el('p', { class: 'xs muted', style: 'margin:4px 0 0' }, ['An announced vote is public; your actual vote travels with your decisions and stays secret until the round closes. The reveal compares the two.']));
+        det.appendChild(vrow);
+      }
       var tt = el('table'); var tb = el('tbody');
       MS.LEVERS.forEach(function (l) {
         var v = mine && mine.payload && mine.payload.year ? mine.payload.year.levers[l.id] : 0;
@@ -379,15 +390,17 @@
     var pledges = (data.pledges || []).slice().sort(function (a, b) { return String(a.ts) < String(b.ts) ? -1 : 1; });
     list.innerHTML = pledges.length ? pledges.map(function (p) {
       return '<div class="pledge"><b>' + esc(MS.countryName(p.country)) + '</b> <span class="muted small">' + esc(UI.fmtTime(p.ts)) + '</span><br>' + esc(p.text) +
-        (p.payload && p.payload.year ? '<div class="vals">' + UI.chipsHtml(p.payload.year) + '</div>' : '') + '</div>';
+        '<div class="vals">' + UI.pledgeChipsHtml(p.payload) + '</div></div>';
     }).join('') : '<p class="muted">No pledge yet.</p>';
   }
   async function postPledge() {
     var year = MS.emptyYear();
     MS.LEVERS.forEach(function (l) { var i = $('#council [name="PL_' + l.id + '"]'); if (i) year.levers[l.id] = i.value; });
+    var votes = {}; var sr = $('#PL_vote_rate'), sc = $('#PL_vote_crisis');
+    if (sr && sr.value) votes.rate = sr.value; if (sc && sc.value) votes.crisis = sc.value;
     var m = $('#pledgeMsg');
     try {
-      var r = await MSApi.call('pledge', { pin: pin, payload: { text: $('#pledgeText').value, year: year } });
+      var r = await MSApi.call('pledge', { pin: pin, payload: { text: $('#pledgeText').value, year: year, votes: votes } });
       if (!r.ok) { m.innerHTML = '<div class="err">' + esc(r.error) + '</div>'; return; }
       m.innerHTML = '<div class="ok">Pledge posted at ' + esc(UI.fmtTime(r.ts)) + '.</div>'; UI.toast('Pledge posted'); load(true);
     } catch (e) { m.innerHTML = '<div class="err">Network error: ' + esc(e.message) + '</div>'; }
@@ -554,8 +567,8 @@
         var p = rv.pledges.filter(function (x) { return x.country === c; })[0];
         var d = rv.decisions.filter(function (x) { return x.country === c; })[0];
         var verdict = '<span class="muted">no pledge</span>';
-        if (p) { var k = MS.pledgeKept(p.payload && p.payload.year, d && d.payload ? d.payload.years[0] : null); verdict = !k.items.length ? '<span class="muted">words only</span>' : (k.kept ? '<span class="kept">✓ kept</span>' : '<span class="broken">✗ broken</span>'); }
-        h += '<tr' + (c === data.group.country ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(c)) + '</b></td><td>' + (p ? esc(p.text) + (p.payload && p.payload.year ? '<div class="vals">' + UI.chipsHtml(p.payload.year) + '</div>' : '') : '<span class="muted">—</span>') + '</td><td>' + (d ? UI.chipsHtml(d.payload.years[0]) : '<span class="muted">no decision</span>') + '</td><td>' + verdict + '</td></tr>';
+        if (p) { var k = MS.pledgeVerdict(p.payload, d ? d.payload : null); verdict = !k.items.length ? '<span class="muted">words only</span>' : (k.kept ? '<span class="kept">✓ kept</span>' : '<span class="broken">✗ broken</span>'); }
+        h += '<tr' + (c === data.group.country ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(c)) + '</b></td><td>' + (p ? esc(p.text) + '<div class="vals">' + UI.pledgeChipsHtml(p.payload) + '</div>' : '<span class="muted">—</span>') + '</td><td>' + (d ? UI.chipsHtml(d.payload.years[0]) + UI.voteChipsHtml(d.payload.votes, { crisis: crisisHeld(rv.round) }) : '<span class="muted">no decision</span>') + '</td><td>' + verdict + '</td></tr>';
       });
       box.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['Pledges vs decisions · year ' + rv.round]), el('div', { html: h + '</tbody></table></div>' })]));
     });
