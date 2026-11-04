@@ -34,6 +34,8 @@ Tout est en anglais côté étudiants (langue du cours).
 2. *Control* : rédiger le communiqué (le choc, le temps imparti), puis **Open with timer** (10–15 min).
 3. Les groupes soumettent leur plan (3 colonnes Année 1/2/3, variations relatives en % de la référence bornées à ±10, 4 leviers : demande publique, prestations, impôt sur le revenu, TVA) avec leur stratégie a priori (150 caractères minimum). Ils peuvent modifier jusqu'à la clôture ; seule la dernière soumission compte. Personne ne voit les décisions des autres pendant que le tour est ouvert.
 4. **Close submissions**, puis *Run* → **▶ Run all submitted plans** : chaque plan est simulé seul (la France suit le plan du groupe, les autres membres restent à leur politique de référence). L'aperçu montre les 5 écarts, R et la décomposition propre / étranger / chocs ; **Save and publish all** (ou **Save as draft** pour relire d'abord dans *Results*). Chaque groupe voit alors ses trois années avec les lignes « of which », l'état de l'union (réserves, solde courant, change) et rédige son analyse a posteriori.
+
+> Les chocs du warm-up et ceux de la partie sont **distincts** : en passant à la partie, l'éditeur de chocs de l'onglet *Run* repart de zéro pour l'année 1 (les chocs du warm-up restent enregistrés à part).
 5. Pour le débrief : *Control* → cocher « show every group's warm-up results and plans to everyone » : le tableau comparatif apparaît chez les étudiants et sur le board.
 
 **La partie (un pays par groupe, année par année)**
