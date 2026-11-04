@@ -120,6 +120,7 @@
     if (classId) {
       bar.appendChild(el('a', { class: 'btn sm ghost', href: boardUrl(), target: '_blank' }, ['Open the board ↗']));
       bar.appendChild(el('a', { class: 'btn sm ghost', href: studentUrl(), target: '_blank' }, ['Student page ↗']));
+      bar.appendChild(el('a', { class: 'btn sm ghost', href: 'model.html', target: '_blank' }, ['The model ↗']));
     }
     if (classId) bar.appendChild(el('button', { class: 'btn sm danger', onclick: deleteClass }, ['Delete class…']));
     bar.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { key = ''; UI.store('macsim.adminKey', null); renderLogin(); } }, ['Log out']));
@@ -205,6 +206,40 @@
   }
 
   /* ---------------- CONTROL ---------------- */
+  function crisisVoteOpen() { var c = MS.crisisOf(st(), st().round); return !!(c && c.status === 'open'); }
+  /* the reserves-crisis round of the current year: a vote (austerity / devaluation) held before the decisions, or a forced devaluation */
+  function renderCrisisCard(s) {
+    var N = Number(s.round), rules = gameRules(), rec = MS.crisisOf(s, N);
+    var need = crisisNeed(N);
+    if (!rec && !need.alert && !need.exhausted) return null;
+    var card = el('div', { class: 'card tint' });
+    card.appendChild(el('h2', {}, ['Reserves crisis · year ' + N]));
+    var pct = need.R0 ? Math.round(100 * need.R / need.R0) : null;
+    function setCrisis(obj) { var all = Object.assign({}, s.crisis || {}); all[String(N)] = obj; return all; }
+    if (rec && rec.status === 'forced') {
+      card.appendChild(el('p', {}, ['Reserves exhausted at the end of year ' + (N - 1) + ' with the current account still in deficit: a forced devaluation of ' + MS.fmt(rules.forcedDeval, 0) + ' % is recorded for this year, without a vote. Announce it in the communiqué, then open the decisions.']));
+    } else if (rec && rec.status === 'closed') {
+      card.appendChild(el('p', { html: 'Vote closed: <b>' + rec.austerity + ' austerity · ' + rec.devaluation + ' devaluation → ' + esc(rec.outcome) + '</b>. ' + (rec.outcome === 'devaluation' ? 'A devaluation of ' + MS.fmt(rules.devalSize, 0) + ' % is applied this year.' : 'Public demand and benefits of every member are capped at ' + MS.fmt(rules.austerityCap, 0) + ' % of the reference this year (the form refuses more).') + ' Announce it in the communiqué, then open the decisions.' }));
+      card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn ghost sm', onclick: function () { if (confirm('Reopen the crisis vote of year ' + N + '? Decisions already submitted this year stay recorded.')) patch({ crisis: setCrisis({ status: 'open' }), status: 'closed' }, 'Crisis vote reopened'); } }, ['Reopen the vote'])]));
+    } else if (rec && rec.status === 'open') {
+      var votes = decisionsFor('crisis', N), playing = ov.groups.filter(function (g) { return !!g.country; });
+      card.appendChild(el('p', { html: '<b>Vote in progress</b> — ' + votes.length + ' of ' + playing.length + ' countries have voted. Decisions cannot be opened until the vote is closed. A country that does not vote counts as austerity; devaluation needs more than half of the playing countries.' }));
+      var list = playing.map(function (g) { var d = votes.filter(function (x) { return x.groupId === g.groupId; })[0]; return '<span class="chip' + (d ? ' vote' : ' zero') + '">' + esc(MS.countryName(g.country)) + (d ? ': ' + esc(d.payload.crisis) : ': —') + '</span>'; }).join('');
+      card.appendChild(el('div', { class: 'chips', html: list }));
+      card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () {
+        var t = MS.tallyCrisis(playing.map(function (g) { var d = votes.filter(function (x) { return x.groupId === g.groupId; })[0]; return d ? d.payload.crisis : 'austerity'; }), playing.length);
+        if (!confirm('Close the vote: ' + t.austerity + ' austerity · ' + t.devaluation + ' devaluation → ' + t.outcome + '?')) return;
+        patch({ crisis: setCrisis({ status: 'closed', austerity: t.austerity, devaluation: t.devaluation, outcome: t.outcome }) }, 'Crisis vote closed: ' + t.outcome);
+      } }, ['■ Close the crisis vote and announce'])]));
+    } else if (need.exhausted) {
+      card.appendChild(el('p', { html: '<span class="neg"><b>Reserves exhausted</b></span> at the end of year ' + (N - 1) + ' (' + (pct === null ? '' : pct + ' % of the initial stock, ') + 'current account ' + esc(MS.fmt(need.CA, 2, true)) + '): the rules impose a forced devaluation of ' + MS.fmt(rules.forcedDeval, 0) + ' % this year, without a vote.' }));
+      card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () { patch({ crisis: setCrisis({ status: 'forced', outcome: 'forced' }) }, 'Forced devaluation recorded'); } }, ['Record the forced devaluation'])]));
+    } else {
+      card.appendChild(el('p', { html: '<span class="neg"><b>ALERT</b></span>: the reserves ended year ' + (N - 1) + ' at ' + (pct === null ? 'less than 25 %' : pct + ' %') + ' of the initial stock. Before the decisions of year ' + N + ', the council votes: <b>austerity</b> (public demand and benefits capped at ' + MS.fmt(rules.austerityCap, 0) + ' % for every member) or <b>devaluation</b> (' + MS.fmt(rules.devalSize, 0) + ' %).' + (rules.votes === false ? ' Votes are disabled in Parameters: opening the vote is still possible, or skip it.' : '') }));
+      card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () { patch({ crisis: setCrisis({ status: 'open' }), status: 'closed', deadline: null }, 'Crisis vote open'); } }, ['▶ Open the crisis vote'])]));
+    }
+    return card;
+  }
   function renderControl() {
     var s = st(), v = $('#view');
     var isGame = s.phase === 'game';
@@ -225,15 +260,16 @@
     /* open / close / timer */
     var row2 = el('div', { class: 'btnrow' });
     if (ov.roundOpen) row2.appendChild(el('button', { class: 'btn danger', onclick: function () { patch({ status: 'closed' }, 'Submissions closed'); } }, ['■ Close submissions']));
-    else row2.appendChild(el('button', { class: 'btn primary', onclick: function () { patch({ status: 'open' }, 'Submissions open'); } }, ['▶ Open submissions']));
+    else row2.appendChild(el('button', { class: 'btn primary', onclick: function () { if (crisisVoteOpen()) { UI.toast('Close the crisis vote first (card below).', 5000); return; } patch({ status: 'open' }, 'Submissions open'); } }, ['▶ Open submissions']));
     var mins = el('input', { type: 'number', min: 1, max: 180, value: 10, style: 'width:70px' });
     row2.appendChild(el('span', { class: 'muted small' }, ['Timer:']));
     row2.appendChild(mins); row2.appendChild(el('span', { class: 'muted small' }, ['min']));
-    row2.appendChild(el('button', { class: 'btn sm', onclick: function () { patch({ status: 'open', deadlineMinutes: Number(mins.value) }, 'Open for ' + mins.value + ' min'); } }, ['Open with timer']));
+    row2.appendChild(el('button', { class: 'btn sm', onclick: function () { if (crisisVoteOpen()) { UI.toast('Close the crisis vote first (card below).', 5000); return; } patch({ status: 'open', deadlineMinutes: Number(mins.value) }, 'Open for ' + mins.value + ' min'); } }, ['Open with timer']));
     if (s.deadline) row2.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { patch({ deadline: null }, 'Timer cleared'); } }, ['Clear timer']));
     c1.appendChild(row2);
     c1.appendChild(el('p', { class: 'muted small', style: 'margin:10px 0 0' }, ['Students may update their submission while the round is open; the last submission counts. The timer is indicative (a 60-second grace period applies); closing is what really stops submissions.']));
     v.appendChild(c1);
+    if (isGame) { var cc = renderCrisisCard(s); if (cc) v.appendChild(cc); }
 
     /* communiqué */
     var c2 = el('div', { class: 'card' });
@@ -715,7 +751,7 @@
     playing.forEach(function (g) {
       var d = decs.filter(function (x) { return x.groupId === g.groupId; })[0];
       var v = MS.cleanVotes(d && d.payload ? d.payload.votes : null);
-      t.rate[v.rate]++; t.crisis[v.crisis]++;
+      t.rate[v.rate]++;
     });
     return t;
   }
@@ -733,7 +769,7 @@
       }
       policies[g.country] = plan;
     });
-    var shocks = [], tallies = {}, caps = {}, cum = 0, rStar = params.r * 100, half = playing.length / 2;
+    var shocks = [], tallies = {}, caps = {}, cum = 0, rStar = params.r * 100, half = playing.length / 2, warnings = [];
     for (var y = 1; y <= N; y++) {
       var alert = false, exhausted = false;
       if (y > 1) {
@@ -749,25 +785,34 @@
       var rateShock = (adminShocks[y - 1].rate || 0) + cum;
       rateShock = Math.max(-rStar, Math.min(10 - rStar, rateShock));
       var shock = Object.assign({}, adminShocks[y - 1], { rate: rateShock });
-      var crisis = { active: false, austerity: t.crisis.austerity, devaluation: t.crisis.devaluation, outcome: null };
+      /* the reserves crisis is a round of its own, recorded in state.crisis[y] by the Control tab (spec §7.6) */
+      var rec = MS.crisisOf(s, y);
+      var crisis = { active: false, austerity: rec ? (rec.austerity || 0) : 0, devaluation: rec ? (rec.devaluation || 0) : 0, outcome: null, status: rec ? rec.status : null, needed: exhausted ? 'forced' : (alert ? 'vote' : null) };
       var capped = [];
-      if (exhausted) { shock.deval = (shock.deval || 0) + rules.forcedDeval; crisis.outcome = 'forced'; }
-      else if (alert && votesOn) {
-        crisis.active = true;
-        if (t.crisis.devaluation > half) { shock.deval = (shock.deval || 0) + rules.devalSize; crisis.outcome = 'devaluation'; }
-        else {
-          crisis.outcome = 'austerity';
-          playing.forEach(function (g) {
-            var pol = policies[g.country][y - 1];
-            ['pubdem', 'benefits'].forEach(function (k) { if ((pol[k] || 0) > rules.austerityCap) { pol[k] = rules.austerityCap; if (capped.indexOf(g.country) < 0) capped.push(g.country); } });
-          });
-        }
-      }
+      if (rec && rec.status === 'forced') { shock.deval = (shock.deval || 0) + rules.forcedDeval; crisis.outcome = 'forced'; }
+      else if (rec && rec.status === 'closed') {
+        crisis.active = true; crisis.outcome = rec.outcome === 'devaluation' ? 'devaluation' : 'austerity';
+        if (crisis.outcome === 'devaluation') shock.deval = (shock.deval || 0) + rules.devalSize;
+        else playing.forEach(function (g) {
+          var pol = policies[g.country][y - 1];
+          ['pubdem', 'benefits'].forEach(function (k) { if ((pol[k] || 0) > rules.austerityCap) { pol[k] = rules.austerityCap; if (capped.indexOf(g.country) < 0) capped.push(g.country); } });
+        });
+      } else if (crisis.needed) warnings.push('Year ' + y + ': the union ' + (exhausted ? 'had exhausted its reserves (forced devaluation due)' : 'was under alert (crisis vote due)') + ' but no crisis round was recorded in Control; the year was run without it.');
       shocks.push(shock);
       tallies[y] = { rate: votesOn ? { cut: t.rate.cut, hold: t.rate.hold, hike: t.rate.hike, outcome: delta, level: rStar + rateShock } : null, crisis: crisis };
       caps[y] = capped;
     }
-    return { policies: policies, shocks: shocks, tallies: tallies, caps: caps };
+    return { policies: policies, shocks: shocks, tallies: tallies, caps: caps, warnings: warnings };
+  }
+  /* situation of the union at the start of year N (end of year N−1, replayed with the recorded decisions, shocks and crisis rounds) */
+  function crisisNeed(N) {
+    if (!engineOk() || N <= 1) return { alert: false, exhausted: false };
+    try {
+      var params = engineParams(); var rp = replayWithVotes(N - 1, params);
+      var pre = OPENMU.simulate({ params: params, years: N - 1, policies: rp.policies, shocks: rp.shocks });
+      var u = pre.years[N - 2].union;
+      return { alert: !!u.alert, exhausted: u.R <= 0 && u.CA < 0, R: u.R, R0: u.R0, CA: u.CA, months: u.months };
+    } catch (e) { return { alert: false, exhausted: false, error: e.message || String(e) }; }
   }
   async function runGameYear() {
     var btn = $('#runBtn'); btn.disabled = true; btn.textContent = 'Running…';
@@ -782,7 +827,7 @@
       var rows = [];
       ov.groups.forEach(function (g) { var cc = g.country && yr.countries[g.country]; if (!cc) return; var r = countryRow(cc, g.country, N, s.weights); r._group = g; rows.push(r); });
       rows.push(unionRow(yr.union, N, 'UNION', { votes: rp.tallies[N], caps: rp.caps[N], shock: rp.shocks[N - 1] }));
-      runPreview = { phase: 'game', round: N, rows: rows, ts: new Date().toISOString(), history: rep.years.slice(0, N - 1), tally: rp.tallies[N], caps: rp.caps[N], shock: rp.shocks[N - 1] };
+      runPreview = { phase: 'game', round: N, rows: rows, ts: new Date().toISOString(), history: rep.years.slice(0, N - 1), tally: rp.tallies[N], caps: rp.caps[N], shock: rp.shocks[N - 1], warnings: rp.warnings };
       renderRunPreview(); UI.toast('Year ' + N + ' simulated');
     } catch (e) { UI.toast('Engine error: ' + (e.message || e), 6000); }
     btn.disabled = false; btn.textContent = '▶ Run year ' + N;
@@ -811,6 +856,7 @@
       else if (cr.active) lines.push('Reserves crisis (alert at the end of year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' austerity · ' + cr.devaluation + ' devaluation → <b>' + esc(cr.outcome) + '</b>' + (cr.outcome === 'devaluation' ? ' (' + esc(MS.fmt(gameRules().devalSize, 0)) + ' % devaluation applied)' : (runPreview.caps && runPreview.caps.length ? ' — public demand and benefits capped at ' + esc(MS.fmt(gameRules().austerityCap, 0)) + ' % for: ' + esc(runPreview.caps.map(MS.countryName).join(', ')) : ' — nobody above the cap')) + '.');
       else lines.push('No reserves crisis this year.');
       if (MS.num(sh.deval)) lines.push('Devaluation applied this year: ' + esc(MS.fmt(sh.deval, 1)) + ' %.');
+      (runPreview.warnings || []).forEach(function (w) { lines.push('<span class="neg">⚠ ' + esc(w) + '</span>'); });
       card.appendChild(el('div', { class: 'note small', html: lines.join('<br>') }));
     }
     if (isGame && unions.length) card.appendChild(el('div', { html: unionPanelHtml(unions[0].detail.extra, 'Monetary union · end of year ' + runPreview.round) }));

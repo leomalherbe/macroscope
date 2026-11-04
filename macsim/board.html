@@ -61,8 +61,16 @@
       '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>' +
       '<div class="urow"><span>Current account with the rest of the world</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
       '<div class="urow"><span>Exchange rate</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
-      UI.voteLinesHtml(u) }));
+      UI.voteLinesHtml(u) + crisisRoundHtml() }));
     return c;
+  }
+  /* the reserves-crisis round of the current year (voted before the decisions): in progress, or its outcome */
+  function crisisRoundHtml() {
+    var st = data.state, rec = st.phase === 'game' ? MS.crisisOf(st, st.round) : null; if (!rec) return '';
+    var playing = (data.groups || []).filter(function (g) { return g.country; }).length;
+    if (rec.status === 'open') return '<div class="urow"><span>Crisis vote · year ' + esc(st.round) + '</span><span class="num"><span class="pill open">in progress</span> ' + esc(data.crisisVotesIn || 0) + ' of ' + playing + ' countries have voted</span></div>';
+    if (rec.status === 'forced') return '<div class="urow"><span>Year ' + esc(st.round) + '</span><span class="num neg">reserves exhausted → forced devaluation</span></div>';
+    return '<div class="urow"><span>Crisis vote · year ' + esc(st.round) + '</span><span class="num">' + esc(rec.austerity) + ' austerity · ' + esc(rec.devaluation) + ' devaluation → <b>' + esc(rec.outcome) + '</b></span></div>';
   }
   function render() {
     var st = data.state;
