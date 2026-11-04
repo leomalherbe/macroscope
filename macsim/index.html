@@ -394,21 +394,25 @@
   }
 
   /* ---------------- results ---------------- */
-  function breakdownRows(r) {
+  function breakdownRows(r, weights) {
     var d = r.detail; if (!d || typeof d !== 'object') return '';
     var parts = [['nat', 'of which your own policy'], ['foreign', 'of which foreign policies'], ['shock', 'of which the shocks']];
     return parts.map(function (pp) {
       var any = MS.INDICATORS.some(function (i) { return d[i.id] && d[i.id][pp[0]] !== undefined; }) || (d.R && d.R[pp[0]] !== undefined);
       if (!any) return '';
+      /* R is linear: when the row carries no R split, rebuild it from the indicators' split with the class weights */
+      var Rp = d.R && d.R[pp[0]] !== undefined ? d.R[pp[0]] : null;
+      if (Rp === null) { var pd = {}, has = false; MS.INDICATORS.forEach(function (i) { var x = d[i.id] ? d[i.id][pp[0]] : null; if (x !== null && x !== undefined) { pd[i.id] = x; has = true; } }); if (has) Rp = MS.scoreR(pd, weights); }
       return '<tr class="bd"><td class="small muted" style="padding-left:1.6em">' + pp[1] + '</td>' + MS.INDICATORS.map(function (i) { var x = d[i.id] ? d[i.id][pp[0]] : null; return '<td class="num small ' + (x === null || x === undefined ? '' : UI.signedClass(i.sign * x)) + '">' + esc(x === null || x === undefined ? '' : MS.fmt(x, 3, true)) + '</td>'; }).join('') +
-        '<td class="num small ' + (d.R ? UI.signedClass(d.R[pp[0]]) : '') + '">' + esc(d.R && d.R[pp[0]] !== undefined ? MS.fmt(d.R[pp[0]], 3, true) : '') + '</td></tr>';
+        '<td class="num small ' + (Rp === null ? '' : UI.signedClass(Rp)) + '">' + esc(Rp === null ? '' : MS.fmt(Rp, 3, true)) + '</td></tr>';
     }).join('');
   }
   function resultsTable(rows, firstCol) {
+    var w = data && data.state ? data.state.weights : null;
     var h = '<div class="tablewrap"><table><thead><tr><th>' + esc(firstCol || 'Year') + '</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R (objective)</th></tr></thead><tbody>';
     rows.forEach(function (r) {
       h += '<tr' + (r._me ? ' class="me"' : '') + '><td>' + esc(r._label) + '</td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(r[i.id])) + '">' + esc(MS.fmt(r[i.id], 3, true)) + '</td>'; }).join('') +
-        '<td class="num ' + UI.signedClass(r.R) + '"><b>' + esc(MS.fmt(r.R, 3, true)) + '</b></td></tr>' + breakdownRows(r);
+        '<td class="num ' + UI.signedClass(r.R) + '"><b>' + esc(MS.fmt(r.R, 3, true)) + '</b></td></tr>' + breakdownRows(r, w);
     });
     return h + '</tbody></table></div>';
   }

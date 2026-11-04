@@ -17,6 +17,7 @@ h3{font-size:1.05rem}
 .kicker{font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
 .muted{color:var(--muted)}
 .small{font-size:.85rem}
+.xs{font-size:.78rem}
 .mono{font-family:var(--mono)}
 .hidden{display:none !important}
 
