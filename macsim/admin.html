@@ -120,6 +120,7 @@
     if (classId) {
       bar.appendChild(el('a', { class: 'btn sm ghost', href: boardUrl(), target: '_blank' }, ['Open the board ↗']));
       bar.appendChild(el('a', { class: 'btn sm ghost', href: studentUrl(), target: '_blank' }, ['Student page ↗']));
+      bar.appendChild(el('a', { class: 'btn sm ghost', href: 'model.html', target: '_blank' }, ['The model ↗']));
     }
     if (classId) bar.appendChild(el('button', { class: 'btn sm danger', onclick: deleteClass }, ['Delete class…']));
     bar.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { key = ''; UI.store('macsim.adminKey', null); renderLogin(); } }, ['Log out']));

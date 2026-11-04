@@ -31,7 +31,7 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
     <h1>OPEN-MU · The model behind the game</h1>
     <p class="sub">Every equation the engine solves, with the parameters it uses — so that you can anticipate what a decision does before you take it.</p>
     <div class="toc">
-      <a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
+      <a href="#notation">Notation</a><a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
     </div>
   </div>
   <div class="who"><a href="index.html">← Policy desk</a></div>
@@ -43,6 +43,40 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
   <h2>In one paragraph</h2>
   <p>Seven countries share one currency and one central bank; the rest of the world is a given (its demand for the union's exports, its price level). Each country is the chapter-6 open economy of class 5, with firms that invest on bank credit added: households spend out of income and wealth, governments spend, tax and borrow, imports leak in proportion to output. Inside the union there is no exchange rate; with the rest of the world the rate is <strong>fixed</strong>, so the central bank's foreign reserves absorb whatever the union's current account does not balance. Unemployment and inflation are read on the model (Okun, Phillips) but do not feed back into it. The reference state is stationary: with no decisions and no shocks, every variable stays where it is, and every result you see is a deviation from that path.</p>
   <p class="small muted">Notation: <i>X</i>₋₁ is last year's value, <i>X</i>* the reference (stationary) value. Everything is real except trade with the rest of the world, where the import price in union currency is the exchange rate <i>xr</i>. Country subscripts are dropped when no confusion is possible.</p>
+</div>
+
+<div class="card" id="notation">
+  <h2>Notation</h2>
+  <p class="small muted">All flows are yearly, in real terms (units of the union's output) unless stated. Stocks are measured at the end of the year. Shown as deviations in the report: GDP in %, unemployment and inflation in points, balances in points of GDP.</p>
+  <table class="p">
+    <thead><tr><th style="width:12%">Symbol</th><th>Meaning</th><th style="width:30%">Sector</th></tr></thead>
+    <tbody>
+      <tr><td class="sign">Y</td><td>output (GDP) of the country</td><td>—</td></tr>
+      <tr><td class="sign">C, CE</td><td>consumption of goods ; consumption <em>spending</em> including the consumption tax (CE = C + tax)</td><td>households</td></tr>
+      <tr><td class="sign">YD</td><td>disposable income: income received, plus transfers, minus income tax</td><td>households</td></tr>
+      <tr><td class="sign">YF</td><td>income distributed by firms to households: output minus the amortisation funds firms retain and the interest they pay on their loans (wages, dividends…)</td><td>firms → households</td></tr>
+      <tr><td class="sign">V</td><td>households' financial wealth = Bh + M + H</td><td>households</td></tr>
+      <tr><td class="sign">Bh, M, H</td><td>government bills held by households ; bank deposits ; cash</td><td>households</td></tr>
+      <tr><td class="sign">I, K, AF</td><td>investment ; capital stock ; amortisation funds (depreciation allowances retained by firms)</td><td>firms</td></tr>
+      <tr><td class="sign">L</td><td>bank loans to firms (L = K: capital is entirely financed by credit)</td><td>firms / banks</td></tr>
+      <tr><td class="sign">Bb, A</td><td>bills held by banks (when deposits exceed loans) ; advances from the central bank to banks (when loans exceed deposits)</td><td>banks</td></tr>
+      <tr><td class="sign">G, TR</td><td>public demand for goods and services ; transfers to households (benefits)</td><td>government</td></tr>
+      <tr><td class="sign">θ, τ, τc</td><td>income-tax rate ; consumption-tax rate ; the same tax as a share of spending, τc = τ/(1+τ)</td><td>government</td></tr>
+      <tr><td class="sign">T, T_inc</td><td>total taxes ; income tax alone</td><td>government</td></tr>
+      <tr><td class="sign">B, Bcb</td><td>government debt (bills) ; the part held by the central bank</td><td>government / central bank</td></tr>
+      <tr><td class="sign">Fcb</td><td>central-bank profit (interest on its bills and advances), rebated to the government</td><td>central bank → government</td></tr>
+      <tr><td class="sign">PB, TB</td><td>public balance ; trade balance (both reported in points of GDP)</td><td>—</td></tr>
+      <tr><td class="sign">r</td><td>the central bank's rate, paid on bills, deposits, loans and advances alike (zero spread)</td><td>central bank</td></tr>
+      <tr><td class="sign">IM, IMU, IMR, IMV</td><td>imports in volume ; from the union ; from the rest of the world ; value of imports in union currency</td><td>trade</td></tr>
+      <tr><td class="sign">X, XR</td><td>exports ; exports to the rest of the world</td><td>trade</td></tr>
+      <tr><td class="sign">s_ij</td><td>share of i's intra-union imports coming from j (proportional to j's size)</td><td>trade</td></tr>
+      <tr><td class="sign">xr, xr0</td><td>exchange rate (units of union currency per unit of world currency; up = devaluation) ; its reference value, 1</td><td>union</td></tr>
+      <tr><td class="sign">CA, R, R0</td><td>current account of the union with the rest of the world ; foreign reserves ; their initial stock</td><td>union / central bank</td></tr>
+      <tr><td class="sign">NWcb</td><td>net worth of the central bank (valuation gains on reserves)</td><td>central bank</td></tr>
+      <tr><td class="sign">gap, u, π</td><td>output gap in % ; unemployment rate ; inflation rate</td><td>thermometers</td></tr>
+      <tr><td class="sign">X₋₁, X*</td><td>last year's value ; reference (stationary) value</td><td>—</td></tr>
+    </tbody>
+  </table>
 </div>
 
 <div class="card" id="levers">
