@@ -192,14 +192,14 @@
     var last = (data.union || []).filter(function (r) { return r.phase === 'game' && r.detail && r.detail.extra && Number(r.year) === Number(st.round) - 1; })[0];
     var u = last ? last.detail.extra : null;
     return { on: st.phase === 'game' && sim.votes !== false, step: sim.voteStep, cap: sim.austerityCap, deval: sim.devalSize, forced: sim.forcedDeval,
-      crisis: !!(u && u.alert && u.R > 0), exhausted: !!(u && u.R <= 0), lastYear: last ? last.year : null };
+      crisis: !!(u && u.alert && !(u.R <= 0 && u.CA < 0)), exhausted: !!(u && u.R <= 0 && u.CA < 0), lastYear: last ? last.year : null };
   }
   /* was a crisis vote held in year y? (from the published union rows: the run of year y, or the alert at the end of y−1) */
   function crisisHeld(y) {
     var rows = (data.union || []).filter(function (r) { return r.phase === 'game' && r.detail && r.detail.extra; });
     var run = rows.filter(function (r) { return Number(r.year) === Number(y); })[0], prev = rows.filter(function (r) { return Number(r.year) === Number(y) - 1; })[0];
     if (run && run.detail.extra.votes) return !!(run.detail.extra.votes.crisis && run.detail.extra.votes.crisis.active);
-    return !!(prev && prev.detail.extra.alert && prev.detail.extra.R > 0);
+    return !!(prev && prev.detail.extra.alert && !(prev.detail.extra.R <= 0 && prev.detail.extra.CA < 0));
   }
   function votesBlock(pv) {
     var vc = votesConfig(); if (!vc.on) return null;
@@ -215,7 +215,7 @@
       [['cut', 'Cut −' + MS.fmt(vc.step, 2) + ' pt'], ['hold', 'Hold'], ['hike', 'Hike +' + MS.fmt(vc.step, 2) + ' pt']], prevV.rate));
     if (vc.crisis) wrap.appendChild(q('V_crisis', 'Reserves crisis: austerity or devaluation?', 'The union’s reserves ended year ' + vc.lastYear + ' below the alert line. Austerity caps every member’s public demand and benefits at ' + MS.fmt(vc.cap, 0) + ' % of the reference this year; a devaluation of ' + MS.fmt(vc.deval, 0) + ' % restores exports with a lag but raises import prices and inflation.',
       [['austerity', 'Austerity'], ['devaluation', 'Devaluation']], prevV.crisis, 'crisis'));
-    else if (vc.exhausted) wrap.appendChild(el('div', { class: 'q crisis' }, [el('b', {}, ['Reserves exhausted']), el('span', { class: 'hint' }, ['The central bank has no reserves left: a devaluation of ' + MS.fmt(vc.forced, 0) + ' % is forced this year, whatever anyone votes.'])]));
+    else if (vc.exhausted) wrap.appendChild(el('div', { class: 'q crisis' }, [el('b', {}, ['Reserves exhausted']), el('span', { class: 'hint' }, ['The central bank has no reserves left and the union’s current account is still in deficit: a devaluation of ' + MS.fmt(vc.forced, 0) + ' % is forced this year, whatever anyone votes. The vote returns once the current account is back in surplus.'])]));
     var card = el('div');
     card.appendChild(el('h3', { style: 'margin:14px 0 2px' }, ['Votes at the central bank']));
     card.appendChild(el('p', { class: 'muted small', style: 'margin:0' }, ['Your votes travel with your decisions and stay secret while the round is open; they are revealed with everyone’s decisions once it is closed.']));
@@ -473,7 +473,7 @@
       '<div class="urow"><span>Exchange rate (union currency per unit of world currency; up = devaluation)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
       UI.voteLinesHtml(u) }));
     card.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, [u.votes && u.votes.rate
-      ? 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the next round carries a vote between austerity and devaluation; exhausted reserves force a devaluation.'
+      ? 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the next round carries a vote between austerity and devaluation; reserves exhausted while the current account is still in deficit force a devaluation.'
       : 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the administrator may decree a devaluation.']));
     return card;
   }
