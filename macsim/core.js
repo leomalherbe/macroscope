@@ -1,5 +1,5 @@
 /* =====================================================================
-   MacSim policy desk — shared core
+   OPEN-MU policy desk — shared core
    Runs unchanged in the browser (global MS), in Node (module.exports)
    and inside Google Apps Script (global MS, pasted into Code.gs).
    Keep it dependency-free and ES2017-compatible.
@@ -7,24 +7,18 @@
 var MS = (function () {
   'use strict';
 
-  /* ---------- Policy levers, in the exact order of the MacSim 2 administrator screen
-     ("Décisions Administrateur : Chocs par Pays"). Every value is a RELATIVE variation,
-     in %, of the country's own reference level (the "Variation relative (%)" box of MacSim). ---------- */
+  /* ---------- Policy levers of the OPEN-MU game. Every value is a RELATIVE variation,
+     in %, of the country's own reference level (0 = no change). ---------- */
   var LEVERS = [
-    { id: 'pubemp',    n: 1,  label: 'Public employment',                 fr: 'Emploi des Administrations publiques',          hint: 'number of civil servants',                               cat: 'demand' },
-    { id: 'pubdem',    n: 2,  label: 'Public demand',                     fr: 'Demande globale des Administrations publiques', hint: 'real public expenditure on goods and services',           cat: 'demand' },
-    { id: 'ercontr',   n: 3,  label: 'Employer social contribution rate', fr: 'Taux de cotisations sociales employeurs',       hint: 'paid by firms, in % of gross wages',                      cat: 'supply' },
-    { id: 'empcontr',  n: 4,  label: 'Employee social contribution rate', fr: 'Taux de cotisations sociales salariés',         hint: 'paid by employees, in % of gross wages',                  cat: 'demand' },
-    { id: 'benefits',  n: 5,  label: 'Real social benefits',              fr: 'Prestations sociales réelles',                  hint: 'unemployment insurance, family allowances, pensions',     cat: 'demand' },
-    { id: 'corptax',   n: 6,  label: 'Corporate tax rate',                fr: 'Taux d’impôt sur les bénéfices des entreprises', hint: 'tax rate on company profits',                            cat: 'supply' },
-    { id: 'inctax',    n: 7,  label: 'Household income tax rate',         fr: 'Taux d’impôt sur le revenu des ménages',        hint: 'direct tax rate on household income',                     cat: 'demand' },
-    { id: 'subsidies', n: 8,  label: 'Subsidy rate to firms',             fr: 'Taux de subvention des entreprises',            hint: 'subsidies in % of firms’ value added',                    cat: 'supply' },
-    { id: 'vat',       n: 9,  label: 'VAT rate',                          fr: 'Taux de la taxe sur la VA',                     hint: 'also moves prices, real wages and demand',                cat: 'supply' },
-    { id: 'wagegap',   n: 10, label: 'Public / private relative wage',    fr: 'Salaire relatif Secteur Public/Privé',          hint: 'public-sector wage in % of the private wage',             cat: 'demand' }
+    { id: 'pubdem',   n: 1, label: 'Public demand',               hint: 'real public expenditure on goods and services',        cat: 'demand' },
+    { id: 'benefits', n: 2, label: 'Social benefits',             hint: 'transfers to households (pensions, allowances, insurance)', cat: 'demand' },
+    { id: 'inctax',   n: 3, label: 'Household income tax rate',   hint: 'direct tax rate on household income',                  cat: 'demand' },
+    { id: 'vat',      n: 4, label: 'Consumption tax (VAT)',       hint: 'tax on consumption spending; also lifts prices',       cat: 'supply' }
   ];
   LEVERS.forEach(function (l) { l.unit = '% of ref.'; });
-  var TARIFF = { id: 'tariff', n: 11, label: 'Import tariffs', fr: 'Droits de douane sur les importations en provenance de', hint: 'by partner country, ABSOLUTE variation of the tariff rate in points of % (the « Variation absolue » box of MacSim)', unit: 'pt (absolute)', cat: 'trade' };
-  var EURO   = { id: 'euro',   label: 'Monetary union',  hint: 'leave or join the euro area', cat: 'monetary' };
+  /* kept for compatibility with older classes; off by default (not part of OPEN-MU v1) */
+  var TARIFF = { id: 'tariff', n: 11, label: 'Import tariffs', hint: 'by partner country, absolute variation in points', unit: 'pt (absolute)', cat: 'trade' };
+  var EURO   = { id: 'euro',   label: 'Monetary union',  hint: 'leave or join the monetary union', cat: 'monetary' };
   var TFP    = { id: 'tfp',    label: 'Total factor productivity', hint: 'structural / technological shock', unit: '%', cat: 'structural' };
 
   var CATS = {
@@ -35,21 +29,19 @@ var MS = (function () {
     structural: 'Structural policy'
   };
 
-  /* ---------- The ten active economies, in the order of the MacSim screen, + the passive rest of the world ---------- */
+  /* ---------- The member countries of the union (OPEN-MU) + the passive rest of the world ---------- */
   var COUNTRIES = [
-    { id: 'BEL', name: 'Belgium',         euro: true  },
-    { id: 'DEU', name: 'Germany',         euro: true  },
-    { id: 'FRA', name: 'France',          euro: true  },
-    { id: 'GBR', name: 'United Kingdom',  euro: false },
-    { id: 'ITA', name: 'Italy',           euro: true  },
-    { id: 'JPN', name: 'Japan',           euro: false },
-    { id: 'LUX', name: 'Luxembourg',      euro: true  },
-    { id: 'NLD', name: 'Netherlands',     euro: true  },
-    { id: 'USA', name: 'United States',   euro: false },
-    { id: 'OEA', name: 'Other euro area', euro: true  }
+    { id: 'DEU', name: 'Germany',     euro: true, size: 100 },
+    { id: 'FRA', name: 'France',      euro: true, size: 75 },
+    { id: 'ITA', name: 'Italy',       euro: true, size: 60 },
+    { id: 'ESP', name: 'Spain',       euro: true, size: 40 },
+    { id: 'NLD', name: 'Netherlands', euro: true, size: 30 },
+    { id: 'BEL', name: 'Belgium',     euro: true, size: 18 },
+    { id: 'AUT', name: 'Austria',     euro: true, size: 14 }
   ];
   var ROW = { id: 'ROW', name: 'Rest of the world', euro: false };
-  var DEFAULT_GAME_COUNTRIES = ['DEU', 'FRA', 'ITA', 'NLD', 'GBR', 'USA', 'JPN'];
+  var UNION = { id: 'UNION', name: 'Monetary union' };
+  var DEFAULT_GAME_COUNTRIES = ['DEU', 'FRA', 'ITA', 'ESP', 'NLD', 'BEL', 'AUT'];
 
   /* ---------- Objective function: five indicators, deviations from the reference run ---------- */
   var INDICATORS = [
@@ -62,6 +54,7 @@ var MS = (function () {
 
   function countryById(id) {
     if (id === 'ROW') return ROW;
+    if (id === 'UNION') return UNION;
     for (var i = 0; i < COUNTRIES.length; i++) if (COUNTRIES[i].id === id) return COUNTRIES[i];
     return null;
   }
@@ -90,18 +83,25 @@ var MS = (function () {
       warmup: {
         country: 'FRA',
         years: 3,
-        allowed: ['pubemp', 'pubdem', 'benefits', 'inctax', 'ercontr', 'vat'],
+        allowed: ['pubdem', 'benefits', 'inctax', 'vat'],
         maxNonZero: 4,
         minText: 150
       },
       game: {
-        allowTariff: true,
-        allowEuro: true,
+        allowTariff: false,
+        allowEuro: false,
         allowTfp: false,
         maxNonZero: 0,            // 0 = no limit
         minText: 100
       },
-      weights: { gdp: 0.2, unemp: 0.2, infl: 0.2, pubbal: 0.2, tradebal: 0.2 }
+      weights: { gdp: 0.2, unemp: 0.2, infl: 0.2, pubbal: 0.2, tradebal: 0.2 },
+      /* OPEN-MU engine inputs. `shocks`: key = year as a string ('1', '2', …), value =
+         {world, rate, confidence, imports, deval} (world/confidence/imports/deval in %, rate in points).
+         A patch of `shocks` replaces the WHOLE object (mergeState merges one level deep only),
+         so the console always sends the complete map. `sim`: game rules computed in the console
+         (votes at the central bank, see spec §7) and engine parameter overrides. */
+      shocks: {},
+      sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15 }
     };
   }
 
@@ -158,6 +158,16 @@ var MS = (function () {
      warm-up: years.length === state.warmup.years ; game: years.length === 1
   */
   function emptyYear() { return { levers: {}, tariffs: {}, euro: 'none', tfp: 0 }; }
+  /* votes at the central bank (game phase): one country, one vote — see spec §7 */
+  var VOTE_RATE = ['cut', 'hold', 'hike'];
+  var VOTE_CRISIS = ['austerity', 'devaluation'];
+  function cleanVotes(v) {
+    v = v || {};
+    return {
+      rate: VOTE_RATE.indexOf(v.rate) >= 0 ? v.rate : 'hold',
+      crisis: VOTE_CRISIS.indexOf(v.crisis) >= 0 ? v.crisis : 'austerity'
+    };
+  }
 
   function usedInstruments(payload) {
     var used = {};
@@ -182,6 +192,12 @@ var MS = (function () {
     var allowTfp = isWarm ? allowed.indexOf('tfp') >= 0 : !!cfg.allowTfp;
     var country = countryById(countryId);
     var clean = { years: [], text: String((payload && payload.text) || '').trim() };
+    if (!isWarm) {
+      var rawVotes = (payload && payload.votes) || {};
+      if (rawVotes.rate !== undefined && VOTE_RATE.indexOf(rawVotes.rate) < 0) errors.push('Rate vote must be cut, hold or hike.');
+      if (rawVotes.crisis !== undefined && VOTE_CRISIS.indexOf(rawVotes.crisis) < 0) errors.push('Crisis vote must be austerity or devaluation.');
+      clean.votes = cleanVotes(rawVotes);
+    }
     var years = (payload && payload.years) || [];
     if (years.length !== nYears) errors.push('Expected ' + nYears + ' year(s) of decisions, got ' + years.length + '.');
 
@@ -294,12 +310,13 @@ var MS = (function () {
 
   return {
     LEVERS: LEVERS, TARIFF: TARIFF, EURO: EURO, TFP: TFP, CATS: CATS,
-    COUNTRIES: COUNTRIES, ROW: ROW, DEFAULT_GAME_COUNTRIES: DEFAULT_GAME_COUNTRIES, INDICATORS: INDICATORS,
+    COUNTRIES: COUNTRIES, ROW: ROW, UNION: UNION, DEFAULT_GAME_COUNTRIES: DEFAULT_GAME_COUNTRIES, INDICATORS: INDICATORS,
     countryById: countryById, countryName: countryName, leverById: leverById,
     defaultState: defaultState, mergeState: mergeState,
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
     scoreR: scoreR, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision,
     leaderboard: leaderboard, pledgeKept: pledgeKept,
+    VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
 })();

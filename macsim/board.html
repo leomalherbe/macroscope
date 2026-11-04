@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MacSim 2 · Board</title>
+<title>OPEN-MU · Board</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
   <div class="wrap">
     <div>
       <div class="kicker" id="courseLabel">International Financial Macroeconomics</div>
-      <h1 id="title">MacSim 2</h1>
+      <h1 id="title">OPEN-MU</h1>
       <p class="sub" id="sub"></p>
     </div>
     <div class="who" id="who"></div>
@@ -26,7 +26,7 @@
 </div>
 
 <main><div class="wrap" id="app"><div class="card"><p class="muted">Loading…</p></div></div></main>
-<footer><div class="wrap"><span>MacSim 2 · live board</span><span id="footTime"></span></div></footer>
+<footer><div class="wrap"><span>OPEN-MU · live board</span><span id="footTime"></span></div></footer>
 
 <script>
 (function () {
@@ -49,10 +49,25 @@
   function phaseLabel(st) { return st.phase === 'warmup' ? 'Warm-up · ' + MS.countryName(st.warmup.country) + ' · ' + st.warmup.years + '-year plan' : 'Year ' + st.round + ' of ' + st.years; }
   function groupName(id) { var g = (data.groups || []).filter(function (x) { return x.groupId === id; })[0]; return g ? g.name : id; }
 
+  function unionCard(rows, title) {
+    var last = (rows || []).filter(function (r) { return r.detail && r.detail.extra; }).sort(function (a, b) { return b.year - a.year; })[0];
+    if (!last) return null;
+    var u = last.detail.extra;
+    var pct = u.R0 ? Math.max(0, Math.min(100, 100 * u.R / u.R0)) : 0;
+    var c = el('div', { class: 'card' + (u.alert ? ' alert' : '') });
+    c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title]), el('span', { class: 'small muted' }, ['after year ' + last.year])]));
+    c.appendChild(el('div', { class: 'union', html:
+      '<div class="urow"><span>Foreign reserves</span><span class="num">' + esc(MS.fmt(Math.max(0, u.months), 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+      '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>' +
+      '<div class="urow"><span>Current account with the rest of the world</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
+      '<div class="urow"><span>Exchange rate</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
+      UI.voteLinesHtml(u) }));
+    return c;
+  }
   function render() {
     var st = data.state;
-    $('#title').textContent = 'MacSim 2 · ' + data.className;
-    $('#sub').textContent = st.phase === 'warmup' ? 'Every group governs ' + MS.countryName(st.warmup.country) + ' for ' + st.warmup.years + ' years while the other economies stand still.' : 'Seven economies, one world: your decisions move everyone else.';
+    $('#title').textContent = 'OPEN-MU · ' + data.className;
+    $('#sub').textContent = st.phase === 'warmup' ? 'Every group governs ' + MS.countryName(st.warmup.country) + ' for ' + st.warmup.years + ' years while the other economies stand still.' : 'One monetary union, one world: your decisions move everyone else.';
     var who = $('#who'); who.innerHTML = '';
     who.appendChild(el('span', { class: 'big', style: 'color:#fff' }, [phaseLabel(st)]));
     who.appendChild(el('br'));
@@ -74,6 +89,7 @@
     });
     subCard.appendChild(grid);
     right.appendChild(subCard);
+    if (st.phase === 'game') { var uc = unionCard(data.union || [], 'The monetary union'); if (uc) left.appendChild(uc); }
 
     if (st.phase === 'game') {
       /* ranking */
@@ -136,7 +152,7 @@
     } else {
       /* warm-up */
       var wc = el('div', { class: 'card' }); wc.appendChild(el('h2', {}, ['Warm-up']));
-      wc.appendChild(el('p', {}, ['Each group submits a ' + st.warmup.years + '-year plan for ' + MS.countryName(st.warmup.country) + ' (at most ' + (st.warmup.maxNonZero || 'any number of') + ' instruments, each within ±' + st.bounds.lever + '). The administrator runs the plans one by one in MacSim; results come back to each group.']));
+      wc.appendChild(el('p', {}, ['Each group submits a ' + st.warmup.years + '-year plan for ' + MS.countryName(st.warmup.country) + ' (at most ' + (st.warmup.maxNonZero || 'any number of') + ' instruments, each within ±' + st.bounds.lever + '). The administrator runs the plans in the model; results come back to each group.']));
       if (st.revealWarmup && (data.warmupAll || []).length) {
         var byG = {}; data.warmupAll.forEach(function (r) { (byG[r.key] = byG[r.key] || {})[r.year] = r; });
         var years = []; for (var y = 1; y <= st.warmup.years; y++) years.push(y);

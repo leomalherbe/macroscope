@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MacSim 2 · Administrator</title>
+<title>OPEN-MU · Administrator</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
 <script src="config.js"></script>
 <script src="core.js"></script>
 <script src="app-common.js"></script>
-<script src="report.js"></script>
+<script src="engine.js"></script>
 </head>
 <body>
 
@@ -19,15 +19,15 @@
   <div class="wrap">
     <div>
       <div class="kicker" id="courseLabel">International Financial Macroeconomics</div>
-      <h1>MacSim 2 · Administrator</h1>
-      <p class="sub" id="links">Game master console — you type the decisions into MacSim, this page keeps everything else in order.</p>
+      <h1>OPEN-MU · Administrator</h1>
+      <p class="sub" id="links">Game master console — open the rounds, run the model, publish the results.</p>
     </div>
     <div class="who" id="who"></div>
   </div>
 </div>
 
 <main><div class="wrap" id="app"><div class="card"><p class="muted">Loading…</p></div></div></main>
-<footer><div class="wrap"><span>MacSim 2 · Administrator console</span><span id="footTime"></span></div></footer>
+<footer><div class="wrap"><span>OPEN-MU · Administrator console</span><span id="footTime"></span></div></footer>
 
 <script>
 (function () {
@@ -41,6 +41,7 @@
   var ov = null;              // admin.overview answer
   var offset = 0;
   var tab = UI.read('macsim.adminTab') || 'control';
+  if (tab === 'entry') tab = 'run';
   var pollTimer = null;
 
   function studentUrl(pin) {
@@ -154,7 +155,7 @@
       ov = r; offset = Date.parse(r.now) - Date.now();
       $('#footTime').textContent = 'Updated ' + UI.fmtTime(r.now) + ' · backend v' + (r.version || '?');
       renderStrip(); renderTabs();
-      if (quiet) { if (tab === 'control') renderStatusGrid(); else if (tab === 'entry') renderEntry(); else if (tab === 'council') renderCouncil(); }
+      if (quiet) { if (tab === 'control') renderStatusGrid(); else if (tab === 'entry') renderEntry(); else if (tab === 'council') renderCouncil(); else if (tab === 'run') renderRunStatus(); }
       else renderTab();
     } catch (e) { if (!quiet) UI.toast('Cannot reach the backend: ' + e.message, 4000); }
   }
@@ -183,18 +184,19 @@
     c.textContent = (t.late ? 'time is up ' : '') + t.text; c.classList.toggle('late', t.late);
   }
   var SHORT = { gdp: 'GDP (%)', unemp: 'Unemp. (pt)', infl: 'Infl. (pt)', pubbal: 'Pub. bal. (pt GDP)', tradebal: 'Trade bal. (pt GDP)' };
-  var TABS = [['control', 'Control'], ['groups', 'Groups'], ['entry', 'Entry sheets'], ['results', 'Results'], ['council', 'Council'], ['export', 'Export']];
+  /* 'entry' (MacSim entry sheets) is kept in the code but no longer listed */
+  var TABS = [['control', 'Control'], ['groups', 'Groups'], ['run', 'Run'], ['results', 'Results'], ['council', 'Council'], ['export', 'Export']];
   function renderTabs() {
     var t = $('#tabs'); t.innerHTML = '';
     TABS.forEach(function (x) {
       var b = el('button', { class: x[0] === tab ? 'active' : '', onclick: function () { tab = x[0]; UI.store('macsim.adminTab', tab); renderTabs(); renderTab(); } }, [x[1]]);
-      if (x[0] === 'entry') { var n = decisionsFor(st().phase, st().round).length; if (n) b.appendChild(el('span', { class: 'badge', style: 'background:var(--blue)' }, [String(n)])); }
+      if (x[0] === 'run') { var n = decisionsFor(st().phase, st().round).length; if (n) b.appendChild(el('span', { class: 'badge', style: 'background:var(--blue)' }, [String(n)])); }
       t.appendChild(b);
     });
   }
   function renderTab() {
     var v = $('#view'); v.innerHTML = '';
-    ({ control: renderControl, groups: renderGroups, entry: renderEntry, results: renderResults, council: renderCouncil, export: renderExport })[tab]();
+    ({ control: renderControl, groups: renderGroups, entry: renderEntry, run: renderRun, results: renderResults, council: renderCouncil, export: renderExport })[tab]();
   }
   async function patch(p, msg) {
     var r = await admin('admin.state.set', { patch: p });
@@ -236,7 +238,7 @@
     /* communiqué */
     var c2 = el('div', { class: 'card' });
     c2.appendChild(el('h2', {}, ['Administrator’s communiqué']));
-    c2.appendChild(el('p', { class: 'muted small' }, ['Shown to every group and on the board: announce the shocks you applied in MacSim, the time left, the agenda of the council…']));
+    c2.appendChild(el('p', { class: 'muted small' }, ['Shown to every group and on the board: announce the shocks of the year (set them in the Run tab), the time left, the agenda of the council…']));
     var ta = el('textarea', { style: 'min-height:80px' }); ta.value = s.communique || '';
     c2.appendChild(ta);
     c2.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () { patch({ communique: ta.value }, 'Communiqué published'); } }, ['Publish']), el('button', { class: 'btn ghost', onclick: function () { ta.value = ''; patch({ communique: '' }, 'Communiqué cleared'); } }, ['Clear'])]));
@@ -282,7 +284,7 @@
 
     /* parameters */
     var c5 = el('div', { class: 'card' });
-    var det = el('details', {}, [el('summary', {}, ['Parameters (bounds, instruments allowed, objective weights)'])]);
+    var det = el('details', {}, [el('summary', {}, ['Parameters (bounds, instruments allowed, votes, objective weights)'])]);
     var box = el('div', { style: 'margin-top:12px' });
     function numField(label, val, step) { var i = el('input', { type: 'number', step: step || 0.05, value: val }); return { el: el('div', {}, [el('label', { class: 'small' }, [label]), el('br'), i]), input: i }; }
     var pb = numField('Bound on levers (± %, relative variation)', s.bounds.lever, 0.5), pt = numField('Bound on tariffs (± points, absolute)', s.bounds.tariff, 0.5), pp = numField('Bound on TFP shock (± %)', s.bounds.tfp, 0.5);
@@ -305,17 +307,25 @@
     var gTfp = el('input', { type: 'checkbox' }); gTfp.checked = !!s.game.allowTfp;
     box.appendChild(el('div', { class: 'params' }, [gy.el, gm.el, gt.el]));
     box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', {}, [gTar, ' tariffs allowed']), el('label', {}, [gEu, ' leaving/joining the euro allowed']), el('label', {}, [gTfp, ' TFP shock allowed'])]));
+    box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Votes at the central bank (game)']));
+    var simNow = Object.assign({}, MS.defaultState().sim, s.sim || {});
+    var vOn = el('input', { type: 'checkbox' }); vOn.checked = simNow.votes !== false;
+    var vStep = numField('Rate step per majority vote (pt)', simNow.voteStep, 0.25), vCap = numField('Austerity cap on public demand and benefits (% of ref.)', simNow.austerityCap, 1), vDev = numField('Devaluation if voted (%)', simNow.devalSize, 1), vForced = numField('Forced devaluation when reserves are exhausted (%)', simNow.forcedDeval, 1);
+    box.appendChild(el('div', { class: 'checks', style: 'margin:0 0 8px' }, [el('label', {}, [vOn, ' votes enabled (rate: cut / hold / hike; reserves crisis: austerity / devaluation)'])]));
+    box.appendChild(el('div', { class: 'params' }, [vStep.el, vCap.el, vDev.el, vForced.el]));
+    box.appendChild(el('p', { class: 'muted small' }, ['One country, one vote; a majority of the playing countries is needed (a country without a decision votes hold / austerity). The crisis vote is held only when the union’s reserves ended the previous year below the alert line.']));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Objective function weights']));
     var wInputs = {};
     box.appendChild(el('div', { class: 'params' }, MS.INDICATORS.map(function (i) { var f = numField((i.sign > 0 ? '+ ' : '− ') + i.label, s.weights[i.id]); wInputs[i.id] = f.input; return f.el; })));
-    box.appendChild(el('p', { class: 'muted small' }, ['MacSim’s own defaults are 0.15 (GDP), 0.10 (unemployment), 0.25 (inflation), 0.25 (public balance), 0.25 (trade balance); set the same weights here as in the software so that R matches the report.']));
+    box.appendChild(el('p', { class: 'muted small' }, ['R = Σ weight × deviation, with negative signs on unemployment and inflation. The engine computes the five deviations; R is computed here with these weights.']));
     box.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () {
       var allowed = Object.keys(allowedInputs).filter(function (k) { return allowedInputs[k].checked; });
       var w = {}; Object.keys(wInputs).forEach(function (k) { w[k] = MS.num(wInputs[k].value); });
       patch({ bounds: { lever: MS.num(pb.input.value), tariff: MS.num(pt.input.value), tfp: MS.num(pp.input.value) },
         warmup: { country: wc.value, years: Math.max(1, Math.min(3, Math.round(MS.num(wy.input.value)) || 3)), allowed: allowed, maxNonZero: Math.round(MS.num(wm.input.value)), minText: Math.round(MS.num(wt.input.value)) },
         game: { allowTariff: gTar.checked, allowEuro: gEu.checked, allowTfp: gTfp.checked, maxNonZero: Math.round(MS.num(gm.input.value)), minText: Math.round(MS.num(gt.input.value)) },
-        years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w }, 'Parameters saved');
+        years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w,
+        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15 } }, 'Parameters saved');
     } }, ['Save parameters'])]));
     det.appendChild(box); c5.appendChild(det); v.appendChild(c5);
   }
@@ -366,7 +376,7 @@
   function printSlips() {
     var w = window.open('', '_blank');
     var cls = classes.filter(function (c) { return c.id === classId; })[0];
-    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>MacSim PIN slips</title><style>body{font-family:Inter,system-ui,sans-serif;padding:20px}.s{border:1px dashed #999;border-radius:10px;padding:16px 20px;margin:0 0 16px;page-break-inside:avoid}.s b{font-size:1.3rem}.pin{font-family:monospace;font-size:2.4rem;letter-spacing:.2em;margin:6px 0}.u{font-family:monospace;font-size:.9rem;word-break:break-all}</style></head><body>';
+    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>OPEN-MU PIN slips</title><style>body{font-family:Inter,system-ui,sans-serif;padding:20px}.s{border:1px dashed #999;border-radius:10px;padding:16px 20px;margin:0 0 16px;page-break-inside:avoid}.s b{font-size:1.3rem}.pin{font-family:monospace;font-size:2.4rem;letter-spacing:.2em;margin:6px 0}.u{font-family:monospace;font-size:.9rem;word-break:break-all}</style></head><body>';
     groupsSorted().forEach(function (g) {
       html += '<div class="s"><b>' + esc(g.name) + '</b> · ' + esc(cls ? cls.name : '') + (g.country ? ' · ' + esc(MS.countryName(g.country)) : '') + '<div class="pin">' + esc(g.pin) + '</div><div class="u">' + esc(studentUrl()) + '</div><div style="font-size:.85rem;color:#555;margin-top:4px">Sign in with the PIN · one submission per group · keep the PIN inside the group.</div></div>';
     });
@@ -449,31 +459,15 @@
     var sel = el('select', { onchange: function () { var o = roundOptions()[sel.selectedIndex]; resSel = { phase: o.phase, round: o.round, auto: false }; renderResults(); } });
     roundOptions().forEach(function (o) { sel.appendChild(el('option', {}, [o.label])); });
     sel.selectedIndex = Math.max(0, roundOptions().findIndex(function (o) { return o.phase === resSel.phase && o.round === resSel.round; }));
-    c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Results from the MacSim report']), sel]));
-    c.appendChild(el('p', { class: 'muted small' }, ['Import the end-of-year report (PDF) exported by MacSim: the « Objectifs Principaux » pages are read for every country (deviations from the reference run, MacSim’s objective function R, and the breakdown shocks / national policy / foreign policies). You can also type the numbers by hand; if R is left blank it is computed with the weights set in Parameters (' + s.weights.gdp + '·ΔGDP − ' + s.weights.unemp + '·ΔU − ' + s.weights.infl + '·Δπ + ' + s.weights.pubbal + '·Δpublic balance + ' + s.weights.tradebal + '·Δtrade balance). Save as draft, then publish when you are ready to show the groups.']));
-
-    /* ---- import toolbar ---- */
-    var bar = el('div', { class: 'toolbar' });
-    var fileInp = el('input', { type: 'file', accept: '.pdf,application/pdf', id: 'reportFile', style: 'display:none' });
-    var importBtn = el('button', { class: 'btn primary', onclick: function () { fileInp.click(); } }, ['Import MacSim report (PDF)…']);
-    var groupSel = null;
-    if (resSel.phase === 'warmup') {
-      groupSel = el('select');
-      groupsSorted().forEach(function (g) { groupSel.appendChild(el('option', { value: g.groupId }, [g.name])); });
-      bar.appendChild(el('span', { class: 'muted small' }, ['This report is the run of:']));
-      bar.appendChild(groupSel);
-    }
-    bar.appendChild(importBtn); bar.appendChild(fileInp);
-    var importMsg = el('span', { class: 'small muted' });
-    bar.appendChild(importMsg);
-    c.appendChild(bar);
+    c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Results']), sel]));
+    c.appendChild(el('p', { class: 'muted small' }, ['The Run tab fills these rows from the model. You can still edit or type numbers by hand (deviations from the reference: GDP in %, the others in points); if R is left blank it is computed with the weights set in Parameters (' + s.weights.gdp + '·ΔGDP − ' + s.weights.unemp + '·ΔU − ' + s.weights.infl + '·Δπ + ' + s.weights.pubbal + '·Δpublic balance + ' + s.weights.tradebal + '·Δtrade balance). Save as draft, then publish when you are ready to show the groups.']));
 
     var rows = [];   // {key, year, inputs:{}, R:input, pub, detail}
     var existing = ov.results.filter(function (r) { return r.phase === resSel.phase && Number(r.round) === Number(resSel.round); });
     function find(k, y) { return existing.filter(function (r) { return r.key === k && Number(r.year) === Number(y); })[0]; }
     function mkInputs(r, ex) {
       MS.INDICATORS.forEach(function (i) { var inp = el('input', { type: 'number', step: 0.001, value: ex && ex[i.id] !== null && ex[i.id] !== undefined ? ex[i.id] : '' }); inp.addEventListener('input', function () { recompute(r); }); r.inputs[i.id] = inp; });
-      r.R = el('input', { type: 'number', step: 0.001, value: ex && ex.R !== null && ex.R !== undefined ? ex.R : '', title: 'R from MacSim (Fonction Objectif · Ensemble); leave blank to compute it from the weights' });
+      r.R = el('input', { type: 'number', step: 0.001, value: ex && ex.R !== null && ex.R !== undefined ? ex.R : '', title: 'leave blank to compute R from the weights' });
       r.Rhint = el('span', { class: 'small muted' });
       r.R.addEventListener('input', function () { recompute(r); });
       r.detail = ex && ex.detail ? ex.detail : null;
@@ -498,7 +492,7 @@
         var pub = el('input', { type: 'checkbox' }); var ex0 = find(g.groupId, 1); pub.checked = !!(ex0 && ex0.published);
         var dec = decisionsFor('warmup', 1).filter(function (d) { return d.groupId === g.groupId; })[0];
         block.appendChild(el('div', { class: 'head' }, [el('span', {}, [el('b', {}, [g.name]), ' ', el('span', { class: 'muted small' }, [dec ? 'plan submitted ' + UI.fmtTime(dec.ts) : 'no plan submitted'])]), el('label', { class: 'small' }, [pub, ' published to the group'])]));
-        var tbl = el('table', { class: 'resgrid' }); tbl.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Year'])].concat(MS.INDICATORS.map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R (MacSim)'])]))]));
+        var tbl = el('table', { class: 'resgrid' }); tbl.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Year'])].concat(MS.INDICATORS.map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R'])]))]));
         var tb = el('tbody');
         for (var y = 1; y <= s.warmup.years; y++) {
           var r = { key: g.groupId, groupId: g.groupId, year: y, inputs: {}, pub: pub }; mkInputs(r, find(g.groupId, y)); rows.push(r);
@@ -511,7 +505,7 @@
         c.appendChild(block);
       });
     } else {
-      var tbl2 = el('table', { class: 'resgrid' }); tbl2.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Country']), el('th', {}, ['Group'])].concat(MS.INDICATORS.map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R (MacSim)']), el('th', {}, ['Published'])]))]));
+      var tbl2 = el('table', { class: 'resgrid' }); tbl2.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Country']), el('th', {}, ['Group'])].concat(MS.INDICATORS.map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R']), el('th', {}, ['Published'])]))]));
       var tb2 = el('tbody');
       var played = ov.groups.filter(function (g) { return g.country; }).map(function (g) { return g.country; });
       MS.COUNTRIES.filter(function (cc) { return played.indexOf(cc.id) >= 0; }).forEach(function (cc) {
@@ -524,34 +518,6 @@
       tbl2.appendChild(tb2); c.appendChild(el('div', { class: 'tablewrap' }, [tbl2]));
     }
 
-    /* ---- PDF import ---- */
-    fileInp.addEventListener('change', async function () {
-      var f = fileInp.files && fileInp.files[0]; if (!f) return;
-      importMsg.textContent = 'Reading ' + f.name + '…';
-      try {
-        var pages = await readPdfPages(f);
-        var parsed = MSReport.parse(pages);
-        var data = MSReport.toRows(parsed);
-        var filled = 0, skipped = [];
-        data.forEach(function (d) {
-          var target;
-          if (resSel.phase === 'warmup') {
-            if (d.key !== s.warmup.country) return;   // only the warm-up country matters
-            target = rows.filter(function (r) { return r.groupId === groupSel.value && Number(r.year) === Number(d.year); })[0];
-          } else {
-            if (Number(d.year) !== Number(resSel.round)) { skipped.push(d.key + ' y' + d.year); return; }
-            target = rows.filter(function (r) { return r.key === d.key; })[0];
-          }
-          if (!target) { skipped.push(d.key + ' y' + d.year); return; }
-          fillRow(target, d); filled++;
-        });
-        var yrs = Object.keys(parsed.years).join(', ');
-        importMsg.textContent = filled + ' row(s) filled from ' + f.name + ' (year ' + (yrs || '?') + ')' + (skipped.length ? ' · not used: ' + skipped.join(', ') : '') + (parsed.warnings.length ? ' · ' + parsed.warnings.join(' ') : '') + ' — check, then Save.';
-        if (!filled) UI.toast('Nothing matched this round in the report', 4000); else UI.toast(filled + ' rows imported');
-      } catch (e) { importMsg.textContent = 'Could not read the PDF: ' + (e.message || e); }
-      fileInp.value = '';
-    });
-
     async function save(publishAll) {
       var out = rows.map(function (r) { var o = { key: r.key, year: r.year, published: publishAll ? true : r.pub.checked, R: r.R.value, detail: r.detail || '' }; MS.INDICATORS.forEach(function (i) { o[i.id] = r.inputs[i.id].value; }); return o; })
         .filter(function (o) { return o.R !== '' || MS.INDICATORS.some(function (i) { return o[i.id] !== ''; }); });
@@ -563,30 +529,281 @@
     v.appendChild(c);
   }
 
-  /* pdf.js loader (from config.PDFJS_URL) + page texts */
-  var pdfjsReady = null;
-  function loadPdfjs() {
-    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
-    if (pdfjsReady) return pdfjsReady;
-    pdfjsReady = new Promise(function (resolve, reject) {
-      var sc = document.createElement('script'); sc.src = cfg.PDFJS_URL;
-      sc.onload = function () { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = cfg.PDFJS_WORKER_URL; } catch (e) { /* ignore */ } resolve(window.pdfjsLib); };
-      sc.onerror = function () { pdfjsReady = null; reject(new Error('pdf.js could not be loaded (no internet?).')); };
-      document.head.appendChild(sc);
-    });
-    return pdfjsReady;
+  /* ---------------- RUN (OPEN-MU engine) ---------------- */
+  var SHOCK_FIELDS = [
+    { id: 'world',      label: 'World demand',            unit: '%',  hint: 'demand of the rest of the world for the union’s exports' },
+    { id: 'rate',       label: 'Central bank rate',       unit: 'pt', hint: 'change of the rate set by the common central bank; acts on firms’ investment with a one-year lag (+1 pt ≈ GDP −1 % the next year) and on debt service' },
+    { id: 'confidence', label: 'Household confidence',    unit: '%',  hint: 'propensity to consume out of income' },
+    { id: 'imports',    label: 'Import propensity',       unit: '%',  hint: 'e.g. an oil shock: more spent on imports for the same output' },
+    { id: 'deval',      label: 'Devaluation',             unit: '%',  hint: 'jump of the exchange rate vs the rest of the world (+ = devaluation)' }
+  ];
+  var runPreview = null;   // {phase, round, rows:[...], union:[...]} built by the last run
+  function engineOk() { return typeof OPENMU !== 'undefined' && OPENMU && typeof OPENMU.report === 'function'; }
+  function engineLine() {
+    var p = engineParams(), n = 0, ver = OPENMU.VERSION || '?';
+    try { var d = OPENMU.describe ? OPENMU.describe(p) : null; if (d && d.version) ver = d.version; n = d && d.countries ? Object.keys(d.countries).length : (Array.isArray(p.countries) ? p.countries.length : 0); } catch (e) { n = Array.isArray(p.countries) ? p.countries.length : 0; }
+    return 'engine OPEN-MU v' + ver + ' · ' + n + ' members · fixed exchange rate';
   }
-  async function readPdfPages(file) {
-    var lib = await loadPdfjs();
-    var buf = await file.arrayBuffer();
-    var doc = await lib.getDocument({ data: new Uint8Array(buf) }).promise;
-    var pages = [];
-    for (var i = 1; i <= doc.numPages; i++) {
-      var page = await doc.getPage(i);
-      var tc = await page.getTextContent();
-      pages.push(MSReport.itemsToText(tc.items));
+  function engineParams() {
+    var p = OPENMU.defaultParams();
+    var ov_ = st().sim || {};
+    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, forcedDeval: 1 };   // console rules, not engine parameters
+    Object.keys(ov_).forEach(function (k) { if (k !== 'countries' && !rules[k]) p[k] = ov_[k]; });
+    return p;
+  }
+  function shocksList(nYears) {
+    var sh = st().shocks || {}; var list = [];
+    for (var y = 1; y <= nYears; y++) {
+      var o = sh[String(y)] || {}; var row = {};
+      SHOCK_FIELDS.forEach(function (f) { row[f.id] = MS.num(o[f.id]) || 0; });
+      list.push(row);
     }
-    return pages;
+    return list;
+  }
+  function unionRow(u, year, key, extra) {
+    var x = { CA: u.CA, R: u.R, R0: u.R0, xr: u.xr, alert: !!u.alert, months: u.months, gdp: u.gdp, rate: u.r };
+    if (extra) Object.keys(extra).forEach(function (k) { x[k] = extra[k]; });
+    return { key: key || 'UNION', year: year, gdp: '', unemp: '', infl: '', pubbal: '', tradebal: '', R: '', detail: { extra: roundDeep(x, 4) } };
+  }
+  function gameRules() { return Object.assign({}, MS.defaultState().sim, st().sim || {}); }
+  function roundDeep(o, d) {
+    if (typeof o === 'number') return Math.round(o * Math.pow(10, d)) / Math.pow(10, d);
+    if (Array.isArray(o)) return o.map(function (x) { return roundDeep(x, d); });
+    if (o && typeof o === 'object') { var out = {}; Object.keys(o).forEach(function (k) { out[k] = roundDeep(o[k], d); }); return out; }
+    return o;
+  }
+  function countryRow(c, key, year, weights) {
+    var det = Object.assign({}, c.detail || {}); delete det.byPart;
+    var row = { key: key, year: year, detail: roundDeep(det, 4) };
+    var dev = {};
+    MS.INDICATORS.forEach(function (i) { row[i.id] = MS.round3(MS.num(c[i.id])); dev[i.id] = row[i.id]; });
+    row.R = MS.scoreR(dev, weights);
+    return row;
+  }
+  function unionPanelHtml(u, title) {
+    if (!u) return '<p class="muted small">No union data yet.</p>';
+    var pct = u.R0 ? Math.max(0, Math.min(100, 100 * u.R / u.R0)) : 0;
+    return '<div class="union">' + (title ? '<h3>' + esc(title) + '</h3>' : '') +
+      '<div class="urow"><span>Foreign reserves</span><span class="num">' + esc(MS.fmt(Math.max(0, u.months), 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+      '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>' +
+      '<div class="urow"><span>Current account of the union</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
+      '<div class="urow"><span>Exchange rate (union currency per unit of world currency)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
+      UI.voteLinesHtml(u) + '</div>';
+  }
+  function renderRun() {
+    var v = $('#view'); v.innerHTML = '';
+    var s = st(), isGame = s.phase === 'game';
+    var c = el('div', { class: 'card' });
+    c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [isGame ? 'Run · year ' + s.round : 'Run · warm-up plans']),
+      el('span', { class: 'small muted' }, [engineOk() ? engineLine() : 'engine not loaded'])]));
+    if (!engineOk()) { c.appendChild(el('div', { class: 'err' }, ['engine.js is missing or failed to load: nothing can be run. Results can still be typed by hand in the Results tab.'])); v.appendChild(c); return; }
+
+    /* ---- shocks editor ---- */
+    var nYears = isGame ? Number(s.round) : Number(s.warmup.years || 3);
+    var yearsToEdit = isGame ? [Number(s.round)] : []; if (!isGame) for (var y = 1; y <= nYears; y++) yearsToEdit.push(y);
+    var sh = el('div', { class: 'card tint', style: 'margin:0 0 14px' });
+    sh.appendChild(el('h3', {}, [isGame ? 'Shocks of year ' + s.round : 'Shocks of the warm-up (years 1–' + nYears + ', the same for every group)']));
+    sh.appendChild(el('p', { class: 'muted small' }, ['Relative variations in % (the central bank rate in points). 0 = no shock. Announce them in the communiqué; the report separates their effects from the policies.']));
+    var tbl = el('table', { class: 'resgrid' });
+    tbl.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Shock'])].concat(yearsToEdit.map(function (yy) { return el('th', { class: 'num' }, ['Year ' + yy]); })))]));
+    var tb = el('tbody'); var inputs = {};
+    SHOCK_FIELDS.forEach(function (f) {
+      var tr = el('tr', {}, [el('td', { html: esc(f.label) + ' <span class="muted">(' + esc(f.unit) + ')</span><span class="hint">' + esc(f.hint) + '</span>' })]);
+      yearsToEdit.forEach(function (yy) {
+        var cur = (s.shocks || {})[String(yy)] || {};
+        var inp = el('input', { type: 'number', step: 0.5, value: cur[f.id] || 0, 'data-y': yy, 'data-f': f.id });
+        if (MS.num(inp.value)) inp.classList.add('nz');
+        inp.addEventListener('input', function () { inp.classList.toggle('nz', !!MS.num(inp.value)); });
+        inputs[yy + ':' + f.id] = inp;
+        tr.appendChild(el('td', { class: 'num' }, [inp]));
+      });
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb); sh.appendChild(el('div', { class: 'tablewrap' }, [tbl]));
+    sh.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: async function () {
+      var all = Object.assign({}, s.shocks || {});
+      yearsToEdit.forEach(function (yy) { var o = {}; SHOCK_FIELDS.forEach(function (f) { o[f.id] = MS.num(inputs[yy + ':' + f.id].value) || 0; }); all[String(yy)] = o; });
+      await patch({ shocks: all }, 'Shocks saved');
+    } }, ['Save shocks']), el('span', { class: 'small muted' }, [isGame ? 'Previous years keep their shocks (see the replay below).' : ''])]));
+    c.appendChild(sh);
+
+    /* ---- status ---- */
+    c.appendChild(el('div', { id: 'runStatus' }));
+    c.appendChild(el('div', { id: 'runUnion', class: 'card', style: 'margin:0 0 14px' }));
+
+    /* ---- run buttons ---- */
+    var row = el('div', { class: 'btnrow' });
+    if (!isGame) row.appendChild(el('button', { class: 'btn primary', id: 'runBtn', onclick: runWarmup }, ['▶ Run all submitted plans']));
+    else row.appendChild(el('button', { class: 'btn primary', id: 'runBtn', onclick: runGameYear }, ['▶ Run year ' + s.round]));
+    row.appendChild(el('span', { class: 'small muted' }, [isGame ? 'Replays years 1–' + s.round + ' from the stored decisions, shocks and votes; countries without a decision keep their reference policy and vote hold / austerity.' : 'Each plan is run alone: ' + MS.countryName(s.warmup.country) + ' follows the group’s plan, every other member stays at its reference policy.']));
+    c.appendChild(row);
+    c.appendChild(el('div', { id: 'runPreview' }));
+    v.appendChild(c);
+    renderRunStatus();
+    if (runPreview && runPreview.phase === s.phase && Number(runPreview.round) === Number(s.round)) renderRunPreview();
+  }
+  function renderRunStatus() {
+    var box = $('#runStatus'); if (!box) return;
+    var s = st(); box.innerHTML = '';
+    var decs = decisionsFor(s.phase, s.round);
+    var grid = el('div', { class: 'status-grid', style: 'margin-bottom:14px' });
+    groupsSorted().forEach(function (g) {
+      var d = decs.filter(function (x) { return x.groupId === g.groupId; })[0];
+      var sub = s.phase === 'game' ? (g.country ? MS.countryName(g.country) : 'no country!') : MS.countryName(s.warmup.country);
+      grid.appendChild(el('div', { class: 'g ' + (d ? 'in' : 'missing') }, [el('b', {}, [g.name]), el('span', { class: 'small' }, [sub + ' · ' + (d ? 'submitted ' + UI.fmtTime(d.ts) : 'missing')])]));
+    });
+    box.appendChild(grid);
+    var ub = $('#runUnion');
+    if (ub) {
+      var latest = (ov.results || []).filter(function (r) { return r.phase === s.phase && String(r.key).indexOf('UNION') === 0 && r.detail && r.detail.extra; }).sort(function (a, b) { return b.year - a.year; })[0];
+      ub.innerHTML = latest ? unionPanelHtml(latest.detail.extra, 'Monetary union · after year ' + latest.year + (s.phase === 'warmup' ? ' (last published run)' : '')) : '<p class="muted small">Union panel: reserves, current account and exchange rate appear here after the first published run.</p>';
+    }
+  }
+  function policiesFromPayload(payload) {
+    return (payload && payload.years ? payload.years : []).map(function (y) { var o = {}; MS.LEVERS.forEach(function (l) { o[l.id] = MS.num(y.levers ? y.levers[l.id] : 0) || 0; }); return o; });
+  }
+  async function runWarmup() {
+    var btn = $('#runBtn'); btn.disabled = true; btn.textContent = 'Running…';
+    await refresh(true);   /* fresh decisions and shocks before simulating */
+    var s = st(); var decs = decisionsFor('warmup', 1);
+    if (!decs.length) { UI.toast('No plan submitted yet'); btn.disabled = false; btn.textContent = '▶ Run all submitted plans'; return; }
+    try {
+      var params = engineParams(); var T = Number(s.warmup.years || 3); var shocks = shocksList(T);
+      var rows = [];
+      decs.forEach(function (d) {
+        var pol = {}; pol[s.warmup.country] = policiesFromPayload(d.payload);
+        var rep = OPENMU.report({ params: params, years: T, policies: pol, shocks: shocks });
+        rep.years.forEach(function (yr, i) {
+          var cc = yr.countries[s.warmup.country]; if (!cc) return;
+          var r = countryRow(cc, d.groupId, i + 1, s.weights); r._group = groupById(d.groupId); rows.push(r);
+          rows.push(unionRow(yr.union, i + 1, 'UNION:' + d.groupId));
+        });
+      });
+      runPreview = { phase: 'warmup', round: 1, rows: rows, ts: new Date().toISOString() };
+      renderRunPreview(); UI.toast(decs.length + ' plan(s) run');
+    } catch (e) { UI.toast('Engine error: ' + (e.message || e), 6000); }
+    btn.disabled = false; btn.textContent = '▶ Run all submitted plans';
+  }
+  /* tally of the votes of year y among the playing countries (a missing decision votes hold / austerity) */
+  function tallyVotes(y, playing) {
+    var decs = decisionsFor('game', y);
+    var t = { rate: { cut: 0, hold: 0, hike: 0 }, crisis: { austerity: 0, devaluation: 0 } };
+    playing.forEach(function (g) {
+      var d = decs.filter(function (x) { return x.groupId === g.groupId; })[0];
+      var v = MS.cleanVotes(d && d.payload ? d.payload.votes : null);
+      t.rate[v.rate]++; t.crisis[v.crisis]++;
+    });
+    return t;
+  }
+  /* replay years 1..N with the votes: returns the effective inputs and, per year, the tallies and caps (spec §7.3) */
+  function replayWithVotes(N, params) {
+    var s = st(), rules = gameRules(), votesOn = rules.votes !== false;
+    var playing = ov.groups.filter(function (g) { return !!g.country; });
+    var adminShocks = shocksList(N);
+    var policies = {};
+    playing.forEach(function (g) {
+      var plan = [];
+      for (var y = 1; y <= N; y++) {
+        var d = decisionsFor('game', y).filter(function (x) { return x.groupId === g.groupId; })[0];
+        plan.push(d ? (policiesFromPayload(d.payload)[0] || {}) : {});
+      }
+      policies[g.country] = plan;
+    });
+    var shocks = [], tallies = {}, caps = {}, cum = 0, rStar = params.r * 100, half = playing.length / 2;
+    for (var y = 1; y <= N; y++) {
+      var alert = false, exhausted = false;
+      if (y > 1) {
+        var pre = OPENMU.simulate({ params: params, years: y - 1, policies: policies, shocks: shocks });
+        var u = pre.years[y - 2].union; alert = !!u.alert; exhausted = u.R <= 0;
+      }
+      var t = tallyVotes(y, playing);
+      var delta = 0;
+      if (votesOn) { if (t.rate.cut > half) delta = -rules.voteStep; else if (t.rate.hike > half) delta = rules.voteStep; }
+      cum += delta;
+      var rateShock = (adminShocks[y - 1].rate || 0) + cum;
+      rateShock = Math.max(-rStar, Math.min(10 - rStar, rateShock));
+      var shock = Object.assign({}, adminShocks[y - 1], { rate: rateShock });
+      var crisis = { active: false, austerity: t.crisis.austerity, devaluation: t.crisis.devaluation, outcome: null };
+      var capped = [];
+      if (exhausted) { shock.deval = (shock.deval || 0) + rules.forcedDeval; crisis.outcome = 'forced'; }
+      else if (alert && votesOn) {
+        crisis.active = true;
+        if (t.crisis.devaluation > half) { shock.deval = (shock.deval || 0) + rules.devalSize; crisis.outcome = 'devaluation'; }
+        else {
+          crisis.outcome = 'austerity';
+          playing.forEach(function (g) {
+            var pol = policies[g.country][y - 1];
+            ['pubdem', 'benefits'].forEach(function (k) { if ((pol[k] || 0) > rules.austerityCap) { pol[k] = rules.austerityCap; if (capped.indexOf(g.country) < 0) capped.push(g.country); } });
+          });
+        }
+      }
+      shocks.push(shock);
+      tallies[y] = { rate: votesOn ? { cut: t.rate.cut, hold: t.rate.hold, hike: t.rate.hike, outcome: delta, level: rStar + rateShock } : null, crisis: crisis };
+      caps[y] = capped;
+    }
+    return { policies: policies, shocks: shocks, tallies: tallies, caps: caps };
+  }
+  async function runGameYear() {
+    var btn = $('#runBtn'); btn.disabled = true; btn.textContent = 'Running…';
+    await refresh(true);   /* fresh decisions, votes and shocks before simulating */
+    var s = st(); var N = Number(s.round);
+    if (ov.roundOpen) { UI.toast('Close the round first (Control → Close submissions), then run.', 5000); btn.disabled = false; btn.textContent = '▶ Run year ' + N; return; }
+    try {
+      var params = engineParams();
+      var rp = replayWithVotes(N, params);
+      var rep = OPENMU.report({ params: params, years: N, policies: rp.policies, shocks: rp.shocks });
+      var yr = rep.years[N - 1];
+      var rows = [];
+      ov.groups.forEach(function (g) { var cc = g.country && yr.countries[g.country]; if (!cc) return; var r = countryRow(cc, g.country, N, s.weights); r._group = g; rows.push(r); });
+      rows.push(unionRow(yr.union, N, 'UNION', { votes: rp.tallies[N], caps: rp.caps[N], shock: rp.shocks[N - 1] }));
+      runPreview = { phase: 'game', round: N, rows: rows, ts: new Date().toISOString(), history: rep.years.slice(0, N - 1), tally: rp.tallies[N], caps: rp.caps[N], shock: rp.shocks[N - 1] };
+      renderRunPreview(); UI.toast('Year ' + N + ' simulated');
+    } catch (e) { UI.toast('Engine error: ' + (e.message || e), 6000); }
+    btn.disabled = false; btn.textContent = '▶ Run year ' + N;
+  }
+  function renderRunPreview() {
+    var box = $('#runPreview'); if (!box || !runPreview) return;
+    var s = st(); box.innerHTML = '';
+    var isGame = runPreview.phase === 'game';
+    var card = el('div', { class: 'card', style: 'margin-top:14px' });
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [isGame ? 'Preview · year ' + runPreview.round : 'Preview · warm-up']), el('span', { class: 'small muted' }, ['run at ' + UI.fmtTime(runPreview.ts) + ' · not published yet'])]));
+    var h = '<div class="tablewrap"><table class="resgrid"><thead><tr><th>' + (isGame ? 'Country' : 'Group') + '</th><th>Year</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(SHORT[i.id]) + '</th>'; }).join('') + '<th class="num">R</th><th class="num">of which own / foreign / shocks (GDP)</th></tr></thead><tbody>';
+    runPreview.rows.filter(function (r) { return String(r.key).indexOf('UNION') !== 0; }).forEach(function (r) {
+      var who = isGame ? MS.countryName(r.key) + (r._group ? ' <span class="muted small">' + esc(r._group.name) + '</span>' : '') : esc(r._group ? r._group.name : r.key);
+      var d = r.detail && r.detail.gdp ? r.detail.gdp : null;
+      h += '<tr><td><b>' + who + '</b></td><td>' + r.year + '</td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * r[i.id]) + '">' + esc(MS.fmt(r[i.id], 3, true)) + '</td>'; }).join('') +
+        '<td class="num ' + UI.signedClass(r.R) + '"><b>' + esc(MS.fmt(r.R, 3, true)) + '</b></td><td class="num small muted">' + (d ? esc(MS.fmt(d.nat, 2, true)) + ' / ' + esc(MS.fmt(d.foreign, 2, true)) + ' / ' + esc(MS.fmt(d.shock, 2, true)) : '') + '</td></tr>';
+    });
+    card.appendChild(el('div', { html: h + '</tbody></table></div>' }));
+    var unions = runPreview.rows.filter(function (r) { return String(r.key).indexOf('UNION') === 0; });
+    if (isGame && runPreview.tally) {
+      var t = runPreview.tally, cr = t.crisis || {}, sh = runPreview.shock || {};
+      var lines = [];
+      if (t.rate) lines.push('<b>Votes of year ' + runPreview.round + '</b> — rate: ' + t.rate.cut + ' cut · ' + t.rate.hold + ' hold · ' + t.rate.hike + ' hike → ' + (t.rate.outcome ? esc(MS.fmt(t.rate.outcome, 2, true)) + ' pt' : 'unchanged') + ' · effective rate ' + esc(MS.fmt(t.rate.level, 2)) + ' % (administrator shock ' + esc(MS.fmt(((st().shocks || {})[String(runPreview.round)] || {}).rate || 0, 2, true)) + ' pt included).');
+      else lines.push('<b>Votes disabled</b> (Control → Parameters).');
+      if (cr.outcome === 'forced') lines.push('<span class="neg">Reserves exhausted at the end of year ' + (runPreview.round - 1) + ': forced devaluation of ' + esc(MS.fmt(gameRules().forcedDeval, 0)) + ' %.</span>');
+      else if (cr.active) lines.push('Reserves crisis (alert at the end of year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' austerity · ' + cr.devaluation + ' devaluation → <b>' + esc(cr.outcome) + '</b>' + (cr.outcome === 'devaluation' ? ' (' + esc(MS.fmt(gameRules().devalSize, 0)) + ' % devaluation applied)' : (runPreview.caps && runPreview.caps.length ? ' — public demand and benefits capped at ' + esc(MS.fmt(gameRules().austerityCap, 0)) + ' % for: ' + esc(runPreview.caps.map(MS.countryName).join(', ')) : ' — nobody above the cap')) + '.');
+      else lines.push('No reserves crisis this year.');
+      if (MS.num(sh.deval)) lines.push('Devaluation applied this year: ' + esc(MS.fmt(sh.deval, 1)) + ' %.');
+      card.appendChild(el('div', { class: 'note small', html: lines.join('<br>') }));
+    }
+    if (isGame && unions.length) card.appendChild(el('div', { html: unionPanelHtml(unions[0].detail.extra, 'Monetary union · end of year ' + runPreview.round) }));
+    else if (unions.length) {
+      var u = unions[unions.length - 1].detail.extra;
+      card.appendChild(el('p', { class: 'small muted' }, ['Union at the end of the plans (last group run): reserves ' + MS.fmt(Math.max(0, u.months), 1) + ' months of imports' + (u.alert ? ' · ALERT' : '') + ', exchange rate ' + MS.fmt(u.xr, 3) + '.']));
+    }
+    card.appendChild(el('div', { class: 'btnrow' }, [
+      el('button', { class: 'btn primary', onclick: function () { publishRun(true); } }, ['Save and publish all']),
+      el('button', { class: 'btn', onclick: function () { publishRun(false); } }, ['Save as draft (not published)']),
+      el('span', { class: 'small muted' }, ['Published rows replace earlier ones for the same ' + (isGame ? 'country and year' : 'group and year') + '.'])
+    ]));
+    box.appendChild(card);
+  }
+  async function publishRun(publish) {
+    if (!runPreview) return;
+    var out = runPreview.rows.map(function (r) { var o = { key: r.key, year: r.year, published: !!publish, R: r.R === null || r.R === undefined ? '' : r.R, detail: r.detail || '' }; MS.INDICATORS.forEach(function (i) { o[i.id] = r[i.id] === undefined ? '' : r[i.id]; }); return o; });
+    var r = await admin('admin.results.set', { phase: runPreview.phase, round: runPreview.round, rows: out });
+    if (r.ok) { UI.toast(r.saved + ' rows saved' + (publish ? ' and published' : '')); runPreview = null; await refresh(); }
   }
 
   /* ---------------- COUNCIL ---------------- */
