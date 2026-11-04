@@ -460,7 +460,7 @@
     roundOptions().forEach(function (o) { sel.appendChild(el('option', {}, [o.label])); });
     sel.selectedIndex = Math.max(0, roundOptions().findIndex(function (o) { return o.phase === resSel.phase && o.round === resSel.round; }));
     c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Results']), sel]));
-    c.appendChild(el('p', { class: 'muted small' }, ['The Run tab fills these rows from the model. You can still edit or type numbers by hand (deviations from the reference: GDP in %, the others in points); if R is left blank it is computed with the weights set in Parameters (' + s.weights.gdp + '·ΔGDP − ' + s.weights.unemp + '·ΔU − ' + s.weights.infl + '·Δπ + ' + s.weights.pubbal + '·Δpublic balance + ' + s.weights.tradebal + '·Δtrade balance). Save as draft, then publish when you are ready to show the groups.']));
+    c.appendChild(el('p', { class: 'muted small' }, ['The Run tab fills these rows from the model. You can still edit or type numbers by hand (deviations from the reference: GDP in %, the others in points); R is the score of the year (not a change from the year before); « Cum. R » is the sum of the yearly scores, which the ranking uses. If R is left blank it is computed with the weights set in Parameters (' + s.weights.gdp + '·ΔGDP − ' + s.weights.unemp + '·ΔU − ' + s.weights.infl + '·Δπ + ' + s.weights.pubbal + '·Δpublic balance + ' + s.weights.tradebal + '·Δtrade balance). Save as draft, then publish when you are ready to show the groups.']));
 
     var rows = [];   // {key, year, inputs:{}, R:input, pub, detail}
     var existing = ov.results.filter(function (r) { return r.phase === resSel.phase && Number(r.round) === Number(resSel.round); });
@@ -469,13 +469,26 @@
       MS.INDICATORS.forEach(function (i) { var inp = el('input', { type: 'number', step: 0.001, value: ex && ex[i.id] !== null && ex[i.id] !== undefined ? ex[i.id] : '' }); inp.addEventListener('input', function () { recompute(r); }); r.inputs[i.id] = inp; });
       r.R = el('input', { type: 'number', step: 0.001, value: ex && ex.R !== null && ex.R !== undefined ? ex.R : '', title: 'leave blank to compute R from the weights' });
       r.Rhint = el('span', { class: 'small muted' });
+      r.cum = el('b');   // cumulative R: sum of the yearly scores up to this row (read-only)
       r.R.addEventListener('input', function () { recompute(r); });
       r.detail = ex && ex.detail ? ex.detail : null;
+    }
+    function rowR(r) {
+      if (r.R.value !== '' && !isNaN(MS.num(r.R.value))) return MS.num(r.R.value);
+      var dev = {}, any = false;
+      MS.INDICATORS.forEach(function (i) { var val = r.inputs[i.id].value; if (val !== '') { dev[i.id] = MS.num(val); any = true; } });
+      return any ? MS.scoreR(dev, s.weights) : null;
     }
     function recompute(r) {
       var dev = {}; var any = false;
       MS.INDICATORS.forEach(function (i) { var val = r.inputs[i.id].value; if (val !== '') { dev[i.id] = MS.num(val); any = true; } });
       r.Rhint.textContent = r.R.value === '' && any ? '(computed: ' + MS.fmt(MS.scoreR(dev, s.weights), 2, true) + ')' : '';
+      /* running sum over the rows of the same key (warm-up: the group's years; game: earlier saved years + this one) */
+      var acc = r.cumBase || 0, seen = false;
+      rows.filter(function (x) { return x.key === r.key; }).sort(function (a, b) { return a.year - b.year; }).forEach(function (x) {
+        var R = rowR(x); if (R !== null) { acc = MS.round3(acc + R); seen = true; }
+        x.cum.textContent = seen ? MS.fmt(acc, 3, true) : '—'; x.cum.className = seen ? UI.signedClass(acc) : 'muted';
+      });
     }
     function fillRow(r, data) {
       MS.INDICATORS.forEach(function (i) { if (data[i.id] !== '' && data[i.id] !== undefined) r.inputs[i.id].value = data[i.id]; });
@@ -484,7 +497,7 @@
       recompute(r);
       MS.INDICATORS.forEach(function (i) { r.inputs[i.id].classList.add('nz'); }); r.R.classList.add('nz');
     }
-    function rowCells(r) { return MS.INDICATORS.map(function (i) { return el('td', { class: 'num' }, [r.inputs[i.id]]); }).concat([el('td', { class: 'num' }, [r.R, el('br'), r.Rhint])]); }
+    function rowCells(r) { return MS.INDICATORS.map(function (i) { return el('td', { class: 'num' }, [r.inputs[i.id]]); }).concat([el('td', { class: 'num' }, [r.R, el('br'), r.Rhint]), el('td', { class: 'num', title: 'cumulative R: sum of the yearly scores' }, [r.cum])]); }
 
     if (resSel.phase === 'warmup') {
       groupsSorted().forEach(function (g) {
@@ -492,7 +505,7 @@
         var pub = el('input', { type: 'checkbox' }); var ex0 = find(g.groupId, 1); pub.checked = !!(ex0 && ex0.published);
         var dec = decisionsFor('warmup', 1).filter(function (d) { return d.groupId === g.groupId; })[0];
         block.appendChild(el('div', { class: 'head' }, [el('span', {}, [el('b', {}, [g.name]), ' ', el('span', { class: 'muted small' }, [dec ? 'plan submitted ' + UI.fmtTime(dec.ts) : 'no plan submitted'])]), el('label', { class: 'small' }, [pub, ' published to the group'])]));
-        var tbl = el('table', { class: 'resgrid' }); tbl.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Year'])].concat(MS.INDICATORS.map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R'])]))]));
+        var tbl = el('table', { class: 'resgrid' }); tbl.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Year'])].concat(MS.INDICATORS.map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R']), el('th', { class: 'num' }, ['Cum. R'])]))]));
         var tb = el('tbody');
         for (var y = 1; y <= s.warmup.years; y++) {
           var r = { key: g.groupId, groupId: g.groupId, year: y, inputs: {}, pub: pub }; mkInputs(r, find(g.groupId, y)); rows.push(r);
@@ -505,13 +518,14 @@
         c.appendChild(block);
       });
     } else {
-      var tbl2 = el('table', { class: 'resgrid' }); tbl2.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Country']), el('th', {}, ['Group'])].concat(MS.INDICATORS.map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R']), el('th', {}, ['Published'])]))]));
+      var tbl2 = el('table', { class: 'resgrid' }); tbl2.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Country']), el('th', {}, ['Group'])].concat(MS.INDICATORS.map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R']), el('th', { class: 'num' }, ['Cum. R']), el('th', {}, ['Published'])]))]));
       var tb2 = el('tbody');
       var played = ov.groups.filter(function (g) { return g.country; }).map(function (g) { return g.country; });
       MS.COUNTRIES.filter(function (cc) { return played.indexOf(cc.id) >= 0; }).forEach(function (cc) {
         var g = groupByCountry(cc.id); var ex = find(cc.id, resSel.round);
         var pub = el('input', { type: 'checkbox' }); pub.checked = !!(ex && ex.published);
         var r = { key: cc.id, year: resSel.round, inputs: {}, pub: pub }; mkInputs(r, ex); rows.push(r);
+        r.cumBase = ov.results.filter(function (x) { return x.phase === 'game' && x.key === cc.id && Number(x.year) < Number(resSel.round) && x.R !== '' && x.R !== null && x.R !== undefined; }).reduce(function (a, x) { return MS.round3(a + MS.num(x.R)); }, 0);
         tb2.appendChild(el('tr', {}, [el('td', {}, [el('b', {}, [cc.name])]), el('td', { class: 'small muted' }, [g ? g.name : ''])].concat(rowCells(r)).concat([el('td', {}, [pub])])));
         recompute(r);
       });
