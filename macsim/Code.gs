@@ -110,6 +110,9 @@ var MS = (function () {
          so the console always sends the complete map. `sim`: game rules computed in the console
          (votes at the central bank, see spec §7) and engine parameter overrides. */
       shocks: {},
+      /* reserves-crisis votes, one per game year ('3': {status: 'open'|'closed'|'forced', austerity, devaluation, outcome}).
+         Like `shocks`, a patch replaces the whole object. */
+      crisis: {},
       sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15 }
     };
   }
@@ -189,6 +192,24 @@ var MS = (function () {
     return Object.keys(used);
   }
 
+  /* the crisis record of a game year, or null */
+  function crisisOf(state, year) {
+    var c = state && state.crisis ? state.crisis[String(year)] : null;
+    return c && typeof c === 'object' && c.status ? c : null;
+  }
+  /* a country's vote in the reserves-crisis round: payload = {crisis: 'austerity'|'devaluation'} */
+  function validateCrisisVote(state, payload) {
+    var v = payload && payload.crisis;
+    if (VOTE_CRISIS.indexOf(v) < 0) return { ok: false, errors: ['Vote austerity or devaluation.'] };
+    return { ok: true, clean: { crisis: v, years: [], text: '' }, used: ['crisis:' + v] };
+  }
+  /* tally of a crisis round: one country one vote, absent = austerity, devaluation needs more than half of the playing countries */
+  function tallyCrisis(votes, nPlaying) {
+    var a = 0, d = 0;
+    (votes || []).forEach(function (v) { if (v === 'devaluation') d++; else a++; });
+    a += Math.max(0, nPlaying - a - d);
+    return { austerity: a, devaluation: d, outcome: d > nPlaying / 2 ? 'devaluation' : 'austerity' };
+  }
   function validateDecision(state, phase, countryId, payload) {
     var errors = [];
     var st = mergeState(state);
@@ -204,9 +225,10 @@ var MS = (function () {
     if (!isWarm) {
       var rawVotes = (payload && payload.votes) || {};
       if (rawVotes.rate !== undefined && VOTE_RATE.indexOf(rawVotes.rate) < 0) errors.push('Rate vote must be cut, hold or hike.');
-      if (rawVotes.crisis !== undefined && VOTE_CRISIS.indexOf(rawVotes.crisis) < 0) errors.push('Crisis vote must be austerity or devaluation.');
-      clean.votes = cleanVotes(rawVotes);
+      clean.votes = { rate: cleanVotes(rawVotes).rate };   /* the crisis vote is a round of its own (see crisisOf / validateCrisisVote) */
     }
+    var crisisNow = !isWarm ? crisisOf(st, st.round) : null;
+    var cap = crisisNow && crisisNow.outcome === 'austerity' ? num(st.sim.austerityCap) : null;
     var years = (payload && payload.years) || [];
     if (years.length !== nYears) errors.push('Expected ' + nYears + ' year(s) of decisions, got ' + years.length + '.');
 
@@ -218,6 +240,7 @@ var MS = (function () {
         if (isNaN(v)) { errors.push('Year ' + (yi + 1) + ': "' + l.label + '" is not a number.'); v = 0; }
         if (v !== 0 && allowed.indexOf(l.id) < 0) { errors.push('"' + l.label + '" is not available in this phase.'); }
         if (Math.abs(v) > st.bounds.lever + 1e-9) errors.push('Year ' + (yi + 1) + ': "' + l.label + '" must stay within ±' + st.bounds.lever + ' %.');
+        if (cap !== null && (l.id === 'pubdem' || l.id === 'benefits') && v > cap + 1e-9) errors.push('Austerity programme: "' + l.label + '" must be at most ' + cap + ' % this year.');
         cy.levers[l.id] = round2(v);
       });
       var tariffs = y.tariffs || {};
@@ -334,7 +357,7 @@ var MS = (function () {
     countryById: countryById, countryName: countryName, leverById: leverById,
     defaultState: defaultState, mergeState: mergeState,
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
-    scoreR: scoreR, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision,
+    scoreR: scoreR, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision, crisisOf: crisisOf, validateCrisisVote: validateCrisisVote, tallyCrisis: tallyCrisis,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
@@ -356,7 +379,7 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.4';
+  var VERSION = '1.5';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { return String(k || '').indexOf('UNION') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -436,14 +459,21 @@ var MSService = (function () {
   function closedRoundDecisions(state, decisions) {
     if (!state.showDecisionsWhenClosed) return [];
     var cur = Number(state.round), out = {};
+    var crisisOut = {};
     decisions.forEach(function (d) {
-      if (d.phase !== 'game') return;
       var rd = Number(d.round);
+      if (d.phase === 'crisis') {
+        var c = MS.crisisOf(state, rd);
+        if (c && c.status !== 'open') (crisisOut[rd] = crisisOut[rd] || []).push({ groupId: d.groupId, country: d.country, crisis: d.payload ? d.payload.crisis : null, ts: d.ts });
+        return;
+      }
+      if (d.phase !== 'game') return;
       var over = (state.phase === 'game' && (rd < cur || (rd === cur && state.status !== 'open'))) || (state.phase !== 'game');
       if (!over) return;
       (out[rd] = out[rd] || []).push({ groupId: d.groupId, country: d.country, payload: d.payload, ts: d.ts });
     });
-    return Object.keys(out).map(Number).sort(function (a, b) { return a - b; }).map(function (rd) { return { round: rd, decisions: out[rd] }; });
+    var rounds = {}; Object.keys(out).forEach(function (k) { rounds[k] = 1; }); Object.keys(crisisOut).forEach(function (k) { rounds[k] = 1; });
+    return Object.keys(rounds).map(Number).sort(function (a, b) { return a - b; }).map(function (rd) { return { round: rd, decisions: out[rd] || [], crisisVotes: crisisOut[rd] || [] }; });
   }
   function warmupPlans(state, decisions) {
     if (!state.revealWarmup) return [];
@@ -494,6 +524,7 @@ var MSService = (function () {
       myDecisions: mine.map(function (d) { return { phase: d.phase, round: Number(d.round), country: d.country, payload: d.payload, ts: d.ts }; }),
       myResults: myResults,
       union: union,
+      crisisVotesIn: decisions.filter(function (d) { return d.phase === 'crisis' && Number(d.round) === Number(state.round); }).length,
       myComments: comments.filter(function (c) { return c.groupId === g.groupId; }),
       gameResults: gameResults,
       warmupAll: warmupAll,
@@ -511,7 +542,22 @@ var MSService = (function () {
     var state = getState(st, g.classId);
     var now = st.now();
     var phase = p.phase, round = Number(p.round);
+    var cr = MS.crisisOf(state, state.round);
+    if (phase === 'crisis') {
+      /* the reserves-crisis vote: a round of its own, opened and closed by the administrator */
+      if (state.phase !== 'game' || round !== Number(state.round)) return fail('The round has changed (now: ' + state.phase + ' / round ' + state.round + '). Reload the page.');
+      if (!cr || cr.status !== 'open') return fail('The crisis vote is not open.');
+      if (!g.country) return fail('No country is assigned to your group yet. Ask the administrator.');
+      var cv = MS.validateCrisisVote(state, p.payload || {});
+      if (!cv.ok) return { ok: false, error: 'Your vote was not accepted.', errors: cv.errors };
+      var crow = { ts: iso(now), classId: g.classId, phase: 'crisis', round: round, groupId: g.groupId, country: g.country,
+        payload: JSON.stringify(cv.clean), text: '', used: cv.used.join(', ') };
+      st.appendRow('decisions', crow);
+      log(st, 'submit', g.classId, g.name, 'crisis r' + round + ' ' + cv.clean.crisis);
+      return { ok: true, ts: crow.ts, used: cv.used };
+    }
     if (phase !== state.phase || round !== Number(state.round)) return fail('The round has changed (now: ' + state.phase + ' / round ' + state.round + '). Reload the page.');
+    if (cr && cr.status === 'open') return fail('The crisis vote is in progress; decisions open afterwards.');
     if (!roundOpen(state, now)) return fail('Submissions are closed for this round.');
     var country = phase === 'warmup' ? state.warmup.country : g.country;
     if (!country) return fail('No country is assigned to your group yet. Ask the administrator.');
@@ -585,6 +631,7 @@ var MSService = (function () {
       ok: true, version: VERSION, now: iso(now), className: cls ? cls.name : classId,
       state: state, roundOpen: roundOpen(state, now), groups: groups,
       submitted: submitted,
+      crisisVotesIn: decisions.filter(function (d) { return d.phase === 'crisis' && Number(d.round) === Number(state.round); }).length,
       gameResults: state.publishLeaderboard ? results.filter(function (r) { return r.phase === 'game' && !isUnionKey(r.key); }) : [],
       warmupAll: state.revealWarmup ? results.filter(function (r) { return r.phase === 'warmup' && !isUnionKey(r.key); }) : [],
       union: results.filter(function (r) { return r.phase === state.phase && (state.phase === 'game' ? r.key === 'UNION' : isUnionKey(r.key)); }),
