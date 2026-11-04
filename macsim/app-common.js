@@ -115,6 +115,14 @@ var UI = (function () {
     else if (c.active) h += '<div class="urow"><span>Reserves crisis · vote</span><span class="num">' + esc(c.austerity) + ' austerity · ' + esc(c.devaluation) + ' devaluation → <b>' + esc(c.outcome || '—') + '</b>' + (c.outcome === 'austerity' && u.caps && u.caps.length ? ' (capped: ' + esc(u.caps.join(', ')) + ')' : '') + '</span></div>';
     return h;
   }
+  /* a pledge's attachments: numbers (non-zero levers) and the vote it announces; « words only » when it carries neither */
+  function pledgeChipsHtml(payload) {
+    var chips = yearChips(payload && payload.year), v = (payload && payload.votes) || {}, h = '';
+    chips.forEach(function (c) { h += '<span class="chip">' + esc(c.label) + (c.value === null ? '' : ' ' + esc(MS.fmt(c.value, 2, true)) + esc(c.unit || '')) + '</span>'; });
+    if (v.rate) h += '<span class="chip vote">Will vote: ' + esc(v.rate) + '</span>';
+    if (v.crisis) h += '<span class="chip vote">Will vote: ' + esc(v.crisis) + '</span>';
+    return '<div class="chips">' + (h || '<span class="chip zero">words only</span>') + '</div>';
+  }
   function download(filename, text, mime) {
     var a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type: mime || 'text/plain' }));
@@ -129,5 +137,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, download: download, copyText: copyText, store: store, read: read };
+  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, pledgeChipsHtml: pledgeChipsHtml, download: download, copyText: copyText, store: store, read: read };
 })();

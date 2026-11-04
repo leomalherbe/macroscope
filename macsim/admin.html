@@ -848,8 +848,8 @@
         var p = ov.pledges.filter(function (x) { return x.round === rd && x.country === cc; })[0];
         var d = decs.filter(function (x) { return x.country === cc; })[0];
         var verdict = '<span class="muted">no pledge</span>';
-        if (p) { var k = MS.pledgeKept(p.payload && p.payload.year, d && d.payload ? d.payload.years[0] : null); verdict = !k.items.length ? '<span class="muted">words only</span>' : (k.kept ? '<span class="kept">✓ kept</span>' : '<span class="broken">✗ broken</span>'); }
-        h += '<tr><td><b>' + esc(MS.countryName(cc)) + '</b></td><td>' + (p ? esc(p.text) + (p.payload && p.payload.year ? '<div class="vals">' + UI.chipsHtml(p.payload.year) + '</div>' : '') : '—') + '</td><td>' + (d ? UI.chipsHtml(d.payload.years[0]) : '<span class="muted">no decision yet</span>') + '</td><td>' + verdict + '</td></tr>';
+        if (p) { var k = MS.pledgeVerdict(p.payload, d ? d.payload : null); verdict = !k.items.length ? '<span class="muted">words only</span>' : (k.kept ? '<span class="kept">✓ kept</span>' : '<span class="broken">✗ broken</span>'); }
+        h += '<tr><td><b>' + esc(MS.countryName(cc)) + '</b></td><td>' + (p ? esc(p.text) + '<div class="vals">' + UI.pledgeChipsHtml(p.payload) + '</div>' : '—') + '</td><td>' + (d ? UI.chipsHtml(d.payload.years[0]) + UI.voteChipsHtml(d.payload.votes, { crisis: true }) : '<span class="muted">no decision yet</span>') + '</td><td>' + verdict + '</td></tr>';
       });
       c.appendChild(el('div', { html: h + '</tbody></table></div>' }));
     });

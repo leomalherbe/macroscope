@@ -273,6 +273,14 @@ var MS = (function () {
   }
 
   /* ---------- Pledges vs decisions ---------- */
+  /* full verdict on a pledge payload {text, year, votes} against a decision payload {years:[…], votes} */
+  function pledgeVerdict(pledgePayload, decisionPayload, tol) {
+    var out = pledgeKept(pledgePayload && pledgePayload.year, decisionPayload && decisionPayload.years ? decisionPayload.years[0] : null, tol);
+    var pv = (pledgePayload && pledgePayload.votes) || {}, dv = cleanVotes(decisionPayload && decisionPayload.votes);
+    if (pv.rate) { var okR = (dv.rate || 'hold') === pv.rate; out.items.push({ id: 'vote_rate', label: 'Vote on the rate', pledged: pv.rate, actual: dv.rate || 'hold', kept: okR }); if (!okR) out.kept = false; }
+    if (pv.crisis) { var okC = (dv.crisis || 'austerity') === pv.crisis; out.items.push({ id: 'vote_crisis', label: 'Crisis vote', pledged: pv.crisis, actual: dv.crisis || 'austerity', kept: okC }); if (!okC) out.kept = false; }
+    return out;
+  }
   function pledgeKept(pledgeYear, decisionYear, tol) {
     tol = tol === undefined ? 0.05 : tol;
     var out = { kept: true, items: [] };
@@ -318,7 +326,7 @@ var MS = (function () {
     defaultState: defaultState, mergeState: mergeState,
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
     scoreR: scoreR, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision,
-    leaderboard: leaderboard, pledgeKept: pledgeKept,
+    leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };

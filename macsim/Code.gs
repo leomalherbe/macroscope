@@ -282,6 +282,14 @@ var MS = (function () {
   }
 
   /* ---------- Pledges vs decisions ---------- */
+  /* full verdict on a pledge payload {text, year, votes} against a decision payload {years:[…], votes} */
+  function pledgeVerdict(pledgePayload, decisionPayload, tol) {
+    var out = pledgeKept(pledgePayload && pledgePayload.year, decisionPayload && decisionPayload.years ? decisionPayload.years[0] : null, tol);
+    var pv = (pledgePayload && pledgePayload.votes) || {}, dv = cleanVotes(decisionPayload && decisionPayload.votes);
+    if (pv.rate) { var okR = (dv.rate || 'hold') === pv.rate; out.items.push({ id: 'vote_rate', label: 'Vote on the rate', pledged: pv.rate, actual: dv.rate || 'hold', kept: okR }); if (!okR) out.kept = false; }
+    if (pv.crisis) { var okC = (dv.crisis || 'austerity') === pv.crisis; out.items.push({ id: 'vote_crisis', label: 'Crisis vote', pledged: pv.crisis, actual: dv.crisis || 'austerity', kept: okC }); if (!okC) out.kept = false; }
+    return out;
+  }
   function pledgeKept(pledgeYear, decisionYear, tol) {
     tol = tol === undefined ? 0.05 : tol;
     var out = { kept: true, items: [] };
@@ -327,7 +335,7 @@ var MS = (function () {
     defaultState: defaultState, mergeState: mergeState,
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
     scoreR: scoreR, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision,
-    leaderboard: leaderboard, pledgeKept: pledgeKept,
+    leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
@@ -348,7 +356,7 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.3';
+  var VERSION = '1.4';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { return String(k || '').indexOf('UNION') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -541,8 +549,12 @@ var MSService = (function () {
     var cy = MS.emptyYear();
     MS.LEVERS.forEach(function (l) { var v = MS.num(year.levers ? year.levers[l.id] : 0); cy.levers[l.id] = isNaN(v) ? 0 : MS.round2(v); });
     Object.keys(year.tariffs || {}).forEach(function (k) { var v = MS.num(year.tariffs[k]); if (!isNaN(v) && v && MS.countryById(k)) cy.tariffs[k] = MS.round2(v); });
+    /* announced vote (optional): only the admissible values are kept */
+    var pvIn = payload.votes || {}, pv = {};
+    if (MS.VOTE_RATE.indexOf(pvIn.rate) >= 0) pv.rate = pvIn.rate;
+    if (MS.VOTE_CRISIS.indexOf(pvIn.crisis) >= 0) pv.crisis = pvIn.crisis;
     var row = { ts: iso(st.now()), classId: g.classId, round: Number(state.round), groupId: g.groupId, country: g.country,
-      text: text, payload: JSON.stringify({ text: text, year: cy }) };
+      text: text, payload: JSON.stringify({ text: text, year: cy, votes: pv }) };
     st.appendRow('pledges', row);
     log(st, 'pledge', g.classId, g.name, 'r' + state.round);
     return { ok: true, ts: row.ts };

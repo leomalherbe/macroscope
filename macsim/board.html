@@ -125,7 +125,7 @@
         var cc = el('div', { class: 'card tint' }); cc.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Council of ministers · year ' + st.round]), el('span', { class: 'pill gold' }, ['in session'])]));
         var pl = (data.pledges || []).slice().sort(function (a, b) { return String(a.ts) < String(b.ts) ? -1 : 1; });
         if (!pl.length) cc.appendChild(el('p', { class: 'muted' }, ['No pledge on the table yet.']));
-        pl.forEach(function (p) { cc.appendChild(el('div', { class: 'pledge', html: '<b>' + esc(MS.countryName(p.country)) + '</b> <span class="muted small">' + esc(UI.fmtTime(p.ts)) + '</span><br>' + esc(p.text) + (p.payload && p.payload.year ? '<div class="vals">' + UI.chipsHtml(p.payload.year) + '</div>' : '') })); });
+        pl.forEach(function (p) { cc.appendChild(el('div', { class: 'pledge', html: '<b>' + esc(MS.countryName(p.country)) + '</b> <span class="muted small">' + esc(UI.fmtTime(p.ts)) + '</span><br>' + esc(p.text) + '<div class="vals">' + UI.pledgeChipsHtml(p.payload) + '</div>' })); });
         right.appendChild(cc);
       }
       /* everyone's decisions once the round is over */
@@ -145,8 +145,8 @@
         Object.keys(countries).sort().forEach(function (cid) {
           var p = rv.pledges.filter(function (x) { return x.country === cid; })[0], d = rv.decisions.filter(function (x) { return x.country === cid; })[0];
           var verdict = '<span class="muted">no pledge</span>';
-          if (p) { var k = MS.pledgeKept(p.payload && p.payload.year, d && d.payload ? d.payload.years[0] : null); verdict = !k.items.length ? '<span class="muted">words only</span>' : (k.kept ? '<span class="kept">✓ kept</span>' : '<span class="broken">✗ broken</span>'); }
-          h2 += '<tr><td><b>' + esc(MS.countryName(cid)) + '</b></td><td>' + (p ? esc(p.text) + (p.payload && p.payload.year ? '<div class="vals">' + UI.chipsHtml(p.payload.year) + '</div>' : '') : '—') + '</td><td>' + (d ? UI.chipsHtml(d.payload.years[0]) : '<span class="muted">no decision</span>') + '</td><td>' + verdict + '</td></tr>';
+          if (p) { var k = MS.pledgeVerdict(p.payload, d ? d.payload : null); verdict = !k.items.length ? '<span class="muted">words only</span>' : (k.kept ? '<span class="kept">✓ kept</span>' : '<span class="broken">✗ broken</span>'); }
+          h2 += '<tr><td><b>' + esc(MS.countryName(cid)) + '</b></td><td>' + (p ? esc(p.text) + '<div class="vals">' + UI.pledgeChipsHtml(p.payload) + '</div>' : '—') + '</td><td>' + (d ? UI.chipsHtml(d.payload.years[0]) + UI.voteChipsHtml(d.payload.votes, { crisis: true }) : '<span class="muted">no decision</span>') + '</td><td>' + verdict + '</td></tr>';
         });
         reveals.push(el('div', { class: 'card' }, [el('h2', {}, ['Pledges vs decisions · year ' + rv.round]), el('div', { html: h2 + '</tbody></table></div>' })]));
       });
