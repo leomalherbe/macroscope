@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OPEN-MU · The model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+table.eq{width:100%;border-collapse:collapse;background:#faf8f1;border:1px solid var(--line);border-radius:10px;margin:8px 0;font-size:.86rem}
+table.eq td{padding:4px 10px;vertical-align:top;border-bottom:1px solid #efebe0}
+table.eq tr:last-child td{border-bottom:0}
+table.eq td.e{font-family:var(--mono);white-space:nowrap}
+table.eq td.c{color:var(--muted);font-size:.82rem}
+.block{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start}
+.block .note{font-size:.85rem;color:var(--muted);border-left:3px solid var(--gold);padding-left:12px}
+@media (max-width:820px){.block{grid-template-columns:1fr}}
+table.p{width:100%;border-collapse:collapse;font-size:.88rem}
+table.p th,table.p td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.toc{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
+.toc a{font-size:.82rem;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 12px;text-decoration:none;color:var(--navy)}
+.sign{font-family:var(--mono);font-size:.85rem}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="wrap">
+  <div>
+    <div class="kicker">International Financial Macroeconomics · KEDGE Business School · Master · 2026</div>
+    <h1>OPEN-MU · The model behind the game</h1>
+    <p class="sub">Every equation the engine solves, with the parameters it uses — so that you can anticipate what a decision does before you take it.</p>
+    <div class="toc">
+      <a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
+    </div>
+  </div>
+  <div class="who"><a href="index.html">← Policy desk</a></div>
+</div></header>
+
+<main><div class="wrap">
+
+<div class="card">
+  <h2>In one paragraph</h2>
+  <p>Seven countries share one currency and one central bank; the rest of the world is a given (its demand for the union's exports, its price level). Each country is the chapter-6 open economy of class 5, with firms that invest on bank credit added: households spend out of income and wealth, governments spend, tax and borrow, imports leak in proportion to output. Inside the union there is no exchange rate; with the rest of the world the rate is <strong>fixed</strong>, so the central bank's foreign reserves absorb whatever the union's current account does not balance. Unemployment and inflation are read on the model (Okun, Phillips) but do not feed back into it. The reference state is stationary: with no decisions and no shocks, every variable stays where it is, and every result you see is a deviation from that path.</p>
+  <p class="small muted">Notation: <i>X</i>₋₁ is last year's value, <i>X</i>* the reference (stationary) value. Everything is real except trade with the rest of the world, where the import price in union currency is the exchange rate <i>xr</i>. Country subscripts are dropped when no confusion is possible.</p>
+</div>
+
+<div class="card" id="levers">
+  <h2>Your levers and the administrator's shocks</h2>
+  <div class="block">
+    <div>
+      <p>A lever is a relative variation, in %, of the reference level, within ±10:</p>
+      <table class="eq"><tr><td class="e">G = G*·(1 + pubdem/100)</td><td class="c">public demand (goods and services)</td></tr><tr><td class="e">TR = TR*·(1 + benefits/100)</td><td class="c">transfers to households</td></tr><tr><td class="e">θ = θ*·(1 + inctax/100)</td><td class="c">income-tax rate (θ* = 0.331)</td></tr><tr><td class="e">τ = τ*·(1 + vat/100) ;  τc = τ/(1+τ)</td><td class="c">consumption-tax rate (τ* = 0.10); τc = share of spending taken by the tax</td></tr></table>
+      <p>The administrator's shocks of the year, the same for every member:</p>
+      <table class="eq"><tr><td class="e">world</td><td class="c">demand of the rest of the world for the union's exports, %</td></tr><tr><td class="e">rate</td><td class="c">central bank rate, in points (plus the voted changes)</td></tr><tr><td class="e">confidence</td><td class="c">propensity to consume out of income, %</td></tr><tr><td class="e">imports</td><td class="c">propensity to import, %</td></tr><tr><td class="e">deval</td><td class="c">jump of the exchange rate xr, % (voted or forced devaluations add to it)</td></tr></table>
+    </div>
+    <div class="note">Public demand +10 is 10 % more public spending, i.e. about +2 points of GDP (G* = 0.20 Y*). Benefits +10 is +1.5 points of GDP (TR* = 0.15 Y*). Income tax +10 lifts the rate from 33.1 % to 36.4 %.</div>
+  </div>
+</div>
+
+<div class="card" id="households">
+  <h2>Households</h2>
+  <div class="block">
+    <div>
+      <table class="eq"><tr><td class="e">YD = YF + r₋₁·(Bh₋₁ + M₋₁) + TR − T_inc</td><td class="c">disposable income</td></tr><tr><td class="e">T_inc = θ·(YF + r₋₁·(Bh₋₁ + M₋₁))</td><td class="c">income tax</td></tr><tr><td class="e">CE = α1·(1 + confidence/100)·YD + α2·V₋₁</td><td class="c">consumption spending (including the consumption tax)</td></tr><tr><td class="e">C = (1 − τc)·CE</td><td class="c">consumption of goods</td></tr><tr><td class="e">V = V₋₁ + YD − CE</td><td class="c">wealth</td></tr><tr><td class="e">Bh = V·min(λcap, λ0 + λ1·r)</td><td class="c">government bills held</td></tr><tr><td class="e">M = (V − Bh)·ν ;  H = (V − Bh)·(1 − ν)</td><td class="c">bank deposits ; cash</td></tr></table>
+    </div>
+    <div class="note"><strong>The restoring force.</strong> Households aim at a wealth target: when income rises they save part of it, wealth grows, consumption out of wealth catches up, until YD = CE again. That is why a one-off stimulus fades and a permanent one settles at a new level. A higher rate makes them hold more bills (and earn more interest) — a mildly <em>expansionary</em> side of the rate.</div>
+  </div>
+</div>
+
+<div class="card" id="firms">
+  <h2>Firms and banks</h2>
+  <div class="block">
+    <div>
+      <table class="eq"><tr><td class="e">I = I*·max(0.5, 1 − ι·(r₋₁ − r*))</td><td class="c">investment, reacts to last year's rate</td></tr><tr><td class="e">AF = δ·K*</td><td class="c">amortisation funds retained by firms</td></tr><tr><td class="e">K = K₋₁ + I − AF ;  L = L₋₁ + I − AF</td><td class="c">capital ; bank loans (L = K)</td></tr><tr><td class="e">YF = Y − AF − r₋₁·L₋₁</td><td class="c">income distributed to households</td></tr><tr><td class="e">Bb = max(0, M − L) ;  A = max(0, L − M)</td><td class="c">banks: surplus deposits placed in bills / advances from the central bank</td></tr></table>
+    </div>
+    <div class="note"><strong>Horizontalist banks.</strong> Firms borrow what they need to invest; banks lend it and refinance at the central bank if deposits fall short. The rate acts on investment <em>the following year</em>, with ι = 12: +1 point on the rate cuts investment by 12 %, about −1.2 % of GDP. This is the contractionary channel of the rate — stronger than the interest-income channel above.</div>
+  </div>
+</div>
+
+<div class="card" id="gov">
+  <h2>Government and the common central bank</h2>
+  <div class="block">
+    <div>
+      <table class="eq"><tr><td class="e">T = T_inc + τc·CE</td><td class="c">total taxes</td></tr><tr><td class="e">Fcb = r₋₁·(Bcb₋₁ + A₋₁)</td><td class="c">central-bank profit, rebated to the government</td></tr><tr><td class="e">B = B₋₁ + G + TR + r₋₁·B₋₁ − T − Fcb</td><td class="c">government debt (bills)</td></tr><tr><td class="e">Bcb = B − Bh − Bb</td><td class="c">the central bank buys what nobody else holds</td></tr><tr><td class="e">PB = T + Fcb − G − TR − r₋₁·B₋₁</td><td class="c">public balance (shown in points of GDP)</td></tr></table>
+    </div>
+    <div class="note">No market discipline inside the union: the central bank absorbs the bills households and banks do not want, at the common rate. The budget cost of a rate rise comes the following year (debt service on B₋₁ at last year's rate; public debt is about 105 % of GDP at the reference). Public debt ratios are reported, not constrained.</div>
+  </div>
+</div>
+
+<div class="card" id="trade">
+  <h2>Trade: inside the union and with the rest of the world</h2>
+  <div class="block">
+    <div>
+      <table class="eq"><tr><td class="e">IM = μ·(1 + imports/100)·Y</td><td class="c">imports in volume</td></tr><tr><td class="e">IMU = (1 − sR)·IM</td><td class="c">from the union, split among partners j in proportion to their size</td></tr><tr><td class="e">IMR = sR·IM·(xr₋₁/xr0)^(−ε)</td><td class="c">from the rest of the world (price effect with a one-year lag)</td></tr><tr><td class="e">IMV = IMU + xr·IMR</td><td class="c">value of imports in union currency</td></tr><tr><td class="e">X = Σ_j s_ji·IMU_j + XR</td><td class="c">exports = partners' imports from me + exports to the rest of the world</td></tr><tr><td class="e">XR = xR*·(1 + world/100)·(xr/xr0)^η</td><td class="c">exports to the rest of the world</td></tr><tr><td class="e">Y = C + G + I + X − IMV</td><td class="c">output, solved simultaneously for the seven members</td></tr><tr><td class="e">TB = X − IMV</td><td class="c">trade balance (shown in points of GDP)</td></tr></table>
+    </div>
+    <div class="note"><strong>Leakages.</strong> μ = 0.30: thirty cents of every euro of demand go to imports, half of them to union partners (your stimulus is their export) and half to the rest of the world (lost for the union's reserves). After a devaluation the import bill rises first (prices move at once, volumes with a year's lag — the <strong>J-curve</strong>), then exports (η = 0.7) and imports (ε = 0.7) adjust: 0.7 + 0.7 &gt; 1, the Marshall–Lerner condition holds.</div>
+  </div>
+</div>
+
+<div class="card" id="union">
+  <h2>The union and its reserves</h2>
+  <div class="block">
+    <div>
+      <table class="eq"><tr><td class="e">CA = Σ_i (XR_i − xr·IMR_i)</td><td class="c">current account of the union with the rest of the world</td></tr><tr><td class="e">R = R₋₁ + CA/xr</td><td class="c">foreign reserves, in world currency</td></tr><tr><td class="e">xr = xr₋₁·(1 + deval/100)</td><td class="c">fixed rate: moves only by a (voted or forced) devaluation</td></tr><tr><td class="e">NWcb = NWcb₋₁ + (xr − xr₋₁)·R₋₁</td><td class="c">the central bank's valuation gain on a devaluation</td></tr><tr><td class="e">Σ_i H_i = Σ_i (Bcb_i + A_i) + xr·R − NWcb</td><td class="c">the central bank's balance sheet closes every year</td></tr><tr><td class="e">R0 = 3 months of RoW imports ;  alert if R < 0.25·R0</td><td class="c">initial stock and alert line</td></tr></table>
+    </div>
+    <div class="note"><strong>A shared resource.</strong> Reserves are the union's, not any member's. Everybody's current account drains or fills the same stock, and the devaluation that follows an exhaustion hits every member's import prices. Orders of magnitude: a world-demand shock of −10 % costs about 30 % of R₀ per year if nobody reacts.</div>
+  </div>
+</div>
+
+<div class="card" id="thermo">
+  <h2>Unemployment and inflation — two thermometers</h2>
+  <div class="block">
+    <div>
+      <table class="eq"><tr><td class="e">gap = 100·(Y/Y* − 1)</td><td class="c">output gap, %</td></tr><tr><td class="e">u = u* − β·gap</td><td class="c">unemployment rate (Okun), u* = 7, β = 0.4</td></tr><tr><td class="e">π = π* + κ·gap + ρ·Δτ·100 + ω·100·(xr − xr₋₁)/xr₋₁</td><td class="c">inflation (Phillips, plus tax and import-price pass-through), π* = 2</td></tr></table>
+    </div>
+    <div class="note">Read on the model, not fed back: prices do not change anybody's behaviour inside the union. A consumption-tax rise is passed into prices once (ρ = 0.6); a devaluation of 10 % adds 1.5 points of inflation (ω = 0.15) the year it happens. GDP +1 % buys −0.4 point of unemployment and costs +0.3 point of inflation.</div>
+  </div>
+</div>
+
+<div class="card" id="rules">
+  <h2>The rules around the model: votes and the reserves crisis</h2>
+  <table class="p">
+    <tr><th style="width:26%">Rate vote</th><td>With its decisions of the year, each country votes <b>cut</b>, <b>hold</b> or <b>hike</b>; one country, one vote. A majority of the playing countries moves the rate by 0.5 point, permanently (the changes add up over the years), on top of the administrator's rate shock; bounded between 0 and 10 %. Secret while the round is open.</td></tr>
+    <tr><th>Alert</th><td>Checked at the end of each year: reserves below 25 % of the initial stock.</td></tr>
+    <tr><th>Crisis vote</th><td>When the union ends a year under alert, the next year <b>opens with a vote, before any decision</b>: <b>austerity</b> (every member must keep public demand and benefits at least 5 % below the reference that year) or <b>devaluation</b> (10 %). Devaluation needs a strict majority of the playing countries; a country that does not vote counts as austerity. The result is announced, then decisions open.</td></tr>
+    <tr><th>Forced devaluation</th><td>Reserves at or below zero <b>and</b> a current-account deficit at the end of the previous year: a devaluation of 15 % is applied, without a vote. Once the current account is back in surplus, the union is repaying its foreign borrowing and the ordinary crisis vote applies again.</td></tr>
+    <tr><th>Objective</th><td>R = 0.2·ΔGDP − 0.2·Δu − 0.2·Δπ + 0.2·ΔPB + 0.2·ΔTB: the score of the year (deviations from the reference: GDP in %, the rest in points). The ranking uses the cumulative R, the sum of the yearly scores.</td></tr>
+  </table>
+</div>
+
+<div class="card" id="params">
+  <h2>Parameters (identical for every member, up to size)</h2>
+  <table class="p">
+    <thead><tr><th>Symbol</th><th>Value</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td class="sign">size</td><td>DEU 100 · FRA 75 · ITA 60 · ESP 40 · NLD 30 · BEL 18 · AUT 14</td><td>reference GDP, also the weights of intra-union trade</td></tr>
+      <tr><td class="sign">g, tr, τ*, θ*</td><td>0.20, 0.15, 0.10, 0.331</td><td>public demand and transfers in % of GDP; consumption-tax and income-tax rates at the reference</td></tr>
+      <tr><td class="sign">α1, α2</td><td>0.75, 0.092</td><td>propensities to consume out of disposable income and out of wealth (wealth ≈ 2.1 GDP at the reference)</td></tr>
+      <tr><td class="sign">λ0, λ1, λcap, ν</td><td>0.33, 5, 0.8, 0.83</td><td>portfolio: bills share of wealth = min(λcap, λ0 + λ1·r) = 0.48 at r*; deposits share of the rest</td></tr>
+      <tr><td class="sign">r*</td><td>3 %</td><td>central bank rate at the reference</td></tr>
+      <tr><td class="sign">κ, δ, ι</td><td>1, 0.10, 12</td><td>capital = one year of GDP, investment 10 % of GDP, sensitivity of investment to last year's rate</td></tr>
+      <tr><td class="sign">μ, sR</td><td>0.30, 0.5</td><td>import propensity; share of imports coming from the rest of the world</td></tr>
+      <tr><td class="sign">ε, η</td><td>0.7, 0.7</td><td>price elasticities of imports from and exports to the rest of the world</td></tr>
+      <tr><td class="sign">R0</td><td>3 months of RoW imports</td><td>initial reserves; alert at 25 %</td></tr>
+      <tr><td class="sign">u*, β, π*, κ, ρ, ω</td><td>7, 0.4, 2, 0.3, 0.6, 0.15</td><td>thermometers (Okun and Phillips)</td></tr>
+      <tr><td class="sign">reference ratios</td><td colspan="2">public debt 105 % of GDP · household wealth 209 % · bank deposits 90 % · firms' loans 100 % · trade and public balances 0</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="expect">
+  <h2>What to expect — orders of magnitude from the engine</h2>
+  <table class="p">
+    <thead><tr><th>Decision or shock</th><th>Year 1</th><th>Later</th></tr></thead>
+    <tbody>
+      <tr><td>Public demand +10 % (≈ +2 pt of GDP), one member alone</td><td>GDP +2.4 %, unemployment −1.0 pt, inflation +0.7 pt, public balance −1.1 pt, trade balance −0.7 pt (multiplier ≈ 1.2)</td><td>fades as households rebuild wealth; the partners gain a little through your imports; the union's reserves pay for the RoW half of the leak</td></tr>
+      <tr><td>Income tax −10 % (rate 33.1 → 29.8 %)</td><td>GDP +2.6 %, unemployment −1.0 pt, inflation +0.8 pt, public balance −1.9 pt, trade balance −0.7 pt</td><td>same restoring forces; the budget cost is permanent while the tax cut lasts</td></tr>
+      <tr><td>Consumption tax +10 % (10 → 11 %)</td><td>GDP −0.8 %, inflation +0.4 pt (one-off pass-through), public balance +0.35 pt, trade balance +0.2 pt</td><td>inflation falls back below the reference the next year (the price level stays higher); the budget improvement lasts</td></tr>
+      <tr><td>Central bank rate +1 pt</td><td>nothing yet: everything works with a one-year lag</td><td>year 2: investment −12 %, GDP −1.1 %, unemployment +0.4 pt, every public balance −1 pt (debt service), trade balance +0.2 pt</td></tr>
+      <tr><td>World demand −10 %, nobody reacts</td><td>union GDP −2.2 %, current account −4 (≈ −30 % of R0)</td><td>reserves 69 % → 37 % → 7 % → exhausted at the end of year 4</td></tr>
+      <tr><td>Devaluation 10 %</td><td>current account worsens (J-curve, −9 % of R0), inflation +1.3 pt, GDP −0.7 %</td><td>from year 2: current account +12 % of R0 per year, GDP +0.9 %</td></tr>
+      <tr><td>Austerity for all (public demand and benefits −5 %)</td><td>union GDP −2.2 %, current account +9 % of R0</td><td>lasts while the caps last</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted" style="margin-top:.6em">The report splits every result into what your own policy did, what the other countries' policies did, and what the shocks did — three counterfactual runs of the same model.</p>
+</div>
+
+<p class="small muted">Model: Godley &amp; Lavoie (2007), <em>Monetary Economics</em>, chapter 6 (OPEN / REG), extended to a monetary union with firms and horizontalist banks. Engine <code>engine.js</code>, specification in the course repository.</p>
+
+</div></main>
+
+</body>
+</html>
