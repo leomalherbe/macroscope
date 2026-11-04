@@ -98,18 +98,19 @@
       if (!st.publishLeaderboard) c.appendChild(el('p', { class: 'muted' }, ['The ranking is hidden for now.']));
       else if (!lb.length) c.appendChild(el('p', { class: 'muted' }, ['The ranking appears after the first simulated year.']));
       else {
-        var maxAbs = Math.max.apply(null, lb.map(function (r) { return Math.abs(r.latestR || 0); }).concat([0.01]));
+        var maxAbs = Math.max.apply(null, lb.map(function (r) { return Math.abs(r.cumR || 0); }).concat([0.01]));
         var yrs = {}; lb.forEach(function (r) { Object.keys(r.years).forEach(function (y) { yrs[y] = true; }); });
         var yl = Object.keys(yrs).map(Number).sort(function (a, b) { return a - b; });
-        var h = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Country</th>' + yl.map(function (y) { return '<th class="num">R · y' + y + '</th>'; }).join('') + '<th class="num">Latest R</th><th></th></tr></thead><tbody>';
+        var h = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Country</th>' + yl.map(function (y) { return '<th class="num">R · y' + y + '</th>'; }).join('') + '<th class="num">Cumulative R</th><th></th></tr></thead><tbody>';
         lb.forEach(function (r) {
-          var pct = Math.abs(r.latestR || 0) / maxAbs * 50;
+          var cr = r.latestR === null ? null : r.cumR;
+          var pct = Math.abs(cr || 0) / maxAbs * 50;
           h += '<tr><td class="rank">' + r.rank + '</td><td><b>' + esc(MS.countryName(r.key)) + '</b><br><span class="small muted">' + esc(groupName(((data.groups || []).filter(function (g) { return g.country === r.key; })[0] || {}).groupId)) + '</span></td>' +
             yl.map(function (y) { var e = r.years[y]; return '<td class="num ' + (e ? UI.signedClass(e.R) : '') + '">' + esc(e ? MS.fmt(e.R, 3, true) : '—') + '</td>'; }).join('') +
-            '<td class="num ' + UI.signedClass(r.latestR) + '"><b>' + esc(MS.fmt(r.latestR, 3, true)) + '</b></td><td><div class="bar"><i class="' + ((r.latestR || 0) < 0 ? 'neg' : '') + '" style="left:' + ((r.latestR || 0) < 0 ? 50 - pct : 50) + '%;width:' + pct + '%"></i></div></td></tr>';
+            '<td class="num ' + UI.signedClass(cr) + '"><b>' + esc(MS.fmt(cr, 3, true)) + '</b></td><td><div class="bar"><i class="' + ((cr || 0) < 0 ? 'neg' : '') + '" style="left:' + ((cr || 0) < 0 ? 50 - pct : 50) + '%;width:' + pct + '%"></i></div></td></tr>';
         });
         c.appendChild(el('div', { html: h + '</tbody></table></div>' }));
-        c.appendChild(el('p', { class: 'muted small' }, ['R = ' + st.weights.gdp + '·ΔGDP − ' + st.weights.unemp + '·Δunemployment − ' + st.weights.infl + '·Δinflation + ' + st.weights.pubbal + '·Δpublic balance + ' + st.weights.tradebal + '·Δtrade balance']));
+        c.appendChild(el('p', { class: 'muted small' }, ['R is the score of each year: ' + st.weights.gdp + '·ΔGDP − ' + st.weights.unemp + '·Δunemployment − ' + st.weights.infl + '·Δinflation + ' + st.weights.pubbal + '·Δpublic balance + ' + st.weights.tradebal + '·Δtrade balance (deviations from the reference path). Countries are ranked by the cumulative R, the sum of their yearly scores.']));
         /* latest year detail */
         var latestYear = Math.max.apply(null, yl);
         var det = el('div', { class: 'card' }); det.appendChild(el('h2', {}, ['Year ' + latestYear + ' in detail']));
@@ -156,10 +157,10 @@
       if (st.revealWarmup && (data.warmupAll || []).length) {
         var byG = {}; data.warmupAll.forEach(function (r) { (byG[r.key] = byG[r.key] || {})[r.year] = r; });
         var years = []; for (var y = 1; y <= st.warmup.years; y++) years.push(y);
-        var rows = Object.keys(byG).map(function (k) { var rs = years.map(function (yy) { return byG[k][yy] ? byG[k][yy].R : null; }); var vals = rs.filter(function (x) { return x !== null; }); return { key: k, rs: rs, avg: vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null }; });
+        var rows = Object.keys(byG).map(function (k) { var rs = years.map(function (yy) { return byG[k][yy] ? byG[k][yy].R : null; }); var vals = rs.filter(function (x) { return x !== null; }); return { key: k, rs: rs, avg: vals.length ? MS.round3(vals.reduce(function (a, b) { return a + b; }, 0)) : null }; });
         rows.sort(function (a, b) { return (b.avg === null ? -1e9 : b.avg) - (a.avg === null ? -1e9 : a.avg); });
         var lastY = years[years.length - 1];
-        var hw = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Group · plan</th>' + years.map(function (yy) { return '<th class="num">R · year ' + yy + '</th>'; }).join('') + '<th class="num">Average R</th></tr></thead><tbody>';
+        var hw = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Group · plan</th>' + years.map(function (yy) { return '<th class="num">R · year ' + yy + '</th>'; }).join('') + '<th class="num">Cumulative R</th></tr></thead><tbody>';
         rows.forEach(function (r, i) {
           var plan = (data.warmupPlans || []).filter(function (pl) { return pl.groupId === r.key; })[0];
           var planHtml = plan && plan.payload && plan.payload.years ? '<div class="small" style="margin-top:2px">' + plan.payload.years.map(function (yy, k) {
@@ -171,7 +172,7 @@
           hw += '<tr><td class="rank">' + (i + 1) + '</td><td><b>' + esc(groupName(r.key)) + '</b>' + planHtml + lastHtml + '</td>' + r.rs.map(function (x) { return '<td class="num ' + UI.signedClass(x) + '">' + esc(MS.fmt(x, 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(r.avg) + '"><b>' + esc(MS.fmt(r.avg, 3, true)) + '</b></td></tr>';
         });
         wc.appendChild(el('h3', { style: 'margin-top:12px' }, ['Debrief · all groups'])); wc.appendChild(el('div', { html: hw + '</tbody></table></div>' }));
-        wc.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['Ranked by the average R over the plan (GDP in %, the rest in points, deviations from the reference path). Each group governed ' + MS.countryName(st.warmup.country) + ' alone, under the same shocks.']));
+        wc.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['Ranked by the cumulative R, the sum of the yearly scores over the plan (R weighs the year’s deviations from the reference path: GDP in %, the rest in points). Each group governed ' + MS.countryName(st.warmup.country) + ' alone, under the same shocks.']));
       }
       left.appendChild(wc);
     }

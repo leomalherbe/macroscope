@@ -394,30 +394,46 @@
   }
 
   /* ---------------- results ---------------- */
-  function breakdownRows(r, weights) {
+  /* R split of a row (own / foreign / shocks); R is linear, so a row without a stored split gets it rebuilt from the indicators' split */
+  function rSplit(r, weights) {
+    var d = r.detail, out = {}; if (!d || typeof d !== 'object') return out;
+    ['nat', 'foreign', 'shock'].forEach(function (p) {
+      var Rp = d.R && d.R[p] !== undefined ? d.R[p] : null;
+      if (Rp === null) { var pd = {}, has = false; MS.INDICATORS.forEach(function (i) { var x = d[i.id] ? d[i.id][p] : null; if (x !== null && x !== undefined) { pd[i.id] = x; has = true; } }); if (has) Rp = MS.scoreR(pd, weights); }
+      if (Rp !== null) out[p] = Rp;
+    });
+    return out;
+  }
+  function breakdownRows(r, weights, cum) {
     var d = r.detail; if (!d || typeof d !== 'object') return '';
     var parts = [['nat', 'of which your own policy'], ['foreign', 'of which foreign policies'], ['shock', 'of which the shocks']];
+    var split = rSplit(r, weights);
     return parts.map(function (pp) {
-      var any = MS.INDICATORS.some(function (i) { return d[i.id] && d[i.id][pp[0]] !== undefined; }) || (d.R && d.R[pp[0]] !== undefined);
+      var any = MS.INDICATORS.some(function (i) { return d[i.id] && d[i.id][pp[0]] !== undefined; }) || split[pp[0]] !== undefined;
       if (!any) return '';
-      /* R is linear: when the row carries no R split, rebuild it from the indicators' split with the class weights */
-      var Rp = d.R && d.R[pp[0]] !== undefined ? d.R[pp[0]] : null;
-      if (Rp === null) { var pd = {}, has = false; MS.INDICATORS.forEach(function (i) { var x = d[i.id] ? d[i.id][pp[0]] : null; if (x !== null && x !== undefined) { pd[i.id] = x; has = true; } }); if (has) Rp = MS.scoreR(pd, weights); }
-      return '<tr class="bd"><td class="small muted" style="padding-left:1.6em">' + pp[1] + '</td>' + MS.INDICATORS.map(function (i) { var x = d[i.id] ? d[i.id][pp[0]] : null; return '<td class="num small ' + (x === null || x === undefined ? '' : UI.signedClass(i.sign * x)) + '">' + esc(x === null || x === undefined ? '' : MS.fmt(x, 3, true)) + '</td>'; }).join('') +
-        '<td class="num small ' + (Rp === null ? '' : UI.signedClass(Rp)) + '">' + esc(Rp === null ? '' : MS.fmt(Rp, 3, true)) + '</td></tr>';
+      var Rp = split[pp[0]] === undefined ? null : split[pp[0]];
+      var Cp = cum && cum[pp[0]] !== undefined ? cum[pp[0]] : null;
+      return '<tr class="bd"><td class="small muted" style="padding-left:1.6em;white-space:nowrap">' + pp[1] + '</td>' + MS.INDICATORS.map(function (i) { var x = d[i.id] ? d[i.id][pp[0]] : null; return '<td class="num small ' + (x === null || x === undefined ? '' : UI.signedClass(i.sign * x)) + '">' + esc(x === null || x === undefined ? '' : MS.fmt(x, 3, true)) + '</td>'; }).join('') +
+        '<td class="num small ' + (Rp === null ? '' : UI.signedClass(Rp)) + '">' + esc(Rp === null ? '' : MS.fmt(Rp, 3, true)) + '</td>' +
+        '<td class="num small ' + (Cp === null ? '' : UI.signedClass(Cp)) + '">' + esc(Cp === null ? '' : MS.fmt(Cp, 3, true)) + '</td></tr>';
     }).join('');
   }
   function resultsTable(rows, firstCol) {
     var w = data && data.state ? data.state.weights : null;
-    var h = '<div class="tablewrap"><table><thead><tr><th>' + esc(firstCol || 'Year') + '</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R (objective)</th></tr></thead><tbody>';
+    var h = '<div class="tablewrap"><table><thead><tr><th>' + esc(firstCol || 'Year') + '</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">score of the year</span></th><th class="num">Cumulative R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">sum so far</span></th></tr></thead><tbody>';
+    var cumR = 0, cumParts = {}, anyR = false;
     rows.forEach(function (r) {
+      var R = MS.num(r.R); var hasR = r.R !== null && r.R !== undefined && r.R !== '' && !isNaN(R);
+      if (hasR) { cumR = MS.round3(cumR + R); anyR = true; }
+      var sp = rSplit(r, w); Object.keys(sp).forEach(function (p) { cumParts[p] = MS.round3((cumParts[p] || 0) + sp[p]); });
       h += '<tr' + (r._me ? ' class="me"' : '') + '><td>' + esc(r._label) + '</td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(r[i.id])) + '">' + esc(MS.fmt(r[i.id], 3, true)) + '</td>'; }).join('') +
-        '<td class="num ' + UI.signedClass(r.R) + '"><b>' + esc(MS.fmt(r.R, 3, true)) + '</b></td></tr>' + breakdownRows(r, w);
+        '<td class="num ' + UI.signedClass(r.R) + '"><b>' + esc(MS.fmt(r.R, 3, true)) + '</b></td>' +
+        '<td class="num ' + (anyR ? UI.signedClass(cumR) : '') + '"><b>' + esc(anyR ? MS.fmt(cumR, 3, true) : '—') + '</b></td></tr>' + breakdownRows(r, w, cumParts);
     });
     return h + '</tbody></table></div>';
   }
   function weightsLine(w) {
-    return 'Deviations from the reference path (GDP in %, the rest in points). R is the objective function: higher GDP, lower unemployment and inflation, better public and trade balances raise it. The lines « of which » split each result between your own policy, the other countries’ policies and the administrator’s shocks.';
+    return 'Deviations from the reference path (GDP in %, the rest in points). R is the score of the year — the weighted sum of that year’s deviations, not a change from the year before: higher GDP, lower unemployment and inflation, better public and trade balances raise it. « Cumulative R » adds the yearly scores up; it is what the ranking uses. The lines « of which » split each result between your own policy, the other countries’ policies and the administrator’s shocks.';
   }
   function ratiosLine(rows) {
     var last = rows.filter(function (r) { return r.detail && r.detail.extra && (r.detail.extra.debt !== undefined || r.detail.extra.wealth !== undefined); }).sort(function (a, b) { return b.year - a.year; })[0];
@@ -474,8 +490,8 @@
       if (st.revealWarmup && (data.warmupAll || []).length) {
         var byG = {}; data.warmupAll.forEach(function (r) { (byG[r.key] = byG[r.key] || {})[r.year] = r; });
         var years = []; for (var y = 1; y <= st.warmup.years; y++) years.push(y);
-        var h = '<div class="tablewrap"><table><thead><tr><th>Group</th>' + years.map(function (y) { return '<th class="num">R · year ' + y + '</th>'; }).join('') + '<th class="num">Average</th></tr></thead><tbody>';
-        var rows = Object.keys(byG).map(function (k) { var rs = years.map(function (y) { return byG[k][y] ? byG[k][y].R : null; }); var vals = rs.filter(function (x) { return x !== null; }); var avg = vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null; return { key: k, rs: rs, avg: avg }; });
+        var h = '<div class="tablewrap"><table><thead><tr><th>Group</th>' + years.map(function (y) { return '<th class="num">R · year ' + y + '</th>'; }).join('') + '<th class="num">Cumulative R</th></tr></thead><tbody>';
+        var rows = Object.keys(byG).map(function (k) { var rs = years.map(function (y) { return byG[k][y] ? byG[k][y].R : null; }); var vals = rs.filter(function (x) { return x !== null; }); var avg = vals.length ? MS.round3(vals.reduce(function (a, b) { return a + b; }, 0)) : null; return { key: k, rs: rs, avg: avg }; });
         rows.sort(function (a, b) { return (b.avg === null ? -1e9 : b.avg) - (a.avg === null ? -1e9 : a.avg); });
         rows.forEach(function (r) {
           var gname = ((data.groups || []).filter(function (g) { return g.groupId === r.key; })[0] || {}).name || r.key;
@@ -501,17 +517,19 @@
       cardL.appendChild(el('h2', {}, ['Ranking']));
       if (!lb.length) cardL.appendChild(el('p', { class: 'muted' }, ['The ranking appears after the first simulated year.']));
       else {
-        var maxAbs = Math.max.apply(null, lb.map(function (r) { return Math.abs(r.latestR || 0); }).concat([0.01]));
+        var maxAbs = Math.max.apply(null, lb.map(function (r) { return Math.abs(r.cumR || 0); }).concat([0.01]));
         var yrs = {}; lb.forEach(function (r) { Object.keys(r.years).forEach(function (y) { yrs[y] = true; }); });
         var yl = Object.keys(yrs).map(Number).sort(function (a, b) { return a - b; });
-        var hh = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Country</th>' + yl.map(function (y) { return '<th class="num">R · y' + y + '</th>'; }).join('') + '<th class="num">Latest R</th><th></th></tr></thead><tbody>';
+        var hh = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Country</th>' + yl.map(function (y) { return '<th class="num">R · y' + y + '</th>'; }).join('') + '<th class="num">Cumulative R</th><th></th></tr></thead><tbody>';
         lb.forEach(function (r) {
-          var pct = Math.abs(r.latestR || 0) / maxAbs * 50;
+          var cr = r.latestR === null ? null : r.cumR;
+          var pct = Math.abs(cr || 0) / maxAbs * 50;
           hh += '<tr' + (r.key === data.group.country ? ' class="me"' : '') + '><td class="rank">' + r.rank + '</td><td>' + esc(MS.countryName(r.key)) + '</td>' +
             yl.map(function (y) { var e = r.years[y]; return '<td class="num ' + (e ? UI.signedClass(e.R) : '') + '">' + esc(e ? MS.fmt(e.R, 3, true) : '—') + '</td>'; }).join('') +
-            '<td class="num ' + UI.signedClass(r.latestR) + '"><b>' + esc(MS.fmt(r.latestR, 3, true)) + '</b></td><td><div class="bar"><i class="' + ((r.latestR || 0) < 0 ? 'neg' : '') + '" style="left:' + ((r.latestR || 0) < 0 ? 50 - pct : 50) + '%;width:' + pct + '%"></i></div></td></tr>';
+            '<td class="num ' + UI.signedClass(cr) + '"><b>' + esc(MS.fmt(cr, 3, true)) + '</b></td><td><div class="bar"><i class="' + ((cr || 0) < 0 ? 'neg' : '') + '" style="left:' + ((cr || 0) < 0 ? 50 - pct : 50) + '%;width:' + pct + '%"></i></div></td></tr>';
         });
         cardL.appendChild(el('div', { html: hh + '</tbody></table></div>' }));
+        cardL.appendChild(el('p', { class: 'small muted', style: 'margin:.4em 0 0' }, ['Ranked by the cumulative R: the sum of the yearly scores since year 1.']));
       }
       box.appendChild(cardL);
     }

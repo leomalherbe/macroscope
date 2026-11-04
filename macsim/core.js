@@ -261,7 +261,10 @@ var MS = (function () {
       }
     });
     var rows = Object.keys(byKey).map(function (k) { return byKey[k]; });
+    /* ranked by the cumulative score (sum of the yearly R), the latest year breaking ties */
     rows.sort(function (a, b) {
+      var ca = a.latestR === null ? -Infinity : a.cumR, cb = b.latestR === null ? -Infinity : b.cumR;
+      if (cb !== ca) return cb - ca;
       var ra = a.latestR === null ? -Infinity : a.latestR, rb = b.latestR === null ? -Infinity : b.latestR;
       return rb - ra;
     });
