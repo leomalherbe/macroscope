@@ -142,6 +142,8 @@
     var r = await MSApi.call('admin.class.create', { key: key, name: name });
     if (!r.ok) { UI.toast(r.error); return; }
     classes = r.classes; classId = r.classId; UI.store('macsim.classId', classId);
+    /* new classes play the current model; classes created before this key keep v1.1 (see modelOf) */
+    try { await MSApi.call('admin.state.set', { key: key, classId: classId, patch: { sim: { model: 'v1.2' } } }); } catch (e) { /* the Parameters select can still set it */ }
     renderClassBar(); refresh();
   }
   function renderNoClass() {
@@ -349,6 +351,11 @@
     var vStep = numField('Rate step per majority vote (pt)', simNow.voteStep, 0.25), vCap = numField('Austerity cap on public demand and benefits (% of ref.)', simNow.austerityCap, 1), vDev = numField('Devaluation if voted (%)', simNow.devalSize, 1), vForced = numField('Forced devaluation when reserves are exhausted (%)', simNow.forcedDeval, 1);
     box.appendChild(el('div', { class: 'checks', style: 'margin:0 0 8px' }, [el('label', {}, [vOn, ' votes enabled (rate: cut / hold / hike; reserves crisis: austerity / devaluation)'])]));
     box.appendChild(el('div', { class: 'params' }, [vStep.el, vCap.el, vDev.el, vForced.el]));
+    box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Model version']));
+    var mSel = el('select', { id: 'modelSel' });
+    [['v1.1', 'v1.1 — class 6: no price channel, reserves 3 months of imports'], ['v1.2', 'v1.2 — price levels enter trade (one-year lag), reserves 1.5 months']].forEach(function (o) { mSel.appendChild(el('option', { value: o[0] }, [o[1]])); });
+    mSel.value = modelOf(s);
+    box.appendChild(el('div', { class: 'params' }, [el('div', {}, [el('label', { class: 'small' }, ['Engine used by Run for this class (a game in progress should keep its version)']), el('br'), mSel])]));
     box.appendChild(el('p', { class: 'muted small' }, ['One country, one vote; a majority of the playing countries is needed (a country without a decision votes hold / austerity). The crisis vote is held only when the union’s reserves ended the previous year below the alert line.']));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Objective function weights']));
     var wInputs = {};
@@ -361,7 +368,7 @@
         warmup: { country: wc.value, years: Math.max(1, Math.min(3, Math.round(MS.num(wy.input.value)) || 3)), allowed: allowed, maxNonZero: Math.round(MS.num(wm.input.value)), minText: Math.round(MS.num(wt.input.value)) },
         game: { allowTariff: gTar.checked, allowEuro: gEu.checked, allowTfp: gTfp.checked, maxNonZero: Math.round(MS.num(gm.input.value)), minText: Math.round(MS.num(gt.input.value)) },
         years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w,
-        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15 } }, 'Parameters saved');
+        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15, model: mSel.value } }, 'Parameters saved');
     } }, ['Save parameters'])]));
     det.appendChild(box); c5.appendChild(det); v.appendChild(c5);
   }
@@ -549,6 +556,8 @@
           recompute(r);
         }
         tbl.appendChild(tb); block.appendChild(el('div', { class: 'tablewrap' }, [tbl]));
+        var trW = ov.results.filter(function (r) { return r.phase === 'warmup' && r.key === g.groupId; });
+        if (trW.length) block.appendChild(el('details', { class: 'small', style: 'margin-top:6px' }, [el('summary', {}, ['Trajectory']), el('div', { style: 'margin-top:6px', html: UI.trajectorySvg(trW, { showR: true, height: 230 }) })]));
         var cm = ov.comments.filter(function (x) { return x.phase === 'warmup' && x.groupId === g.groupId; })[0];
         if (cm) block.appendChild(el('details', { class: 'small', style: 'margin-top:6px' }, [el('summary', {}, ['Group’s a posteriori analysis (' + UI.fmtTime(cm.ts) + ')']), el('p', { style: 'white-space:pre-wrap' }, [cm.text])]));
         c.appendChild(block);
@@ -566,6 +575,15 @@
         recompute(r);
       });
       tbl2.appendChild(tb2); c.appendChild(el('div', { class: 'tablewrap' }, [tbl2]));
+      var gameRows = ov.results.filter(function (r) { return r.phase === 'game' && r.key && String(r.key).indexOf('UNION') !== 0; });
+      if (gameRows.length) {
+        var tgA = el('div', { class: 'trajgrid', style: 'margin-top:8px' });
+        MS.COUNTRIES.filter(function (cc) { return played.indexOf(cc.id) >= 0; }).forEach(function (cc) {
+          var rowsC = gameRows.filter(function (r) { return r.key === cc.id; });
+          if (rowsC.length) tgA.appendChild(el('div', { html: UI.trajectorySvg(rowsC, { title: cc.name, showR: true, height: 250, legend: false, fontScale: 1.6 }) }));
+        });
+        c.appendChild(el('details', { class: 'small', style: 'margin-top:10px' }, [el('summary', {}, ['Trajectories (all years saved so far)']), tgA, el('div', { html: UI.trajectoryLegendHtml(true) })]));
+      }
     }
 
     async function save(publishAll) {
@@ -592,12 +610,14 @@
   function engineLine() {
     var p = engineParams(), n = 0, ver = OPENMU.VERSION || '?';
     try { var d = OPENMU.describe ? OPENMU.describe(p) : null; if (d && d.version) ver = d.version; n = d && d.countries ? Object.keys(d.countries).length : (Array.isArray(p.countries) ? p.countries.length : 0); } catch (e) { n = Array.isArray(p.countries) ? p.countries.length : 0; }
-    return 'engine OPEN-MU v' + ver + ' · ' + n + ' members · fixed exchange rate';
+    return 'engine OPEN-MU v' + ver + ' · model ' + modelOf() + (modelOf() === 'v1.2' ? ' (prices in trade, reserves ' + p.reserveMonths + ' months)' : ' (no price channel, reserves ' + p.reserveMonths + ' months)') + ' · ' + n + ' members · fixed exchange rate';
   }
+  /* model version of the class: 'v1.2' (prices in trade, reserves 1.5 months) or 'v1.1' (class 6; also any class without the key) */
+  function modelOf(s) { return ((s || st()).sim || {}).model === 'v1.2' ? 'v1.2' : 'v1.1'; }
   function engineParams() {
-    var p = OPENMU.defaultParams();
+    var p = OPENMU.paramsFor ? OPENMU.paramsFor(modelOf()) : OPENMU.defaultParams();
     var ov_ = st().sim || {};
-    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, forcedDeval: 1 };   // console rules, not engine parameters
+    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, forcedDeval: 1, model: 1 };   // console rules, not engine parameters
     Object.keys(ov_).forEach(function (k) { if (k !== 'countries' && !rules[k]) p[k] = ov_[k]; });
     return p;
   }

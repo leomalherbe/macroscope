@@ -496,6 +496,7 @@
     if (x.loans !== undefined) parts.push('firms’ bank debt ' + MS.fmt(x.loans, 1) + ' % of GDP');
     if (x.deposits !== undefined) parts.push('bank deposits ' + MS.fmt(x.deposits, 1) + ' % of GDP');
     if (x.gap !== undefined) parts.push('output gap ' + MS.fmt(x.gap, 2, true) + ' %');
+    if (x.compet !== undefined) parts.push('price level vs the union’s ' + MS.fmt(x.compet, 2, true) + ' % (above = less competitive)');
     return el('p', { class: 'small muted', style: 'margin:.4em 0 0' }, ['End of year ' + last.year + ': ' + parts.join(' · ') + '.']);
   }
   function unionPanel(rows, title) {
@@ -514,6 +515,14 @@
     card.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, [u.votes && u.votes.rate
       ? 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the next round carries a vote between austerity and devaluation; reserves exhausted while the current account is still in deficit force a devaluation.'
       : 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the administrator may decree a devaluation.']));
+    return card;
+  }
+  /* the five objective dimensions over time, as an SVG chart */
+  function trajectoryCard(rows, title) {
+    var card = el('div', { class: 'card' });
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title || 'Your trajectory']), el('span', { class: 'small muted' }, ['deviation from the reference, year by year'])]));
+    card.appendChild(el('div', { id: 'trajectory', html: UI.trajectorySvg(rows, { showR: true }) }));
+    card.appendChild(el('p', { class: 'trajcap' }, ['Deviations from the reference path: GDP in %, the rest in points. Up = higher value (so a rising unemployment line is bad news). The dashed line is R, the score of the year.']));
     return card;
   }
   function renderResults() {
@@ -538,6 +547,7 @@
       }
       var rl = ratiosLine(mine); if (rl) card.appendChild(rl);
       box.appendChild(card);
+      if (mine.length) box.appendChild(trajectoryCard(mine, 'Your trajectory · ' + MS.countryName(st.warmup.country)));
       var up = unionPanel((data.union || []).filter(function (r) { return r.phase === 'warmup'; }), 'The monetary union during your plan'); if (up) box.appendChild(up);
       if (st.revealWarmup && (data.warmupAll || []).length) {
         var byG = {}; data.warmupAll.forEach(function (r) { (byG[r.key] = byG[r.key] || {})[r.year] = r; });
@@ -562,6 +572,7 @@
     if (!mineG.length) cardG.appendChild(el('p', { class: 'muted' }, ['No year has been simulated yet.']));
     else { cardG.appendChild(el('div', { html: resultsTable(mineG.map(function (r) { return Object.assign({ _label: 'Year ' + r.year }, r); })) })); var rlG = ratiosLine(mineG); if (rlG) cardG.appendChild(rlG); }
     box.appendChild(cardG);
+    if (mineG.length) box.appendChild(trajectoryCard(mineG, 'Your trajectory · ' + MS.countryName(data.group.country)));
     var upG = unionPanel((data.union || []).filter(function (r) { return r.phase === 'game'; }), 'The monetary union'); if (upG) box.appendChild(upG);
     if (st.publishLeaderboard) {
       var lb = MS.leaderboard(data.gameResults || [], w);

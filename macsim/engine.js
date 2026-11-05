@@ -1,5 +1,5 @@
 /* =====================================================================
-   OPEN-MU — game engine (v1.1, fixed exchange rate)
+   OPEN-MU — game engine (v1.2, fixed exchange rate)
    N member countries in a monetary union (chapter-6 OPEN/REG logic:
    real flows, households' wealth target, government bills, one central
    bank), rest of the world exogenous, reserves absorb the union's
@@ -10,20 +10,27 @@
    deposits; the interest rate acts on investment with a one-year lag
    (spec section 6). params.firms = false reproduces v1.0 bit for bit
    (its code path is kept verbatim below).
+   v1.2 (params.prices = true, defaultParams(true, true) / paramsFor('v1.2')):
+   the price level of each member (built from the inflation thermometer,
+   no inertia) enters trade volumes with a one-year lag — intra-union
+   and with the rest of the world, elasticities 0.7 — and the initial
+   reserves are halved (1.5 months). params.prices = false keeps v1.1
+   bit for bit (spec section 8).
    Spec: docs/openmu-spec.md. Runs in the browser (global OPENMU) and in
    Node (module.exports). No dependencies. Nothing is rounded here.
    ===================================================================== */
 var OPENMU = (function () {
   'use strict';
-  var VERSION = '1.1';
+  var VERSION = '1.2';
 
   /* ---------- defaults ---------- */
   /* defaultParams(firms): v1.1 defaults; defaultParams(false) gives the v1.0 values
      of the two parameters re-tuned in v1.1 (alpha2, lambda0). */
-  function defaultParams(firms) {
-    var useFirms = firms !== false;
+  function defaultParams(firms, prices) {
+    var useFirms = firms !== false, usePrices = prices === true;
     var p = {
       firms: useFirms,
+      prices: usePrices,   // v1.2: price levels enter trade volumes (one-year lag)
       countries: [
         { id: 'DEU', name: 'Germany',     size: 100 },
         { id: 'FRA', name: 'France',      size: 75 },
@@ -42,6 +49,7 @@ var OPENMU = (function () {
       sR: 0.5,          // share of imports coming from the rest of the world
       eps: 0.7,         // price elasticity of imports from the RoW (one-year lag)
       eta: 0.7,         // price elasticity of exports to the RoW
+      epsU: 0.7,        // v1.2: price elasticity of intra-union imports (one-year lag) — equal across partners
       xr0: 1,           // reference exchange rate (union currency per unit of world currency)
       YRoW0: 1,         // reference RoW demand index
       reserveMonths: 3, // initial reserves, in months of the union's RoW imports
@@ -64,13 +72,18 @@ var OPENMU = (function () {
       pistar: 2, kappa: 0.3, rho: 0.6, omega: 0.15
     };
     if (!useFirms) { p.alpha2 = 0.185; p.lambda0 = 0.70; }
+    if (usePrices) { p.reserveMonths = 1.5; }
     return p;
+  }
+  /* parameters of a game version: 'v1.1' (class 6: no price channel, 3 months of reserves) or 'v1.2' */
+  function paramsFor(version) {
+    return String(version || '').replace(/^v/, '') === '1.2' ? defaultParams(true, true) : defaultParams(true);
   }
 
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function mergeParams(params) {
-    var p = defaultParams(!(params && params.firms === false));
+    var p = defaultParams(!(params && params.firms === false), !!(params && params.prices === true));
     if (!params) return p;
     Object.keys(params).forEach(function (k) { if (params[k] !== undefined && params[k] !== null) p[k] = params[k]; });
     p.countries = clone(p.countries);
@@ -333,7 +346,7 @@ var OPENMU = (function () {
     var prev = {}, prevU = { xr: ref.union.xr0, R: ref.union.R0, NWcb: 0, r: ref.union.r0 };
     ids.forEach(function (id) {
       var rc = ref.countries[id];
-      prev[id] = { Y: rc.Y, V: rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1 };
+      prev[id] = { Y: rc.Y, V: rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1 };
     });
     var out = { years: [], ref: ref, checks: { maxIdentityError: 0, maxIterations: 0 } };
 
@@ -345,9 +358,19 @@ var OPENMU = (function () {
       var a1 = p.alpha1 * (1 + shockAt(shocks, t, 'confidence') / 100);
       var muF = p.mu * (1 + shockAt(shocks, t, 'imports') / 100);
       var worldF = (p.YRoW0 / ref.union.YRoW0) * (1 + shockAt(shocks, t, 'world') / 100);
-      var priceLagF = Math.pow(prevU.xr / ref.union.xr0, -p.eps);
-      var xrF = Math.pow(xr / ref.union.xr0, p.eta);
       var invF = Math.max(p.ifloor, 1 - p.iota * (r1 - p.r));   // investment responds to last year's rate
+      /* v1.2: last year's price levels enter this year's trade volumes (one-year lag, like the exchange rate).
+         priceLagF[i]: imports of i from the RoW ∝ (xr_-1 / P_i,-1)^(−ε); xrF[i]: exports of i to the RoW ∝ (xr / P_i,-1)^η;
+         w[i][j]: weight of partner j in i's intra-union imports = s_ij · (P_j,-1 / P_i,-1)^(−εU) (not renormalised:
+         a dearer home market imports more from everybody). With prices off, P ≡ 1 and v1.1 is reproduced bit for bit. */
+      var priceLagF = {}, xrF = {}, w = {};
+      ids.forEach(function (id) {
+        var Pi = p.prices ? prev[id].Prel : 1;   // price level relative to the reference path (world prices grow at π*)
+        priceLagF[id] = Math.pow(prevU.xr / (ref.union.xr0 * Pi), -p.eps);
+        xrF[id] = Math.pow(xr / (ref.union.xr0 * Pi), p.eta);
+        w[id] = {};
+        ids.forEach(function (j) { w[id][j] = s[id][j] * (p.prices ? Math.pow(prev[j].Prel / Pi, -p.epsU) : 1); });
+      });
 
       var cur = {};
       ids.forEach(function (id) {
@@ -358,26 +381,29 @@ var OPENMU = (function () {
           TR: rc.TR * (1 + lever(policies, id, t, 'benefits') / 100),
           theta: rc.theta * (1 + lever(policies, id, t, 'inctax') / 100),
           tau: tau, tauc: tau / (1 + tau),
-          XR: rc.xR * worldF * xrF,
+          XR: rc.xR * worldF * xrF[id],
           I: rc.I * invF,
           AF: p.delta * rc.K,     // amortisation funds: straight-line charge on the reference capital (keeps L = K, no income artefact)
           Y: pv.Y
         };
       });
+      /* intra-union imports of i: base volume (1−sR)·μ·Y_i, split (and scaled) by the price-weighted partner weights */
+      function intraOf(id, Y) { var base = (1 - p.sR) * muF * Y, tot = 0; ids.forEach(function (j) { tot += w[id][j]; }); return base * tot; }
+      function exportsTo(id, Yof) { var X = 0; ids.forEach(function (j) { X += w[j][id] * (1 - p.sR) * muF * Yof(j); }); return X; }
 
       /* fixed point on {Y_i}: Y, C and T are simultaneous; I is predetermined within the year */
       var iter = 0, maxChange = Infinity;
       while (maxChange > TOL && iter < CAP) {
         var IMU = {};
-        ids.forEach(function (id) { IMU[id] = (1 - p.sR) * muF * cur[id].Y; });
+        ids.forEach(function (id) { IMU[id] = intraOf(id, cur[id].Y); });
         maxChange = 0;
         var next = {};
         ids.forEach(function (id) {
           var c = cur[id], pv = prev[id];
           var IM = muF * c.Y;
-          var IMR = p.sR * IM * priceLagF;
+          var IMR = p.sR * IM * priceLagF[id];
           var IMV = IMU[id] + xr * IMR;
-          var X = c.XR; ids.forEach(function (j) { X += s[j][id] * IMU[j]; });
+          var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
           var YF = c.Y - c.AF - r1 * pv.L;
           var base = YF + r1 * (pv.Bh + pv.M);
           var YD = (1 - c.theta) * base + c.TR;
@@ -396,13 +422,13 @@ var OPENMU = (function () {
 
       var year = { countries: {}, union: {} };
       var IMUf = {};
-      ids.forEach(function (id) { IMUf[id] = (1 - p.sR) * muF * cur[id].Y; });
-      var sumH = 0, sumBcbA = 0, CA = 0, sumIMRv = 0, sumY = 0, sumTB = 0;
+      ids.forEach(function (id) { IMUf[id] = intraOf(id, cur[id].Y); });
+      var sumH = 0, sumBcbA = 0, CA = 0, sumIMRv = 0, sumY = 0, sumTB = 0, sumPY = 0;
       ids.forEach(function (id) {
         var c = cur[id], pv = prev[id], rc = ref.countries[id];
         var Y = c.Y;
-        var IM = muF * Y, IMU = IMUf[id], IMR = p.sR * IM * priceLagF, IMV = IMU + xr * IMR;
-        var X = c.XR; ids.forEach(function (j) { X += s[j][id] * IMUf[j]; });
+        var IM = muF * Y, IMU = IMUf[id], IMR = p.sR * IM * priceLagF[id], IMV = IMU + xr * IMR;
+        var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
         var YF = Y - c.AF - r1 * pv.L;
         var base = YF + r1 * (pv.Bh + pv.M);
         var YD = (1 - c.theta) * base + c.TR;
@@ -424,17 +450,20 @@ var OPENMU = (function () {
         var u = p.ustar - p.beta * gap;
         var pi = p.pistar + p.kappa * gap + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr;
         var P = pv.P * (1 + pi / 100);
-        year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
+        var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);   // v1.2: price level relative to the reference path (= world prices, growing at π*)
+        year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
           V: V, Bh: Bh, H: H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
           pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: r,
           I: c.I, K: K, L: L, M: M, Bb: Bb, A: A, AF: c.AF, YF: YF };
-        sumH += H; sumBcbA += Bcb + A; CA += c.XR - xr * IMR; sumIMRv += xr * IMR; sumY += Y; sumTB += TB;
-        prev[id] = { Y: Y, V: V, Bh: Bh, M: M, B: B, Bcb: Bcb, A: A, K: K, L: L, tau: c.tau, P: P };
+        sumH += H; sumBcbA += Bcb + A; CA += c.XR - xr * IMR; sumIMRv += xr * IMR; sumY += Y; sumTB += TB; sumPY += Prel * rc.Y;
+        prev[id] = { Y: Y, V: V, Bh: Bh, M: M, B: B, Bcb: Bcb, A: A, K: K, L: L, tau: c.tau, P: P, Prel: Prel };
       });
       var R = prevU.R + CA / xr;
       var NWcb = prevU.NWcb + (xr - prevU.xr) * prevU.R;
+      var Pu = sumPY / ref.union.totalSize;   // union price level (relative to the reference path): reference-GDP-weighted mean of the members' Prel
+      ids.forEach(function (id) { year.countries[id].compet = 100 * (year.countries[id].Prel / Pu - 1); });
       year.union = { Y: sumY, CA: CA, R: R, R0: ref.union.R0, xr: xr, r: r, alert: R < p.alertShare * ref.union.R0,
-        months: sumIMRv > 0 ? 12 * R * xr / sumIMRv : Infinity, NWcb: NWcb, sumTB: sumTB, iterations: iter };
+        months: sumIMRv > 0 ? 12 * R * xr / sumIMRv : Infinity, NWcb: NWcb, sumTB: sumTB, iterations: iter, P: Pu };
       var identErr = Math.abs(sumH - sumBcbA - xr * R + NWcb) / sumH;
       var sectorErr = Math.abs(sumTB - CA) / Math.max(1, Math.abs(CA));
       year.union.identityError = identErr; year.union.sectorError = sectorErr;
@@ -494,6 +523,7 @@ var OPENMU = (function () {
         var cy = runAll.years[t].countries[id];
         detail.extra = { gap: cy.gap, debt: 100 * cy.B / cy.Y, wealth: 100 * cy.V / cy.Y, u: cy.u, pi: cy.pi, P: cy.P,
           inv: rc.I ? 100 * (cy.I / rc.I - 1) : 0, loans: 100 * cy.L / cy.Y, deposits: 100 * cy.M / cy.Y };
+        if (p.prices && cy.compet !== undefined) detail.extra.compet = cy.compet;   // price level vs the union's, %
         var entry = { detail: detail, byPart: { total: total, shock: shock, nat: nat, foreign: foreign } };
         INDIC.forEach(function (k) { entry[k] = total[k]; });
         yr.countries[id] = entry;
@@ -522,9 +552,10 @@ var OPENMU = (function () {
     return { version: VERSION, params: pp, countries: countries,
       firms: p.firms ? { investment: 'I = I* · max(ifloor, 1 − iota·(r₋₁ − r*))', kappaK: p.kappaK, delta: p.delta, iota: p.iota, ifloor: p.ifloor,
         banks: 'loans = capital; deposits held by households; zero spread; bills or CB advances close the bank balance sheet' } : null,
+      prices: p.prices ? { rule: 'P_i = P_i,-1 (1 + π_i/100); trade volumes respond to last year’s relative prices', eps: p.eps, eta: p.eta, epsU: p.epsU } : null,
       union: { R0: ref.union.R0, reserveMonths: p.reserveMonths, xr0: p.xr0, r0: p.r, alertShare: p.alertShare } };
   }
 
-  return { VERSION: VERSION, INDICATORS: INDIC, defaultParams: defaultParams, calibrate: calibrate, simulate: simulate, report: report, describe: describe, shares: shares };
+  return { VERSION: VERSION, INDICATORS: INDIC, defaultParams: defaultParams, paramsFor: paramsFor, calibrate: calibrate, simulate: simulate, report: report, describe: describe, shares: shares };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = OPENMU;

@@ -41,7 +41,7 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
 
 <div class="card">
   <h2>In one paragraph</h2>
-  <p>Seven countries share one currency and one central bank; the rest of the world is a given (its demand for the union's exports, its price level). Each country is the chapter-6 open economy of class 5, with firms that invest on bank credit added: households spend out of income and wealth, governments spend, tax and borrow, imports leak in proportion to output. Inside the union there is no exchange rate; with the rest of the world the rate is <strong>fixed</strong>, so the central bank's foreign reserves absorb whatever the union's current account does not balance. Unemployment and inflation are read on the model (Okun, Phillips) but do not feed back into it. The reference state is stationary: with no decisions and no shocks, every variable stays where it is, and every result you see is a deviation from that path.</p>
+  <p>Seven countries share one currency and one central bank; the rest of the world is a given (its demand for the union's exports, its price level). Each country is the chapter-6 open economy of class 5, with firms that invest on bank credit added: households spend out of income and wealth, governments spend, tax and borrow, imports leak in proportion to output. Inside the union there is no exchange rate; with the rest of the world the rate is <strong>fixed</strong>, so the central bank's foreign reserves absorb whatever the union's current account does not balance. Unemployment and inflation are read on the model (Okun, Phillips); since v1.2 the inflation differences between members accumulate into <strong>price levels that enter trade</strong> with a one-year lag — a country that inflates more than its partners loses competitiveness inside the union and with the rest of the world (the exchange rate is the only other price channel). The reference state is stationary: with no decisions and no shocks, every variable stays where it is, and every result you see is a deviation from that path.</p>
   <p class="small muted">Notation: <i>X</i>₋₁ is last year's value, <i>X</i>* the reference (stationary) value. Everything is real except trade with the rest of the world, where the import price in union currency is the exchange rate <i>xr</i>. Country subscripts are dropped when no confusion is possible.</p>
 </div>
 
@@ -74,6 +74,8 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
       <tr><td class="sign">CA, R, R0</td><td>current account of the union with the rest of the world ; foreign reserves ; their initial stock</td><td>union / central bank</td></tr>
       <tr><td class="sign">NWcb</td><td>net worth of the central bank (valuation gains on reserves)</td><td>central bank</td></tr>
       <tr><td class="sign">gap, u, π</td><td>output gap in % ; unemployment rate ; inflation rate</td><td>thermometers</td></tr>
+      <tr><td class="sign">P, Prel</td><td>price level ; price level relative to the reference path (world prices growing at π*), the one that enters trade (v1.2)</td><td>prices</td></tr>
+      <tr><td class="sign">compet</td><td>price level vs the union's average, in % (above = less competitive); shown on the results page and the board</td><td>prices</td></tr>
       <tr><td class="sign">X₋₁, X*</td><td>last year's value ; reference (stationary) value</td><td>—</td></tr>
     </tbody>
   </table>
@@ -126,9 +128,9 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
   <h2>Trade: inside the union and with the rest of the world</h2>
   <div class="block">
     <div>
-      <table class="eq"><tr><td class="e">IM = μ·(1 + imports/100)·Y</td><td class="c">imports in volume</td></tr><tr><td class="e">IMU = (1 − sR)·IM</td><td class="c">from the union, split among partners j in proportion to their size</td></tr><tr><td class="e">IMR = sR·IM·(xr₋₁/xr0)^(−ε)</td><td class="c">from the rest of the world (price effect with a one-year lag)</td></tr><tr><td class="e">IMV = IMU + xr·IMR</td><td class="c">value of imports in union currency</td></tr><tr><td class="e">X = Σ_j s_ji·IMU_j + XR</td><td class="c">exports = partners' imports from me + exports to the rest of the world</td></tr><tr><td class="e">XR = xR*·(1 + world/100)·(xr/xr0)^η</td><td class="c">exports to the rest of the world</td></tr><tr><td class="e">Y = C + G + I + X − IMV</td><td class="c">output, solved simultaneously for the seven members</td></tr><tr><td class="e">TB = X − IMV</td><td class="c">trade balance (shown in points of GDP)</td></tr></table>
+      <table class="eq"><tr><td class="e">IM = μ·(1 + imports/100)·Y</td><td class="c">imports in volume</td></tr><tr><td class="e">IMU_ij = (1 − sR)·IM_i · s_ij·(Prel_j₋₁/Prel_i₋₁)^(−εU)</td><td class="c">imports of i from partner j: size share s_ij, times last year's relative price (dearer at home → more imports); v1.1: s_ij only</td></tr><tr><td class="e">IMR = sR·IM·(xr₋₁/Prel₋₁)^(−ε)</td><td class="c">from the rest of the world (exchange rate and own price level, one-year lag)</td></tr><tr><td class="e">IMV = Σ_j IMU_ij + xr·IMR</td><td class="c">value of imports in union currency</td></tr><tr><td class="e">X = Σ_j IMU_ji + XR</td><td class="c">exports = partners' imports from me + exports to the rest of the world</td></tr><tr><td class="e">XR = xR*·(1 + world/100)·(xr/Prel₋₁)^η</td><td class="c">exports to the rest of the world (dearer at home → fewer exports)</td></tr><tr><td class="e">Y = C + G + I + X − IMV</td><td class="c">output, solved simultaneously for the seven members</td></tr><tr><td class="e">TB = X − IMV</td><td class="c">trade balance (shown in points of GDP)</td></tr></table>
     </div>
-    <div class="note"><strong>Leakages.</strong> μ = 0.30: thirty cents of every euro of demand go to imports, half of them to union partners (your stimulus is their export) and half to the rest of the world (lost for the union's reserves). After a devaluation the import bill rises first (prices move at once, volumes with a year's lag — the <strong>J-curve</strong>), then exports (η = 0.7) and imports (ε = 0.7) adjust: 0.7 + 0.7 &gt; 1, the Marshall–Lerner condition holds.</div>
+    <div class="note"><strong>Leakages and competitiveness.</strong> μ = 0.30: thirty cents of every euro of demand go to imports, half of them to union partners (your stimulus is their export) and half to the rest of the world (lost for the union's reserves). Since v1.2 a member whose prices rise faster than its partners' imports more and exports less, one year later and cumulatively: a stimulus erodes itself (France alone, public demand +10 %: GDP +2.4 % in year 1, +1.4 % in year 5; trade balance −0.7 → −1.3 pt), austerity is an <em>internal devaluation</em>. After a devaluation the import bill rises first (prices move at once, volumes with a year's lag — the <strong>J-curve</strong>), then exports (η = 0.7) and imports (ε = 0.7) adjust: 0.7 + 0.7 &gt; 1, the Marshall–Lerner condition holds.</div>
   </div>
 </div>
 
@@ -136,9 +138,9 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
   <h2>The union and its reserves</h2>
   <div class="block">
     <div>
-      <table class="eq"><tr><td class="e">CA = Σ_i (XR_i − xr·IMR_i)</td><td class="c">current account of the union with the rest of the world</td></tr><tr><td class="e">R = R₋₁ + CA/xr</td><td class="c">foreign reserves, in world currency</td></tr><tr><td class="e">xr = xr₋₁·(1 + deval/100)</td><td class="c">fixed rate: moves only by a (voted or forced) devaluation</td></tr><tr><td class="e">NWcb = NWcb₋₁ + (xr − xr₋₁)·R₋₁</td><td class="c">the central bank's valuation gain on a devaluation</td></tr><tr><td class="e">Σ_i H_i = Σ_i (Bcb_i + A_i) + xr·R − NWcb</td><td class="c">the central bank's balance sheet closes every year</td></tr><tr><td class="e">R0 = 3 months of RoW imports ;  alert if R < 0.25·R0</td><td class="c">initial stock and alert line</td></tr></table>
+      <table class="eq"><tr><td class="e">CA = Σ_i (XR_i − xr·IMR_i)</td><td class="c">current account of the union with the rest of the world</td></tr><tr><td class="e">R = R₋₁ + CA/xr</td><td class="c">foreign reserves, in world currency</td></tr><tr><td class="e">xr = xr₋₁·(1 + deval/100)</td><td class="c">fixed rate: moves only by a (voted or forced) devaluation</td></tr><tr><td class="e">NWcb = NWcb₋₁ + (xr − xr₋₁)·R₋₁</td><td class="c">the central bank's valuation gain on a devaluation</td></tr><tr><td class="e">Σ_i H_i = Σ_i (Bcb_i + A_i) + xr·R − NWcb</td><td class="c">the central bank's balance sheet closes every year</td></tr><tr><td class="e">R0 = 1.5 months of RoW imports ;  alert if R < 0.25·R0</td><td class="c">initial stock (v1.2; 3 months in v1.1) and alert line</td></tr></table>
     </div>
-    <div class="note"><strong>A shared resource.</strong> Reserves are the union's, not any member's. Everybody's current account drains or fills the same stock, and the devaluation that follows an exhaustion hits every member's import prices. Orders of magnitude: a world-demand shock of −10 % costs about 30 % of R₀ per year if nobody reacts.</div>
+    <div class="note"><strong>A shared resource.</strong> Reserves are the union's, not any member's. Everybody's current account drains or fills the same stock, and the devaluation that follows an exhaustion hits every member's import prices. Orders of magnitude (v1.2): a world-demand shock of −5 % costs about 30 % of R₀ per year if nobody reacts, −10 % about 63 %.</div>
   </div>
 </div>
 
@@ -148,7 +150,7 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
     <div>
       <table class="eq"><tr><td class="e">gap = 100·(Y/Y* − 1)</td><td class="c">output gap, %</td></tr><tr><td class="e">u = u* − β·gap</td><td class="c">unemployment rate (Okun), u* = 7, β = 0.4</td></tr><tr><td class="e">π = π* + κ·gap + ρ·Δτ·100 + ω·100·(xr − xr₋₁)/xr₋₁</td><td class="c">inflation (Phillips, plus tax and import-price pass-through), π* = 2</td></tr></table>
     </div>
-    <div class="note">Read on the model, not fed back: prices do not change anybody's behaviour inside the union. A consumption-tax rise is passed into prices once (ρ = 0.6); a devaluation of 10 % adds 1.5 points of inflation (ω = 0.15) the year it happens. GDP +1 % buys −0.4 point of unemployment and costs +0.3 point of inflation.</div>
+    <div class="note">Read on the model; since v1.2 inflation feeds the price level Prel = Prel₋₁·(1 + π/100)/(1 + π*/100) — the price level relative to the reference path (world prices grow at π*) — which enters next year's trade. No inertia: inflation itself only depends on this year's gap and pass-throughs. A consumption-tax rise is passed into prices once (ρ = 0.6); a devaluation of 10 % adds 1.5 points of inflation (ω = 0.15) the year it happens. GDP +1 % buys −0.4 point of unemployment and costs +0.3 point of inflation.</div>
   </div>
 </div>
 
@@ -175,8 +177,8 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
       <tr><td class="sign">r*</td><td>3 %</td><td>central bank rate at the reference</td></tr>
       <tr><td class="sign">κ, δ, ι</td><td>1, 0.10, 12</td><td>capital = one year of GDP, investment 10 % of GDP, sensitivity of investment to last year's rate</td></tr>
       <tr><td class="sign">μ, sR</td><td>0.30, 0.5</td><td>import propensity; share of imports coming from the rest of the world</td></tr>
-      <tr><td class="sign">ε, η</td><td>0.7, 0.7</td><td>price elasticities of imports from and exports to the rest of the world</td></tr>
-      <tr><td class="sign">R0</td><td>3 months of RoW imports</td><td>initial reserves; alert at 25 %</td></tr>
+      <tr><td class="sign">ε, η, εU</td><td>0.7, 0.7, 0.7</td><td>price elasticities of imports from and exports to the rest of the world, and of intra-union imports (v1.2)</td></tr>
+      <tr><td class="sign">R0</td><td>1.5 months of RoW imports (v1.2; 3 months in v1.1)</td><td>initial reserves; alert at 25 %</td></tr>
       <tr><td class="sign">u*, β, π*, κ, ρ, ω</td><td>7, 0.4, 2, 0.3, 0.6, 0.15</td><td>thermometers (Okun and Phillips)</td></tr>
       <tr><td class="sign">reference ratios</td><td colspan="2">public debt 105 % of GDP · household wealth 209 % · bank deposits 90 % · firms' loans 100 % · trade and public balances 0</td></tr>
     </tbody>
@@ -188,16 +190,19 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
   <table class="p">
     <thead><tr><th>Decision or shock</th><th>Year 1</th><th>Later</th></tr></thead>
     <tbody>
-      <tr><td>Public demand +10 % (≈ +2 pt of GDP), one member alone</td><td>GDP +2.4 %, unemployment −1.0 pt, inflation +0.7 pt, public balance −1.1 pt, trade balance −0.7 pt (multiplier ≈ 1.2)</td><td>fades as households rebuild wealth; the partners gain a little through your imports; the union's reserves pay for the RoW half of the leak</td></tr>
-      <tr><td>Income tax −10 % (rate 33.1 → 29.8 %)</td><td>GDP +2.6 %, unemployment −1.0 pt, inflation +0.8 pt, public balance −1.9 pt, trade balance −0.7 pt</td><td>same restoring forces; the budget cost is permanent while the tax cut lasts</td></tr>
+      <tr><td>Public demand +10 % (≈ +2 pt of GDP), one member alone</td><td>GDP +2.4 %, unemployment −1.0 pt, inflation +0.7 pt, public balance −1.1 pt, trade balance −0.7 pt (multiplier ≈ 1.2)</td><td>erodes with the price gap: year 5 GDP +1.4 %, trade balance −1.3 pt, price level +1.9 % vs the union (v1.1: GDP +2.6 %, trade balance −0.7 pt); the partners gain through your imports; the union's reserves pay for the RoW half of the leak</td></tr>
+      <tr><td>Public demand −10 % (austerity), one member alone</td><td>GDP −2.4 %, unemployment +1.0 pt, inflation −0.7 pt, public balance +1.1 pt, trade balance +0.7 pt</td><td>internal devaluation: year 5 GDP −1.4 %, trade balance +1.4 pt, price level −1.9 % vs the union</td></tr>
+      <tr><td>Income tax −10 % (rate 33.1 → 29.8 %)</td><td>GDP +2.6 %, unemployment −1.0 pt, inflation +0.8 pt, public balance −1.9 pt, trade balance −0.7 pt</td><td>same erosion (year 3: GDP +2.1 %, trade balance −1.2 pt); the budget cost is permanent while the tax cut lasts</td></tr>
       <tr><td>Consumption tax +10 % (10 → 11 %)</td><td>GDP −0.8 %, inflation +0.4 pt (one-off pass-through), public balance +0.35 pt, trade balance +0.2 pt</td><td>inflation falls back below the reference the next year (the price level stays higher); the budget improvement lasts</td></tr>
       <tr><td>Central bank rate +1 pt</td><td>nothing yet: everything works with a one-year lag</td><td>year 2: investment −12 %, GDP −1.1 %, unemployment +0.4 pt, every public balance −1 pt (debt service), trade balance +0.2 pt</td></tr>
-      <tr><td>World demand −10 %, nobody reacts</td><td>union GDP −2.2 %, current account −4 (≈ −30 % of R0)</td><td>reserves 69 % → 37 % → 7 % → exhausted at the end of year 4</td></tr>
-      <tr><td>Devaluation 10 %</td><td>current account worsens (J-curve, −9 % of R0), inflation +1.3 pt, GDP −0.7 %</td><td>from year 2: current account +12 % of R0 per year, GDP +0.9 %</td></tr>
-      <tr><td>Austerity for all (public demand and benefits −5 %)</td><td>union GDP −2.2 %, current account +9 % of R0</td><td>lasts while the caps last</td></tr>
+      <tr><td>World demand −5 %, nobody reacts</td><td>union GDP −1.1 %, current account −2 (≈ −31 % of R0)</td><td>reserves 69 % → 40 % → 15 % (alert) → exhausted in year 4</td></tr>
+      <tr><td>World demand −10 %, nobody reacts</td><td>union GDP −2.2 %, current account −4 (≈ −63 % of R0)</td><td>reserves 37 % → exhausted in year 2, without a year-end under alert</td></tr>
+      <tr><td>Devaluation 10 %</td><td>current account worsens (J-curve, −17 % of R0), inflation +1.3 pt, GDP −0.7 %</td><td>from year 2: current account +12 % of R0 per year, GDP +0.4 % (the inflation it causes eats part of the gain)</td></tr>
+      <tr><td>Austerity for all (public demand and benefits −5 %)</td><td>union GDP −2.2 %, current account +17 % of R0</td><td>year 2: +24 % of R0 (the union as a whole disinflates vs the rest of the world); lasts while the caps last</td></tr>
+      <tr><td>Stimulus for all (public demand +5 %)</td><td>members keep equal price levels: no reallocation inside the union</td><td>reserves 88 % → 73 % → 54 % of R0</td></tr>
     </tbody>
   </table>
-  <p class="small muted" style="margin-top:.6em">The report splits every result into what your own policy did, what the other countries' policies did, and what the shocks did — three counterfactual runs of the same model.</p>
+  <p class="small muted" style="margin-top:.6em">Figures for model v1.2 (reserves 1.5 months, prices in trade). Classes playing v1.1 (class 6) have 3 months of reserves — halve the « % of R0 » figures — and no erosion of a stimulus over time. The report splits every result into what your own policy did, what the other countries' policies did, and what the shocks did — three counterfactual runs of the same model.</p>
 </div>
 
 <p class="small muted">Model: Godley &amp; Lavoie (2007), <em>Monetary Economics</em>, chapter 6 (OPEN / REG), extended to a monetary union with firms and horizontalist banks. Engine <code>engine.js</code>, specification in the course repository.</p>

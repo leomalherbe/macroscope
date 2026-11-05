@@ -122,10 +122,23 @@
         /* latest year detail */
         var latestYear = Math.max.apply(null, yl);
         var det = el('div', { class: 'card' }); det.appendChild(el('h2', {}, ['Year ' + latestYear + ' in detail']));
-        var hd = '<div class="tablewrap"><table><thead><tr><th>Country</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R</th></tr></thead><tbody>';
-        lb.forEach(function (r) { var e = r.years[latestYear]; if (!e) return; hd += '<tr><td><b>' + esc(MS.countryName(r.key)) + '</b></td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(e[i.id])) + '">' + esc(MS.fmt(e[i.id], 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(e.R) + '"><b>' + esc(MS.fmt(e.R, 3, true)) + '</b></td></tr>'; });
+        var hasComp = lb.some(function (r) { var e = r.years[latestYear]; return e && e.detail && e.detail.extra && e.detail.extra.compet !== undefined; });
+        var hd = '<div class="tablewrap"><table><thead><tr><th>Country</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R</th>' + (hasComp ? '<th class="num">Price level<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% vs union</span></th>' : '') + '</tr></thead><tbody>';
+        lb.forEach(function (r) { var e = r.years[latestYear]; if (!e) return; var cp = e.detail && e.detail.extra ? e.detail.extra.compet : undefined; hd += '<tr><td><b>' + esc(MS.countryName(r.key)) + '</b></td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(e[i.id])) + '">' + esc(MS.fmt(e[i.id], 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(e.R) + '"><b>' + esc(MS.fmt(e.R, 3, true)) + '</b></td>' + (hasComp ? '<td class="num ' + (cp === undefined ? '' : UI.signedClass(-cp)) + '">' + esc(cp === undefined ? '—' : MS.fmt(cp, 2, true)) + '</td>' : '') + '</tr>'; });
         det.appendChild(el('div', { html: hd + '</tbody></table></div>' }));
         left.appendChild(c); left.appendChild(det);
+        /* trajectories: one small chart per country */
+        var tg = el('div', { class: 'trajgrid' });
+        lb.forEach(function (r) {
+          var rows = Object.keys(r.years).map(function (yy) { return r.years[yy]; });
+          var gname = groupName(((data.groups || []).filter(function (g) { return g.country === r.key; })[0] || {}).groupId);
+          tg.appendChild(el('div', { html: UI.trajectorySvg(rows, { title: MS.countryName(r.key) + (gname ? ' · ' + gname : ''), height: 250, legend: false, fontScale: 1.6 }) }));
+        });
+        var tc = el('div', { class: 'card' }); tc.appendChild(el('h2', {}, ['Trajectories']));
+        tc.appendChild(tg);
+        tc.appendChild(el('div', { html: UI.trajectoryLegendHtml(false) }));
+        tc.appendChild(el('p', { class: 'trajcap' }, ['Deviations from the reference path: GDP in %, the rest in points. Up = higher value (a rising unemployment line is bad news).']));
+        left.appendChild(tc);
       }
       if (!lb.length || !st.publishLeaderboard) left.appendChild(c);
       /* council */
@@ -180,6 +193,10 @@
           hw += '<tr><td class="rank">' + (i + 1) + '</td><td><b>' + esc(groupName(r.key)) + '</b>' + planHtml + lastHtml + '</td>' + r.rs.map(function (x) { return '<td class="num ' + UI.signedClass(x) + '">' + esc(MS.fmt(x, 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(r.avg) + '"><b>' + esc(MS.fmt(r.avg, 3, true)) + '</b></td></tr>';
         });
         wc.appendChild(el('h3', { style: 'margin-top:12px' }, ['Debrief · all groups'])); wc.appendChild(el('div', { html: hw + '</tbody></table></div>' }));
+        var tgw = el('div', { class: 'trajgrid', style: 'margin-top:12px' });
+        rows.forEach(function (r) { tgw.appendChild(el('div', { html: UI.trajectorySvg(years.map(function (yy) { return byG[r.key][yy]; }).filter(function (x) { return !!x; }), { title: groupName(r.key), height: 250, legend: false, fontScale: 1.6 }) })); });
+        wc.appendChild(el('h3', { style: 'margin-top:14px' }, ['Trajectories'])); wc.appendChild(tgw); wc.appendChild(el('div', { html: UI.trajectoryLegendHtml(false) }));
+        wc.appendChild(el('p', { class: 'trajcap' }, ['Deviations from the reference path: GDP in %, the rest in points. Up = higher value.']));
         wc.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['Ranked by the cumulative R, the sum of the yearly scores over the plan (R weighs the year’s deviations from the reference path: GDP in %, the rest in points). Each group governed ' + MS.countryName(st.warmup.country) + ' alone, under the same shocks.']));
       }
       left.appendChild(wc);
