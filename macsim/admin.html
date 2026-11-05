@@ -557,7 +557,7 @@
         }
         tbl.appendChild(tb); block.appendChild(el('div', { class: 'tablewrap' }, [tbl]));
         var trW = ov.results.filter(function (r) { return r.phase === 'warmup' && r.key === g.groupId; });
-        if (trW.length) block.appendChild(el('details', { class: 'small', style: 'margin-top:6px' }, [el('summary', {}, ['Trajectory']), el('div', { style: 'margin-top:6px', html: UI.trajectorySvg(trW, { showR: true, height: 230 }) })]));
+        if (trW.length) block.appendChild(el('details', { class: 'small', style: 'margin-top:6px' }, [el('summary', {}, ['The objective, year by year']), el('div', { style: 'margin-top:6px', html: UI.trajectorySvg(trW, { weights: st().weights, height: 230 }) })]));
         var cm = ov.comments.filter(function (x) { return x.phase === 'warmup' && x.groupId === g.groupId; })[0];
         if (cm) block.appendChild(el('details', { class: 'small', style: 'margin-top:6px' }, [el('summary', {}, ['Group’s a posteriori analysis (' + UI.fmtTime(cm.ts) + ')']), el('p', { style: 'white-space:pre-wrap' }, [cm.text])]));
         c.appendChild(block);
@@ -580,9 +580,9 @@
         var tgA = el('div', { class: 'trajgrid', style: 'margin-top:8px' });
         MS.COUNTRIES.filter(function (cc) { return played.indexOf(cc.id) >= 0; }).forEach(function (cc) {
           var rowsC = gameRows.filter(function (r) { return r.key === cc.id; });
-          if (rowsC.length) tgA.appendChild(el('div', { html: UI.trajectorySvg(rowsC, { title: cc.name, showR: true, height: 250, legend: false, fontScale: 1.6 }) }));
+          if (rowsC.length) tgA.appendChild(el('div', { html: UI.trajectorySvg(rowsC, { weights: st().weights, title: cc.name, height: 250, legend: false, fontScale: 1.6 }) }));
         });
-        c.appendChild(el('details', { class: 'small', style: 'margin-top:10px' }, [el('summary', {}, ['Trajectories (all years saved so far)']), tgA, el('div', { html: UI.trajectoryLegendHtml(true) })]));
+        c.appendChild(el('details', { class: 'small', style: 'margin-top:10px' }, [el('summary', {}, ['The objective, year by year (all years saved so far)']), tgA, el('div', { html: UI.trajectoryLegendHtml() })]));
       }
     }
 

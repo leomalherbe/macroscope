@@ -132,12 +132,12 @@
         lb.forEach(function (r) {
           var rows = Object.keys(r.years).map(function (yy) { return r.years[yy]; });
           var gname = groupName(((data.groups || []).filter(function (g) { return g.country === r.key; })[0] || {}).groupId);
-          tg.appendChild(el('div', { html: UI.trajectorySvg(rows, { title: MS.countryName(r.key) + (gname ? ' · ' + gname : ''), height: 250, legend: false, fontScale: 1.6 }) }));
+          tg.appendChild(el('div', { html: UI.trajectorySvg(rows, { weights: st.weights, title: MS.countryName(r.key) + (gname ? ' · ' + gname : ''), height: 250, legend: false, fontScale: 1.6 }) }));
         });
-        var tc = el('div', { class: 'card' }); tc.appendChild(el('h2', {}, ['Trajectories']));
+        var tc = el('div', { class: 'card' }); tc.appendChild(el('h2', {}, ['The objective, year by year']));
         tc.appendChild(tg);
-        tc.appendChild(el('div', { html: UI.trajectoryLegendHtml(false) }));
-        tc.appendChild(el('p', { class: 'trajcap' }, ['Deviations from the reference path: GDP in %, the rest in points. Up = higher value (a rising unemployment line is bad news).']));
+        tc.appendChild(el('div', { html: UI.trajectoryLegendHtml() }));
+        tc.appendChild(el('p', { class: 'trajcap' }, ['Each bar stacks the contributions of the five dimensions to R for the year (weight × deviation; unemployment and inflation count negatively): above zero what helped, below zero what hurt. The dashed line is R itself.']));
         left.appendChild(tc);
       }
       if (!lb.length || !st.publishLeaderboard) left.appendChild(c);
@@ -194,9 +194,9 @@
         });
         wc.appendChild(el('h3', { style: 'margin-top:12px' }, ['Debrief · all groups'])); wc.appendChild(el('div', { html: hw + '</tbody></table></div>' }));
         var tgw = el('div', { class: 'trajgrid', style: 'margin-top:12px' });
-        rows.forEach(function (r) { tgw.appendChild(el('div', { html: UI.trajectorySvg(years.map(function (yy) { return byG[r.key][yy]; }).filter(function (x) { return !!x; }), { title: groupName(r.key), height: 250, legend: false, fontScale: 1.6 }) })); });
-        wc.appendChild(el('h3', { style: 'margin-top:14px' }, ['Trajectories'])); wc.appendChild(tgw); wc.appendChild(el('div', { html: UI.trajectoryLegendHtml(false) }));
-        wc.appendChild(el('p', { class: 'trajcap' }, ['Deviations from the reference path: GDP in %, the rest in points. Up = higher value.']));
+        rows.forEach(function (r) { tgw.appendChild(el('div', { html: UI.trajectorySvg(years.map(function (yy) { return byG[r.key][yy]; }).filter(function (x) { return !!x; }), { weights: st.weights, title: groupName(r.key), height: 250, legend: false, fontScale: 1.6 }) })); });
+        wc.appendChild(el('h3', { style: 'margin-top:14px' }, ['The objective, year by year'])); wc.appendChild(tgw); wc.appendChild(el('div', { html: UI.trajectoryLegendHtml() }));
+        wc.appendChild(el('p', { class: 'trajcap' }, ['Each bar stacks the contributions of the five dimensions to R for the year (weight × deviation; unemployment and inflation count negatively): above zero what helped, below zero what hurt. The dashed line is R itself.']));
         wc.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['Ranked by the cumulative R, the sum of the yearly scores over the plan (R weighs the year’s deviations from the reference path: GDP in %, the rest in points). Each group governed ' + MS.countryName(st.warmup.country) + ' alone, under the same shocks.']));
       }
       left.appendChild(wc);
