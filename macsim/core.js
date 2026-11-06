@@ -13,8 +13,14 @@ var MS = (function () {
     { id: 'pubdem',   n: 1, label: 'Public demand',               hint: 'real public expenditure on goods and services',        cat: 'demand' },
     { id: 'benefits', n: 2, label: 'Social benefits',             hint: 'transfers to households (pensions, allowances, insurance)', cat: 'demand' },
     { id: 'inctax',   n: 3, label: 'Household income tax rate',   hint: 'direct tax rate on household income',                  cat: 'demand' },
-    { id: 'vat',      n: 4, label: 'Consumption tax (VAT)',       hint: 'tax on consumption spending; also lifts prices',       cat: 'supply' }
+    { id: 'vat',      n: 4, label: 'Consumption tax (VAT)',       hint: 'tax on consumption spending; also lifts prices',       cat: 'supply' },
+    /* v2.0 (model v2.0 only): one-sided levers, 0 to bounds.eco */
+    { id: 'ctax',     n: 5, label: 'Carbon tax',                  hint: 'points; paid by firms on their emissions (1 pt ≈ 0.2 % of GDP of revenue); lifts prices the year it changes; cuts the carbon intensity by 4 % per point the next year', cat: 'eco', eco: true, unit: 'pt' },
+    { id: 'green',    n: 6, label: 'Green public investment',     hint: 'units of 0.2 pt of GDP of public investment (demand, deficit); cuts the carbon intensity by 2.5 % per unit the next year', cat: 'eco', eco: true, unit: '× 0.2 pt GDP' }
   ];
+  /* the levers available to a class: the four demand/supply levers, plus the two ecological levers when the model is v2.0 */
+  function isEcoModel(state) { return !!(state && state.sim && String(state.sim.model) === 'v2.0'); }
+  function leversFor(state) { var eco = isEcoModel(state); return LEVERS.filter(function (l) { return !l.eco || eco; }); }
   LEVERS.forEach(function (l) { l.unit = '% of ref.'; });
   /* kept for compatibility with older classes; off by default (not part of OPEN-MU v1) */
   var TARIFF = { id: 'tariff', n: 11, label: 'Import tariffs', hint: 'by partner country, absolute variation in points', unit: 'pt (absolute)', cat: 'trade' };
@@ -26,7 +32,8 @@ var MS = (function () {
     supply:     'Supply-side policies',
     trade:      'Trade policy',
     monetary:   'Monetary policy',
-    structural: 'Structural policy'
+    structural: 'Structural policy',
+    eco:        'Ecological policies'
   };
 
   /* ---------- The member countries of the union (OPEN-MU) + the passive rest of the world ---------- */
@@ -79,7 +86,7 @@ var MS = (function () {
       publishLeaderboard: true,   // students and board see the ranking
       showDecisionsWhenClosed: true, // once a round is closed, every group can see everyone's decisions for that round
       years: 5,                   // length of the real game
-      bounds: { lever: 10, tariff: 10, tfp: 10 },   // all relative variations, in %
+      bounds: { lever: 10, tariff: 10, tfp: 10, eco: 10 },   // all relative variations, in %; eco: upper bound of the one-sided v2.0 levers
       warmup: {
         country: 'FRA',
         years: 3,
@@ -242,7 +249,8 @@ var MS = (function () {
     var isWarm = phase === 'warmup';
     var cfg = isWarm ? st.warmup : st.game;
     var nYears = isWarm ? (cfg.years || 3) : 1;
-    var allowed = isWarm ? (cfg.allowed || []) : LEVERS.map(function (l) { return l.id; });
+    var ecoOn = isEcoModel(st);
+    var allowed = isWarm ? (cfg.allowed || []) : leversFor(st).map(function (l) { return l.id; });
     var allowTariff = isWarm ? allowed.indexOf('tariff') >= 0 : cfg.allowTariff !== false;
     var allowEuro = isWarm ? allowed.indexOf('euro') >= 0 : !!cfg.allowEuro;
     var allowTfp = isWarm ? allowed.indexOf('tfp') >= 0 : !!cfg.allowTfp;
@@ -264,6 +272,14 @@ var MS = (function () {
       LEVERS.forEach(function (l) {
         var v = num(y.levers ? y.levers[l.id] : 0);
         if (isNaN(v)) { errors.push('Year ' + (yi + 1) + ': "' + l.label + '" is not a number.'); v = 0; }
+        if (l.eco) {
+          /* v2.0 levers: only in a v2.0 class, one-sided, 0 to bounds.eco */
+          if (v !== 0 && !ecoOn) { errors.push('"' + l.label + '" belongs to model v2.0 (not this class).'); v = 0; }
+          else if (v !== 0 && allowed.indexOf(l.id) < 0) errors.push('"' + l.label + '" is not available in this phase.');
+          else if (v < -1e-9 || v > num(st.bounds.eco || 10) + 1e-9) errors.push('Year ' + (yi + 1) + ': "' + l.label + '" must be between 0 and ' + num(st.bounds.eco || 10) + '.');
+          cy.levers[l.id] = round2(Math.max(0, v));
+          return;
+        }
         if (v !== 0 && allowed.indexOf(l.id) < 0) { errors.push('"' + l.label + '" is not available in this phase.'); }
         if (Math.abs(v) > st.bounds.lever + 1e-9) errors.push('Year ' + (yi + 1) + ': "' + l.label + '" must stay within ±' + st.bounds.lever + ' %.');
         if (cap !== null && (l.id === 'pubdem' || l.id === 'benefits') && v > cap + 1e-9) errors.push('Austerity programme: "' + l.label + '" must be at most ' + cap + ' % this year.');
@@ -383,7 +399,7 @@ var MS = (function () {
     countryById: countryById, countryName: countryName, leverById: leverById,
     defaultState: defaultState, mergeState: mergeState,
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
-    scoreR: scoreR, ELECTION_PRESETS: ELECTION_PRESETS, electionsUpTo: electionsUpTo, weightsInfo: weightsInfo, weightsFor: weightsFor, sameWeights: sameWeights, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision, crisisOf: crisisOf, validateCrisisVote: validateCrisisVote, tallyCrisis: tallyCrisis,
+    scoreR: scoreR, ELECTION_PRESETS: ELECTION_PRESETS, electionsUpTo: electionsUpTo, weightsInfo: weightsInfo, weightsFor: weightsFor, sameWeights: sameWeights, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision, isEcoModel: isEcoModel, leversFor: leversFor, crisisOf: crisisOf, validateCrisisVote: validateCrisisVote, tallyCrisis: tallyCrisis,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin

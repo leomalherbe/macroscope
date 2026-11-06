@@ -133,11 +133,13 @@
   /* ---------------- decision form ---------------- */
   function formConfig() {
     var st = data.state, isWarm = st.phase === 'warmup';
-    var allowed = isWarm ? st.warmup.allowed : MS.LEVERS.map(function (l) { return l.id; });
+    var avail = MS.leversFor(st);   // v2.0 classes: carbon tax and green investment too
+    var allowed = isWarm ? st.warmup.allowed : avail.map(function (l) { return l.id; });
     return {
       isWarm: isWarm,
       nYears: isWarm ? st.warmup.years : 1,
-      levers: MS.LEVERS.filter(function (l) { return allowed.indexOf(l.id) >= 0; }),
+      levers: avail.filter(function (l) { return allowed.indexOf(l.id) >= 0; }),
+      eco: MS.isEcoModel(st),
       tariff: isWarm ? allowed.indexOf('tariff') >= 0 : st.game.allowTariff !== false,
       euro: isWarm ? allowed.indexOf('euro') >= 0 : !!st.game.allowEuro,
       tfp: isWarm ? allowed.indexOf('tfp') >= 0 : !!st.game.allowTfp,
@@ -254,6 +256,7 @@
 
     var rules = [];
     rules.push('every value is a relative variation, in %, of your country’s reference level (public demand +5 = 5 % more public spending; income tax +5 = a tax rate 5 % higher, e.g. from 20 % to 21 %)');
+    if (f.eco) rules.push('the carbon tax and green investment are levels, from 0 to ' + (f.bounds.eco || 10) + ': they cut your carbon intensity from next year on, the tax lifts prices at once, green investment is extra public spending');
     rules.push('each variation between −' + f.bounds.lever + ' % and +' + f.bounds.lever + ' %');
     if (f.maxNonZero) rules.push('at most ' + f.maxNonZero + ' instruments');
     if (f.isWarm) rules.push('all other countries keep their policies unchanged');
@@ -267,8 +270,8 @@
     thead.appendChild(hr); tbl.appendChild(thead);
     var tbody = el('tbody');
     f.levers.forEach(function (l) {
-      var tr = el('tr', {}, [el('td', { html: '<span class="n muted">' + l.n + '.</span> ' + esc(l.label) + '<span class="hint">' + esc(l.hint) + ' · <i>' + esc(MS.CATS[l.cat].replace(' policies', '')) + '</i></span>' }), el('td', { class: 'unit' }, ['% of ref.'])]);
-      for (var y2 = 0; y2 < f.nYears; y2++) { var ni = numInput('L_' + l.id + '_' + y2, pv && pv.years[y2] ? pv.years[y2].levers[l.id] : 0, f.bounds.lever); if (cap !== null && (l.id === 'pubdem' || l.id === 'benefits')) { ni.max = cap; ni.title = 'austerity: at most ' + cap + ' %'; } tr.appendChild(el('td', { class: 'num' }, [ni])); }
+      var tr = el('tr', {}, [el('td', { html: '<span class="n muted">' + l.n + '.</span> ' + esc(l.label) + '<span class="hint">' + esc(l.hint) + ' · <i>' + esc(MS.CATS[l.cat].replace(' policies', '')) + '</i></span>' }), el('td', { class: 'unit' }, [l.eco ? (l.unit + ' · 0 to ' + (f.bounds.eco || 10)) : '% of ref.'])]);
+      for (var y2 = 0; y2 < f.nYears; y2++) { var ni = numInput('L_' + l.id + '_' + y2, pv && pv.years[y2] ? pv.years[y2].levers[l.id] : 0, l.eco ? (f.bounds.eco || 10) : f.bounds.lever); if (l.eco) { ni.min = 0; ni.step = 0.5; } if (cap !== null && (l.id === 'pubdem' || l.id === 'benefits')) { ni.max = cap; ni.title = 'austerity: at most ' + cap + ' %'; } tr.appendChild(el('td', { class: 'num' }, [ni])); }
       tbody.appendChild(tr);
     });
     tbl.appendChild(tbody);
@@ -436,12 +439,12 @@
         det.appendChild(vrow);
       }
       var tt = el('table'); var tb = el('tbody');
-      MS.LEVERS.forEach(function (l) {
+      MS.leversFor(st).forEach(function (l) {
         var v = mine && mine.payload && mine.payload.year ? mine.payload.year.levers[l.id] : 0;
-        var inp = el('input', { type: 'number', name: 'PL_' + l.id, step: 0.1, min: -st.bounds.lever, max: st.bounds.lever, value: v || 0 });
+        var inp = el('input', { type: 'number', name: 'PL_' + l.id, step: l.eco ? 0.5 : 0.1, min: l.eco ? 0 : -st.bounds.lever, max: l.eco ? (st.bounds.eco || 10) : st.bounds.lever, value: v || 0 });
         inp.addEventListener('input', function () { inp.classList.toggle('nz', !!MS.num(inp.value)); });
         if (v) inp.classList.add('nz');
-        tb.appendChild(el('tr', {}, [el('td', {}, [l.n + '. ' + l.label]), el('td', { class: 'unit' }, ['% of ref.']), el('td', { class: 'num' }, [inp])]));
+        tb.appendChild(el('tr', {}, [el('td', {}, [l.n + '. ' + l.label]), el('td', { class: 'unit' }, [l.eco ? l.unit : '% of ref.']), el('td', { class: 'num' }, [inp])]));
       });
       tt.appendChild(tb); det.appendChild(el('div', { class: 'tablewrap' }, [tt])); card.appendChild(det);
       card.appendChild(el('div', { id: 'pledgeMsg' }));
@@ -477,7 +480,7 @@
   function rSplit(r, weights) {
     var d = r.detail, out = {}; if (!d || typeof d !== 'object') return out;
     weights = rowWeights(r, weights);
-    ['nat', 'foreign', 'shock'].forEach(function (p) {
+    ['nat', 'foreign', 'shock', 'climate'].forEach(function (p) {
       var Rp = d.R && d.R[p] !== undefined ? d.R[p] : null;
       if (Rp === null) { var pd = {}, has = false; MS.INDICATORS.forEach(function (i) { var x = d[i.id] ? d[i.id][p] : null; if (x !== null && x !== undefined) { pd[i.id] = x; has = true; } }); if (has) Rp = MS.scoreR(pd, weights); }
       if (Rp !== null) out[p] = Rp;
@@ -486,7 +489,7 @@
   }
   function breakdownRows(r, weights, cum) {
     var d = r.detail; if (!d || typeof d !== 'object') return '';
-    var parts = [['nat', 'of which your own policy'], ['foreign', 'of which foreign policies'], ['shock', 'of which the shocks']];
+    var parts = [['nat', 'of which your own policy'], ['foreign', 'of which foreign policies'], ['shock', 'of which the shocks'], ['climate', 'of which the climate']];
     var split = rSplit(r, weights);
     return parts.map(function (pp) {
       var any = MS.INDICATORS.some(function (i) { return d[i.id] && d[i.id][pp[0]] !== undefined; }) || split[pp[0]] !== undefined;
@@ -527,7 +530,10 @@
     if (x.compet !== undefined) parts.push('price level vs the union’s ' + MS.fmt(x.compet, 2, true) + ' % (above = less competitive)');
     if (x.foreign !== undefined) parts.push('foreign bills held by households ' + MS.fmt(x.foreign, 1) + ' % of GDP');
     if (x.spread !== undefined) parts.push('risk premium on public debt ' + MS.fmt(x.spread, 2) + ' pt' + (x.pressured ? ' (under market pressure)' : ''));
-    return el('p', { class: 'small muted', style: 'margin:.4em 0 0' }, ['End of year ' + last.year + ': ' + parts.join(' · ') + '.']);
+    var out = el('div');
+    out.appendChild(el('p', { class: 'small muted', style: 'margin:.4em 0 0' }, ['End of year ' + last.year + ': ' + parts.join(' · ') + '.']));
+    if (x.D !== undefined) out.appendChild(el('p', { class: 'small', style: 'margin:.3em 0 0' }, [el('b', {}, ['Climate: ']), 'damage ' + MS.fmt(x.D, 1) + ' % of potential output · your emissions ' + MS.fmt(x.E, 0, true) + ' % vs the reference · carbon intensity ' + MS.fmt(100 * x.ci, 0) + ' % of the reference.']));
+    return out;
   }
   function unionPanel(rows, title) {
     var last = (rows || []).filter(function (r) { return r.detail && r.detail.extra; }).sort(function (a, b) { return b.year - a.year; })[0];
@@ -543,7 +549,7 @@
           '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>') +
       '<div class="urow"><span>Current account of the union with the rest of the world</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
       '<div class="urow"><span>Exchange rate (union currency per unit of world currency; up = devaluation)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
-      UI.regimeLinesHtml(u) + UI.voteLinesHtml(u) }));
+      UI.regimeLinesHtml(u) + UI.climateLinesHtml(u) + UI.voteLinesHtml(u) }));
     card.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, [u.regime === 'float'
       ? 'Floating exchange rate: the reserves are frozen and the exchange rate moves until the balance of payments (trade, primary income and capital flows) balances. A rate rise attracts capital and appreciates the currency; a sudden stop depreciates it and raises import prices. If the currency falls by more than ' + MS.fmt((Object.assign({}, MS.defaultState().sim, data.state.sim || {})).crisisDepr, 0) + ' % in a year, the next year opens with a vote: defend (rate rise) or let it float.'
       : u.votes && u.votes.rate

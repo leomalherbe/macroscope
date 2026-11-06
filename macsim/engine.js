@@ -1,5 +1,5 @@
 /* =====================================================================
-   OPEN-MU — game engine (v1.3)
+   OPEN-MU — game engine (v2.0)
    N member countries in a monetary union (chapter-6 OPEN/REG logic:
    real flows, households' wealth target, government bills, one central
    bank), rest of the world exogenous, reserves absorb the union's
@@ -24,22 +24,28 @@
    rising with the debt ratio, flight to quality, and the central-bank
    backstop as a per-year switch (spec section 9). params.capital = false
    keeps v1.2 bit for bit.
+   v2.0 (params.eco = true, paramsFor('v2.0')): production emits, a global
+   pollution stock damages the economy (structural unemployment, inflation
+   on a damaged potential, import propensity, forced repairs), two levers
+   (carbon tax, green public investment) cut the carbon intensity with a
+   one-year lag (spec section 10). params.eco = false keeps v1.3 bit for bit.
    Spec: docs/openmu-spec.md. Runs in the browser (global OPENMU) and in
    Node (module.exports). No dependencies. Nothing is rounded here.
    ===================================================================== */
 var OPENMU = (function () {
   'use strict';
-  var VERSION = '1.3';
+  var VERSION = '2.0';
 
   /* ---------- defaults ---------- */
   /* defaultParams(firms): v1.1 defaults; defaultParams(false) gives the v1.0 values
      of the two parameters re-tuned in v1.1 (alpha2, lambda0). */
-  function defaultParams(firms, prices, capital) {
-    var useFirms = firms !== false, usePrices = prices === true, useCapital = capital === true;
+  function defaultParams(firms, prices, capital, eco) {
+    var useFirms = firms !== false, usePrices = prices === true, useCapital = capital === true, useEco = eco === true;
     var p = {
       firms: useFirms,
       prices: usePrices,   // v1.2: price levels enter trade volumes (one-year lag)
       capital: useCapital, // v1.3: capital flows, exchange-rate regime, risk premium (spec section 9)
+      eco: useEco,         // v2.0: emissions and a damage function (spec section 10)
       countries: [
         { id: 'DEU', name: 'Germany',     size: 100 },
         { id: 'FRA', name: 'France',      size: 75 },
@@ -88,7 +94,21 @@ var OPENMU = (function () {
       phi: 0.05,        // spread (rate units) per unit of debt ratio above dstar: s = 1 pt at d = dstar + 0.20
       dstar: 1.10,      // debt ratio (B/Y) above which the spread starts
       psi: 50,          // flight to quality: RoW allocation weight ∝ size · exp(−psi · spread)
-      rEffMax: 0.25     // no backstop: cap on the market-clearing bill rate of a pressured member
+      rEffMax: 0.25,    // no backstop: cap on the market-clearing bill rate of a pressured member
+      /* v2.0: emissions and damages */
+      ci0: 1,           // reference carbon intensity (emissions per unit of output); 0 switches emissions off
+      ciMin: 0.3,       // floor on the carbon intensity (share of the reference)
+      ewMult: 1,        // RoW emissions at the reference, multiple of the union's (1: the union's effort weighs half of the global flow)
+      s0Years: 50,      // initial pollution stock S0 = s0Years × yearly reference emissions (⇒ reference emissions = 2 % of S0)
+      chiD: 0.5,        // damage per unit of (S − S0)/S0  (≈ 5 % at year 6 under business as usual)
+      dMax: 0.25,       // cap on the damage
+      chiU: 0.4,        // structural unemployment: +chiU × 100·D points (D = 5 % → u* + 2 pt)
+      damageOff: false, // report helper: simulate emissions and intensities but force D = 0 (isolates the "climate" part of the decomposition)
+      aC: 0.04,         // carbon intensity: −aC per point of carbon tax, next year
+      aG: 0.025,        // carbon intensity: −aG per unit of green investment, next year
+      greenUnit: 0.002, // green lever: one unit = 0.2 pt of reference GDP of public investment
+      rhoC: 0.15,       // inflation pass-through of a change in the carbon tax, per point
+      ctaxUnit: 0.002   // carbon-tax revenue per point: ctaxUnit × emissions (1 point ≈ 0.2 % of GDP at the reference intensity)
     };
     if (!useFirms) { p.alpha2 = 0.185; p.lambda0 = 0.70; }
     if (usePrices) { p.reserveMonths = 1.5; }
@@ -97,6 +117,7 @@ var OPENMU = (function () {
   /* parameters of a game version: 'v1.1' (class 6: no price channel, 3 months of reserves), 'v1.2' (prices in trade), 'v1.3' (capital flows) */
   function paramsFor(version) {
     var v = String(version || '').replace(/^v/, '');
+    if (v === '2.0') return defaultParams(true, true, true, true);
     if (v === '1.3') return defaultParams(true, true, true);
     return v === '1.2' ? defaultParams(true, true) : defaultParams(true);
   }
@@ -104,7 +125,7 @@ var OPENMU = (function () {
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function mergeParams(params) {
-    var p = defaultParams(!(params && params.firms === false), !!(params && params.prices === true), !!(params && params.capital === true));
+    var p = defaultParams(!(params && params.firms === false), !!(params && params.prices === true), !!(params && params.capital === true), !!(params && params.eco === true));
     if (!params) return p;
     Object.keys(params).forEach(function (k) { if (params[k] !== undefined && params[k] !== null) p[k] = params[k]; });
     p.countries = clone(p.countries);
@@ -221,6 +242,11 @@ var OPENMU = (function () {
       sumBw += rc.Bw;
     });
     ref.union = { R0: R0, xr0: p.xr0, YRoW0: p.YRoW0, r0: p.r, totalSize: totalSize, sumIMR: sumIMR, Bw0: sumBw };
+    if (p.eco) {
+      /* v2.0: reference emissions and the initial pollution stock (spec section 10.1) */
+      var Eu0 = p.ci0 * totalSize, Ew0 = p.ewMult * p.ci0 * totalSize;
+      ref.union.Eu0 = Eu0; ref.union.Ew0 = Ew0; ref.union.S0 = p.s0Years * (Eu0 + Ew0);
+    }
     return ref;
   }
 
@@ -230,6 +256,24 @@ var OPENMU = (function () {
     if (!arr) return 0;
     var y = arr[t];
     return y ? num(y[key]) : 0;
+  }
+  /* exact solution of the linear fixed point Y = A + M·Y (M by finite differences of the map; Gaussian elimination) */
+  function solveLinear(step, ids) {
+    var n = ids.length, zero = function () { return 0; };
+    var A = step(zero), M = [];
+    ids.forEach(function (idj, j) {
+      var col = step(function (id) { return id === idj ? 1 : 0; });
+      ids.forEach(function (idi, i) { M[i] = M[i] || []; M[i][j] = col[idi] - A[idi]; });
+    });
+    var a = [];
+    for (var i = 0; i < n; i++) { a[i] = []; for (var j = 0; j < n; j++) a[i][j] = (i === j ? 1 : 0) - M[i][j]; a[i][n] = A[ids[i]]; }
+    for (var c = 0; c < n; c++) {
+      var piv = c; for (var r = c + 1; r < n; r++) if (Math.abs(a[r][c]) > Math.abs(a[piv][c])) piv = r;
+      var tmp = a[c]; a[c] = a[piv]; a[piv] = tmp;
+      for (var r2 = 0; r2 < n; r2++) { if (r2 === c) continue; var f = a[r2][c] / a[c][c]; for (var k = c; k <= n; k++) a[r2][k] -= f * a[c][k]; }
+    }
+    var out = {}; ids.forEach(function (id, i) { out[id] = a[i][n] / a[i][i]; });
+    return out;
   }
   function shockAt(shocks, t, key) {
     var y = shocks && shocks[t];
@@ -368,12 +412,12 @@ var OPENMU = (function () {
     var policies = opts.policies || {}, shocks = opts.shocks || [];
     var TOL = 1e-13, CAP = 500;
 
-    var cap = !!p.capital;
-    var prev = {}, prevU = { xr: ref.union.xr0, R: ref.union.R0, NWcb: 0, r: ref.union.r0, rw: p.rw, backstop: true };
+    var cap = !!p.capital, eco = !!p.eco;
+    var prev = {}, prevU = { xr: ref.union.xr0, R: ref.union.R0, NWcb: 0, r: ref.union.r0, rw: p.rw, backstop: true, S: eco ? ref.union.S0 : 0 };
     ids.forEach(function (id) {
       var rc = ref.countries[id];
       prev[id] = { Y: rc.Y, V: rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1,
-        Bf: rc.Bf || 0, Bw: rc.Bw || 0, Bb: rc.Bb, s: 0 };
+        Bf: rc.Bf || 0, Bw: rc.Bw || 0, Bb: rc.Bb, s: 0, ci: p.ci0, ctax: 0, green: 0 };
     });
     var out = { years: [], ref: ref, checks: { maxIdentityError: 0, maxIterations: 0 } };
 
@@ -393,6 +437,17 @@ var OPENMU = (function () {
       var rw1 = prevU.rw;
       var backstop = cap ? sh.backstop !== false : true;
       var bsPrev = prevU.backstop;
+      /* v2.0: damage of the year from the pollution stock accumulated so far (+ a disaster), carbon intensities from last year's levers */
+      var D = 0, ci = {}, ctaxNow = {}, greenNow = {};
+      if (eco) {
+        D = p.damageOff ? 0 : Math.min(p.dMax, Math.max(0, (ref.union.S0 > 0 ? p.chiD * (prevU.S - ref.union.S0) / ref.union.S0 : 0) + shockAt(shocks, t, 'disaster') / 100));
+        ids.forEach(function (id) {
+          var pv = prev[id];
+          ci[id] = Math.max(p.ciMin * p.ci0, pv.ci * (1 - p.aC * pv.ctax - p.aG * pv.green));
+          ctaxNow[id] = Math.max(0, lever(policies, id, t, 'ctax'));
+          greenNow[id] = Math.max(0, lever(policies, id, t, 'green'));
+        });
+      }
       /* v1.3: spreads of the year from last year's debt ratios (market pressure); members under pressure */
       var spread = {}, sBar = 0, pressured = {};
       ids.forEach(function (id) {
@@ -425,7 +480,8 @@ var OPENMU = (function () {
           var rc = ref.countries[id], pv = prev[id];
           var tau = rc.tau * (1 + lever(policies, id, t, 'vat') / 100);
           cur[id] = {
-            G: rc.G * (1 + lever(policies, id, t, 'pubdem') / 100),
+            G: rc.G * (1 + lever(policies, id, t, 'pubdem') / 100) + (eco ? greenNow[id] * p.greenUnit * rc.Y : 0),
+            GREEN: eco ? greenNow[id] * p.greenUnit * rc.Y : 0, ctaxRate: eco ? ctaxNow[id] * p.ctaxUnit : 0,
             TR: rc.TR * (1 + lever(policies, id, t, 'benefits') / 100),
             theta: rc.theta * (1 + lever(policies, id, t, 'inctax') / 100),
             tau: tau, tauc: tau / (1 + tau),
@@ -444,28 +500,32 @@ var OPENMU = (function () {
           capGain[id] = cap ? (xr - prevU.xr) * pv.Bf : 0;
         });
         /* fixed point on {Y_i}: Y, C and T are simultaneous; I is predetermined within the year */
-        var iter = 0, maxChange = Infinity;
-        while (maxChange > TOL && iter < CAP) {
-          var IMU = {};
-          ids.forEach(function (id) { IMU[id] = intraOf(id, cur[id].Y); });
-          maxChange = 0;
-          var next = {};
+        function stepFrom(Yof) {   // the yearly map Y → Y (linear in Y given the predetermined items)
+          var IMU = {}, next = {};
+          ids.forEach(function (id) { IMU[id] = intraOf(id, Yof(id)); });
           ids.forEach(function (id) {
-            var c = cur[id], pv = prev[id];
-            var IM = muF * c.Y;
+            var c = cur[id], pv = prev[id], Yc = Yof(id);
+            var IM = muF * Yc;
             var IMR = p.sR * IM * priceLagF[id];
             var IMV = IMU[id] + xr * IMR;
-            var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
-            var YF = c.Y - c.AF - r1 * pv.L;
+            var X = c.XR + exportsTo(id, Yof);
+            var YF = Yc - c.AF - r1 * pv.L - (eco ? c.ctaxRate * ci[id] * Yc : 0);
             var base = cap ? YF + r1 * (pv.Bh + pv.M) + extraInc[id] : YF + r1 * (pv.Bh + pv.M);
             var YD = (1 - c.theta) * base + c.TR;
             var CE = a1 * YD + p.alpha2 * pv.V;
             var C = (1 - c.tauc) * CE;
-            var Ynew = C + c.G + c.I + X - IMV;
-            var ch = Math.abs(Ynew - c.Y) / ref.countries[id].Y;
-            if (ch > maxChange) maxChange = ch;
-            next[id] = Ynew;
+            next[id] = C + c.G + c.I + X - IMV;
           });
+          return next;
+        }
+        var iter = 0, maxChange = Infinity, lastChange = Infinity, grow = 0, solved = false;
+        while (maxChange > TOL && iter < CAP) {
+          lastChange = maxChange; maxChange = 0;
+          var next = stepFrom(function (id) { return cur[id].Y; });
+          ids.forEach(function (id) { var ch = Math.abs(next[id] - cur[id].Y) / ref.countries[id].Y; if (ch > maxChange) maxChange = ch; });
+          /* the plain iteration is exact for every converging case (v1.x unchanged bit for bit); if it diverges (very large xr while
+             bracketing a floating rate, or a damaged economy with a high import leak) the linear system is solved directly once */
+          if (!solved && ((maxChange > lastChange && ++grow >= 2) || iter === 150)) { next = solveLinear(stepFrom, ids); solved = true; } else if (maxChange <= lastChange) grow = 0;
           ids.forEach(function (id) { cur[id].Y = next[id]; });
           iter++;
         }
@@ -479,18 +539,19 @@ var OPENMU = (function () {
         var wsh = {}, wtot = 0;
         ids.forEach(function (id) { var wgt = cap ? ref.countries[id].size * Math.exp(-p.psi * spread[id] * (!backstop && pressured[id] ? 2 : 1)) : 0; wsh[id] = wgt; wtot += wgt; });
         ids.forEach(function (id) { wsh[id] = wtot > 0 ? wsh[id] / wtot : 0; });
-        var sumH = 0, sumBcbA = 0, CA = 0, sumIMRv = 0, sumY = 0, sumTB = 0, sumPY = 0, primInc = 0, KA = 0, sumBw = 0, sumBf = 0, sumSav = 0, sumFirm = 0, sumPB = 0, sumAssets = 0, sumV = 0, unabsorbed = 0;
+        var sumH = 0, sumBcbA = 0, CA = 0, sumIMRv = 0, sumY = 0, sumTB = 0, sumPY = 0, primInc = 0, KA = 0, sumBw = 0, sumBf = 0, sumSav = 0, sumFirm = 0, sumPB = 0, sumAssets = 0, sumV = 0, unabsorbed = 0, sumE = 0;
         ids.forEach(function (id) {
           var c = cur[id], pv = prev[id], rc = ref.countries[id];
           var Y = c.Y;
           var IM = muF * Y, IMU = IMUf[id], IMR = p.sR * IM * priceLagF[id], IMV = IMU + xr * IMR;
           var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
-          var YF = Y - c.AF - r1 * pv.L;
+          var Tc = eco ? c.ctaxRate * ci[id] * Y : 0;      // v2.0: carbon tax, paid by firms on their emissions
+          var YF = Y - c.AF - r1 * pv.L - Tc;
           var base = cap ? YF + r1 * (pv.Bh + pv.M) + extraInc[id] : YF + r1 * (pv.Bh + pv.M);
           var YD = (1 - c.theta) * base + c.TR;
           var CE = a1 * YD + p.alpha2 * pv.V;
           var C = (1 - c.tauc) * CE;
-          var T = c.theta * base + c.tauc * CE;
+          var T = c.theta * base + c.tauc * CE + Tc;
           var V = cap ? pv.V + YD - CE + capGain[id] : pv.V + YD - CE;
           /* v1.3: government interest of the year (lagged rates); the spread is not paid on the CB's holdings while the backstop was on */
           var govInt = cap ? r1 * pv.B + pv.s * (pv.B - (bsPrev ? pv.Bcb : 0)) : r1 * pv.B;
@@ -529,8 +590,9 @@ var OPENMU = (function () {
           Bcb = cap ? B - Bh - Bb - Bw : B - Bh - Bb;
           var TB = X - IMV;
           var gap = 100 * (Y / rc.Y - 1);
-          var u = p.ustar - p.beta * gap;
-          var pi = p.pistar + p.kappa * gap + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr;
+          var gapD = eco ? 100 * (Y / (rc.Y * (1 - D)) - 1) : gap;   // v2.0: gap on the damaged potential
+          var u = p.ustar + (eco ? p.chiU * 100 * D : 0) - p.beta * gap;
+          var pi = p.pistar + p.kappa * gapD + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
           var P = pv.P * (1 + pi / 100);
           var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);   // v1.2: price level relative to the reference path (= world prices, growing at π*)
           year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
@@ -538,14 +600,17 @@ var OPENMU = (function () {
             pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: r,
             I: c.I, K: K, L: L, M: M, Bb: Bb, A: A, AF: c.AF, YF: YF,
             Bf: Bf, Bw: Bw, spread: sEff, rEff: r + sEff, pressured: !!pressured[id], capGain: capGain[id],
-            CAi: cap ? TB + rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw : TB };
+            CAi: cap ? TB + rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw : TB,
+            E: eco ? ci[id] * Y : 0, ci: eco ? ci[id] : 0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0, GREEN: c.GREEN || 0, Tc: Tc, D: D };
+          if (eco) sumE += ci[id] * Y;
           sumH += H; sumBcbA += Bcb + A; CA += c.XR - xr * IMR; sumIMRv += xr * IMR; sumY += Y; sumTB += TB; sumPY += Prel * rc.Y;
           if (cap) {
             primInc += rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw;
             KA += (Bw - pv.Bw) - xr * (Bf - pv.Bf);
             sumBw += Bw; sumBf += Bf; sumSav += YD - CE; sumFirm += c.AF - c.I; sumPB += PB; sumV += V; sumAssets += Bh + M + H + xr * Bf;
           }
-          newPrev[id] = { Y: Y, V: V, Bh: Bh, M: M, B: B, Bcb: Bcb, A: A, K: K, L: L, tau: c.tau, P: P, Prel: Prel, Bf: Bf, Bw: Bw, Bb: Bb, s: sEff };
+          newPrev[id] = { Y: Y, V: V, Bh: Bh, M: M, B: B, Bcb: Bcb, A: A, K: K, L: L, tau: c.tau, P: P, Prel: Prel, Bf: Bf, Bw: Bw, Bb: Bb, s: sEff,
+            ci: eco ? ci[id] : p.ci0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0 };
         });
         var CAp = CA + primInc;                       // current account incl. primary income (v1.3; = CA otherwise)
         var excess = CAp + KA;                        // balance of payments excess: what the reserves absorb (fixed) or xr clears (float)
@@ -557,6 +622,12 @@ var OPENMU = (function () {
           months: sumIMRv > 0 ? 12 * R * xr / sumIMRv : Infinity, NWcb: NWcb, sumTB: sumTB, iterations: iter, P: Pu,
           regime: regime, CAp: CAp, primInc: primInc, KA: KA, Bw: sumBw, Bf: sumBf, rw: rw, backstop: backstop, sBar: sBar,
           dxr: 100 * (xr - prevU.xr) / prevU.xr, unabsorbed: unabsorbed, excess: excess };
+        if (eco) {
+          var Ew = ref.union.Ew0 * (1 + shockAt(shocks, t, 'worldEmissions') / 100);
+          var S = prevU.S + sumE + Ew;
+          year.union.S = S; year.union.Sshare = ref.union.S0 > 0 ? S / ref.union.S0 : 1; year.union.D = D; year.union.Eu = sumE; year.union.Ew = Ew;
+          year.union.Erel = ref.union.Eu0 > 0 ? 100 * (sumE / ref.union.Eu0 - 1) : 0;
+        }
         var identErr = Math.abs(sumH - sumBcbA - xr * R + NWcb) / sumH;
         var sectorErr = Math.abs(sumTB - CA) / Math.max(1, Math.abs(CA));
         if (cap) {
@@ -595,7 +666,7 @@ var OPENMU = (function () {
       if (year.union.identityError > out.checks.maxIdentityError) out.checks.maxIdentityError = year.union.identityError;
       out.years.push(year);
       ids.forEach(function (id) { prev[id] = res.newPrev[id]; });
-      prevU = { xr: year.union.xr, R: year.union.R, NWcb: year.union.NWcb, r: r, rw: rw, backstop: backstop };
+      prevU = { xr: year.union.xr, R: year.union.R, NWcb: year.union.NWcb, r: r, rw: rw, backstop: backstop, S: eco ? year.union.S : 0 };
     }
     return out;
   }
@@ -621,14 +692,19 @@ var OPENMU = (function () {
     var ids = p.countries.map(function (c) { return c.id; });
     var zero = {}; INDIC.forEach(function (k) { zero[k] = 0; });
 
-    var runRef = simulate({ params: p, years: years });
-    var runShock = simulate({ params: p, years: years, shocks: shocks });
-    var runAll = simulate({ params: p, years: years, policies: policies, shocks: shocks });
+    /* v2.0: a fourth part, "climate" = the run with the damage on minus the same run with the damage forced to 0 (emissions,
+       intensities and levers still simulated); reference, shocks and own-policy parts are computed with the damage off, so the
+       four parts add up to the total. Without eco, pOff = p and the climate part is absent. */
+    var pOff = p.eco ? Object.assign({}, p, { damageOff: true }) : p;
+    var runRef = simulate({ params: pOff, years: years });
+    var runShock = simulate({ params: pOff, years: years, shocks: shocks });
+    var runAllOff = simulate({ params: pOff, years: years, policies: policies, shocks: shocks });
+    var runAll = p.eco ? simulate({ params: p, years: years, policies: policies, shocks: shocks }) : runAllOff;
     var runNat = {};
     ids.forEach(function (id) {
       if (policies[id] && policies[id].some(function (y) { return y && Object.keys(y).some(function (k) { return num(y[k]) !== 0; }); })) {
         var only = {}; only[id] = policies[id];
-        runNat[id] = simulate({ params: p, years: years, policies: only, shocks: shocks });
+        runNat[id] = simulate({ params: pOff, years: years, policies: only, shocks: shocks });
       } else runNat[id] = null;
     });
     var ref = runAll.ref;
@@ -640,18 +716,22 @@ var OPENMU = (function () {
         var iRef = indicators(runRef.years[t].countries[id], rc, p);
         var iShock = indicators(runShock.years[t].countries[id], rc, p);
         var iAll = indicators(runAll.years[t].countries[id], rc, p);
+        var iAllOff = p.eco ? indicators(runAllOff.years[t].countries[id], rc, p) : iAll;
         var total = diff(iAll, iRef);
         var shock = diff(iShock, iRef);
         var nat = runNat[id] ? diff(indicators(runNat[id].years[t].countries[id], rc, p), iShock) : zero;
-        var foreign = diff(diff(total, shock), nat);
+        var foreign = diff(diff(diff(iAllOff, iRef), shock), nat);
+        var climate = p.eco ? diff(iAll, iAllOff) : null;
         var detail = {};
-        INDIC.forEach(function (k) { detail[k] = { shock: shock[k], nat: nat[k], foreign: foreign[k] }; });
+        INDIC.forEach(function (k) { detail[k] = { shock: shock[k], nat: nat[k], foreign: foreign[k] }; if (climate) detail[k].climate = climate[k]; });
         var cy = runAll.years[t].countries[id];
         detail.extra = { gap: cy.gap, debt: 100 * cy.B / cy.Y, wealth: 100 * cy.V / cy.Y, u: cy.u, pi: cy.pi, P: cy.P,
           inv: rc.I ? 100 * (cy.I / rc.I - 1) : 0, loans: 100 * cy.L / cy.Y, deposits: 100 * cy.M / cy.Y };
         if (p.prices && cy.compet !== undefined) detail.extra.compet = cy.compet;   // price level vs the union's, %
         if (p.capital) { detail.extra.foreign = 100 * runAll.years[t].union.xr * cy.Bf / cy.Y; detail.extra.spread = 100 * cy.spread; detail.extra.pressured = !!cy.pressured; }   // v1.3: foreign bills % of GDP, spread in points
+        if (p.eco) { detail.extra.E = p.ci0 > 0 ? 100 * (cy.E / (p.ci0 * rc.Y) - 1) : 0; detail.extra.ci = cy.ci / p.ci0; detail.extra.ctax = cy.ctax; detail.extra.green = cy.green; detail.extra.D = 100 * cy.D; }   // v2.0: emissions vs reference %, carbon intensity (share of reference), levers, damage %
         var entry = { detail: detail, byPart: { total: total, shock: shock, nat: nat, foreign: foreign } };
+        if (climate) entry.byPart.climate = climate;
         INDIC.forEach(function (k) { entry[k] = total[k]; });
         yr.countries[id] = entry;
       });
@@ -663,6 +743,7 @@ var OPENMU = (function () {
         yr.union.regime = u.regime; yr.union.dxr = u.dxr; yr.union.CAp = u.CAp; yr.union.KA = u.KA; yr.union.Bw = u.Bw; yr.union.Bf = u.Bf;
         yr.union.backstop = u.backstop; yr.union.pressured = press; yr.union.sBar = 100 * u.sBar; yr.union.rw = u.rw; yr.union.unabsorbed = u.unabsorbed;
       }
+      if (p.eco) { yr.union.Sshare = u.Sshare; yr.union.D = 100 * u.D; yr.union.Erel = u.Erel; yr.union.Ew = u.Ew; yr.union.Eu = u.Eu; }
       out.years.push(yr);
     }
     out.checks = runAll.checks;
@@ -685,6 +766,7 @@ var OPENMU = (function () {
       firms: p.firms ? { investment: 'I = I* · max(ifloor, 1 − iota·(r₋₁ − r*))', kappaK: p.kappaK, delta: p.delta, iota: p.iota, ifloor: p.ifloor,
         banks: 'loans = capital; deposits held by households; zero spread; bills or CB advances close the bank balance sheet' } : null,
       prices: p.prices ? { rule: 'P_i = P_i,-1 (1 + π_i/100); trade volumes respond to last year’s relative prices', eps: p.eps, eta: p.eta, epsU: p.epsU } : null,
+      eco: p.eco ? { ci0: p.ci0, ciMin: p.ciMin, chiD: p.chiD, chiU: p.chiU, aC: p.aC, aG: p.aG, rhoC: p.rhoC, S0: ref.union.S0 } : null,
       capital: p.capital ? { bwShare: p.bwShare, chiW: p.chiW, chiS: p.chiS, lambdaF1: p.lambdaF1, phi: p.phi, dstar: p.dstar, psi: p.psi, rw: p.rw } : null,
       union: { R0: ref.union.R0, reserveMonths: p.reserveMonths, xr0: p.xr0, r0: p.r, alertShare: p.alertShare } };
   }

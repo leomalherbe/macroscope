@@ -31,7 +31,7 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
     <h1>OPEN-MU · The model behind the game</h1>
     <p class="sub">Every equation the engine solves, with the parameters it uses — so that you can anticipate what a decision does before you take it.</p>
     <div class="toc">
-      <a href="#notation">Notation</a><a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#capital">Capital flows &amp; the exchange-rate regime</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
+      <a href="#notation">Notation</a><a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#eco">Emissions &amp; damages</a><a href="#capital">Capital flows &amp; the exchange-rate regime</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
     </div>
   </div>
   <div class="who"><a href="index.html">← Policy desk</a></div>
@@ -176,6 +176,16 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
   </div>
 </div>
 
+<div class="card" id="eco">
+  <h2>Emissions and damages (model v2.0)</h2>
+  <div class="block">
+    <div>
+      <table class="eq"><tr><td class="e">E = ci·Y</td><td class="c">emissions of a member (reference carbon intensity ci* = 1, so E* = Y*)</td></tr><tr><td class="e">E_w = E_w*·(1 + worldEmissions/100)</td><td class="c">rest of the world: as much as the union at the reference, exogenous</td></tr><tr><td class="e">S = S₋₁ + Σ E + E_w</td><td class="c">global pollution stock, no natural decay; S₀ = 50 years of reference emissions (2 % a year)</td></tr><tr><td class="e">D = min(0.25, 0.5·(S₋₁ − S₀)/S₀ + disaster/100)</td><td class="c">damage of the year from the stock accumulated so far (+ a disaster shock): ≈ 1 point a year under business as usual</td></tr><tr><td class="e">ci = max(0.3, ci₋₁·(1 − 0.04·ctax₋₁ − 0.025·green₋₁))</td><td class="c">carbon intensity falls persistently with last year's levers, floor 30 % of the reference</td></tr><tr><td class="e">u = u* + 0.4·100·D − β·gap</td><td class="c">structural unemployment rises with the damage</td></tr><tr><td class="e">π = π* + κ·gap_D + … + 0.15·Δctax</td><td class="c">inflation on the damaged potential Y*(1 − D), plus the carbon-tax pass-through</td></tr><tr><td class="e">GREEN = 0.002·green·Y*</td><td class="c">green investment: public spending (demand, deficit)</td></tr><tr><td class="e">Tc = 0.002·ctax·E</td><td class="c">carbon-tax revenue, paid by firms out of distributed income (1 point ≈ 0.2 % of GDP)</td></tr></table>
+    </div>
+    <div class="note"><strong>Compressed time.</strong> The reference path is no longer stationary: with nobody acting, the stock grows, the damage reaches 5 % of potential output in year 6 and 7 % in year 8 — structural unemployment +2 pt (+2.3 with Okun), inflation +1.3 pt for every member; the extra inflation erodes competitiveness, so GDP drifts down slowly (−0.9 % by year 6). The report isolates it in a fourth part of the split, « of which the climate ».<br><br><strong>Two levers, one public good.</strong> A carbon tax of 5 points everywhere cuts the union's emissions by 70 % within five years and the year-8 damage from 7 to 5.5 %; it costs 0.6 pt of inflation and 0.7 % of GDP in the first year and brings 0.4 pt of revenue. Green investment of 10 units (2 pt of GDP) everywhere does the same to the emissions, adds 2.9 % of GDP at once and 0.9 pt of deficit every year. A member acting alone pays the whole cost and gets a seventh of the benefit — the rest of the world emits as much as the union, so even a united union only slows the stock.<br><br><strong>Shocks.</strong> <em>World emissions</em> (%, the rest of the world's flow) and <em>climate disaster</em> (one-off extra damage, in points of potential output).</div>
+  </div>
+</div>
+
 <div class="card" id="rules">
   <h2>The rules around the model: votes and the reserves crisis</h2>
   <table class="p">
@@ -185,7 +195,7 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
     <tr><th>Forced devaluation</th><td>Reserves at or below zero <b>and</b> a current-account deficit at the end of the previous year: a devaluation of 15 % is applied, without a vote. Once the current account is back in surplus, the union is repaying its foreign borrowing and the ordinary crisis vote applies again.</td></tr>
     <tr><th>Currency crisis (v1.3, floating)</th><td>No reserves crisis while floating. If the currency fell by more than 10 % over the previous year, the next year <b>opens with a vote, before any decision</b>: <b>defend</b> (the central bank raises its rate by 1 pt for the year, on top of the rate vote and the shocks) or <b>let it float</b>. A country that does not vote counts as defend; letting the currency float needs more than half of the playing countries.</td></tr>
     <tr><th>Regime and shocks (v1.3)</th><td>The exchange-rate regime, the capital-flow shock (sudden stop), the world interest rate and the central-bank backstop are set by the administrator <b>year by year</b> in the shocks editor, like the other shocks; a persistent sudden stop must be repeated each year.</td></tr>
-    <tr><th>Objective</th><td>R = 0.2·ΔGDP − 0.2·Δu − 0.2·Δπ + 0.2·ΔPB + 0.2·ΔTB: the score of the year (deviations from the reference: GDP in %, the rest in points). The ranking uses the cumulative R, the sum of the yearly scores. <b>Elections</b>: the administrator may change these weights for one country or for the whole union from a given year on (a new government, new voters’ priorities); the weights in force are shown on your page and stored with each year’s result.</td></tr>
+    <tr><th>Objective</th><td>Model v2.0 keeps the five dimensions: the damage shows through them (and the levers through inflation and the budget). R = 0.2·ΔGDP − 0.2·Δu − 0.2·Δπ + 0.2·ΔPB + 0.2·ΔTB: the score of the year (deviations from the reference: GDP in %, the rest in points). The ranking uses the cumulative R, the sum of the yearly scores. <b>Elections</b>: the administrator may change these weights for one country or for the whole union from a given year on (a new government, new voters’ priorities); the weights in force are shown on your page and stored with each year’s result.</td></tr>
   </table>
 </div>
 
