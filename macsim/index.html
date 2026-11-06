@@ -256,7 +256,7 @@
 
     var rules = [];
     rules.push('every value is a relative variation, in %, of your country’s reference level (public demand +5 = 5 % more public spending; income tax +5 = a tax rate 5 % higher, e.g. from 20 % to 21 %)');
-    if (f.eco) rules.push('the carbon tax and green investment are levels, from 0 to ' + (f.bounds.eco || 10) + ': they cut your carbon intensity from next year on, the tax lifts prices at once, green investment is extra public spending');
+    if (f.eco) rules.push('the carbon tax and green investment are levels, from 0 to ' + (f.bounds.eco || 10) + ': they cut your carbon intensity from next year on, the tax lifts prices at once. Green investment supports demand like public spending, but 60 % of it is imported equipment (about a third less effect on your GDP than public demand, and a worse trade balance) and its gain on your carbon intensity shrinks as you raise it.');
     if (MS.isDuel(st)) rules.push('the policy rate is yours to set, in points around 3 % (±' + (f.bounds.rate || 2) + '): it moves investment next year, your debt service and the capital flows with your partner — a higher rate appreciates your currency');
     rules.push('each variation between −' + f.bounds.lever + ' % and +' + f.bounds.lever + ' %');
     if (f.maxNonZero) rules.push('at most ' + f.maxNonZero + ' instruments');
