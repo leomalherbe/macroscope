@@ -346,7 +346,7 @@
     var card = el('div', { class: 'card' });
     if (rec.kind === 'currency') return currencyVoteCard(rec, vc, mine, cur);
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Reserves crisis · year ' + st.round + ' — vote']), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
-    card.appendChild(el('p', { class: 'muted small' }, ['The union’s reserves ended year ' + (st.round - 1) + ' below the alert line. Before any decision for year ' + st.round + ', the council votes — one country, one vote; a country that does not vote counts as austerity; devaluation needs more than half of the countries. Decisions open once the administrator closes the vote.']));
+    card.appendChild(el('p', { class: 'muted small' }, ['The union’s reserves ended year ' + (st.round - 1) + ' below the alert line. Before any decision for year ' + st.round + ', the council votes — one country, one vote; only the votes cast count: devaluation needs more than half of the voters. Decisions open once the administrator closes the vote.']));
     var wrap = el('div', { class: 'votes' });
     var box = el('div', { class: 'q crisis' }); box.appendChild(el('b', {}, ['Austerity or devaluation?']));
     box.appendChild(el('span', { class: 'hint' }, ['Austerity caps every member’s public demand and social benefits at ' + MS.fmt(vc.cap, 0) + ' % of the reference this year (no stimulus possible); a devaluation of ' + MS.fmt(vc.deval, 0) + ' % restores exports with a lag but raises import prices and inflation.']));
