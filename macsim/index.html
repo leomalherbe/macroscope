@@ -239,6 +239,9 @@
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title]), el('span', { id: 'formStatus', class: 'small muted' })]));
     var cap = null;
     if (rec && rec.status === 'forced') card.appendChild(el('div', { class: 'note', html: '<b>Reserves exhausted</b> at the end of year ' + (st.round - 1) + ' with the current account still in deficit: a devaluation of ' + esc(MS.fmt(vc0.forced, 0)) + ' % is imposed this year, without a vote.' }));
+    else if (rec && rec.status === 'closed' && rec.kind === 'currency') {
+      card.appendChild(el('div', { class: 'note', html: '<b>Currency-crisis vote of year ' + st.round + ':</b> ' + esc(rec.austerity) + ' defend · ' + esc(rec.devaluation) + ' let it float → <b>' + (rec.outcome === 'float' ? 'let it float' : 'defend') + '</b>. ' + (rec.outcome === 'float' ? 'The currency keeps floating.' : 'The central bank raises its rate by ' + esc(MS.fmt((Object.assign({}, MS.defaultState().sim, st.sim || {})).defendStep, 1)) + ' pt this year.') }));
+    }
     else if (rec && rec.status === 'closed') {
       cap = rec.outcome === 'austerity' ? MS.num(vc0.cap) : null;
       card.appendChild(el('div', { class: 'note', html: '<b>Crisis vote of year ' + st.round + ':</b> ' + esc(rec.austerity) + ' austerity · ' + esc(rec.devaluation) + ' devaluation → <b>' + esc(rec.outcome) + '</b>. ' +
@@ -333,6 +336,7 @@
   function crisisVoteCard(rec, vc) {
     var st = data.state, mine = myDecision('crisis', st.round), cur = mine && mine.payload ? mine.payload.crisis : null;
     var card = el('div', { class: 'card' });
+    if (rec.kind === 'currency') return currencyVoteCard(rec, vc, mine, cur);
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Reserves crisis · year ' + st.round + ' — vote']), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
     card.appendChild(el('p', { class: 'muted small' }, ['The union’s reserves ended year ' + (st.round - 1) + ' below the alert line. Before any decision for year ' + st.round + ', the council votes — one country, one vote; a country that does not vote counts as austerity; devaluation needs more than half of the countries. Decisions open once the administrator closes the vote.']));
     var wrap = el('div', { class: 'votes' });
@@ -344,6 +348,24 @@
     card.appendChild(el('div', { id: 'formErrors' }));
     card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', id: 'crisisBtn', onclick: submitCrisis }, [mine ? 'Update our vote' : 'Cast our vote']), el('span', { class: 'small muted' }, ['You can change your vote until the administrator closes it.'])]));
     card.appendChild(el('p', { class: 'note small', style: 'margin-top:10px' }, ['Decisions for year ' + st.round + ' open once the crisis vote is closed.']));
+    return card;
+  }
+  /* v1.3 floating regime: the currency fell by more than the threshold last year → defend (rate rise) or let it float.
+     Stored with the reserves-crisis codes: 'austerity' = defend, 'devaluation' = let it float. */
+  function currencyVoteCard(rec, vc, mine, cur) {
+    var st = data.state, rules = Object.assign({}, MS.defaultState().sim, st.sim || {});
+    var card = el('div', { class: 'card' });
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Currency crisis · year ' + st.round + ' — vote']), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
+    card.appendChild(el('p', { class: 'muted small' }, ['The union’s currency fell by more than ' + MS.fmt(rules.crisisDepr, 0) + ' % over year ' + (st.round - 1) + '. Before any decision for year ' + st.round + ', the council votes — one country, one vote; a country that does not vote counts as defend; letting the currency float needs more than half of the countries. Decisions open once the administrator closes the vote.']));
+    var wrap = el('div', { class: 'votes' });
+    var box = el('div', { class: 'q crisis' }); box.appendChild(el('b', {}, ['Defend the currency, or let it float?']));
+    box.appendChild(el('span', { class: 'hint' }, ['Defend: the central bank raises its rate by ' + MS.fmt(rules.defendStep, 1) + ' pt this year — capital comes back and the currency recovers, investment and every budget pay for it next year. Let it float: nothing is done; the depreciation restores competitiveness with a lag but import prices and inflation stay high.']));
+    var row = el('div', { class: 'opts' });
+    [['austerity', 'Defend (rate +' + MS.fmt(rules.defendStep, 1) + ' pt)'], ['devaluation', 'Let it float']].forEach(function (o) { var r = el('input', { type: 'radio', name: 'C_vote', value: o[0] }); r.checked = cur === o[0]; row.appendChild(el('label', {}, [r, o[1]])); });
+    box.appendChild(row); wrap.appendChild(box); card.appendChild(wrap);
+    card.appendChild(el('div', { id: 'formErrors' }));
+    card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', id: 'crisisBtn', onclick: submitCrisis }, [mine ? 'Update our vote' : 'Cast our vote']), el('span', { class: 'small muted' }, ['You can change your vote until the administrator closes it.'])]));
+    card.appendChild(el('p', { class: 'note small', style: 'margin-top:10px' }, ['Decisions for year ' + st.round + ' open once the vote is closed.']));
     return card;
   }
   async function submitCrisis() {
@@ -497,6 +519,8 @@
     if (x.deposits !== undefined) parts.push('bank deposits ' + MS.fmt(x.deposits, 1) + ' % of GDP');
     if (x.gap !== undefined) parts.push('output gap ' + MS.fmt(x.gap, 2, true) + ' %');
     if (x.compet !== undefined) parts.push('price level vs the union’s ' + MS.fmt(x.compet, 2, true) + ' % (above = less competitive)');
+    if (x.foreign !== undefined) parts.push('foreign bills held by households ' + MS.fmt(x.foreign, 1) + ' % of GDP');
+    if (x.spread !== undefined) parts.push('risk premium on public debt ' + MS.fmt(x.spread, 2) + ' pt' + (x.pressured ? ' (under market pressure)' : ''));
     return el('p', { class: 'small muted', style: 'margin:.4em 0 0' }, ['End of year ' + last.year + ': ' + parts.join(' · ') + '.']);
   }
   function unionPanel(rows, title) {
@@ -507,12 +531,16 @@
     var card = el('div', { class: 'card' });
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title || 'The monetary union']), el('span', { class: 'small muted' }, ['after year ' + last.year])]));
     card.appendChild(el('div', { class: 'union', html:
-      '<div class="urow"><span>Foreign reserves of the common central bank</span><span class="num">' + esc(MS.fmt(Math.max(0, u.months), 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
-      '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>' +
+      (u.regime === 'float'
+        ? '<div class="urow"><span>Foreign reserves of the common central bank (frozen while floating)</span><span class="num">' + esc(MS.fmt(pct, 0)) + ' % of initial</span></div>'
+        : '<div class="urow"><span>Foreign reserves of the common central bank</span><span class="num">' + esc(MS.fmt(Math.max(0, u.months), 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+          '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>') +
       '<div class="urow"><span>Current account of the union with the rest of the world</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
       '<div class="urow"><span>Exchange rate (union currency per unit of world currency; up = devaluation)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
-      UI.voteLinesHtml(u) }));
-    card.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, [u.votes && u.votes.rate
+      UI.regimeLinesHtml(u) + UI.voteLinesHtml(u) }));
+    card.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, [u.regime === 'float'
+      ? 'Floating exchange rate: the reserves are frozen and the exchange rate moves until the balance of payments (trade, primary income and capital flows) balances. A rate rise attracts capital and appreciates the currency; a sudden stop depreciates it and raises import prices. If the currency falls by more than ' + MS.fmt((Object.assign({}, MS.defaultState().sim, data.state.sim || {})).crisisDepr, 0) + ' % in a year, the next year opens with a vote: defend (rate rise) or let it float.'
+      : u.votes && u.votes.rate
       ? 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the next round carries a vote between austerity and devaluation; reserves exhausted while the current account is still in deficit force a devaluation.'
       : 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the administrator may decree a devaluation.']));
     return card;

@@ -1,5 +1,5 @@
 /* =====================================================================
-   OPEN-MU — game engine (v1.2, fixed exchange rate)
+   OPEN-MU — game engine (v1.3)
    N member countries in a monetary union (chapter-6 OPEN/REG logic:
    real flows, households' wealth target, government bills, one central
    bank), rest of the world exogenous, reserves absorb the union's
@@ -16,21 +16,30 @@
    and with the rest of the world, elasticities 0.7 — and the initial
    reserves are halved (1.5 months). params.prices = false keeps v1.1
    bit for bit (spec section 8).
+   v1.3 (params.capital = true, paramsFor('v1.3')): capital flows with the
+   rest of the world (RoW holdings of union bills, households' foreign
+   bills), a balance of payments with a financial account, a per-year
+   exchange-rate regime (fixed: reserves absorb; float: reserves frozen,
+   xr clears the balance of payments), a risk premium on public debt
+   rising with the debt ratio, flight to quality, and the central-bank
+   backstop as a per-year switch (spec section 9). params.capital = false
+   keeps v1.2 bit for bit.
    Spec: docs/openmu-spec.md. Runs in the browser (global OPENMU) and in
    Node (module.exports). No dependencies. Nothing is rounded here.
    ===================================================================== */
 var OPENMU = (function () {
   'use strict';
-  var VERSION = '1.2';
+  var VERSION = '1.3';
 
   /* ---------- defaults ---------- */
   /* defaultParams(firms): v1.1 defaults; defaultParams(false) gives the v1.0 values
      of the two parameters re-tuned in v1.1 (alpha2, lambda0). */
-  function defaultParams(firms, prices) {
-    var useFirms = firms !== false, usePrices = prices === true;
+  function defaultParams(firms, prices, capital) {
+    var useFirms = firms !== false, usePrices = prices === true, useCapital = capital === true;
     var p = {
       firms: useFirms,
       prices: usePrices,   // v1.2: price levels enter trade volumes (one-year lag)
+      capital: useCapital, // v1.3: capital flows, exchange-rate regime, risk premium (spec section 9)
       countries: [
         { id: 'DEU', name: 'Germany',     size: 100 },
         { id: 'FRA', name: 'France',      size: 75 },
@@ -69,21 +78,33 @@ var OPENMU = (function () {
       ifloor: 0.5,      // floor on investment, share of I*
       /* thermometers (reported, not fed back) */
       ustar: 7,  beta: 0.4,
-      pistar: 2, kappa: 0.3, rho: 0.6, omega: 0.15
+      pistar: 2, kappa: 0.3, rho: 0.6, omega: 0.15,
+      /* v1.3: capital flows and market pressure */
+      rw: 0.03,         // rest-of-the-world bill rate at the reference (= r*)
+      bwShare: 0.30,    // RoW holdings of union bills at the reference, share of union GDP (= households' foreign bills: primary income balanced)
+      chiW: 6,          // RoW demand for union bills: +chiW per unit of (r − r_w)
+      chiS: 10,         // RoW demand for union bills: −chiS per unit of the union-average spread
+      lambdaF1: 1.3,    // households' foreign-bills share: +lambdaF1 per unit of (r_w − r − spread)
+      phi: 0.05,        // spread (rate units) per unit of debt ratio above dstar: s = 1 pt at d = dstar + 0.20
+      dstar: 1.10,      // debt ratio (B/Y) above which the spread starts
+      psi: 50,          // flight to quality: RoW allocation weight ∝ size · exp(−psi · spread)
+      rEffMax: 0.25     // no backstop: cap on the market-clearing bill rate of a pressured member
     };
     if (!useFirms) { p.alpha2 = 0.185; p.lambda0 = 0.70; }
     if (usePrices) { p.reserveMonths = 1.5; }
     return p;
   }
-  /* parameters of a game version: 'v1.1' (class 6: no price channel, 3 months of reserves) or 'v1.2' */
+  /* parameters of a game version: 'v1.1' (class 6: no price channel, 3 months of reserves), 'v1.2' (prices in trade), 'v1.3' (capital flows) */
   function paramsFor(version) {
-    return String(version || '').replace(/^v/, '') === '1.2' ? defaultParams(true, true) : defaultParams(true);
+    var v = String(version || '').replace(/^v/, '');
+    if (v === '1.3') return defaultParams(true, true, true);
+    return v === '1.2' ? defaultParams(true, true) : defaultParams(true);
   }
 
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function mergeParams(params) {
-    var p = defaultParams(!(params && params.firms === false), !!(params && params.prices === true));
+    var p = defaultParams(!(params && params.firms === false), !!(params && params.prices === true), !!(params && params.capital === true));
     if (!params) return p;
     Object.keys(params).forEach(function (k) { if (params[k] !== undefined && params[k] !== null) p[k] = params[k]; });
     p.countries = clone(p.countries);
@@ -165,15 +186,17 @@ var OPENMU = (function () {
       var C = Y - G - I;                       // trade balanced at the reference
       var CE = C / (1 - tauc);
       var V = (1 - p.alpha1) / p.alpha2 * CE;  // households at their wealth target: YD = CE
-      var Bh = V * billsShare(p, p.r);
-      var M = (V - Bh) * p.nu, H = (V - Bh) * (1 - p.nu);
+      var BhAll = V * billsShare(p, p.r);      // domestic + foreign bills (v1.3): the foreign share is carved out of this total
+      var Bf = p.capital ? p.bwShare * Y : 0;  // v1.3: foreign bills (world currency, xr0 = 1) — same amount as the RoW holds of this government's bills
+      var Bh = BhAll - Bf;
+      var M = (V - BhAll) * p.nu, H = (V - BhAll) * (1 - p.nu);
       var YF = Y - AF - p.r * L;               // income distributed to households by firms
-      var base = YF + p.r * (Bh + M);          // income-tax base
+      var base = YF + p.r * (Bh + M) + p.rw * Bf;   // income-tax base (foreign interest = domestic interest forgone: θ* unchanged)
       var theta = 1 - (CE - TR) / base;
       var Bb = Math.max(0, M - L), A = Math.max(0, L - M);
       var IM = p.mu * Y, IMU = (1 - p.sR) * IM, IMR = p.sR * IM;
       ref.countries[c.id] = { id: c.id, name: c.name, size: c.size, Y: Y, G: G, TR: TR, theta: theta, tau: p.tau, tauc: tauc,
-        C: C, CE: CE, YD: CE, V: V, Bh: Bh, M: M, H: H, I: I, K: K, L: L, AF: AF, YF: YF, Bb: Bb, A: A, IM: IM, IMU: IMU, IMR: IMR, T: 0, PB: 0, TB: 0 };
+        C: C, CE: CE, YD: CE, V: V, Bh: Bh, Bf: Bf, Bw: Bf, lambdaF0: p.capital ? Bf / V : 0, M: M, H: H, I: I, K: K, L: L, AF: AF, YF: YF, Bb: Bb, A: A, IM: IM, IMU: IMU, IMR: IMR, T: 0, PB: 0, TB: 0 };
     });
     var sumIMR = 0;
     p.countries.forEach(function (c) {
@@ -182,20 +205,22 @@ var OPENMU = (function () {
       p.countries.forEach(function (cj) { intraX += s[cj.id][c.id] * ref.countries[cj.id].IMU; });
       rc.xR = rc.IM - intraX;
       rc.XR = rc.xR; rc.X = intraX + rc.xR; rc.IMV = rc.IMU + p.xr0 * rc.IMR;
-      rc.T = rc.theta * (rc.YF + p.r * (rc.Bh + rc.M)) + rc.tauc * rc.CE;
+      rc.T = rc.theta * (rc.YF + p.r * (rc.Bh + rc.M) + p.rw * rc.Bf) + rc.tauc * rc.CE;
       sumIMR += rc.IMR;
     });
     var R0 = (p.reserveMonths / 12) * sumIMR;
+    var sumBw = 0;
     p.countries.forEach(function (c) {
       var rc = ref.countries[c.id];
       rc.Rshare = c.size / totalSize;
       rc.Bcb = rc.H - p.xr0 * R0 * rc.Rshare - rc.A;   // CB balance sheet: H = Bcb + A + xr R, country by country at the reference
-      rc.B = rc.Bh + rc.Bb + rc.Bcb;
+      rc.B = rc.Bh + rc.Bb + rc.Bcb + rc.Bw;           // v1.3: the RoW holds part of the debt (Bw = 0 otherwise)
       rc.Fcb = p.r * (rc.Bcb + rc.A);
       rc.PB = rc.T + rc.Fcb - rc.G - rc.TR - p.r * rc.B;
       rc.TB = rc.X - rc.IMV;
+      sumBw += rc.Bw;
     });
-    ref.union = { R0: R0, xr0: p.xr0, YRoW0: p.YRoW0, r0: p.r, totalSize: totalSize, sumIMR: sumIMR };
+    ref.union = { R0: R0, xr0: p.xr0, YRoW0: p.YRoW0, r0: p.r, totalSize: totalSize, sumIMR: sumIMR, Bw0: sumBw };
     return ref;
   }
 
@@ -343,133 +368,234 @@ var OPENMU = (function () {
     var policies = opts.policies || {}, shocks = opts.shocks || [];
     var TOL = 1e-13, CAP = 500;
 
-    var prev = {}, prevU = { xr: ref.union.xr0, R: ref.union.R0, NWcb: 0, r: ref.union.r0 };
+    var cap = !!p.capital;
+    var prev = {}, prevU = { xr: ref.union.xr0, R: ref.union.R0, NWcb: 0, r: ref.union.r0, rw: p.rw, backstop: true };
     ids.forEach(function (id) {
       var rc = ref.countries[id];
-      prev[id] = { Y: rc.Y, V: rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1 };
+      prev[id] = { Y: rc.Y, V: rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1,
+        Bf: rc.Bf || 0, Bw: rc.Bw || 0, Bb: rc.Bb, s: 0 };
     });
     var out = { years: [], ref: ref, checks: { maxIdentityError: 0, maxIterations: 0 } };
 
     for (var t = 0; t < years; t++) {
       var deval = shockAt(shocks, t, 'deval');
-      var xr = prevU.xr * (1 + deval / 100);
       var r = p.r + shockAt(shocks, t, 'rate') / 100;
       var r1 = prevU.r;
       var a1 = p.alpha1 * (1 + shockAt(shocks, t, 'confidence') / 100);
       var muF = p.mu * (1 + shockAt(shocks, t, 'imports') / 100);
       var worldF = (p.YRoW0 / ref.union.YRoW0) * (1 + shockAt(shocks, t, 'world') / 100);
       var invF = Math.max(p.ifloor, 1 - p.iota * (r1 - p.r));   // investment responds to last year's rate
+      /* v1.3: regime and capital-flow settings of the year */
+      var sh = shocks && shocks[t] ? shocks[t] : {};
+      var regime = cap && sh.regime === 'float' ? 'float' : 'fixed';
+      var flowsF = cap ? 1 + shockAt(shocks, t, 'flows') / 100 : 1;
+      var rw = cap ? p.rw + shockAt(shocks, t, 'worldRate') / 100 : p.rw;
+      var rw1 = prevU.rw;
+      var backstop = cap ? sh.backstop !== false : true;
+      var bsPrev = prevU.backstop;
+      /* v1.3: spreads of the year from last year's debt ratios (market pressure); members under pressure */
+      var spread = {}, sBar = 0, pressured = {};
+      ids.forEach(function (id) {
+        var d = prev[id].B / prev[id].Y;
+        spread[id] = cap ? p.phi * Math.max(0, d - p.dstar) : 0;
+        pressured[id] = cap && d > p.dstar;
+        sBar += spread[id] * ref.countries[id].Y / ref.union.totalSize;
+      });
       /* v1.2: last year's price levels enter this year's trade volumes (one-year lag, like the exchange rate).
          priceLagF[i]: imports of i from the RoW ∝ (xr_-1 / P_i,-1)^(−ε); xrF[i]: exports of i to the RoW ∝ (xr / P_i,-1)^η;
          w[i][j]: weight of partner j in i's intra-union imports = s_ij · (P_j,-1 / P_i,-1)^(−εU) (not renormalised:
          a dearer home market imports more from everybody). With prices off, P ≡ 1 and v1.1 is reproduced bit for bit. */
-      var priceLagF = {}, xrF = {}, w = {};
+      var priceLagF = {}, w = {};
       ids.forEach(function (id) {
         var Pi = p.prices ? prev[id].Prel : 1;   // price level relative to the reference path (world prices grow at π*)
         priceLagF[id] = Math.pow(prevU.xr / (ref.union.xr0 * Pi), -p.eps);
-        xrF[id] = Math.pow(xr / (ref.union.xr0 * Pi), p.eta);
         w[id] = {};
         ids.forEach(function (j) { w[id][j] = s[id][j] * (p.prices ? Math.pow(prev[j].Prel / Pi, -p.epsU) : 1); });
-      });
-
-      var cur = {};
-      ids.forEach(function (id) {
-        var rc = ref.countries[id], pv = prev[id];
-        var tau = rc.tau * (1 + lever(policies, id, t, 'vat') / 100);
-        cur[id] = {
-          G: rc.G * (1 + lever(policies, id, t, 'pubdem') / 100),
-          TR: rc.TR * (1 + lever(policies, id, t, 'benefits') / 100),
-          theta: rc.theta * (1 + lever(policies, id, t, 'inctax') / 100),
-          tau: tau, tauc: tau / (1 + tau),
-          XR: rc.xR * worldF * xrF[id],
-          I: rc.I * invF,
-          AF: p.delta * rc.K,     // amortisation funds: straight-line charge on the reference capital (keeps L = K, no income artefact)
-          Y: pv.Y
-        };
       });
       /* intra-union imports of i: base volume (1−sR)·μ·Y_i, split (and scaled) by the price-weighted partner weights */
       function intraOf(id, Y) { var base = (1 - p.sR) * muF * Y, tot = 0; ids.forEach(function (j) { tot += w[id][j]; }); return base * tot; }
       function exportsTo(id, Yof) { var X = 0; ids.forEach(function (j) { X += w[j][id] * (1 - p.sR) * muF * Yof(j); }); return X; }
 
-      /* fixed point on {Y_i}: Y, C and T are simultaneous; I is predetermined within the year */
-      var iter = 0, maxChange = Infinity;
-      while (maxChange > TOL && iter < CAP) {
-        var IMU = {};
-        ids.forEach(function (id) { IMU[id] = intraOf(id, cur[id].Y); });
-        maxChange = 0;
-        var next = {};
+      /* ---- the year at a given exchange rate: fixed point on {Y_i}, then the accounts. Pure (does not touch prev). ---- */
+      function evalYear(xr) {
+        var xrF = {};
+        ids.forEach(function (id) { var Pi = p.prices ? prev[id].Prel : 1; xrF[id] = Math.pow(xr / (ref.union.xr0 * Pi), p.eta); });
+        var cur = {};
         ids.forEach(function (id) {
-          var c = cur[id], pv = prev[id];
-          var IM = muF * c.Y;
-          var IMR = p.sR * IM * priceLagF[id];
-          var IMV = IMU[id] + xr * IMR;
+          var rc = ref.countries[id], pv = prev[id];
+          var tau = rc.tau * (1 + lever(policies, id, t, 'vat') / 100);
+          cur[id] = {
+            G: rc.G * (1 + lever(policies, id, t, 'pubdem') / 100),
+            TR: rc.TR * (1 + lever(policies, id, t, 'benefits') / 100),
+            theta: rc.theta * (1 + lever(policies, id, t, 'inctax') / 100),
+            tau: tau, tauc: tau / (1 + tau),
+            XR: rc.xR * worldF * xrF[id],
+            I: rc.I * invF,
+            AF: p.delta * rc.K,     // amortisation funds: straight-line charge on the reference capital (keeps L = K, no income artefact)
+            Y: pv.Y
+          };
+        });
+        /* v1.3: lagged interest flows outside the fixed point. Households' extra income: the spread on their bills and on the
+           banks' bills (bank profit rebated) and the interest on their foreign bills; capital gain on foreign bills goes to wealth. */
+        var extraInc = {}, capGain = {};
+        ids.forEach(function (id) {
+          var pv = prev[id];
+          extraInc[id] = cap ? pv.s * (pv.Bh + pv.Bb) + rw1 * xr * pv.Bf : 0;
+          capGain[id] = cap ? (xr - prevU.xr) * pv.Bf : 0;
+        });
+        /* fixed point on {Y_i}: Y, C and T are simultaneous; I is predetermined within the year */
+        var iter = 0, maxChange = Infinity;
+        while (maxChange > TOL && iter < CAP) {
+          var IMU = {};
+          ids.forEach(function (id) { IMU[id] = intraOf(id, cur[id].Y); });
+          maxChange = 0;
+          var next = {};
+          ids.forEach(function (id) {
+            var c = cur[id], pv = prev[id];
+            var IM = muF * c.Y;
+            var IMR = p.sR * IM * priceLagF[id];
+            var IMV = IMU[id] + xr * IMR;
+            var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
+            var YF = c.Y - c.AF - r1 * pv.L;
+            var base = cap ? YF + r1 * (pv.Bh + pv.M) + extraInc[id] : YF + r1 * (pv.Bh + pv.M);
+            var YD = (1 - c.theta) * base + c.TR;
+            var CE = a1 * YD + p.alpha2 * pv.V;
+            var C = (1 - c.tauc) * CE;
+            var Ynew = C + c.G + c.I + X - IMV;
+            var ch = Math.abs(Ynew - c.Y) / ref.countries[id].Y;
+            if (ch > maxChange) maxChange = ch;
+            next[id] = Ynew;
+          });
+          ids.forEach(function (id) { cur[id].Y = next[id]; });
+          iter++;
+        }
+        if (maxChange > TOL) throw new Error('OPENMU: fixed point did not converge in year ' + (t + 1) + ' (change ' + maxChange + ')');
+
+        var year = { countries: {}, union: {} }, newPrev = {};
+        var IMUf = {};
+        ids.forEach(function (id) { IMUf[id] = intraOf(id, cur[id].Y); });
+        /* v1.3: RoW demand for union bills (world currency) and its allocation across members (flight to quality) */
+        var BwDollar = cap ? ref.union.Bw0 * (1 + p.chiW * (r - rw) - p.chiS * sBar) * flowsF : 0;
+        var wsh = {}, wtot = 0;
+        ids.forEach(function (id) { var wgt = cap ? ref.countries[id].size * Math.exp(-p.psi * spread[id] * (!backstop && pressured[id] ? 2 : 1)) : 0; wsh[id] = wgt; wtot += wgt; });
+        ids.forEach(function (id) { wsh[id] = wtot > 0 ? wsh[id] / wtot : 0; });
+        var sumH = 0, sumBcbA = 0, CA = 0, sumIMRv = 0, sumY = 0, sumTB = 0, sumPY = 0, primInc = 0, KA = 0, sumBw = 0, sumBf = 0, sumSav = 0, sumFirm = 0, sumPB = 0, sumAssets = 0, sumV = 0, unabsorbed = 0;
+        ids.forEach(function (id) {
+          var c = cur[id], pv = prev[id], rc = ref.countries[id];
+          var Y = c.Y;
+          var IM = muF * Y, IMU = IMUf[id], IMR = p.sR * IM * priceLagF[id], IMV = IMU + xr * IMR;
           var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
-          var YF = c.Y - c.AF - r1 * pv.L;
-          var base = YF + r1 * (pv.Bh + pv.M);
+          var YF = Y - c.AF - r1 * pv.L;
+          var base = cap ? YF + r1 * (pv.Bh + pv.M) + extraInc[id] : YF + r1 * (pv.Bh + pv.M);
           var YD = (1 - c.theta) * base + c.TR;
           var CE = a1 * YD + p.alpha2 * pv.V;
           var C = (1 - c.tauc) * CE;
-          var Ynew = C + c.G + c.I + X - IMV;
-          var ch = Math.abs(Ynew - c.Y) / ref.countries[id].Y;
-          if (ch > maxChange) maxChange = ch;
-          next[id] = Ynew;
+          var T = c.theta * base + c.tauc * CE;
+          var V = cap ? pv.V + YD - CE + capGain[id] : pv.V + YD - CE;
+          /* v1.3: government interest of the year (lagged rates); the spread is not paid on the CB's holdings while the backstop was on */
+          var govInt = cap ? r1 * pv.B + pv.s * (pv.B - (bsPrev ? pv.Bcb : 0)) : r1 * pv.B;
+          var Fcb = cap ? r1 * (pv.Bcb + pv.A) + (bsPrev ? 0 : pv.s * pv.Bcb) : r1 * (pv.Bcb + pv.A);
+          var B = cap ? pv.B + c.G + c.TR + govInt - T - Fcb : pv.B + c.G + c.TR + r1 * pv.B - T - Fcb;
+          var PB = cap ? T + Fcb - c.G - c.TR - govInt : T + Fcb - c.G - c.TR - r1 * pv.B;
+          var K = pv.K + c.I - c.AF;       // straight-line depreciation at the reference rate (δ K*)
+          var L = pv.L + c.I - c.AF;       // ⇒ L = K at all times
+          /* portfolio: domestic bills (own government), foreign bills (v1.3), deposits and cash */
+          var sEff = spread[id], Bh, Bf, Bw, M, H, Bb, A, Bcb;
+          function portfolio(rEff) {
+            var all = V * billsShare(p, rEff);
+            var lamF = cap ? Math.max(0, Math.min(billsShare(p, rEff), rc.lambdaF0 + p.lambdaF1 * (rw - rEff))) : 0;
+            var o = {};
+            o.Bf = cap ? lamF * V / xr : 0;               // world currency
+            o.Bh = cap ? all - lamF * V : all;
+            o.M = (V - all) * p.nu; o.H = (V - all) * (1 - p.nu);
+            o.Bb = Math.max(0, o.M - L); o.A = Math.max(0, L - o.M);
+            return o;
+          }
+          Bw = cap ? xr * BwDollar * wsh[id] : 0;
+          var pf = portfolio(r + sEff);
+          if (cap && !backstop && pressured[id]) {
+            /* no backstop: the CB stops buying this member's residual bills; its bill rate rises until households and banks absorb them */
+            var target = B - pv.Bcb - Bw;
+            var f = function (rE) { var o = portfolio(rE); return o.Bh + o.Bb - target; };
+            var lo = r + sEff, hi = p.rEffMax;
+            if (f(lo) >= 0) { pf = portfolio(lo); }
+            else if (f(hi) < 0) { pf = portfolio(hi); sEff = hi - r; unabsorbed += target - (pf.Bh + pf.Bb); }
+            else {
+              for (var k = 0; k < 60; k++) { var mid = (lo + hi) / 2; if (f(mid) < 0) lo = mid; else hi = mid; }
+              sEff = hi - r; pf = portfolio(hi);
+            }
+          }
+          Bh = pf.Bh; Bf = pf.Bf; M = pf.M; H = pf.H; Bb = pf.Bb; A = pf.A;
+          Bcb = cap ? B - Bh - Bb - Bw : B - Bh - Bb;
+          var TB = X - IMV;
+          var gap = 100 * (Y / rc.Y - 1);
+          var u = p.ustar - p.beta * gap;
+          var pi = p.pistar + p.kappa * gap + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr;
+          var P = pv.P * (1 + pi / 100);
+          var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);   // v1.2: price level relative to the reference path (= world prices, growing at π*)
+          year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
+            V: V, Bh: Bh, H: H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
+            pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: r,
+            I: c.I, K: K, L: L, M: M, Bb: Bb, A: A, AF: c.AF, YF: YF,
+            Bf: Bf, Bw: Bw, spread: sEff, rEff: r + sEff, pressured: !!pressured[id], capGain: capGain[id],
+            CAi: cap ? TB + rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw : TB };
+          sumH += H; sumBcbA += Bcb + A; CA += c.XR - xr * IMR; sumIMRv += xr * IMR; sumY += Y; sumTB += TB; sumPY += Prel * rc.Y;
+          if (cap) {
+            primInc += rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw;
+            KA += (Bw - pv.Bw) - xr * (Bf - pv.Bf);
+            sumBw += Bw; sumBf += Bf; sumSav += YD - CE; sumFirm += c.AF - c.I; sumPB += PB; sumV += V; sumAssets += Bh + M + H + xr * Bf;
+          }
+          newPrev[id] = { Y: Y, V: V, Bh: Bh, M: M, B: B, Bcb: Bcb, A: A, K: K, L: L, tau: c.tau, P: P, Prel: Prel, Bf: Bf, Bw: Bw, Bb: Bb, s: sEff };
         });
-        ids.forEach(function (id) { cur[id].Y = next[id]; });
-        iter++;
+        var CAp = CA + primInc;                       // current account incl. primary income (v1.3; = CA otherwise)
+        var excess = CAp + KA;                        // balance of payments excess: what the reserves absorb (fixed) or xr clears (float)
+        var R = regime === 'float' ? prevU.R : prevU.R + excess / xr;
+        var NWcb = prevU.NWcb + (xr - prevU.xr) * prevU.R;
+        var Pu = sumPY / ref.union.totalSize;   // union price level (relative to the reference path): reference-GDP-weighted mean of the members' Prel
+        ids.forEach(function (id) { year.countries[id].compet = 100 * (year.countries[id].Prel / Pu - 1); });
+        year.union = { Y: sumY, CA: CA, R: R, R0: ref.union.R0, xr: xr, r: r, alert: regime === 'fixed' && R < p.alertShare * ref.union.R0,
+          months: sumIMRv > 0 ? 12 * R * xr / sumIMRv : Infinity, NWcb: NWcb, sumTB: sumTB, iterations: iter, P: Pu,
+          regime: regime, CAp: CAp, primInc: primInc, KA: KA, Bw: sumBw, Bf: sumBf, rw: rw, backstop: backstop, sBar: sBar,
+          dxr: 100 * (xr - prevU.xr) / prevU.xr, unabsorbed: unabsorbed, excess: excess };
+        var identErr = Math.abs(sumH - sumBcbA - xr * R + NWcb) / sumH;
+        var sectorErr = Math.abs(sumTB - CA) / Math.max(1, Math.abs(CA));
+        if (cap) {
+          /* v1.3 checks: Σ sector balances = CA'; households' wealth = assets; ΔBw − xr·ΔBf − xr·ΔR = −CA' */
+          var secErr2 = Math.abs(sumSav + sumFirm + sumPB - CAp) / Math.max(1, Math.abs(CAp));
+          var wealthErr = Math.abs(sumAssets - sumV) / sumV;
+          var bopErr = Math.abs(KA - xr * (R - prevU.R) + CAp) / Math.max(1, Math.abs(CAp) + Math.abs(KA));
+          sectorErr = Math.max(secErr2, wealthErr, bopErr);
+        }
+        year.union.identityError = identErr; year.union.sectorError = sectorErr;
+        return { year: year, newPrev: newPrev, excess: excess, iter: iter };
       }
-      if (maxChange > TOL) throw new Error('OPENMU: fixed point did not converge in year ' + (t + 1) + ' (change ' + maxChange + ')');
-      if (iter > out.checks.maxIterations) out.checks.maxIterations = iter;
 
-      var year = { countries: {}, union: {} };
-      var IMUf = {};
-      ids.forEach(function (id) { IMUf[id] = intraOf(id, cur[id].Y); });
-      var sumH = 0, sumBcbA = 0, CA = 0, sumIMRv = 0, sumY = 0, sumTB = 0, sumPY = 0;
-      ids.forEach(function (id) {
-        var c = cur[id], pv = prev[id], rc = ref.countries[id];
-        var Y = c.Y;
-        var IM = muF * Y, IMU = IMUf[id], IMR = p.sR * IM * priceLagF[id], IMV = IMU + xr * IMR;
-        var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
-        var YF = Y - c.AF - r1 * pv.L;
-        var base = YF + r1 * (pv.Bh + pv.M);
-        var YD = (1 - c.theta) * base + c.TR;
-        var CE = a1 * YD + p.alpha2 * pv.V;
-        var C = (1 - c.tauc) * CE;
-        var T = c.theta * base + c.tauc * CE;
-        var V = pv.V + YD - CE;
-        var Bh = V * billsShare(p, r);
-        var M = (V - Bh) * p.nu, H = (V - Bh) * (1 - p.nu);
-        var K = pv.K + c.I - c.AF;       // straight-line depreciation at the reference rate (δ K*)
-        var L = pv.L + c.I - c.AF;       // ⇒ L = K at all times
-        var Bb = Math.max(0, M - L), A = Math.max(0, L - M);
-        var Fcb = r1 * (pv.Bcb + pv.A);
-        var B = pv.B + c.G + c.TR + r1 * pv.B - T - Fcb;
-        var Bcb = B - Bh - Bb;
-        var PB = T + Fcb - c.G - c.TR - r1 * pv.B;
-        var TB = X - IMV;
-        var gap = 100 * (Y / rc.Y - 1);
-        var u = p.ustar - p.beta * gap;
-        var pi = p.pistar + p.kappa * gap + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr;
-        var P = pv.P * (1 + pi / 100);
-        var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);   // v1.2: price level relative to the reference path (= world prices, growing at π*)
-        year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
-          V: V, Bh: Bh, H: H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
-          pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: r,
-          I: c.I, K: K, L: L, M: M, Bb: Bb, A: A, AF: c.AF, YF: YF };
-        sumH += H; sumBcbA += Bcb + A; CA += c.XR - xr * IMR; sumIMRv += xr * IMR; sumY += Y; sumTB += TB; sumPY += Prel * rc.Y;
-        prev[id] = { Y: Y, V: V, Bh: Bh, M: M, B: B, Bcb: Bcb, A: A, K: K, L: L, tau: c.tau, P: P, Prel: Prel };
-      });
-      var R = prevU.R + CA / xr;
-      var NWcb = prevU.NWcb + (xr - prevU.xr) * prevU.R;
-      var Pu = sumPY / ref.union.totalSize;   // union price level (relative to the reference path): reference-GDP-weighted mean of the members' Prel
-      ids.forEach(function (id) { year.countries[id].compet = 100 * (year.countries[id].Prel / Pu - 1); });
-      year.union = { Y: sumY, CA: CA, R: R, R0: ref.union.R0, xr: xr, r: r, alert: R < p.alertShare * ref.union.R0,
-        months: sumIMRv > 0 ? 12 * R * xr / sumIMRv : Infinity, NWcb: NWcb, sumTB: sumTB, iterations: iter, P: Pu };
-      var identErr = Math.abs(sumH - sumBcbA - xr * R + NWcb) / sumH;
-      var sectorErr = Math.abs(sumTB - CA) / Math.max(1, Math.abs(CA));
-      year.union.identityError = identErr; year.union.sectorError = sectorErr;
-      if (identErr > out.checks.maxIdentityError) out.checks.maxIdentityError = identErr;
+      var res;
+      if (regime === 'float') {
+        /* xr clears the balance of payments: excess(xr) = 0, excess increasing in xr (capital side dominates the J-curve) */
+        var x0 = prevU.xr, e0 = evalYear(x0).excess;
+        var lo = x0, hi = x0, elo = e0, ehi = e0, k2 = 0;
+        if (e0 > 0) { while (elo > 0 && k2 < 60) { lo = lo / 1.05; elo = evalYear(lo).excess; k2++; } }
+        else { while (ehi < 0 && k2 < 60) { hi = hi * 1.05; ehi = evalYear(hi).excess; k2++; } }
+        if (elo > 0 || ehi < 0) throw new Error('OPENMU: no floating exchange rate clears the balance of payments in year ' + (t + 1));
+        for (var k3 = 0; k3 < 80 && (hi - lo) > 1e-13 * hi; k3++) {
+          var mid = Math.abs(ehi - elo) > 0 ? lo - elo * (hi - lo) / (ehi - elo) : (lo + hi) / 2;   // secant step, kept inside the bracket
+          if (!(mid > lo && mid < hi)) mid = (lo + hi) / 2;
+          var em = evalYear(mid).excess;
+          if (em < 0) { lo = mid; elo = em; } else { hi = mid; ehi = em; }
+          if (Math.abs(em) < 1e-12 * Math.max(1, ref.union.totalSize)) { lo = hi = mid; elo = ehi = em; }
+        }
+        res = evalYear((lo + hi) / 2);
+        res.year.union.floatIterations = k2 + k3;
+      } else {
+        res = evalYear(prevU.xr * (1 + deval / 100));
+      }
+      var year = res.year;
+      if (res.iter > out.checks.maxIterations) out.checks.maxIterations = res.iter;
+      if (year.union.identityError > out.checks.maxIdentityError) out.checks.maxIdentityError = year.union.identityError;
       out.years.push(year);
-      prevU = { xr: xr, R: R, NWcb: NWcb, r: r };
+      ids.forEach(function (id) { prev[id] = res.newPrev[id]; });
+      prevU = { xr: year.union.xr, R: year.union.R, NWcb: year.union.NWcb, r: r, rw: rw, backstop: backstop };
     }
     return out;
   }
@@ -524,6 +650,7 @@ var OPENMU = (function () {
         detail.extra = { gap: cy.gap, debt: 100 * cy.B / cy.Y, wealth: 100 * cy.V / cy.Y, u: cy.u, pi: cy.pi, P: cy.P,
           inv: rc.I ? 100 * (cy.I / rc.I - 1) : 0, loans: 100 * cy.L / cy.Y, deposits: 100 * cy.M / cy.Y };
         if (p.prices && cy.compet !== undefined) detail.extra.compet = cy.compet;   // price level vs the union's, %
+        if (p.capital) { detail.extra.foreign = 100 * runAll.years[t].union.xr * cy.Bf / cy.Y; detail.extra.spread = 100 * cy.spread; detail.extra.pressured = !!cy.pressured; }   // v1.3: foreign bills % of GDP, spread in points
         var entry = { detail: detail, byPart: { total: total, shock: shock, nat: nat, foreign: foreign } };
         INDIC.forEach(function (k) { entry[k] = total[k]; });
         yr.countries[id] = entry;
@@ -531,6 +658,11 @@ var OPENMU = (function () {
       var u = runAll.years[t].union, uRef = runRef.years[t].union;
       yr.union = { Y: u.Y, CA: u.CA, R: u.R, R0: u.R0, xr: u.xr, r: u.r, alert: u.alert, months: u.months,
         gdp: 100 * (u.Y / uRef.Y - 1), CAref: uRef.CA, Rshare: u.R / u.R0 };
+      if (p.capital) {
+        var press = ids.filter(function (id) { return runAll.years[t].countries[id].pressured; });
+        yr.union.regime = u.regime; yr.union.dxr = u.dxr; yr.union.CAp = u.CAp; yr.union.KA = u.KA; yr.union.Bw = u.Bw; yr.union.Bf = u.Bf;
+        yr.union.backstop = u.backstop; yr.union.pressured = press; yr.union.sBar = 100 * u.sBar; yr.union.rw = u.rw; yr.union.unabsorbed = u.unabsorbed;
+      }
       out.years.push(yr);
     }
     out.checks = runAll.checks;
@@ -553,6 +685,7 @@ var OPENMU = (function () {
       firms: p.firms ? { investment: 'I = I* · max(ifloor, 1 − iota·(r₋₁ − r*))', kappaK: p.kappaK, delta: p.delta, iota: p.iota, ifloor: p.ifloor,
         banks: 'loans = capital; deposits held by households; zero spread; bills or CB advances close the bank balance sheet' } : null,
       prices: p.prices ? { rule: 'P_i = P_i,-1 (1 + π_i/100); trade volumes respond to last year’s relative prices', eps: p.eps, eta: p.eta, epsU: p.epsU } : null,
+      capital: p.capital ? { bwShare: p.bwShare, chiW: p.chiW, chiS: p.chiS, lambdaF1: p.lambdaF1, phi: p.phi, dstar: p.dstar, psi: p.psi, rw: p.rw } : null,
       union: { R0: ref.union.R0, reserveMonths: p.reserveMonths, xr0: p.xr0, r0: p.r, alertShare: p.alertShare } };
   }
 

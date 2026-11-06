@@ -113,7 +113,7 @@ var MS = (function () {
       /* reserves-crisis votes, one per game year ('3': {status: 'open'|'closed'|'forced', austerity, devaluation, outcome}).
          Like `shocks`, a patch replaces the whole object. */
       crisis: {},
-      sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15 }
+      sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15, crisisDepr: 10, defendStep: 1 }
     };
   }
 

@@ -162,6 +162,9 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .resgrid th{white-space:normal;line-height:1.25}
 .resgrid td{padding:5px 6px}
 .resgrid td:first-child{white-space:nowrap}
+.resgrid td:first-child .hint{white-space:normal;max-width:720px}
+.resgrid select{font-size:.9rem;padding:6px 8px}
+.resgrid select.nz{font-weight:600;background:var(--gold-soft)}
 .resgrid th.num{min-width:72px}
 
 /* union panel (reserves, current account, exchange rate) */

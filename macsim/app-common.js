@@ -112,7 +112,18 @@ var UI = (function () {
     if (r) h += '<div class="urow"><span>Vote on the central bank’s rate</span><span class="num">' + esc(r.cut) + ' cut · ' + esc(r.hold) + ' hold · ' + esc(r.hike) + ' hike → ' + (r.outcome ? esc(MS.fmt(r.outcome, 2, true)) + ' pt' : 'unchanged') + ' · rate ' + esc(MS.fmt(r.level, 2)) + ' %</span></div>';
     var c = v.crisis || {};
     if (c.outcome === 'forced') h += '<div class="urow"><span>Reserves exhausted</span><span class="num neg">forced devaluation</span></div>';
+    else if (c.active && c.kind === 'currency') h += '<div class="urow"><span>Currency crisis · vote</span><span class="num">' + esc(c.austerity) + ' defend · ' + esc(c.devaluation) + ' let it float → <b>' + (c.outcome === 'float' ? 'let it float' : 'defend (rate raised)') + '</b></span></div>';
     else if (c.active) h += '<div class="urow"><span>Reserves crisis · vote</span><span class="num">' + esc(c.austerity) + ' austerity · ' + esc(c.devaluation) + ' devaluation → <b>' + esc(c.outcome || '—') + '</b>' + (c.outcome === 'austerity' && u.caps && u.caps.length ? ' (capped: ' + esc(u.caps.join(', ')) + ')' : '') + '</span></div>';
+    return h;
+  }
+  /* v1.3: regime / capital-flow lines of a union row (empty for v1.1 / v1.2 rows) */
+  function regimeLinesHtml(u) {
+    if (!u || !u.regime) return '';
+    var isFloat = u.regime === 'float', h = '';
+    h += '<div class="urow"><span>Exchange-rate regime</span><span class="num">' + (isFloat ? 'floating' : 'fixed') + (u.backstop === false ? ' · <span class="pill closed">no central-bank backstop</span>' : '') + '</span></div>';
+    if (u.dxr !== undefined) h += '<div class="urow"><span>Change of the exchange rate over the year (+ = depreciation)</span><span class="num ' + (u.dxr > 0 ? 'neg' : (u.dxr < 0 ? 'pos' : '')) + '">' + esc(MS.fmt(u.dxr, 1, true)) + ' %</span></div>';
+    if (u.KA !== undefined) h += '<div class="urow"><span>Capital flows (net inflows from the rest of the world)</span><span class="num ' + UI.signedClass(u.KA) + '">' + esc(MS.fmt(u.KA, 2, true)) + '</span></div>';
+    if (u.pressured && u.pressured.length) h += '<div class="urow"><span>Members under market pressure (public debt above 110 % of GDP)</span><span class="num neg">' + esc(u.pressured.map(function (c) { return MS.countryName(c); }).join(', ')) + '</span></div>';
     return h;
   }
   /* a pledge's attachments: numbers (non-zero levers) and the vote it announces; « words only » when it carries neither */
@@ -218,5 +229,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, download: download, copyText: copyText, store: store, read: read };
+  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, download: download, copyText: copyText, store: store, read: read };
 })();

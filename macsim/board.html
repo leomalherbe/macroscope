@@ -57,19 +57,23 @@
     var c = el('div', { class: 'card' + (u.alert ? ' alert' : '') });
     c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title]), el('span', { class: 'small muted' }, ['after year ' + last.year])]));
     c.appendChild(el('div', { class: 'union', html:
-      '<div class="urow"><span>Foreign reserves</span><span class="num">' + esc(MS.fmt(Math.max(0, u.months), 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
-      '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>' +
+      (u.regime === 'float'
+        ? '<div class="urow"><span>Foreign reserves (frozen while floating)</span><span class="num">' + esc(MS.fmt(pct, 0)) + ' % of initial</span></div>'
+        : '<div class="urow"><span>Foreign reserves</span><span class="num">' + esc(MS.fmt(Math.max(0, u.months), 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+          '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>') +
       '<div class="urow"><span>Current account with the rest of the world</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
       '<div class="urow"><span>Exchange rate</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
-      UI.voteLinesHtml(u) + crisisRoundHtml() }));
+      UI.regimeLinesHtml(u) + UI.voteLinesHtml(u) + crisisRoundHtml() }));
     return c;
   }
   /* the reserves-crisis round of the current year (voted before the decisions): in progress, or its outcome */
   function crisisRoundHtml() {
     var st = data.state, rec = st.phase === 'game' ? MS.crisisOf(st, st.round) : null; if (!rec) return '';
     var playing = (data.groups || []).filter(function (g) { return g.country; }).length;
-    if (rec.status === 'open') return '<div class="urow"><span>Crisis vote · year ' + esc(st.round) + '</span><span class="num"><span class="pill open">in progress</span> ' + esc(data.crisisVotesIn || 0) + ' of ' + playing + ' countries have voted</span></div>';
+    var cur = rec.kind === 'currency', lab = cur ? 'Currency-crisis vote' : 'Crisis vote';
+    if (rec.status === 'open') return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num"><span class="pill open">in progress</span> ' + esc(data.crisisVotesIn || 0) + ' of ' + playing + ' countries have voted</span></div>';
     if (rec.status === 'forced') return '<div class="urow"><span>Year ' + esc(st.round) + '</span><span class="num neg">reserves exhausted → forced devaluation</span></div>';
+    if (cur) return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num">' + esc(rec.austerity) + ' defend · ' + esc(rec.devaluation) + ' let it float → <b>' + (rec.outcome === 'float' ? 'let it float' : 'defend') + '</b></span></div>';
     return '<div class="urow"><span>Crisis vote · year ' + esc(st.round) + '</span><span class="num">' + esc(rec.austerity) + ' austerity · ' + esc(rec.devaluation) + ' devaluation → <b>' + esc(rec.outcome) + '</b></span></div>';
   }
   function render() {
@@ -123,8 +127,9 @@
         var latestYear = Math.max.apply(null, yl);
         var det = el('div', { class: 'card' }); det.appendChild(el('h2', {}, ['Year ' + latestYear + ' in detail']));
         var hasComp = lb.some(function (r) { var e = r.years[latestYear]; return e && e.detail && e.detail.extra && e.detail.extra.compet !== undefined; });
-        var hd = '<div class="tablewrap"><table><thead><tr><th>Country</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R</th>' + (hasComp ? '<th class="num">Price level<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% vs union</span></th>' : '') + '</tr></thead><tbody>';
-        lb.forEach(function (r) { var e = r.years[latestYear]; if (!e) return; var cp = e.detail && e.detail.extra ? e.detail.extra.compet : undefined; hd += '<tr><td><b>' + esc(MS.countryName(r.key)) + '</b></td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(e[i.id])) + '">' + esc(MS.fmt(e[i.id], 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(e.R) + '"><b>' + esc(MS.fmt(e.R, 3, true)) + '</b></td>' + (hasComp ? '<td class="num ' + (cp === undefined ? '' : UI.signedClass(-cp)) + '">' + esc(cp === undefined ? '—' : MS.fmt(cp, 2, true)) + '</td>' : '') + '</tr>'; });
+        var hasSpread = lb.some(function (r) { var e = r.years[latestYear]; return e && e.detail && e.detail.extra && e.detail.extra.spread !== undefined; });
+        var hd = '<div class="tablewrap"><table><thead><tr><th>Country</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R</th>' + (hasComp ? '<th class="num">Price level<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% vs union</span></th>' : '') + (hasSpread ? '<th class="num">Risk premium<br><span style="font-weight:400;text-transform:none;letter-spacing:0">pt</span></th>' : '') + '</tr></thead><tbody>';
+        lb.forEach(function (r) { var e = r.years[latestYear]; if (!e) return; var cp = e.detail && e.detail.extra ? e.detail.extra.compet : undefined; hd += '<tr><td><b>' + esc(MS.countryName(r.key)) + '</b></td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(e[i.id])) + '">' + esc(MS.fmt(e[i.id], 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(e.R) + '"><b>' + esc(MS.fmt(e.R, 3, true)) + '</b></td>' + (hasComp ? '<td class="num ' + (cp === undefined ? '' : UI.signedClass(-cp)) + '">' + esc(cp === undefined ? '—' : MS.fmt(cp, 2, true)) + '</td>' : '') + (hasSpread ? '<td class="num ' + (e.detail && e.detail.extra && e.detail.extra.spread > 0 ? 'neg' : '') + '">' + esc(e.detail && e.detail.extra && e.detail.extra.spread !== undefined ? MS.fmt(e.detail.extra.spread, 2) : '—') + '</td>' : '') + '</tr>'; });
         det.appendChild(el('div', { html: hd + '</tbody></table></div>' }));
         left.appendChild(c); left.appendChild(det);
         /* trajectories: one small chart per country */
