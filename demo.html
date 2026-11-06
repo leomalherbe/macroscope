@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Macroscope · a played game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../macsim/style.css">
+<style>
+.story{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:8px 0 0}
+.story .yr{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.85rem}
+.story .yr b{display:block;color:var(--navy);font-family:"Source Serif 4",serif;font-size:1rem}
+.trajgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+table.res{width:100%;border-collapse:collapse;font-size:.88rem}
+table.res th,table.res td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+table.res th:first-child,table.res td:first-child{text-align:left}
+table.res th{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.note{background:var(--gold-soft);border:1px solid #e8d9a8;border-radius:10px;padding:10px 14px;font-size:.9rem}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="wrap">
+  <div>
+    <div class="kicker">Macroscope · a played game</div>
+    <h1>Eight years in a seven-member union</h1>
+    <p class="sub">A scripted game run by the engine in your browser (model level 4, climate on): seven governments, the administrator's shocks of each year, and what came out of it. <a href="index.html">← About Macroscope</a> · <a href="../macsim/model.html">The model</a></p>
+  </div>
+</div></header>
+<main><div class="wrap" id="app"><p class="muted">Running the model…</p></div></main>
+<script src="../macsim/core.js"></script>
+<script src="../macsim/engine.js"></script>
+<script src="../macsim/app-common.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = UI.$, el = UI.el, esc = UI.esc;
+  var YEARS = 8;
+  var story = [
+    { shocks: { world: -3 }, text: 'Year 1 · World recession: the rest of the world buys 3 % less. France and Spain stimulate; Germany does not.' },
+    { shocks: { world: -3 }, text: 'Year 2 · The recession lasts. Italy launches a green investment programme; the council votes to hold the rate.' },
+    { shocks: { imports: 5 }, text: 'Year 3 · Oil shock: imports cost 5 % more for the same output. The reserves end the year under the alert line.' },
+    { shocks: {}, text: 'Year 4 · Crisis vote before the decisions: austerity wins 4–3. Public demand and benefits capped at −5 for everyone.' },
+    { shocks: { disaster: 3 }, text: 'Year 5 · A climate disaster takes 3 points of potential output. Belgium and Austria introduce a carbon tax.' },
+    { shocks: {}, text: 'Year 6 · Spain stimulates again; the current account stays in deficit and the reserves are exhausted.' },
+    { shocks: { world: 3, deval: 15 }, text: 'Year 7 · Forced devaluation of 15 %. Portfolios rebalance towards the union; a union-wide carbon tax of 3 points is agreed.' },
+    { shocks: {}, text: 'Year 8 · World recovery. The ranking is decided on the cumulative score.' }
+  ];
+  var Z = { world: 0, rate: 0, confidence: 0, imports: 0, deval: 0, worldEmissions: 0, disaster: 0 };
+  var shocks = story.map(function (s) { return Object.assign({}, Z, s.shocks); });
+  function plan(rows) { return rows.map(function (r) { return r || {}; }); }
+  var ctaxAll = function (y) { return y >= 6 ? { ctax: 3 } : {}; };
+  function merge(a, b) { return Object.assign({}, a, b); }
+  var policies = {
+    DEU: plan([{}, {}, {}, { pubdem: -5, benefits: -3 }, { pubdem: -5, benefits: -3 }, { pubdem: -3 }, ctaxAll(6), ctaxAll(7)]),
+    FRA: plan([{ pubdem: 6 }, { pubdem: 6 }, { pubdem: 3 }, { pubdem: -5, benefits: -5 }, { pubdem: -5, benefits: -5 }, { pubdem: -4 }, merge({ pubdem: -2 }, ctaxAll(6)), ctaxAll(7)]),
+    ITA: plan([{ inctax: -3 }, { green: 4 }, { green: 4 }, { green: 3, pubdem: -5 }, { green: 3 }, { green: 3 }, merge({ green: 3 }, ctaxAll(6)), merge({ green: 2 }, ctaxAll(7))]),
+    ESP: plan([{ pubdem: 4, vat: -2 }, { pubdem: 4 }, { pubdem: 4 }, { pubdem: -5, benefits: -5 }, { pubdem: 3 }, { pubdem: 3 }, merge({ pubdem: 2 }, ctaxAll(6)), ctaxAll(7)]),
+    NLD: plan([{}, { vat: 2 }, { vat: 2 }, { pubdem: -5, benefits: -5, vat: 2 }, { pubdem: -3 }, {}, ctaxAll(6), ctaxAll(7)]),
+    BEL: plan([{ benefits: 3 }, { benefits: 3 }, {}, { pubdem: -5, benefits: -5 }, { ctax: 4 }, { ctax: 4 }, { ctax: 4 }, { ctax: 4 }]),
+    AUT: plan([{}, {}, { inctax: 2 }, { pubdem: -5, benefits: -5 }, { ctax: 3, green: 2 }, { ctax: 3, green: 2 }, { ctax: 3, green: 2 }, { ctax: 3, green: 2 }])
+  };
+  var params = OPENMU.paramsFor('v2.0');
+  var rep = OPENMU.report({ params: params, years: YEARS, policies: policies, shocks: shocks });
+  var state = MS.defaultState(); state.sim.model = 'v2.0';
+  var INDS = MS.indicatorsFor(state), w = state.weights;
+  var ids = params.countries.map(function (c) { return c.id; });
+  var rows = {}; ids.forEach(function (id) { rows[id] = []; });
+  rep.years.forEach(function (y, t) {
+    ids.forEach(function (id) {
+      var c = y.countries[id], r = { year: t + 1, key: id, detail: c.detail };
+      INDS.forEach(function (i) { r[i.id] = MS.round3(c[i.id]); });
+      r.R = MS.scoreR(r, w); rows[id].push(r);
+    });
+  });
+  var app = $('#app'); app.innerHTML = '';
+  /* story */
+  var c0 = el('div', { class: 'card' });
+  c0.appendChild(el('h2', {}, ['The administrator’s communiqués']));
+  c0.appendChild(el('div', { class: 'story', html: story.map(function (s) { return '<div class="yr">' + esc(s.text).replace(/^(Year \d+) · /, '<b>$1</b>') + '</div>'; }).join('') }));
+  app.appendChild(c0);
+  /* union */
+  var u = rep.years[YEARS - 1].union, pct = Math.max(0, Math.min(100, 100 * u.R / u.R0));
+  var c1 = el('div', { class: 'card' });
+  c1.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['The monetary union']), el('span', { class: 'small muted' }, ['after year ' + YEARS])]));
+  c1.appendChild(el('div', { class: 'union', html:
+    '<div class="urow"><span>Foreign reserves</span><span class="num">' + esc(MS.fmt(Math.max(0, u.months), 1)) + ' months of imports · ' + esc(MS.fmt(pct, 0)) + ' % of initial' + (u.alert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+    '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>' +
+    '<div class="urow"><span>Current account with the rest of the world</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
+    '<div class="urow"><span>Exchange rate (up = devaluation)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
+    '<div class="urow"><span>Central bank rate</span><span class="num">' + esc(MS.fmt(100 * u.r, 2)) + ' %</span></div>' +
+    UI.climateLinesHtml(u) }));
+  var path = rep.years.map(function (y, t) { return 'y' + (t + 1) + ': ' + MS.fmt(100 * y.union.R / y.union.R0, 0) + ' %'; }).join(' · ');
+  c1.appendChild(el('p', { class: 'small muted', style: 'margin:.5em 0 0' }, ['Reserves, % of the initial stock — ' + path + ' (a devaluation makes households repatriate part of their foreign bills and foreign investors top up their union bills: the reserves refill). Damage: ' + rep.years.map(function (y) { return MS.fmt(y.union.D, 1); }).join(' / ') + ' %.']));
+  app.appendChild(c1);
+  /* ranking */
+  var lb = ids.map(function (id) { var cum = 0; rows[id].forEach(function (r) { cum += r.R; }); return { id: id, cum: MS.round3(cum), rs: rows[id].map(function (r) { return r.R; }) }; });
+  lb.sort(function (a, b) { return b.cum - a.cum; });
+  var c2 = el('div', { class: 'card' }); c2.appendChild(el('h2', {}, ['Ranking']));
+  var h = '<div class="tablewrap"><table class="res"><thead><tr><th>#</th><th>Country</th>' + rows[ids[0]].map(function (r) { return '<th>R · y' + r.year + '</th>'; }).join('') + '<th>Cumulative R</th></tr></thead><tbody>';
+  lb.forEach(function (r, i) { h += '<tr><td>' + (i + 1) + '</td><td><b>' + esc(MS.countryName(r.id)) + '</b></td>' + r.rs.map(function (x) { return '<td class="' + UI.signedClass(x) + '">' + esc(MS.fmt(x, 2, true)) + '</td>'; }).join('') + '<td class="' + UI.signedClass(r.cum) + '"><b>' + esc(MS.fmt(r.cum, 2, true)) + '</b></td></tr>'; });
+  c2.appendChild(el('div', { html: h + '</tbody></table></div>' }));
+  c2.appendChild(el('p', { class: 'small muted' }, ['R = 0.2·ΔGDP − 0.2·Δunemployment − 0.2·Δinflation + 0.2·Δpublic balance + 0.2·Δtrade balance (deviations from the reference path; emissions carry a weight of 0 unless voters turn it on). The ranking sums the yearly scores.']));
+  app.appendChild(c2);
+  /* detail of the last year */
+  var c3 = el('div', { class: 'card' }); c3.appendChild(el('h2', {}, ['Year ' + YEARS + ' in detail']));
+  var hd = '<div class="tablewrap"><table class="res"><thead><tr><th>Country</th>' + INDS.map(function (i) { return '<th>' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th>Price level vs union</th><th>Public debt</th></tr></thead><tbody>';
+  lb.forEach(function (r) { var row = rows[r.id][YEARS - 1], x = rep.years[YEARS - 1].countries[r.id].detail.extra; hd += '<tr><td><b>' + esc(MS.countryName(r.id)) + '</b></td>' + INDS.map(function (i) { return '<td class="' + UI.signedClass(i.sign * row[i.id]) + '">' + esc(MS.fmt(row[i.id], 2, true)) + '</td>'; }).join('') + '<td>' + esc(MS.fmt(x.compet, 1, true)) + ' %</td><td>' + esc(MS.fmt(x.debt, 0)) + ' % GDP</td></tr>'; });
+  c3.appendChild(el('div', { html: hd + '</tbody></table></div>' }));
+  app.appendChild(c3);
+  /* charts */
+  var c4 = el('div', { class: 'card' }); c4.appendChild(el('h2', {}, ['The objective, year by year']));
+  var g = el('div', { class: 'trajgrid' });
+  lb.forEach(function (r) { g.appendChild(el('div', { html: UI.trajectorySvg(rows[r.id], { weights: w, title: MS.countryName(r.id), height: 250, legend: false, fontScale: 1.6 }) })); });
+  c4.appendChild(g); c4.appendChild(el('div', { html: UI.trajectoryLegendHtml(true) }));
+  c4.appendChild(el('p', { class: 'trajcap' }, ['Each bar stacks the contributions of the dimensions to R for the year (weight × deviation): above zero what helped, below zero what hurt. The dashed line is R itself.']));
+  app.appendChild(c4);
+  /* one decomposition */
+  var fr = rows.FRA[YEARS - 1], d = fr.detail;
+  var c5 = el('div', { class: 'card' }); c5.appendChild(el('h2', {}, ['France, year ' + YEARS + ': where each result came from']));
+  var parts = [['nat', 'of which its own policy'], ['foreign', 'of which the other governments'], ['shock', 'of which the shocks'], ['climate', 'of which the climate']];
+  var hf = '<div class="tablewrap"><table class="res"><thead><tr><th></th>' + INDS.map(function (i) { return '<th>' + esc(i.label) + '</th>'; }).join('') + '</tr></thead><tbody>';
+  hf += '<tr><td><b>Total</b></td>' + INDS.map(function (i) { return '<td class="' + UI.signedClass(i.sign * fr[i.id]) + '"><b>' + esc(MS.fmt(fr[i.id], 2, true)) + '</b></td>'; }).join('') + '</tr>';
+  parts.forEach(function (pp) { hf += '<tr><td class="muted">' + pp[1] + '</td>' + INDS.map(function (i) { var x = d[i.id] ? d[i.id][pp[0]] : null; return '<td class="' + (x === null || x === undefined ? '' : UI.signedClass(i.sign * x)) + '">' + esc(x === null || x === undefined ? '' : MS.fmt(x, 2, true)) + '</td>'; }).join('') + '</tr>'; });
+  c5.appendChild(el('div', { html: hf + '</tbody></table></div>' }));
+  c5.appendChild(el('p', { class: 'note', style: 'margin-top:10px' }, ['Three counterfactual runs of the same model separate what a government did from what was done to it. In class, this table is what the debrief is built on.']));
+  app.appendChild(c5);
+})();
+</script>
+</body>
+</html>
