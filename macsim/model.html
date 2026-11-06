@@ -96,8 +96,23 @@ details.ver[open]>summary h2::before{content:"▾ "}
     <div>
       <p>A lever is a relative variation, in %, of the reference level, within ±10:</p>
       <table class="eq"><tr><td class="e">G = G*·(1 + pubdem/100)</td><td class="c">public demand (goods and services)</td></tr><tr><td class="e">TR = TR*·(1 + benefits/100)</td><td class="c">transfers to households</td></tr><tr><td class="e">θ = θ*·(1 + inctax/100)</td><td class="c">income-tax rate (θ* = 0.331)</td></tr><tr><td class="e">τ = τ*·(1 + vat/100) ;  τc = τ/(1+τ)</td><td class="c">consumption-tax rate (τ* = 0.10); τc = share of spending taken by the tax</td></tr></table>
-      <p>The administrator's shocks of the year, the same for every member:</p>
-      <table class="eq"><tr><td class="e">world</td><td class="c">demand of the rest of the world for the union's exports, %</td></tr><tr><td class="e">rate</td><td class="c">central bank rate, in points (plus the voted changes)</td></tr><tr><td class="e">confidence</td><td class="c">propensity to consume out of income, %</td></tr><tr><td class="e">imports</td><td class="c">propensity to import, %</td></tr><tr><td class="e">deval</td><td class="c">jump of the exchange rate xr, % (voted or forced devaluations add to it)</td></tr></table>
+      <p>The administrator's shocks of the year, the same for every member (Run tab; some rows appear only for the model version that uses them):</p>
+      <table class="eq">
+<tr><td class="e">world</td><td class="c">demand of the rest of the world for the union's exports, % (all versions)</td></tr>
+<tr><td class="e">rate</td><td class="c">central bank rate, in points, on top of the voted changes (all versions; v1.1 and later: investment with a one-year lag, debt service at once)</td></tr>
+<tr><td class="e">confidence</td><td class="c">propensity to consume out of income, % (all versions)</td></tr>
+<tr><td class="e">imports</td><td class="c">propensity to import, % — an oil shock (all versions)</td></tr>
+<tr><td class="e">deval</td><td class="c">jump of the exchange rate xr, % (fixed regime; voted or forced devaluations add to it)</td></tr>
+<tr><td class="e">regime</td><td class="c">exchange-rate regime of the year, fixed or floating (v1.3+; switchable during the game)</td></tr>
+<tr><td class="e">flows</td><td class="c">change of the rest of the world's desired holdings of union bills, % — a sudden stop when negative (v1.3+)</td></tr>
+<tr><td class="e">worldRate</td><td class="c">the rest of the world's interest rate, in points (v1.3+; drives the capital flows through r − r_w)</td></tr>
+<tr><td class="e">backstop</td><td class="c">whether the central bank keeps buying the bills of members paying a risk premium (v1.3+; off = full market pressure)</td></tr>
+<tr><td class="e">worldEmissions</td><td class="c">emissions of the rest of the world, % (v2.0)</td></tr>
+<tr><td class="e">disaster</td><td class="c">one-off extra climate damage this year, in points of potential output (v2.0)</td></tr>
+<tr><td class="e">demandA, demandB</td><td class="c">duel mode: asymmetric shock on one country's public demand, % (replaces <i>world</i>, there being no rest of the world)</td></tr>
+<tr><td class="e">devalA, devalB</td><td class="c">duel mode: devaluation decreed for one side's currency, % (fixed regime)</td></tr>
+<tr><td class="e">elections</td><td class="c">not a shock but recorded with them: new objective weights for one country or the whole union from this year on (see the Objective row)</td></tr>
+      </table>
     </div>
     <div class="note">Public demand +10 is 10 % more public spending, i.e. about +2 points of GDP (G* = 0.20 Y*). Benefits +10 is +1.5 points of GDP (TR* = 0.15 Y*). Income tax +10 lifts the rate from 33.1 % to 36.4 %.</div>
   </div>
