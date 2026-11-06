@@ -22,6 +22,12 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
 .toc{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
 .toc a{font-size:.82rem;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 12px;text-decoration:none;color:var(--navy)}
 .sign{font-family:var(--mono);font-size:.85rem}
+details.ver>summary{cursor:pointer;list-style:none}
+details.ver>summary::-webkit-details-marker{display:none}
+details.ver>summary h2{display:inline}
+details.ver>summary h2::before{content:"▸ ";color:var(--gold)}
+details.ver[open]>summary h2::before{content:"▾ "}
+.pill{display:inline-block;font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--gold-soft);border:1px solid #e4d4a0;border-radius:999px;padding:2px 10px;margin-left:8px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -31,7 +37,7 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
     <h1>OPEN-MU · The model behind the game</h1>
     <p class="sub">Every equation the engine solves, with the parameters it uses — so that you can anticipate what a decision does before you take it.</p>
     <div class="toc">
-      <a href="#notation">Notation</a><a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#eco">Emissions &amp; damages</a><a href="#capital">Capital flows &amp; the exchange-rate regime</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
+      <a href="#notation">Notation</a><a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#eco">Emissions &amp; damages</a><a href="#capital">Capital flows &amp; the exchange-rate regime</a><a href="#duel">Duel mode</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
     </div>
   </div>
   <div class="who"><a href="index.html">← Policy desk</a></div>
@@ -157,8 +163,8 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
   </div>
 </div>
 
-<div class="card" id="capital">
-  <h2>Capital flows, the exchange-rate regime and market pressure (model v1.3)</h2>
+<details class="card ver" id="capital">
+  <summary><h2>Capital flows, the exchange-rate regime and market pressure <span class="pill">model v1.3 only</span></h2></summary>
   <p class="small muted">Classes on model v1.3 only (Control → Parameters; v1.1 and v1.2 classes have no capital flows and a fixed rate). The block follows Godley &amp; Lavoie's chapter 12, reduced to what the game needs: the rest of the world holds union bills, the union's households hold foreign bills, and the regime is the administrator's choice <em>for each year</em>.</p>
   <div class="block">
     <div>
@@ -174,17 +180,29 @@ table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:
     </div>
     <div class="note"><strong>Mundell–Fleming, stock-flow style.</strong> Under a floating rate, a rate rise of 0.5 pt pulls capital in and appreciates the currency by about 4 % on impact: import prices fall (inflation −0.6 pt at once), competitiveness and investment fall (GDP −1 % the next year). A sudden stop of 30 % of the rest of the world's holdings depreciates the currency by 20 %, adds 2.7 pt of inflation and improves the current account from the next year. Under a fixed rate the same flows go through the reserves — and with 1.5 months of imports in stock, a sudden stop of 5 % empties them: the trilemma in one line.<br><br><strong>Market pressure.</strong> A member whose debt passes 110 % of GDP pays a spread on its privately held bills; foreign holders move away from it. With the backstop on, the central bank keeps buying the residual at the common rate and the spread stays small (0.6 pt after 8 years of a +10/+10 stimulus by France). With the backstop <em>off</em> (administrator shock), the member's bill rate rises until households and banks absorb what the central bank no longer buys: 2 pt after 8 years, a public balance 0.6 pt worse, and the union's reserves drained by the flight.<br><br><strong>Switching regimes.</strong> Fixed → float: the rate becomes endogenous, the reserves freeze at their last level. Float → fixed: the parity is the last floating value (a devaluation shock may be added the same year), the reserves move again.</div>
   </div>
-</div>
+</details>
 
-<div class="card" id="eco">
-  <h2>Emissions and damages (model v2.0)</h2>
+<details class="card ver" id="eco">
+  <summary><h2>Emissions and damages <span class="pill">model v2.0 only</span></h2></summary>
+  <p class="small muted">Classes on model v2.0 only (Control → Parameters). Everything above still holds; this block adds a physical side — emissions, a global stock and a damage function — two levers (carbon tax, green public investment) and a sixth objective dimension, emissions, whose weight is 0 until an election or the administrator gives it one.</p>
   <div class="block">
     <div>
       <table class="eq"><tr><td class="e">E = ci·Y</td><td class="c">emissions of a member (reference carbon intensity ci* = 1, so E* = Y*)</td></tr><tr><td class="e">E_w = E_w*·(1 + worldEmissions/100)</td><td class="c">rest of the world: as much as the union at the reference, exogenous</td></tr><tr><td class="e">S = S₋₁ + Σ E + E_w</td><td class="c">global pollution stock, no natural decay; S₀ = 50 years of reference emissions (2 % a year)</td></tr><tr><td class="e">D = min(0.25, 0.5·(S₋₁ − S₀)/S₀ + disaster/100)</td><td class="c">damage of the year from the stock accumulated so far (+ a disaster shock): ≈ 1 point a year under business as usual</td></tr><tr><td class="e">ci = max(0.3, ci₋₁·(1 − 0.04·ctax₋₁ − 0.025·green₋₁))</td><td class="c">carbon intensity falls persistently with last year's levers, floor 30 % of the reference</td></tr><tr><td class="e">u = u* + 0.4·100·D − β·gap</td><td class="c">structural unemployment rises with the damage</td></tr><tr><td class="e">π = π* + κ·gap_D + … + 0.15·Δctax</td><td class="c">inflation on the damaged potential Y*(1 − D), plus the carbon-tax pass-through</td></tr><tr><td class="e">GREEN = 0.002·green·Y*</td><td class="c">green investment: public spending (demand, deficit)</td></tr><tr><td class="e">Tc = 0.002·ctax·E</td><td class="c">carbon-tax revenue, paid by firms out of distributed income (1 point ≈ 0.2 % of GDP)</td></tr></table>
     </div>
     <div class="note"><strong>Compressed time.</strong> The reference path is no longer stationary: with nobody acting, the stock grows, the damage reaches 5 % of potential output in year 6 and 7 % in year 8 — structural unemployment +2 pt (+2.3 with Okun), inflation +1.3 pt for every member; the extra inflation erodes competitiveness, so GDP drifts down slowly (−0.9 % by year 6). The report isolates it in a fourth part of the split, « of which the climate ».<br><br><strong>Two levers, one public good.</strong> A carbon tax of 5 points everywhere cuts the union's emissions by 70 % within five years and the year-8 damage from 7 to 5.5 %; it costs 0.6 pt of inflation and 0.7 % of GDP in the first year and brings 0.4 pt of revenue. Green investment of 10 units (2 pt of GDP) everywhere does the same to the emissions, adds 2.9 % of GDP at once and 0.9 pt of deficit every year. A member acting alone pays the whole cost and gets a seventh of the benefit — the rest of the world emits as much as the union, so even a united union only slows the stock.<br><br><strong>Shocks.</strong> <em>World emissions</em> (%, the rest of the world's flow) and <em>climate disaster</em> (one-off extra damage, in points of potential output).</div>
   </div>
-</div>
+</details>
+
+<details class="card ver" id="duel">
+  <summary><h2>Duel mode <span class="pill">classes of kind “duel” only</span></h2></summary>
+  <p class="small muted">An arcade variant: two identical countries, A and B, each the full v2.0 economy above with <em>its own currency and its own central bank</em>, trading only with each other — the partner replaces the rest of the world. A class holds several pairs played in parallel; every pair is its own world, the administrator's shocks of the year hit every pair.</p>
+  <div class="block">
+    <div>
+      <table class="eq"><tr><td class="e">xr_A = e, xr_B = 1/e</td><td class="c">e = A's currency per unit of B's; both at 1 at the reference</td></tr><tr><td class="e">IM_A = μ·Y_A·(e·P_B/P_A)<sup>−ε</sup>, X_A = IM_B</td><td class="c">A's imports are B's exports and vice versa (relative price = the partner's price level in A's currency)</td></tr><tr><td class="e">λF = λF0 + 0.6·((r_partner + s_partner) − (r + s))</td><td class="c">households of each side hold the partner's bills; the share follows the interest-rate gap, premia included</td></tr><tr><td class="e">CA′_A + KA_A = ΔR_A = −ΔR_B/e</td><td class="c"><b>fixed</b>: the deficit side loses reserves, the surplus side gains them (1.5 months of imports each; alert below 25 %)</td></tr><tr><td class="e">CA′_A + KA_A = 0 ⇒ e</td><td class="c"><b>float</b>: the bilateral rate clears the balance of payments; reserves frozen</td></tr><tr><td class="e">R ≤ 0 and CA′ &lt; 0 ⇒ e ×1.15 (or ÷1.15)</td><td class="c">forced devaluation of an exhausted side's currency, automatic, the next year (fixed regime); the administrator may also decree a devaluation of A or B</td></tr><tr><td class="e">r_X = r* + rate_X, |rate_X| ≤ 2</td><td class="c">seventh lever, per player: the policy rate, no vote; acts on investment (one-year lag), debt service and capital flows</td></tr><tr><td class="e">S = S₋₁ + E_A + E_B</td><td class="c">closed climate: no rest of the world; otherwise as v2.0</td></tr></table>
+    </div>
+    <div class="note"><strong>What differs from the union.</strong> No common central bank, no rate vote, no council, no warm-up: each side has its central bank, its reserves, its risk premium and its backstop. Competitiveness is the own price level against the partner's in a common currency; inflation at home is a loss of competitiveness for you and a gain for the partner. The « of which » split has four parts: your own policy, <em>your partner's policy</em>, the shocks, the climate.<br><br><strong>Orders of magnitude.</strong> Fixed rate, A alone spends +10 % in year 1: GDP A +2.7 %, GDP B +1.0 % (through A's imports); A's reserves 85, 67, 47, 26, 3 % of the initial stock → alert in year 5, forced devaluation in year 7. Floating: the same stimulus depreciates A's currency by 1.5 % in year 1 and 9.5 % by year 5. A raising its policy rate by 1 point under a float appreciates its currency by ≈ 6 %: GDP A +1.6 % then −1.7 %, B −1.7 % then +0.4 %. A carbon tax of 5 points in A alone cuts A's emissions by 70 % in five years and the shared damage from 7 to 5.5 %: A pays, both benefit.<br><br><strong>Shocks</strong> (every pair): confidence, import propensity, <em>demand shock in A / in B</em> (public demand, to break the symmetry), regime, devaluation of A / of B, central-bank backstop, climate disaster.</div>
+  </div>
+</details>
 
 <div class="card" id="rules">
   <h2>The rules around the model: votes and the reserves crisis</h2>

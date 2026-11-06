@@ -85,7 +85,7 @@ var UI = (function () {
   function yearChips(y, opts) {
     var chips = [];
     if (!y) return chips;
-    MS.LEVERS.forEach(function (l) { var v = MS.num(y.levers ? y.levers[l.id] : 0); if (v) chips.push({ label: (opts && opts.short ? l.id : l.label), value: v, unit: l.eco ? (l.id === 'ctax' ? ' pt' : '') : '%' }); });
+    MS.LEVERS.forEach(function (l) { var v = MS.num(y.levers ? y.levers[l.id] : 0); if (v) chips.push({ label: (opts && opts.short ? l.id : l.label), value: v, unit: l.duel ? ' pt' : (l.eco ? (l.id === 'ctax' ? ' pt' : '') : '%') }); });
     Object.keys(y.tariffs || {}).forEach(function (p) { var v = MS.num(y.tariffs[p]); if (v) chips.push({ label: 'Tariff on ' + MS.countryName(p), value: v, unit: ' pt' }); });
     if (y.euro && y.euro !== 'none') chips.push({ label: 'Euro: ' + y.euro, value: null });
     if (MS.num(y.tfp)) chips.push({ label: 'TFP', value: MS.num(y.tfp), unit: '%' });
@@ -124,6 +124,32 @@ var UI = (function () {
     if (u.dxr !== undefined) h += '<div class="urow"><span>Change of the exchange rate over the year (+ = depreciation)</span><span class="num ' + (u.dxr > 0 ? 'neg' : (u.dxr < 0 ? 'pos' : '')) + '">' + esc(MS.fmt(u.dxr, 1, true)) + ' %</span></div>';
     if (u.KA !== undefined) h += '<div class="urow"><span>Capital flows (net inflows from the rest of the world)</span><span class="num ' + UI.signedClass(u.KA) + '">' + esc(MS.fmt(u.KA, 2, true)) + '</span></div>';
     if (u.pressured && u.pressured.length) h += '<div class="urow"><span>Members under market pressure (public debt above 110 % of GDP)</span><span class="num neg">' + esc(u.pressured.map(function (c) { return MS.countryName(c); }).join(', ')) + '</span></div>';
+    return h;
+  }
+  /* duel (arcade mode): the pair row — bilateral exchange rate, both reserves, flows, climate. `side` highlights the viewer's country */
+  function duelPanelHtml(x, side, opts) {
+    if (!x || x.e === undefined) return '';
+    opts = opts || {};
+    var isFloat = x.regime === 'float';
+    function resLine(id) {
+      var share = id === 'A' ? x.RshareA : x.RshareB, months = id === 'A' ? x.monthsA : x.monthsB, alert = id === 'A' ? x.alertA : x.alertB, forced = id === 'A' ? x.forcedA : x.forcedB;
+      var pct = Math.max(0, Math.min(100, 100 * (share || 0)));
+      var who = 'Country ' + id + (side === id ? ' (you)' : (side ? ' (your partner)' : ''));
+      var h = '<div class="urow"><span>Reserves of ' + who + (isFloat ? ' (frozen while floating)' : '') + '</span><span class="num">' + esc(MS.fmt(Math.max(0, months || 0), 1)) + ' months of imports · ' + esc(MS.fmt(100 * (share || 0), 0)) + ' % of initial' + (alert ? ' <span class="pill closed">ALERT</span>' : '') + (forced ? ' <span class="pill closed">forced devaluation</span>' : '') + '</span></div>';
+      if (!isFloat) h += '<div class="bar reserves"><i class="' + (alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>';
+      return h;
+    }
+    var h = '<div class="urow"><span>Exchange-rate regime</span><span class="num">' + (isFloat ? 'floating' : 'fixed') + (x.backstop === false ? ' · <span class="pill closed">no central-bank backstop</span>' : '') + '</span></div>';
+    h += '<div class="urow"><span>Exchange rate e (A’s currency per unit of B’s; up = A depreciates)</span><span class="num">' + esc(MS.fmt(x.e, 3)) + (x.de !== undefined ? ' <span class="' + (Math.abs(x.de) < 0.05 ? 'muted' : (side === 'B' ? (x.de > 0 ? 'pos' : 'neg') : (x.de > 0 ? 'neg' : 'pos'))) + '">(' + esc(MS.fmt(x.de, 1, true)) + ' % over the year)</span>' : '') + '</span></div>';
+    h += resLine('A') + resLine('B');
+    if (x.CApA !== undefined) h += '<div class="urow"><span>Current account of A incl. primary income · capital inflows to A</span><span class="num">' + esc(MS.fmt(x.CApA, 2, true)) + ' · ' + esc(MS.fmt(x.KAA, 2, true)) + '</span></div>';
+    if (x.rA !== undefined) h += '<div class="urow"><span>Policy rates (A · B)</span><span class="num">' + esc(MS.fmt(x.rA, 2)) + ' % · ' + esc(MS.fmt(x.rB, 2)) + ' %</span></div>';
+    if (x.pressured && x.pressured.length) h += '<div class="urow"><span>Under market pressure (public debt above 110 % of GDP)</span><span class="num neg">' + esc(x.pressured.map(function (c) { return 'Country ' + c; }).join(', ')) + '</span></div>';
+    if (x.D !== undefined) {
+      h += '<div class="urow"><span>Pollution stock of your world (start = 100)</span><span class="num">' + esc(MS.fmt(100 * (x.Sshare || 1), 1)) + '</span></div>';
+      h += '<div class="urow"><span>Climate damage this year (loss of potential output, both countries)</span><span class="num ' + (x.D > 0 ? 'neg' : '') + '">' + esc(MS.fmt(x.D, 1)) + ' %</span></div>';
+      if (x.Erel !== undefined) h += '<div class="urow"><span>Emissions of the pair vs the reference</span><span class="num ' + UI.signedClass(-x.Erel) + '">' + esc(MS.fmt(x.Erel, 0, true)) + ' %</span></div>';
+    }
     return h;
   }
   /* v2.0: the climate block of a union row (pollution stock, damage, emissions) */
@@ -262,5 +288,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, climateLinesHtml: climateLinesHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();
