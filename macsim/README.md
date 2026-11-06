@@ -56,6 +56,10 @@ Le **board** (`Open the board ↗` dans la console) se rafraîchit seul toutes l
 
 ---
 
+### Élections (toutes versions du modèle, sans changement du backend)
+
+Dans l'onglet *Run* (partie), sous l'éditeur de chocs, la carte **Elections · voters' preferences from year N** permet de simuler un changement des préférences des électeurs : nouvelles pondérations de la fonction objectif R pour **un pays** ou pour **toute l'union**, à partir de l'année N et jusqu'à l'élection suivante (une élection nationale prime sur une élection de l'union). Deux préréglages — *Left: unemployment first* (0,40 sur le chômage, 0,15 ailleurs) et *Right: public finances first* (0,40 sur le solde public) — et *Back to the class weights* ; les cinq poids restent modifiables librement. Enregistré dans les chocs de l'année (`elections`), donc rejoué comme les autres chocs : le Run calcule le R de chaque pays-année avec les poids en vigueur et les stocke avec le résultat ; la page étudiants affiche « Your objective this year » dans le formulaire, le graphique des contributions utilise les poids de chaque année, le board liste les pays dont les poids diffèrent. Le classement reste la somme des R. Annoncez l'élection dans le communiqué.
+
 ## 3. Paramètres (onglet *Control* → *Parameters*)
 
 | Paramètre | Défaut | Remarque |

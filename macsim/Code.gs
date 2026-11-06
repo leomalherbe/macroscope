@@ -153,6 +153,41 @@ var MS = (function () {
   }
 
   /* ---------- Objective function ---------- */
+  /* Elections (any model version, no backend change): the administrator records in the game's shocks
+     shocks['g'+N].elections = [{scope: 'ALL'|<countryId>, weights: {...}|null, label}], applying from year N.
+     Weights in force for country c in year y: the latest country election with year <= y, else the latest
+     union-wide one, else the class weights. A null `weights` means "back to the class weights". */
+  var ELECTION_PRESETS = [
+    { id: 'left', label: 'Left: unemployment first', weights: { gdp: 0.15, unemp: 0.4, infl: 0.15, pubbal: 0.15, tradebal: 0.15 } },
+    { id: 'right', label: 'Right: public finances first', weights: { gdp: 0.15, unemp: 0.15, infl: 0.15, pubbal: 0.4, tradebal: 0.15 } },
+    { id: 'reset', label: 'Back to the class weights', weights: null }
+  ];
+  function electionsUpTo(state, year) {
+    var sh = (state && state.shocks) || {}, out = [];
+    Object.keys(sh).forEach(function (k) {
+      var m = /^g(\d+)$/.exec(k); if (!m) return;
+      var y = Number(m[1]); if (!(y <= Number(year))) return;
+      var list = sh[k] && sh[k].elections; if (!Array.isArray(list)) return;
+      list.forEach(function (e, idx) { if (e && e.scope) out.push({ year: y, idx: idx, scope: String(e.scope), weights: e.weights || null, label: e.label || '' }); });
+    });
+    out.sort(function (a, b) { return a.year - b.year || a.idx - b.idx; });
+    return out;
+  }
+  /* {weights, label, scope, year} in force; label === '' when the class weights apply */
+  function weightsInfo(state, year, country) {
+    var base = Object.assign({}, defaultState().weights, (state && state.weights) || {});
+    var res = { weights: base, label: '', scope: null, year: null, elected: false };
+    if (!state || state.phase !== 'game') return res;
+    var list = electionsUpTo(state, year), pick = null;
+    list.forEach(function (e) { if (e.scope === String(country)) pick = e; });
+    if (!pick) list.forEach(function (e) { if (e.scope === 'ALL') pick = e; });
+    if (!pick || !pick.weights) return res;
+    var w = Object.assign({}, base);
+    INDICATORS.forEach(function (i) { var v = num(pick.weights[i.id]); if (!isNaN(v) && pick.weights[i.id] !== undefined && pick.weights[i.id] !== null && pick.weights[i.id] !== '') w[i.id] = v; });
+    return { weights: w, label: pick.label, scope: pick.scope, year: pick.year, elected: true };
+  }
+  function weightsFor(state, year, country) { return weightsInfo(state, year, country).weights; }
+  function sameWeights(a, b) { return INDICATORS.every(function (i) { return Math.abs(num(a && a[i.id]) - num(b && b[i.id])) < 1e-9; }); }
   function scoreR(dev, weights) {
     var w = Object.assign({}, defaultState().weights, weights || {});
     var total = 0, any = false;
@@ -357,7 +392,7 @@ var MS = (function () {
     countryById: countryById, countryName: countryName, leverById: leverById,
     defaultState: defaultState, mergeState: mergeState,
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
-    scoreR: scoreR, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision, crisisOf: crisisOf, validateCrisisVote: validateCrisisVote, tallyCrisis: tallyCrisis,
+    scoreR: scoreR, ELECTION_PRESETS: ELECTION_PRESETS, electionsUpTo: electionsUpTo, weightsInfo: weightsInfo, weightsFor: weightsFor, sameWeights: sameWeights, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision, crisisOf: crisisOf, validateCrisisVote: validateCrisisVote, tallyCrisis: tallyCrisis,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
