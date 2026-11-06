@@ -65,8 +65,11 @@ var MS = (function () {
     { id: 'unemp',    label: 'Unemployment rate', unit: 'pt',        sign: -1 },
     { id: 'infl',     label: 'Inflation rate',    unit: 'pt',        sign: -1 },
     { id: 'pubbal',   label: 'Public balance',    unit: 'pt of GDP', sign: +1 },
-    { id: 'tradebal', label: 'Trade balance',     unit: 'pt of GDP', sign: +1 }
+    { id: 'tradebal', label: 'Trade balance',     unit: 'pt of GDP', sign: +1 },
+    { id: 'emis',     label: 'Emissions',         unit: '% of ref.', sign: -1, eco: true }   // sixth dimension, v2.0 classes only (class weight 0 by default)
   ];
+  /* the objective dimensions of a class: five for v1.x, six (with emissions) for v2.0 */
+  function indicatorsFor(state) { var eco = isEcoModel(state); return INDICATORS.filter(function (i) { return !i.eco || eco; }); }
 
   function countryById(id) {
     if (id === 'ROW') return ROW;
@@ -110,7 +113,7 @@ var MS = (function () {
         maxNonZero: 0,            // 0 = no limit
         minText: 100
       },
-      weights: { gdp: 0.2, unemp: 0.2, infl: 0.2, pubbal: 0.2, tradebal: 0.2 },
+      weights: { gdp: 0.2, unemp: 0.2, infl: 0.2, pubbal: 0.2, tradebal: 0.2, emis: 0 },   // emis: sixth dimension (v2.0), 0 unless an election or the administrator activates it
       /* OPEN-MU engine inputs. `shocks`: key = year as a string ('1', '2', …), value =
          {world, rate, confidence, imports, deval} (world/confidence/imports/deval in %, rate in points).
          A patch of `shocks` replaces the WHOLE object (mergeState merges one level deep only),
@@ -167,6 +170,7 @@ var MS = (function () {
   var ELECTION_PRESETS = [
     { id: 'left', label: 'Left: unemployment first', weights: { gdp: 0.15, unemp: 0.4, infl: 0.15, pubbal: 0.15, tradebal: 0.15 } },
     { id: 'right', label: 'Right: public finances first', weights: { gdp: 0.15, unemp: 0.15, infl: 0.15, pubbal: 0.4, tradebal: 0.15 } },
+    { id: 'green', label: 'Green: emissions first', weights: { gdp: 0.12, unemp: 0.12, infl: 0.12, pubbal: 0.12, tradebal: 0.12, emis: 0.4 }, eco: true },
     { id: 'reset', label: 'Back to the class weights', weights: null }
   ];
   function electionsUpTo(state, year) {
@@ -404,7 +408,7 @@ var MS = (function () {
 
   return {
     LEVERS: LEVERS, TARIFF: TARIFF, EURO: EURO, TFP: TFP, CATS: CATS,
-    COUNTRIES: COUNTRIES, ROW: ROW, UNION: UNION, DEFAULT_GAME_COUNTRIES: DEFAULT_GAME_COUNTRIES, INDICATORS: INDICATORS,
+    COUNTRIES: COUNTRIES, ROW: ROW, UNION: UNION, DEFAULT_GAME_COUNTRIES: DEFAULT_GAME_COUNTRIES, INDICATORS: INDICATORS, indicatorsFor: indicatorsFor,
     countryById: countryById, countryName: countryName, leverById: leverById,
     defaultState: defaultState, mergeState: mergeState,
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
@@ -430,7 +434,7 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.6';
+  var VERSION = '1.7';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { return String(k || '').indexOf('UNION') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -833,7 +837,7 @@ var SHEETS = {
   config:    { name: 'Config',    header: ['key', 'value'] },
   groups:    { name: 'Groups',    header: ['classId', 'groupId', 'name', 'pin', 'country', 'members'] },
   decisions: { name: 'Decisions', header: null },   // built in decisionsHeader()
-  results:   { name: 'Results',   header: ['ts', 'classId', 'phase', 'round', 'key', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'detail'] },
+  results:   { name: 'Results',   header: ['ts', 'classId', 'phase', 'round', 'key', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'detail', 'emis'] },   // emis appended last (v1.7) so older sheets stay aligned
   pledges:   { name: 'Pledges',   header: ['ts', 'classId', 'round', 'groupId', 'country', 'text', 'payload'] },
   comments:  { name: 'Comments',  header: ['ts', 'classId', 'phase', 'round', 'groupId', 'text'] },
   log:       { name: 'Log',       header: ['ts', 'action', 'classId', 'who', 'details'] }
@@ -861,6 +865,12 @@ function getSheet_(ss, def) {
     sh = ss.insertSheet(def.name);
     sh.getRange(1, 1, 1, def.header.length).setValues([def.header]).setFontWeight('bold');
     sh.setFrozenRows(1);
+  } else if (def.header && def.header.length) {
+    /* migration: a column appended to a header (e.g. 'emis' in v1.7) is added to an existing sheet's header row */
+    var have = sh.getLastColumn ? sh.getLastColumn() : 0;
+    if (have > 0 && have < def.header.length) {
+      sh.getRange(1, have + 1, 1, def.header.length - have).setValues([def.header.slice(have)]).setFontWeight('bold');
+    }
   }
   return sh;
 }

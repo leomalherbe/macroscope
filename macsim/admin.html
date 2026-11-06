@@ -186,7 +186,7 @@
     var t = UI.countdownText(st().deadline, offset); if (!t) return;
     c.textContent = (t.late ? 'time is up ' : '') + t.text; c.classList.toggle('late', t.late);
   }
-  var SHORT = { gdp: 'GDP (%)', unemp: 'Unemp. (pt)', infl: 'Infl. (pt)', pubbal: 'Pub. bal. (pt GDP)', tradebal: 'Trade bal. (pt GDP)' };
+  var SHORT = { gdp: 'GDP (%)', unemp: 'Unemp. (pt)', infl: 'Infl. (pt)', pubbal: 'Pub. bal. (pt GDP)', tradebal: 'Trade bal. (pt GDP)', emis: 'Emis. (% ref.)' };
   /* 'entry' (MacSim entry sheets) is kept in the code but no longer listed */
   var TABS = [['control', 'Control'], ['groups', 'Groups'], ['run', 'Run'], ['results', 'Results'], ['council', 'Council'], ['export', 'Export']];
   function renderTabs() {
@@ -382,8 +382,8 @@
     box.appendChild(el('p', { class: 'muted small' }, ['One country, one vote; a majority of the playing countries is needed (a country without a decision votes hold / austerity). The crisis vote is held only when the union’s reserves ended the previous year below the alert line.']));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Objective function weights']));
     var wInputs = {};
-    box.appendChild(el('div', { class: 'params' }, MS.INDICATORS.map(function (i) { var f = numField((i.sign > 0 ? '+ ' : '− ') + i.label, s.weights[i.id]); wInputs[i.id] = f.input; return f.el; })));
-    box.appendChild(el('p', { class: 'muted small' }, ['R = Σ weight × deviation, with negative signs on unemployment and inflation. The engine computes the five deviations; R is computed here with these weights.']));
+    box.appendChild(el('div', { class: 'params' }, MS.indicatorsFor(st()).map(function (i) { var f = numField((i.sign > 0 ? '+ ' : '− ') + i.label, s.weights[i.id]); wInputs[i.id] = f.input; return f.el; })));
+    box.appendChild(el('p', { class: 'muted small' }, ['R = Σ weight × deviation, with negative signs on unemployment and inflation' + (MS.isEcoModel(st()) ? ' and emissions (sixth dimension of model v2.0: 0 by default, activated by an election — preset « Green » — or here)' : '') + '. The engine computes the deviations; R is computed here with these weights.']));
     box.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () {
       var allowed = Object.keys(allowedInputs).filter(function (k) { return allowedInputs[k].checked; });
       /* v2.0: the two ecological levers follow the model choice in the warm-up (added when switching to v2.0, dropped otherwise) */
@@ -534,7 +534,7 @@
     var existing = ov.results.filter(function (r) { return r.phase === resSel.phase && Number(r.round) === Number(resSel.round); });
     function find(k, y) { return existing.filter(function (r) { return r.key === k && Number(r.year) === Number(y); })[0]; }
     function mkInputs(r, ex) {
-      MS.INDICATORS.forEach(function (i) { var inp = el('input', { type: 'number', step: 0.001, value: ex && ex[i.id] !== null && ex[i.id] !== undefined ? ex[i.id] : '' }); inp.addEventListener('input', function () { recompute(r); }); r.inputs[i.id] = inp; });
+      MS.indicatorsFor(st()).forEach(function (i) { var inp = el('input', { type: 'number', step: 0.001, value: ex && ex[i.id] !== null && ex[i.id] !== undefined ? ex[i.id] : '' }); inp.addEventListener('input', function () { recompute(r); }); r.inputs[i.id] = inp; });
       r.R = el('input', { type: 'number', step: 0.001, value: ex && ex.R !== null && ex.R !== undefined ? ex.R : '', title: 'leave blank to compute R from the weights' });
       r.Rhint = el('span', { class: 'small muted' });
       r.cum = el('b');   // cumulative R: sum of the yearly scores up to this row (read-only)
@@ -544,12 +544,12 @@
     function rowR(r) {
       if (r.R.value !== '' && !isNaN(MS.num(r.R.value))) return MS.num(r.R.value);
       var dev = {}, any = false;
-      MS.INDICATORS.forEach(function (i) { var val = r.inputs[i.id].value; if (val !== '') { dev[i.id] = MS.num(val); any = true; } });
+      MS.indicatorsFor(st()).forEach(function (i) { var val = r.inputs[i.id].value; if (val !== '') { dev[i.id] = MS.num(val); any = true; } });
       return any ? MS.scoreR(dev, s.weights) : null;
     }
     function recompute(r) {
       var dev = {}; var any = false;
-      MS.INDICATORS.forEach(function (i) { var val = r.inputs[i.id].value; if (val !== '') { dev[i.id] = MS.num(val); any = true; } });
+      MS.indicatorsFor(st()).forEach(function (i) { var val = r.inputs[i.id].value; if (val !== '') { dev[i.id] = MS.num(val); any = true; } });
       r.Rhint.textContent = r.R.value === '' && any ? '(computed: ' + MS.fmt(MS.scoreR(dev, s.weights), 2, true) + ')' : '';
       /* running sum over the rows of the same key (warm-up: the group's years; game: earlier saved years + this one) */
       var acc = r.cumBase || 0, seen = false;
@@ -559,13 +559,13 @@
       });
     }
     function fillRow(r, data) {
-      MS.INDICATORS.forEach(function (i) { if (data[i.id] !== '' && data[i.id] !== undefined) r.inputs[i.id].value = data[i.id]; });
+      MS.indicatorsFor(st()).forEach(function (i) { if (data[i.id] !== '' && data[i.id] !== undefined) r.inputs[i.id].value = data[i.id]; });
       if (data.R !== '' && data.R !== undefined) r.R.value = data.R;
       r.detail = data.detail || null;
       recompute(r);
-      MS.INDICATORS.forEach(function (i) { r.inputs[i.id].classList.add('nz'); }); r.R.classList.add('nz');
+      MS.indicatorsFor(st()).forEach(function (i) { r.inputs[i.id].classList.add('nz'); }); r.R.classList.add('nz');
     }
-    function rowCells(r) { return MS.INDICATORS.map(function (i) { return el('td', { class: 'num' }, [r.inputs[i.id]]); }).concat([el('td', { class: 'num' }, [r.R, el('br'), r.Rhint]), el('td', { class: 'num', title: 'cumulative R: sum of the yearly scores' }, [r.cum])]); }
+    function rowCells(r) { return MS.indicatorsFor(st()).map(function (i) { return el('td', { class: 'num' }, [r.inputs[i.id]]); }).concat([el('td', { class: 'num' }, [r.R, el('br'), r.Rhint]), el('td', { class: 'num', title: 'cumulative R: sum of the yearly scores' }, [r.cum])]); }
 
     if (resSel.phase === 'warmup') {
       groupsSorted().forEach(function (g) {
@@ -573,7 +573,7 @@
         var pub = el('input', { type: 'checkbox' }); var ex0 = find(g.groupId, 1); pub.checked = !!(ex0 && ex0.published);
         var dec = decisionsFor('warmup', 1).filter(function (d) { return d.groupId === g.groupId; })[0];
         block.appendChild(el('div', { class: 'head' }, [el('span', {}, [el('b', {}, [g.name]), ' ', el('span', { class: 'muted small' }, [dec ? 'plan submitted ' + UI.fmtTime(dec.ts) : 'no plan submitted'])]), el('label', { class: 'small' }, [pub, ' published to the group'])]));
-        var tbl = el('table', { class: 'resgrid' }); tbl.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Year'])].concat(MS.INDICATORS.map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R']), el('th', { class: 'num' }, ['Cum. R'])]))]));
+        var tbl = el('table', { class: 'resgrid' }); tbl.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Year'])].concat(MS.indicatorsFor(st()).map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R']), el('th', { class: 'num' }, ['Cum. R'])]))]));
         var tb = el('tbody');
         for (var y = 1; y <= s.warmup.years; y++) {
           var r = { key: g.groupId, groupId: g.groupId, year: y, inputs: {}, pub: pub }; mkInputs(r, find(g.groupId, y)); rows.push(r);
@@ -588,7 +588,7 @@
         c.appendChild(block);
       });
     } else {
-      var tbl2 = el('table', { class: 'resgrid' }); tbl2.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Country']), el('th', {}, ['Group'])].concat(MS.INDICATORS.map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R']), el('th', { class: 'num' }, ['Cum. R']), el('th', {}, ['Published'])]))]));
+      var tbl2 = el('table', { class: 'resgrid' }); tbl2.appendChild(el('thead', {}, [el('tr', {}, [el('th', {}, ['Country']), el('th', {}, ['Group'])].concat(MS.indicatorsFor(st()).map(function (i) { return el('th', { class: 'num' }, [SHORT[i.id]]); })).concat([el('th', { class: 'num' }, ['R']), el('th', { class: 'num' }, ['Cum. R']), el('th', {}, ['Published'])]))]));
       var tb2 = el('tbody');
       var played = ov.groups.filter(function (g) { return g.country; }).map(function (g) { return g.country; });
       MS.COUNTRIES.filter(function (cc) { return played.indexOf(cc.id) >= 0; }).forEach(function (cc) {
@@ -607,13 +607,13 @@
           var rowsC = gameRows.filter(function (r) { return r.key === cc.id; });
           if (rowsC.length) tgA.appendChild(el('div', { html: UI.trajectorySvg(rowsC, { weights: st().weights, title: cc.name, height: 250, legend: false, fontScale: 1.6 }) }));
         });
-        c.appendChild(el('details', { class: 'small', style: 'margin-top:10px' }, [el('summary', {}, ['The objective, year by year (all years saved so far)']), tgA, el('div', { html: UI.trajectoryLegendHtml() })]));
+        c.appendChild(el('details', { class: 'small', style: 'margin-top:10px' }, [el('summary', {}, ['The objective, year by year (all years saved so far)']), tgA, el('div', { html: UI.trajectoryLegendHtml(MS.isEcoModel(st())) })]));
       }
     }
 
     async function save(publishAll) {
-      var out = rows.map(function (r) { var o = { key: r.key, year: r.year, published: publishAll ? true : r.pub.checked, R: r.R.value, detail: r.detail || '' }; MS.INDICATORS.forEach(function (i) { o[i.id] = r.inputs[i.id].value; }); return o; })
-        .filter(function (o) { return o.R !== '' || MS.INDICATORS.some(function (i) { return o[i.id] !== ''; }); });
+      var out = rows.map(function (r) { var o = { key: r.key, year: r.year, published: publishAll ? true : r.pub.checked, R: r.R.value, detail: r.detail || '' }; MS.indicatorsFor(st()).forEach(function (i) { o[i.id] = r.inputs[i.id].value; }); return o; })
+        .filter(function (o) { return o.R !== '' || MS.indicatorsFor(st()).some(function (i) { return o[i.id] !== ''; }); });
       if (!out.length) { UI.toast('Nothing to save'); return; }
       var r = await admin('admin.results.set', { phase: resSel.phase, round: resSel.round, rows: out });
       if (r.ok) { UI.toast(r.saved + ' rows saved' + (publishAll ? ' and published' : '')); await refresh(); }
@@ -689,13 +689,13 @@
     var det = Object.assign({}, c.detail || {}); delete det.byPart;
     var row = { key: key, year: year, detail: roundDeep(det, 4) };
     var dev = {};
-    MS.INDICATORS.forEach(function (i) { row[i.id] = MS.round3(MS.num(c[i.id])); dev[i.id] = row[i.id]; });
+    MS.indicatorsFor(st()).forEach(function (i) { row[i.id] = MS.round3(MS.num(c[i.id])); dev[i.id] = row[i.id]; });
     row.R = MS.scoreR(dev, weights);
     /* R is linear in the indicators: split it the same way (own policy / foreign policies / shocks) */
     var Rparts = {}, anyPart = false;
     ['shock', 'nat', 'foreign', 'climate'].forEach(function (p) {
       var pd = {}, has = false;
-      MS.INDICATORS.forEach(function (i) { var x = det[i.id] && det[i.id][p]; if (x !== undefined && x !== null) { pd[i.id] = x; has = true; } });
+      MS.indicatorsFor(st()).forEach(function (i) { var x = det[i.id] && det[i.id][p]; if (x !== undefined && x !== null) { pd[i.id] = x; has = true; } });
       if (has) { Rparts[p] = MS.scoreR(pd, weights); anyPart = true; }
     });
     if (anyPart) row.detail.R = Rparts;
@@ -802,18 +802,18 @@
     playing.forEach(function (g) { scope.appendChild(el('option', { value: g.country }, [MS.countryName(g.country) + ' (' + g.name + ')'])); });
     var label = el('input', { type: 'text', placeholder: 'label shown to the players, e.g. "Left: unemployment first"', style: 'min-width:280px' });
     var winputs = {};
-    function fillFrom(w) { MS.INDICATORS.forEach(function (i) { winputs[i.id].value = w && w[i.id] !== undefined && w[i.id] !== null ? w[i.id] : ''; }); }
+    function fillFrom(w) { MS.indicatorsFor(st()).forEach(function (i) { winputs[i.id].value = w && w[i.id] !== undefined && w[i.id] !== null ? w[i.id] : ''; }); }
     function currentFor(sc) { return MS.weightsFor(Object.assign({}, s, { shocks: Object.assign({}, s.shocks || {}, (function () { var o = {}; o[key] = Object.assign({}, cur, { elections: [] }); return o; })()) }), N, sc === 'ALL' ? '__union__' : sc); }
     var wrow = el('div', { class: 'params', style: 'margin:6px 0' });
-    MS.INDICATORS.forEach(function (i) { var inp = el('input', { type: 'number', step: 0.05, min: 0, style: 'width:5.5em' }); winputs[i.id] = inp; wrow.appendChild(el('div', {}, [el('label', { class: 'small' }, [i.label]), el('br'), inp])); });
+    MS.indicatorsFor(st()).forEach(function (i) { var inp = el('input', { type: 'number', step: 0.05, min: 0, style: 'width:5.5em' }); winputs[i.id] = inp; wrow.appendChild(el('div', {}, [el('label', { class: 'small' }, [i.label]), el('br'), inp])); });
     fillFrom(currentFor('ALL'));
     scope.addEventListener('change', function () { fillFrom(currentFor(scope.value)); });
     var presets = el('div', { class: 'btnrow', style: 'margin:4px 0' });
-    MS.ELECTION_PRESETS.forEach(function (pz) { presets.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { fillFrom(pz.weights || s.weights); label.value = pz.label; } }, [pz.label])); });
+    MS.ELECTION_PRESETS.filter(function (pz) { return !pz.eco || MS.isEcoModel(st()); }).forEach(function (pz) { presets.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { fillFrom(pz.weights || s.weights); label.value = pz.label; } }, [pz.label])); });
     card.appendChild(el('div', { class: 'btnrow' }, [el('label', { class: 'small' }, ['Scope ']), scope, label]));
     card.appendChild(presets); card.appendChild(wrow);
     card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () {
-      var w = {}, any = false; MS.INDICATORS.forEach(function (i) { var v = MS.num(winputs[i.id].value); if (winputs[i.id].value !== '' && !isNaN(v) && v >= 0) { w[i.id] = v; any = true; } });
+      var w = {}, any = false; MS.indicatorsFor(st()).forEach(function (i) { var v = MS.num(winputs[i.id].value); if (winputs[i.id].value !== '' && !isNaN(v) && v >= 0) { w[i.id] = v; any = true; } });
       if (!any) { UI.toast('Enter the five weights (or use a preset).'); return; }
       var isReset = MS.sameWeights(w, s.weights);
       var nl = list.slice(); nl.push({ scope: scope.value, weights: isReset ? null : w, label: label.value.trim() || (isReset ? 'Back to the class weights' : 'New weights') });
@@ -968,11 +968,11 @@
     var isGame = runPreview.phase === 'game';
     var card = el('div', { class: 'card', style: 'margin-top:14px' });
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [isGame ? 'Preview · year ' + runPreview.round : 'Preview · warm-up']), el('span', { class: 'small muted' }, ['run at ' + UI.fmtTime(runPreview.ts) + ' · not published yet'])]));
-    var h = '<div class="tablewrap"><table class="resgrid"><thead><tr><th>' + (isGame ? 'Country' : 'Group') + '</th><th>Year</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(SHORT[i.id]) + '</th>'; }).join('') + '<th class="num">R</th><th class="num">of which own / foreign / shocks (GDP)</th></tr></thead><tbody>';
+    var h = '<div class="tablewrap"><table class="resgrid"><thead><tr><th>' + (isGame ? 'Country' : 'Group') + '</th><th>Year</th>' + MS.indicatorsFor(st()).map(function (i) { return '<th class="num">' + esc(SHORT[i.id]) + '</th>'; }).join('') + '<th class="num">R</th><th class="num">of which own / foreign / shocks (GDP)</th></tr></thead><tbody>';
     runPreview.rows.filter(function (r) { return String(r.key).indexOf('UNION') !== 0; }).forEach(function (r) {
       var who = isGame ? MS.countryName(r.key) + (r._group ? ' <span class="muted small">' + esc(r._group.name) + '</span>' : '') : esc(r._group ? r._group.name : r.key);
       var d = r.detail && r.detail.gdp ? r.detail.gdp : null;
-      h += '<tr><td><b>' + who + '</b></td><td>' + r.year + '</td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * r[i.id]) + '">' + esc(MS.fmt(r[i.id], 3, true)) + '</td>'; }).join('') +
+      h += '<tr><td><b>' + who + '</b></td><td>' + r.year + '</td>' + MS.indicatorsFor(st()).map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * r[i.id]) + '">' + esc(MS.fmt(r[i.id], 3, true)) + '</td>'; }).join('') +
         '<td class="num ' + UI.signedClass(r.R) + '"><b>' + esc(MS.fmt(r.R, 3, true)) + '</b></td><td class="num small muted">' + (d ? esc(MS.fmt(d.nat, 2, true)) + ' / ' + esc(MS.fmt(d.foreign, 2, true)) + ' / ' + esc(MS.fmt(d.shock, 2, true)) : '') + '</td></tr>';
     });
     card.appendChild(el('div', { html: h + '</tbody></table></div>' }));
@@ -1014,7 +1014,7 @@
   }
   async function publishRun(publish) {
     if (!runPreview) return;
-    var out = runPreview.rows.map(function (r) { var o = { key: r.key, year: r.year, published: !!publish, R: r.R === null || r.R === undefined ? '' : r.R, detail: r.detail || '' }; MS.INDICATORS.forEach(function (i) { o[i.id] = r[i.id] === undefined ? '' : r[i.id]; }); return o; });
+    var out = runPreview.rows.map(function (r) { var o = { key: r.key, year: r.year, published: !!publish, R: r.R === null || r.R === undefined ? '' : r.R, detail: r.detail || '' }; MS.indicatorsFor(st()).forEach(function (i) { o[i.id] = r[i.id] === undefined ? '' : r[i.id]; }); return o; });
     var r = await admin('admin.results.set', { phase: runPreview.phase, round: runPreview.round, rows: out });
     if (r.ok) { UI.toast(r.saved + ' rows saved' + (publish ? ' and published' : '')); runPreview = null; await refresh(); }
   }
@@ -1063,7 +1063,7 @@
     var plRows = ov.pledges.map(function (x) { var g = groupById(x.groupId); return { ts: x.ts, round: x.round, group: g ? g.name : x.groupId, country: MS.countryName(x.country), text: x.text, values: x.payload ? UI.yearChips(x.payload.year).map(function (ch) { return ch.label + ' ' + ch.value; }).join('; ') : '' }; });
     var row = el('div', { class: 'btnrow' });
     row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macsim_' + tag + '_decisions.csv', csv(decRows, decCols), 'text/csv'); } }, ['Decisions (CSV)']));
-    row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macsim_' + tag + '_results.csv', csv(resRows, ['phase', 'round', 'who', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'ts']), 'text/csv'); } }, ['Results (CSV)']));
+    row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macsim_' + tag + '_results.csv', csv(resRows, ['phase', 'round', 'who', 'year'].concat(MS.indicatorsFor(st()).map(function (i) { return i.id; })).concat(['R', 'published', 'ts'])), 'text/csv'); } }, ['Results (CSV)']));
     row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macsim_' + tag + '_comments.csv', csv(cmRows, ['ts', 'phase', 'round', 'group', 'text']), 'text/csv'); } }, ['Analyses (CSV)']));
     row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macsim_' + tag + '_pledges.csv', csv(plRows, ['ts', 'round', 'group', 'country', 'text', 'values']), 'text/csv'); } }, ['Pledges (CSV)']));
     row.appendChild(el('button', { class: 'btn ghost', onclick: function () { UI.download('macsim_' + tag + '_all.json', JSON.stringify(ov, null, 2), 'application/json'); } }, ['Everything (JSON)']));
