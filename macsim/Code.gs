@@ -25,12 +25,17 @@ var MS = (function () {
     { id: 'vat',      n: 4, label: 'Consumption tax (VAT)',       hint: 'tax on consumption spending; also lifts prices',       cat: 'supply' },
     /* v2.0 (model v2.0 only): one-sided levers, 0 to bounds.eco */
     { id: 'ctax',     n: 5, label: 'Carbon tax',                  hint: 'points; paid by firms on their emissions (1 pt ≈ 0.2 % of GDP of revenue); lifts prices the year it changes; cuts the carbon intensity by 4 % per point the next year', cat: 'eco', eco: true, unit: 'pt' },
-    { id: 'green',    n: 6, label: 'Green public investment',     hint: 'units of 0.2 pt of GDP of public investment (demand, deficit); cuts the carbon intensity by 2.5 % per unit the next year', cat: 'eco', eco: true, unit: '× 0.2 pt GDP' }
+    { id: 'green',    n: 6, label: 'Green public investment',     hint: 'units of 0.2 pt of GDP of public investment (demand, deficit); cuts the carbon intensity by 2.5 % per unit the next year', cat: 'eco', eco: true, unit: '× 0.2 pt GDP' },
+    /* duel (arcade mode): each player sets its own policy rate, in points around the reference, ±bounds.rate */
+    { id: 'rate',     n: 7, label: 'Policy rate',                hint: 'points above (+) or below (−) the reference rate of 3 %; acts on investment next year, on debt service and on capital flows (a higher rate pulls capital in and appreciates your currency)', cat: 'money', eco: true, duel: true, unit: 'pt' }
   ];
   /* the levers available to a class: the four demand/supply levers, plus the two ecological levers when the model is v2.0 */
-  function isEcoModel(state) { return !!(state && state.sim && String(state.sim.model) === 'v2.0'); }
-  function leversFor(state) { var eco = isEcoModel(state); return LEVERS.filter(function (l) { return !l.eco || eco; }); }
-  LEVERS.forEach(function (l) { l.unit = '% of ref.'; });
+  function isDuel(state) { return !!(state && state.kind === 'duel'); }
+  function isEcoModel(state) { return isDuel(state) || !!(state && state.sim && String(state.sim.model) === 'v2.0'); }
+  function leversFor(state) { var eco = isEcoModel(state), duel = isDuel(state); return LEVERS.filter(function (l) { return (!l.eco || eco) && (!l.duel || duel); }); }
+  /* duel groups: their "country" is 'p<pair>:<side>' */
+  function duelOf(country) { var m = /^p(\d+):([AB])$/.exec(String(country || '')); return m ? { pair: Number(m[1]), side: m[2], key: 'p' + m[1] + ':' + m[2], partner: 'p' + m[1] + ':' + (m[2] === 'A' ? 'B' : 'A'), pairKey: 'DUEL:p' + m[1] } : null; }
+  LEVERS.forEach(function (l) { if (!l.unit) l.unit = '% of ref.'; });
   /* kept for compatibility with older classes; off by default (not part of OPEN-MU v1) */
   var TARIFF = { id: 'tariff', n: 11, label: 'Import tariffs', hint: 'by partner country, absolute variation in points', unit: 'pt (absolute)', cat: 'trade' };
   var EURO   = { id: 'euro',   label: 'Monetary union',  hint: 'leave or join the monetary union', cat: 'monetary' };
@@ -40,6 +45,7 @@ var MS = (function () {
     demand:     'Demand-side policies',
     supply:     'Supply-side policies',
     trade:      'Trade policy',
+    money:      'Monetary policy (duel)',
     monetary:   'Monetary policy',
     structural: 'Structural policy',
     eco:        'Ecological policies'
@@ -77,7 +83,7 @@ var MS = (function () {
     for (var i = 0; i < COUNTRIES.length; i++) if (COUNTRIES[i].id === id) return COUNTRIES[i];
     return null;
   }
-  function countryName(id) { var c = countryById(id); return c ? c.name : (id || '—'); }
+  function countryName(id) { var c = countryById(id); if (c) return c.name; var d = duelOf(id); return d ? 'Pair ' + d.pair + ' · Country ' + d.side : (id || '—'); }
   function leverById(id) {
     if (id === 'tariff') return TARIFF;
     for (var i = 0; i < LEVERS.length; i++) if (LEVERS[i].id === id) return LEVERS[i];
@@ -87,6 +93,7 @@ var MS = (function () {
   /* ---------- Default state of a class (one state per class, kept by the backend) ---------- */
   function defaultState() {
     return {
+      kind: 'union',              // 'union' (N members, one currency) | 'duel' (arcade: pairs of two countries, two currencies)
       phase: 'warmup',            // 'warmup' | 'game'
       round: 1,                   // game year (warm-up has a single round)
       status: 'closed',           // 'open' | 'closed'  (submissions accepted only when open)
@@ -98,7 +105,7 @@ var MS = (function () {
       publishLeaderboard: true,   // students and board see the ranking
       showDecisionsWhenClosed: true, // once a round is closed, every group can see everyone's decisions for that round
       years: 5,                   // length of the real game
-      bounds: { lever: 10, tariff: 10, tfp: 10, eco: 10 },   // all relative variations, in %; eco: upper bound of the one-sided v2.0 levers
+      bounds: { lever: 10, tariff: 10, tfp: 10, rate: 2, eco: 10 },   // all relative variations, in %; eco: upper bound of the one-sided v2.0 levers
       warmup: {
         country: 'FRA',
         years: 3,
@@ -190,7 +197,9 @@ var MS = (function () {
     var res = { weights: base, label: '', scope: null, year: null, elected: false };
     if (!state || state.phase !== 'game') return res;
     var list = electionsUpTo(state, year), pick = null;
+    var d = duelOf(country);
     list.forEach(function (e) { if (e.scope === String(country)) pick = e; });
+    if (!pick && d) list.forEach(function (e) { if (e.scope === d.side) pick = e; });   // duel: 'A' / 'B' = every A / B side
     if (!pick) list.forEach(function (e) { if (e.scope === 'ALL') pick = e; });
     if (!pick || !pick.weights) return res;
     var w = Object.assign({}, base);
@@ -285,6 +294,13 @@ var MS = (function () {
       LEVERS.forEach(function (l) {
         var v = num(y.levers ? y.levers[l.id] : 0);
         if (isNaN(v)) { errors.push('Year ' + (yi + 1) + ': "' + l.label + '" is not a number.'); v = 0; }
+        if (l.duel) {
+          /* duel: policy rate in points, two-sided, ±bounds.rate */
+          if (v !== 0 && !isDuel(st)) { errors.push('"' + l.label + '" belongs to the duel mode (not this class).'); v = 0; }
+          else if (Math.abs(v) > num(st.bounds.rate || 2) + 1e-9) errors.push('Year ' + (yi + 1) + ': "' + l.label + '" must stay within ±' + num(st.bounds.rate || 2) + ' points.');
+          cy.levers[l.id] = round2(v);
+          return;
+        }
         if (l.eco) {
           /* v2.0 levers: only in a v2.0 class, one-sided, 0 to bounds.eco */
           if (v !== 0 && !ecoOn) { errors.push('"' + l.label + '" belongs to model v2.0 (not this class).'); v = 0; }
@@ -412,7 +428,7 @@ var MS = (function () {
     countryById: countryById, countryName: countryName, leverById: leverById,
     defaultState: defaultState, mergeState: mergeState,
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
-    scoreR: scoreR, ELECTION_PRESETS: ELECTION_PRESETS, electionsUpTo: electionsUpTo, weightsInfo: weightsInfo, weightsFor: weightsFor, sameWeights: sameWeights, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision, isEcoModel: isEcoModel, leversFor: leversFor, crisisOf: crisisOf, validateCrisisVote: validateCrisisVote, tallyCrisis: tallyCrisis,
+    scoreR: scoreR, isDuel: isDuel, duelOf: duelOf, ELECTION_PRESETS: ELECTION_PRESETS, electionsUpTo: electionsUpTo, weightsInfo: weightsInfo, weightsFor: weightsFor, sameWeights: sameWeights, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision, isEcoModel: isEcoModel, leversFor: leversFor, crisisOf: crisisOf, validateCrisisVote: validateCrisisVote, tallyCrisis: tallyCrisis,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
@@ -434,9 +450,9 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.7';
+  var VERSION = '1.8';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
-  function isUnionKey(k) { return String(k || '').indexOf('UNION') === 0; }
+  function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
 
   function fail(msg) { return { ok: false, error: msg }; }
@@ -553,7 +569,9 @@ var MSService = (function () {
     var myResults = results.filter(function (r) {
       return (r.phase === 'warmup' && r.key === g.groupId) || (r.phase === 'game' && r.key === g.country);
     });
+    var duel = MS.duelOf(g.country);
     var union = results.filter(function (r) {
+      if (duel) return r.phase === 'game' && r.key === duel.pairKey;   // duel: the pair's row (exchange rate, both reserves, climate)
       return (r.phase === 'warmup' && r.key === 'UNION:' + g.groupId) || (r.phase === 'game' && r.key === 'UNION');
     });
     var gameResults = state.publishLeaderboard ? results.filter(function (r) { return r.phase === 'game' && !isUnionKey(r.key); }) : [];
@@ -576,6 +594,7 @@ var MSService = (function () {
       ok: true, version: VERSION, now: iso(now),
       group: publicGroup(g), groups: groups, state: state,
       roundOpen: roundOpen(state, now),
+      partner: duel ? (function () { var pg = groups.filter(function (x) { return x.country === duel.partner; })[0]; return pg ? { groupId: pg.groupId, name: pg.name, country: pg.country, side: duel.side === 'A' ? 'B' : 'A', pair: duel.pair } : null; })() : null,
       myDecisions: mine.map(function (d) { return { phase: d.phase, round: Number(d.round), country: d.country, payload: d.payload, ts: d.ts }; }),
       myResults: myResults,
       union: union,
@@ -689,7 +708,7 @@ var MSService = (function () {
       crisisVotesIn: decisions.filter(function (d) { return d.phase === 'crisis' && Number(d.round) === Number(state.round); }).length,
       gameResults: state.publishLeaderboard ? results.filter(function (r) { return r.phase === 'game' && !isUnionKey(r.key); }) : [],
       warmupAll: state.revealWarmup ? results.filter(function (r) { return r.phase === 'warmup' && !isUnionKey(r.key); }) : [],
-      union: results.filter(function (r) { return r.phase === state.phase && (state.phase === 'game' ? r.key === 'UNION' : isUnionKey(r.key)); }),
+      union: results.filter(function (r) { return r.phase === state.phase && (state.phase === 'game' ? (r.key === 'UNION' || String(r.key).indexOf('DUEL:') === 0) : isUnionKey(r.key)); }),
       pledges: state.councilOpen ? pledges.filter(function (x) { return x.round === Number(state.round); }) : [],
       reveals: reveals,
       decisionsAll: closedRoundDecisions(state, decisions),

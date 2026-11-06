@@ -88,6 +88,7 @@ tr.cat td{background:var(--blue-soft);color:var(--navy);font-weight:600;font-siz
 td .hint{display:block;font-size:.78rem;color:var(--muted)}
 td.unit{color:var(--muted);font-size:.82rem;white-space:nowrap}
 tr.me td{background:var(--gold-soft)}
+tr.partner td{background:var(--blue-soft)}
 tr.bd td{border-bottom:none;padding-top:1px;padding-bottom:1px;background:#fdfcf8}
 tr.bd + tr:not(.bd) td{border-top:1px solid var(--line)}
 .tablewrap{overflow-x:auto}

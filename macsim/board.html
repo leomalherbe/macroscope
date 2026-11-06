@@ -79,7 +79,7 @@
   function render() {
     var st = data.state;
     $('#title').textContent = 'OPEN-MU · ' + data.className;
-    $('#sub').textContent = st.phase === 'warmup' ? 'Every group governs ' + MS.countryName(st.warmup.country) + ' for ' + st.warmup.years + ' years while the other economies stand still.' : 'One monetary union, one world: your decisions move everyone else.';
+    $('#sub').textContent = MS.isDuel(st) ? 'Arcade duels: two countries, two currencies, one shared climate — every pair is its own world.' : st.phase === 'warmup' ? 'Every group governs ' + MS.countryName(st.warmup.country) + ' for ' + st.warmup.years + ' years while the other economies stand still.' : 'One monetary union, one world: your decisions move everyone else.';
     var who = $('#who'); who.innerHTML = '';
     who.appendChild(el('span', { class: 'big', style: 'color:#fff' }, [phaseLabel(st)]));
     who.appendChild(el('br'));
@@ -101,7 +101,29 @@
     });
     subCard.appendChild(grid);
     right.appendChild(subCard);
-    if (st.phase === 'game') { var uc = unionCard(data.union || [], 'The monetary union'); if (uc) left.appendChild(uc); }
+    if (st.phase === 'game' && MS.isDuel(st)) {
+      /* duel: one panel per pair (exchange rate, both reserves, climate, R of both) */
+      var pairs = {};
+      (data.groups || []).forEach(function (g) { var d = MS.duelOf(g.country); if (!d) return; pairs[d.pair] = pairs[d.pair] || { pair: d.pair }; pairs[d.pair][d.side] = g; });
+      var pc = el('div', { class: 'card' }); pc.appendChild(el('h2', {}, ['The duels']));
+      var pg = el('div', { class: 'trajgrid' }), anyP = false;
+      Object.keys(pairs).map(Number).sort(function (a, b) { return a - b; }).forEach(function (k) {
+        var pr = pairs[k];
+        var lat = (data.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'DUEL:p' + k && r.detail && r.detail.extra; }).sort(function (a, b) { return b.year - a.year; })[0];
+        var box = el('div', { class: 'union', style: 'padding:10px 12px' });
+        box.appendChild(el('h3', {}, ['Pair ' + k + ' · ' + (pr.A ? pr.A.name : 'A') + ' vs ' + (pr.B ? pr.B.name : 'B') + (lat ? ' · after year ' + lat.year : '')]));
+        if (lat) {
+          anyP = true;
+          var rs = ['A', 'B'].map(function (sd) { var g = pr[sd]; var rows = g ? (data.gameResults || []).filter(function (r) { return r.key === g.country; }) : []; var cum = rows.reduce(function (a, r) { return a + MS.num(r.R); }, 0); return 'Country ' + sd + ' R ' + MS.fmt(cum, 2, true); });
+          box.appendChild(el('div', { html: UI.duelPanelHtml(lat.detail.extra, null) }));
+          box.appendChild(el('p', { class: 'small', style: 'margin:.3em 0 0' }, ['Cumulative R — ' + rs.join(' · ')]));
+        } else box.appendChild(el('p', { class: 'muted small' }, ['No year simulated yet.']));
+        pg.appendChild(box);
+      });
+      pc.appendChild(pg);
+      if (!Object.keys(pairs).length) pc.appendChild(el('p', { class: 'muted' }, ['No pair yet.']));
+      left.appendChild(pc);
+    } else if (st.phase === 'game') { var uc = unionCard(data.union || [], 'The monetary union'); if (uc) left.appendChild(uc); }
 
     if (st.phase === 'game') {
       /* ranking */
@@ -124,7 +146,7 @@
         c.appendChild(el('div', { html: h + '</tbody></table></div>' }));
         var elec = (data.groups || []).filter(function (g) { return g.country; }).map(function (g) { return { c: g.country, wi: MS.weightsInfo(st, st.round, g.country) }; }).filter(function (x) { return x.wi.elected; });
         if (elec.length) c.appendChild(el('p', { class: 'small', style: 'margin:.4em 0 0', html: '<b>Elections</b> — objective weights in force in year ' + esc(st.round) + ': ' + elec.map(function (x) { return esc(MS.countryName(x.c)) + ' · ' + esc(UI.weightsLine(x.wi.weights, x.wi.label)); }).join(' ; ') }));
-        c.appendChild(el('p', { class: 'muted small' }, ['R is the score of each year: ' + st.weights.gdp + '·ΔGDP − ' + st.weights.unemp + '·Δunemployment − ' + st.weights.infl + '·Δinflation + ' + st.weights.pubbal + '·Δpublic balance + ' + st.weights.tradebal + '·Δtrade balance (deviations from the reference path). Countries are ranked by the cumulative R, the sum of their yearly scores.']));
+        c.appendChild(el('p', { class: 'muted small' }, [(MS.isDuel(st) ? 'Every player of every pair. ' : '') + 'R is the score of each year: ' + st.weights.gdp + '·ΔGDP − ' + st.weights.unemp + '·Δunemployment − ' + st.weights.infl + '·Δinflation + ' + st.weights.pubbal + '·Δpublic balance + ' + st.weights.tradebal + '·Δtrade balance (deviations from the reference path). Countries are ranked by the cumulative R, the sum of their yearly scores.']));
         /* latest year detail */
         var latestYear = Math.max.apply(null, yl);
         var det = el('div', { class: 'card' }); det.appendChild(el('h2', {}, ['Year ' + latestYear + ' in detail']));

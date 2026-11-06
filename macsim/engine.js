@@ -755,6 +755,323 @@ var OPENMU = (function () {
     return out;
   }
 
+  /* =====================================================================
+     DUEL (arcade mode, spec section 11): two identical economies A and B,
+     each with its own currency and central bank, trading only with each
+     other, holding each other's bills, a bilateral exchange rate e
+     (A's currency per unit of B's) fixed or floating per year, a closed
+     climate block (S fed by E_A + E_B). Each side is the one-member v2.0
+     economy; the partner replaces the exogenous rest of the world. The
+     union code above is untouched (bit for bit).
+     ===================================================================== */
+  var SIDES = ['A', 'B'];
+  function partnerOf(x) { return x === 'A' ? 'B' : 'A'; }
+  function duelParams(params) {
+    var p = mergeParams(Object.assign({}, paramsFor('v2.0'), params || {}, { firms: true, prices: true, capital: true, eco: true }));
+    p.duel = true;
+    p.sR = 1;                 // every import comes from the partner
+    p.ewMult = 0;             // no rest of the world: the two players are the world
+    p.lambdaF1 = (params && params.lambdaF1) || 0.6;   // both sides' portfolios react: halved so that +1 pt on the policy rate moves e by ~6 %
+    p.countries = [{ id: 'A', name: 'Country A', size: 100 }, { id: 'B', name: 'Country B', size: 100 }];
+    if (params && params.sizeA) p.countries[0].size = params.sizeA;
+    if (params && params.sizeB) p.countries[1].size = params.sizeB;
+    p.rateMax = params && params.rateMax ? params.rateMax : 2;   // policy-rate lever bound, points
+    p.forcedDeval = params && params.forcedDeval ? params.forcedDeval : 15;   // forced devaluation of an exhausted side, %
+    return p;
+  }
+  /* reference state of one side: the v1.1/v1.3 calibration of a one-member economy whose trade partner is the other side */
+  function calibrateDuel(params) {
+    var p = params && params.duel ? params : duelParams(params);
+    var tauc = p.tau / (1 + p.tau);
+    var ref = { countries: {}, params: p, pair: {} };
+    p.countries.forEach(function (c) {
+      var Y = c.size, G = p.g * Y, TR = p.tr * Y;
+      var K = p.kappaK * Y, I = p.delta * K, L = K, AF = p.delta * K;
+      var C = Y - G - I, CE = C / (1 - tauc);
+      var V = (1 - p.alpha1) / p.alpha2 * CE;
+      var BhAll = V * billsShare(p, p.r);
+      var Bf = p.bwShare * Y, Bh = BhAll - Bf;
+      var M = (V - BhAll) * p.nu, H = (V - BhAll) * (1 - p.nu);
+      var YF = Y - AF - p.r * L;
+      var base = YF + p.r * (Bh + M) + p.r * Bf;
+      var theta = 1 - (CE - TR) / base;
+      var Bb = Math.max(0, M - L), A = Math.max(0, L - M);
+      var IM = p.mu * Y;
+      var R0 = (p.reserveMonths / 12) * IM;      // reserves of this side's central bank, in the partner's currency (e = 1)
+      var Bcb = H - R0 - A;
+      var T = theta * base + tauc * CE;
+      ref.countries[c.id] = { id: c.id, name: c.name, size: c.size, Y: Y, G: G, TR: TR, theta: theta, tau: p.tau, tauc: tauc, C: C, CE: CE, YD: CE, V: V,
+        Bh: Bh, Bf: Bf, Bw: Bf, lambdaF0: Bf / V, M: M, H: H, I: I, K: K, L: L, AF: AF, YF: YF, Bb: Bb, A: A, IM: IM, IMR: IM, IMU: 0, xR: IM, XR: IM, X: IM, IMV: IM,
+        T: T, R0: R0, Bcb: Bcb, B: Bh + Bb + Bcb + Bf, Fcb: p.r * (Bcb + A), PB: 0, TB: 0, E0: p.ci0 * Y };
+    });
+    var E0 = ref.countries.A.E0 + ref.countries.B.E0;
+    ref.pair = { e0: 1, r0: p.r, S0: p.s0Years * E0, E0: E0 };
+    return ref;
+  }
+  function clampRate(v, mx) { return Math.max(-mx, Math.min(mx, num(v))); }
+  /* simulateDuel({params, years, policies:{A:[...],B:[...]}, shocks:[{confidence, imports, disaster, regime, devalA, devalB, backstop, demandA, demandB}]}) */
+  function simulateDuel(opts) {
+    opts = opts || {};
+    var p = duelParams(opts.params);
+    if (opts.params && opts.params.damageOff) p.damageOff = true;
+    var ref = calibrateDuel(p);
+    var years = Math.max(1, Math.round(num(opts.years) || 1));
+    var policies = opts.policies || {}, shocks = opts.shocks || [];
+    var TOL = 1e-13, CAP = 500;
+    var prev = {}, prevP = { e: 1, NWcb: { A: 0, B: 0 }, backstop: true, S: ref.pair.S0, r: { A: p.r, B: p.r }, CAp: { A: 0, B: 0 } };
+    SIDES.forEach(function (id) {
+      var rc = ref.countries[id];
+      prev[id] = { Y: rc.Y, V: rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1, Bf: rc.Bf, Bw: rc.Bw, Bb: rc.Bb, s: 0,
+        ci: p.ci0, ctax: 0, green: 0, R: rc.R0, forced: false };
+    });
+    var out = { years: [], ref: ref, checks: { maxIdentityError: 0, maxIterations: 0 } };
+    for (var t = 0; t < years; t++) {
+      var sh = shocks && shocks[t] ? shocks[t] : {};
+      var regime = sh.regime === 'float' ? 'float' : 'fixed';
+      var a1 = p.alpha1 * (1 + shockAt(shocks, t, 'confidence') / 100);
+      var muF = p.mu * (1 + shockAt(shocks, t, 'imports') / 100);
+      var backstop = sh.backstop !== false, bsPrev = prevP.backstop;
+      var D = p.damageOff ? 0 : Math.min(p.dMax, Math.max(0, (ref.pair.S0 > 0 ? p.chiD * (prevP.S - ref.pair.S0) / ref.pair.S0 : 0) + shockAt(shocks, t, 'disaster') / 100));
+      var r = {}, r1 = {}, invF = {}, ci = {}, ctaxNow = {}, greenNow = {}, spread = {}, pressured = {}, priceLagF = {}, demandF = {};
+      SIDES.forEach(function (id) {
+        var pv = prev[id], z = partnerOf(id);
+        r[id] = p.r + clampRate(lever(policies, id, t, 'rate'), p.rateMax) / 100;
+        r1[id] = prevP.r[id];
+        invF[id] = Math.max(p.ifloor, 1 - p.iota * (r1[id] - p.r));
+        ci[id] = Math.max(p.ciMin * p.ci0, pv.ci * (1 - p.aC * pv.ctax - p.aG * pv.green));
+        ctaxNow[id] = Math.max(0, lever(policies, id, t, 'ctax'));
+        greenNow[id] = Math.max(0, lever(policies, id, t, 'green'));
+        var d = pv.B / pv.Y;
+        spread[id] = p.phi * Math.max(0, d - p.dstar);
+        pressured[id] = d > p.dstar;
+        demandF[id] = 1 + shockAt(shocks, t, 'demand' + id) / 100;
+      });
+      /* lagged relative prices: imports of X ∝ (xr_X,-1 · Prel_Z,-1 / Prel_X,-1)^(−ε), xr_A = e, xr_B = 1/e */
+      var xrPrev = { A: prevP.e, B: 1 / prevP.e };
+      SIDES.forEach(function (id) { var z = partnerOf(id); priceLagF[id] = Math.pow(xrPrev[id] * prev[z].Prel / prev[id].Prel, -p.eps); });
+      /* forced devaluation of the side whose reserves are gone with a continuing current-account deficit (fixed regime) */
+      var forced = { A: false, B: false };
+      var eBase = prevP.e;
+      if (regime === 'fixed') {
+        if (prev.A.R <= 0 && prevP.CAp.A < 0) { forced.A = true; eBase = eBase * (1 + p.forcedDeval / 100); }
+        if (prev.B.R <= 0 && prevP.CAp.B < 0) { forced.B = true; eBase = eBase / (1 + p.forcedDeval / 100); }
+        eBase = eBase * (1 + shockAt(shocks, t, 'devalA') / 100) / (1 + shockAt(shocks, t, 'devalB') / 100);
+      }
+
+      function evalYear(e) {
+        var xr = { A: e, B: 1 / e };
+        var cur = {};
+        SIDES.forEach(function (id) {
+          var rc = ref.countries[id], pv = prev[id];
+          var tau = rc.tau * (1 + lever(policies, id, t, 'vat') / 100);
+          cur[id] = {
+            G: rc.G * (1 + lever(policies, id, t, 'pubdem') / 100) * demandF[id] + greenNow[id] * p.greenUnit * rc.Y,
+            GREEN: greenNow[id] * p.greenUnit * rc.Y, ctaxRate: ctaxNow[id] * p.ctaxUnit,
+            TR: rc.TR * (1 + lever(policies, id, t, 'benefits') / 100),
+            theta: rc.theta * (1 + lever(policies, id, t, 'inctax') / 100),
+            tau: tau, tauc: tau / (1 + tau), I: rc.I * invF[id], AF: p.delta * rc.K, Y: pv.Y
+          };
+        });
+        var extraInc = {}, capGain = {};
+        SIDES.forEach(function (id) {
+          var pv = prev[id], z = partnerOf(id);
+          extraInc[id] = pv.s * (pv.Bh + pv.Bb) + (r1[z] + prev[z].s) * xr[id] * pv.Bf;   // interest on the partner's bills (its rate incl. its spread)
+          capGain[id] = (xr[id] - xrPrev[id]) * pv.Bf;
+        });
+        function imrOf(id, Y) { return muF * Y * priceLagF[id]; }
+        function stepFrom(Yof) {
+          var next = {};
+          SIDES.forEach(function (id) {
+            var c = cur[id], pv = prev[id], z = partnerOf(id), Yc = Yof(id);
+            var IMR = imrOf(id, Yc), X = imrOf(z, Yof(z));
+            var YF = Yc - c.AF - r1[id] * pv.L - c.ctaxRate * ci[id] * Yc;
+            var base = YF + r1[id] * (pv.Bh + pv.M) + extraInc[id];
+            var YD = (1 - c.theta) * base + c.TR;
+            var CE = a1 * YD + p.alpha2 * pv.V;
+            var C = (1 - c.tauc) * CE;
+            next[id] = C + c.G + c.I + X - xr[id] * IMR;
+          });
+          return next;
+        }
+        var iter = 0, maxChange = Infinity, lastChange = Infinity, grow = 0, solved = false;
+        while (maxChange > TOL && iter < CAP) {
+          lastChange = maxChange; maxChange = 0;
+          var next = stepFrom(function (id) { return cur[id].Y; });
+          SIDES.forEach(function (id) { var ch = Math.abs(next[id] - cur[id].Y) / ref.countries[id].Y; if (ch > maxChange) maxChange = ch; });
+          if (!solved && ((maxChange > lastChange && ++grow >= 2) || iter === 150)) { next = solveLinear(stepFrom, SIDES); solved = true; } else if (maxChange <= lastChange) grow = 0;
+          SIDES.forEach(function (id) { cur[id].Y = next[id]; });
+          iter++;
+        }
+        if (maxChange > TOL) throw new Error('OPENMU duel: fixed point did not converge in year ' + (t + 1));
+        var year = { countries: {}, pair: {} }, newPrev = {}, acc = {};
+        SIDES.forEach(function (id) {
+          var c = cur[id], pv = prev[id], rc = ref.countries[id], z = partnerOf(id);
+          var Y = c.Y, IMR = imrOf(id, Y), X = imrOf(z, cur[z].Y), IMV = xr[id] * IMR;
+          var Tc = c.ctaxRate * ci[id] * Y;
+          var YF = Y - c.AF - r1[id] * pv.L - Tc;
+          var base = YF + r1[id] * (pv.Bh + pv.M) + extraInc[id];
+          var YD = (1 - c.theta) * base + c.TR;
+          var CE = a1 * YD + p.alpha2 * pv.V, C = (1 - c.tauc) * CE;
+          var T = c.theta * base + c.tauc * CE + Tc;
+          var V = pv.V + YD - CE + capGain[id];
+          var govInt = r1[id] * pv.B + pv.s * (pv.B - (bsPrev ? pv.Bcb : 0));
+          var Fcb = r1[id] * (pv.Bcb + pv.A) + (bsPrev ? 0 : pv.s * pv.Bcb);
+          var B = pv.B + c.G + c.TR + govInt - T - Fcb;
+          var PB = T + Fcb - c.G - c.TR - govInt;
+          var K = pv.K + c.I - c.AF, L = pv.L + c.I - c.AF;
+          acc[id] = { Y: Y, IMR: IMR, X: X, IMV: IMV, Tc: Tc, YF: YF, YD: YD, CE: CE, C: C, T: T, V: V, Fcb: Fcb, B: B, PB: PB, K: K, L: L, TB: X - IMV, c: c };
+        });
+        /* portfolios: each side's households hold the partner's bills (in the partner's currency); the partner's holdings of my bills are my "Bw" */
+        var pf = {}, sEff = {}, unabsorbed = 0;
+        SIDES.forEach(function (id) {
+          var a = acc[id], rc = ref.countries[id], z = partnerOf(id), L = a.L, V = a.V;
+          sEff[id] = spread[id];
+          function portfolio(rEff) {
+            var all = V * billsShare(p, rEff);
+            var lamF = Math.max(0, Math.min(billsShare(p, rEff), rc.lambdaF0 + p.lambdaF1 * ((r[z] + spread[z]) - rEff)));
+            var o = { Bf: lamF * V / xr[id], Bh: all - lamF * V };
+            o.M = (V - all) * p.nu; o.H = (V - all) * (1 - p.nu);
+            o.Bb = Math.max(0, o.M - L); o.A = Math.max(0, L - o.M);
+            return o;
+          }
+          pf[id] = portfolio(r[id] + sEff[id]); pf[id].portfolio = portfolio;
+        });
+        SIDES.forEach(function (id) {
+          var a = acc[id], pv = prev[id], z = partnerOf(id);
+          var Bw = pf[z].Bf;   // partner households' holdings of my bills, in my currency
+          if (!backstop && pressured[id]) {
+            var target = a.B - pv.Bcb - Bw, portfolio = pf[id].portfolio;
+            var f = function (rE) { var o = portfolio(rE); return o.Bh + o.Bb - target; };
+            var lo = r[id] + sEff[id], hi = p.rEffMax;
+            if (f(lo) >= 0) { pf[id] = Object.assign(portfolio(lo), { portfolio: portfolio }); }
+            else if (f(hi) < 0) { var o2 = portfolio(hi); sEff[id] = hi - r[id]; unabsorbed += target - (o2.Bh + o2.Bb); pf[id] = Object.assign(o2, { portfolio: portfolio }); }
+            else { for (var k = 0; k < 60; k++) { var mid = (lo + hi) / 2; if (f(mid) < 0) lo = mid; else hi = mid; } sEff[id] = hi - r[id]; pf[id] = Object.assign(portfolio(hi), { portfolio: portfolio }); }
+          }
+        });
+        var excess = {}, CApS = {}, KAS = {}, sumE = 0;
+        SIDES.forEach(function (id) {
+          var a = acc[id], pv = prev[id], rc = ref.countries[id], z = partnerOf(id), o = pf[id];
+          var Bw = pf[z].Bf, Bcb = a.B - o.Bh - o.Bb - Bw;
+          var primInc = (r1[z] + prev[z].s) * xr[id] * pv.Bf - (r1[id] + pv.s) * pv.Bw;
+          var CAp = a.TB + primInc, KA = (Bw - pv.Bw) - xr[id] * (o.Bf - pv.Bf);
+          CApS[id] = CAp; KAS[id] = KA; excess[id] = CAp + KA;
+          var gap = 100 * (a.Y / rc.Y - 1), gapD = 100 * (a.Y / (rc.Y * (1 - D)) - 1);
+          var u = p.ustar + p.chiU * 100 * D - p.beta * gap;
+          var pi = p.pistar + p.kappa * gapD + p.rho * (a.c.tau - pv.tau) * 100 + p.omega * 100 * (xr[id] - xrPrev[id]) / xrPrev[id] + p.rhoC * (ctaxNow[id] - pv.ctax);
+          var P = pv.P * (1 + pi / 100), Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);
+          var E = ci[id] * a.Y; sumE += E;
+          year.countries[id] = { Y: a.Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: a.C, CE: a.CE, G: a.c.G, TR: a.c.TR, theta: a.c.theta, tau: a.c.tau, T: a.T, YD: a.YD,
+            V: a.V, Bh: o.Bh, H: o.H, B: a.B, Bcb: Bcb, Fcb: a.Fcb, X: a.X, XR: a.X, IM: a.IMR, IMU: 0, IMR: a.IMR, IMV: a.IMV, PB: a.PB, TB: a.TB, pb: 100 * a.PB / a.Y, tb: 100 * a.TB / a.Y,
+            saving: a.YD - a.CE, r: r[id], I: a.c.I, K: a.K, L: a.L, M: o.M, Bb: o.Bb, A: o.A, AF: a.c.AF, YF: a.YF, Bf: o.Bf, Bw: Bw, spread: sEff[id], rEff: r[id] + sEff[id],
+            pressured: !!pressured[id], capGain: capGain[id], CAi: CAp, CAp: CAp, KA: KA, xr: xr[id], E: E, ci: ci[id], ctax: ctaxNow[id], green: greenNow[id], GREEN: a.c.GREEN, Tc: a.Tc, D: D,
+            rate: 100 * (r[id] - p.r), forced: forced[id], compet: 0 };
+          newPrev[id] = { Y: a.Y, V: a.V, Bh: o.Bh, M: o.M, B: a.B, Bcb: Bcb, A: o.A, K: a.K, L: a.L, tau: a.c.tau, P: P, Prel: Prel, Bf: o.Bf, Bw: Bw, Bb: o.Bb, s: sEff[id],
+            ci: ci[id], ctax: ctaxNow[id], green: greenNow[id], R: pv.R, forced: forced[id] };
+        });
+        /* competitiveness: price level vs the partner's, in a common currency (A's) */
+        var PA = year.countries.A.Prel, PB2 = year.countries.B.Prel * e;
+        year.countries.A.compet = 100 * (PA / Math.sqrt(PA * PB2) - 1); year.countries.B.compet = 100 * (PB2 / Math.sqrt(PA * PB2) - 1);
+        /* reserves (fixed): A's central bank holds B's currency, B's holds A's; the transfer is zero-sum in a common currency */
+        var RA = prev.A.R, RB = prev.B.R;
+        if (regime === 'fixed') { RA = prev.A.R + excess.A / e; RB = prev.B.R - excess.A; }
+        newPrev.A.R = RA; newPrev.B.R = RB;
+        var NWcbA = prevP.NWcb.A + (e - prevP.e) * prev.A.R, NWcbB = prevP.NWcb.B + (1 / e - 1 / prevP.e) * prev.B.R;
+        var S = prevP.S + sumE;
+        var monthsA = 12 * RA * e / year.countries.A.IMV, monthsB = 12 * RB / e / year.countries.B.IMV;
+        year.pair = { e: e, de: 100 * (e - prevP.e) / prevP.e, regime: regime, RA: RA, RB: RB, R0A: ref.countries.A.R0, R0B: ref.countries.B.R0,
+          alertA: regime === 'fixed' && RA < p.alertShare * ref.countries.A.R0, alertB: regime === 'fixed' && RB < p.alertShare * ref.countries.B.R0,
+          monthsA: monthsA, monthsB: monthsB, CApA: CApS.A, CApB: CApS.B, KAA: KAS.A, KAB: KAS.B, excessA: excess.A, excessB: excess.B,
+          S: S, Sshare: S / ref.pair.S0, D: D, EA: year.countries.A.E, EB: year.countries.B.E, Erel: 100 * (sumE / ref.pair.E0 - 1),
+          backstop: backstop, forcedA: forced.A, forcedB: forced.B, iterations: iter, NWcbA: NWcbA, NWcbB: NWcbB, unabsorbed: unabsorbed, rA: r.A, rB: r.B };
+        /* identities: CB balance sheets, sector balances = CA', wealth = assets, bilateral BoP (common currency) */
+        var errs = [];
+        SIDES.forEach(function (id) {
+          var y = year.countries[id], a = acc[id], pv = prev[id];
+          var R = id === 'A' ? RA : RB, NW = id === 'A' ? NWcbA : NWcbB;
+          errs.push(Math.abs(y.H - (y.Bcb + y.A) - xr[id] * R + NW) / y.H);
+          errs.push(Math.abs((a.YD - a.CE) + (a.c.AF - a.c.I) + a.PB - CApS[id]) / Math.max(1, Math.abs(CApS[id])));
+          errs.push(Math.abs(y.Bh + y.M + y.H + xr[id] * y.Bf - y.V) / y.V);
+          errs.push(Math.abs(KAS[id] - xr[id] * (R - pv.R) + CApS[id]) / Math.max(1, Math.abs(CApS[id]) + Math.abs(KAS[id])));
+        });
+        errs.push(Math.abs(excess.A + e * excess.B) / Math.max(1, Math.abs(excess.A)));   // BoP_A = −e·BoP_B
+        year.pair.identityError = Math.max.apply(null, errs);
+        return { year: year, newPrev: newPrev, excess: excess.A, iter: iter, NWcbA: NWcbA, NWcbB: NWcbB };
+      }
+
+      var res;
+      if (regime === 'float') {
+        var x0 = prevP.e, e0 = evalYear(x0).excess, lo = x0, hi = x0, elo = e0, ehi = e0, k2 = 0;
+        if (e0 > 0) { while (elo > 0 && k2 < 60) { lo = lo / 1.05; elo = evalYear(lo).excess; k2++; } }
+        else { while (ehi < 0 && k2 < 60) { hi = hi * 1.05; ehi = evalYear(hi).excess; k2++; } }
+        if (elo > 0 || ehi < 0) throw new Error('OPENMU duel: no floating exchange rate clears the balance of payments in year ' + (t + 1));
+        for (var k3 = 0; k3 < 80 && (hi - lo) > 1e-13 * hi; k3++) {
+          var mid = Math.abs(ehi - elo) > 0 ? lo - elo * (hi - lo) / (ehi - elo) : (lo + hi) / 2;
+          if (!(mid > lo && mid < hi)) mid = (lo + hi) / 2;
+          var em = evalYear(mid).excess;
+          if (em < 0) { lo = mid; elo = em; } else { hi = mid; ehi = em; }
+          if (Math.abs(em) < 1e-12 * 100) { lo = hi = mid; elo = ehi = em; }
+        }
+        res = evalYear((lo + hi) / 2);
+      } else res = evalYear(eBase);
+      var year = res.year;
+      if (res.iter > out.checks.maxIterations) out.checks.maxIterations = res.iter;
+      if (year.pair.identityError > out.checks.maxIdentityError) out.checks.maxIdentityError = year.pair.identityError;
+      out.years.push(year);
+      SIDES.forEach(function (id) { prev[id] = res.newPrev[id]; });
+      prevP = { e: year.pair.e, NWcb: { A: res.NWcbA, B: res.NWcbB }, backstop: backstop, S: year.pair.S, r: { A: r.A, B: r.B }, CAp: { A: year.pair.CApA, B: year.pair.CApB } };
+    }
+    return out;
+  }
+  /* reportDuel: deviations from the reference for both sides, split into shock / nat (own) / foreign (partner) / climate; plus the pair row */
+  function reportDuel(opts) {
+    opts = opts || {};
+    var p = duelParams(opts.params);
+    var years = Math.max(1, Math.round(num(opts.years) || 1));
+    var policies = opts.policies || {}, shocks = opts.shocks || [];
+    var KEYS = INDIC_ECO, zero = {}; KEYS.forEach(function (k) { zero[k] = 0; });
+    var pOff = Object.assign({}, p, { damageOff: true });
+    var runRef = simulateDuel({ params: pOff, years: years });
+    var runShock = simulateDuel({ params: pOff, years: years, shocks: shocks });
+    var runAllOff = simulateDuel({ params: pOff, years: years, policies: policies, shocks: shocks });
+    var runAll = simulateDuel({ params: p, years: years, policies: policies, shocks: shocks });
+    var runNat = {};
+    SIDES.forEach(function (id) {
+      if (policies[id] && policies[id].some(function (y) { return y && Object.keys(y).some(function (k) { return num(y[k]) !== 0; }); })) {
+        var only = {}; only[id] = policies[id];
+        runNat[id] = simulateDuel({ params: pOff, years: years, policies: only, shocks: shocks });
+      } else runNat[id] = null;
+    });
+    var ref = runAll.ref, out = { years: [], ref: ref, params: p, version: VERSION, duel: true };
+    for (var t = 0; t < years; t++) {
+      var yr = { countries: {}, pair: {} };
+      SIDES.forEach(function (id) {
+        var rc = ref.countries[id];
+        var iRef = indicators(runRef.years[t].countries[id], rc, p), iShock = indicators(runShock.years[t].countries[id], rc, p);
+        var iAll = indicators(runAll.years[t].countries[id], rc, p), iAllOff = indicators(runAllOff.years[t].countries[id], rc, p);
+        var total = diff(iAll, iRef, p), shock = diff(iShock, iRef, p);
+        var nat = runNat[id] ? diff(indicators(runNat[id].years[t].countries[id], rc, p), iShock, p) : zero;
+        var foreign = diff(diff(diff(iAllOff, iRef, p), shock, p), nat, p);
+        var climate = diff(iAll, iAllOff, p);
+        var detail = {};
+        KEYS.forEach(function (k) { detail[k] = { shock: shock[k], nat: nat[k], foreign: foreign[k], climate: climate[k] }; });
+        var cy = runAll.years[t].countries[id], pr = runAll.years[t].pair;
+        detail.extra = { gap: cy.gap, debt: 100 * cy.B / cy.Y, wealth: 100 * cy.V / cy.Y, u: cy.u, pi: cy.pi, P: cy.P, inv: 100 * (cy.I / rc.I - 1), loans: 100 * cy.L / cy.Y, deposits: 100 * cy.M / cy.Y,
+          compet: cy.compet, foreign: 100 * cy.xr * cy.Bf / cy.Y, spread: 100 * cy.spread, pressured: !!cy.pressured, E: 100 * (cy.E / rc.E0 - 1), ci: cy.ci / p.ci0, ctax: cy.ctax, green: cy.green, D: 100 * cy.D,
+          rate: cy.rate, reserves: id === 'A' ? 100 * pr.RA / pr.R0A : 100 * pr.RB / pr.R0B, months: id === 'A' ? pr.monthsA : pr.monthsB, forced: cy.forced };
+        var entry = { detail: detail, byPart: { total: total, shock: shock, nat: nat, foreign: foreign, climate: climate } };
+        KEYS.forEach(function (k) { entry[k] = total[k]; });
+        yr.countries[id] = entry;
+      });
+      var u = runAll.years[t].pair;
+      yr.pair = { e: u.e, de: u.de, regime: u.regime, RA: u.RA, RB: u.RB, R0A: u.R0A, R0B: u.R0B, RshareA: u.RA / u.R0A, RshareB: u.RB / u.R0B, alertA: u.alertA, alertB: u.alertB,
+        monthsA: u.monthsA, monthsB: u.monthsB, CApA: u.CApA, CApB: u.CApB, KAA: u.KAA, KAB: u.KAB, S: u.S, Sshare: u.Sshare, D: 100 * u.D, Erel: u.Erel, EA: u.EA, EB: u.EB,
+        backstop: u.backstop, forcedA: u.forcedA, forcedB: u.forcedB, rA: 100 * u.rA, rB: 100 * u.rB, pressured: SIDES.filter(function (id) { return runAll.years[t].countries[id].pressured; }) };
+      out.years.push(yr);
+    }
+    out.checks = runAll.checks;
+    return out;
+  }
+
   /* ---------- describe: parameters and reference state, for display ---------- */
   function describe(params) {
     var ref = calibrate(params);
@@ -776,6 +1093,7 @@ var OPENMU = (function () {
       union: { R0: ref.union.R0, reserveMonths: p.reserveMonths, xr0: p.xr0, r0: p.r, alertShare: p.alertShare } };
   }
 
-  return { VERSION: VERSION, INDICATORS: INDIC, INDICATORS_ECO: INDIC_ECO, defaultParams: defaultParams, paramsFor: paramsFor, calibrate: calibrate, simulate: simulate, report: report, describe: describe, shares: shares };
+  return { VERSION: VERSION, INDICATORS: INDIC, INDICATORS_ECO: INDIC_ECO, defaultParams: defaultParams, paramsFor: paramsFor, calibrate: calibrate, simulate: simulate, report: report, describe: describe, shares: shares,
+    duelParams: duelParams, calibrateDuel: calibrateDuel, simulateDuel: simulateDuel, reportDuel: reportDuel, SIDES: SIDES };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = OPENMU;
