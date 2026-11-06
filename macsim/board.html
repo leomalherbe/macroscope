@@ -122,6 +122,8 @@
             '<td class="num ' + UI.signedClass(cr) + '"><b>' + esc(MS.fmt(cr, 3, true)) + '</b></td><td><div class="bar"><i class="' + ((cr || 0) < 0 ? 'neg' : '') + '" style="left:' + ((cr || 0) < 0 ? 50 - pct : 50) + '%;width:' + pct + '%"></i></div></td></tr>';
         });
         c.appendChild(el('div', { html: h + '</tbody></table></div>' }));
+        var elec = (data.groups || []).filter(function (g) { return g.country; }).map(function (g) { return { c: g.country, wi: MS.weightsInfo(st, st.round, g.country) }; }).filter(function (x) { return x.wi.elected; });
+        if (elec.length) c.appendChild(el('p', { class: 'small', style: 'margin:.4em 0 0', html: '<b>Elections</b> — objective weights in force in year ' + esc(st.round) + ': ' + elec.map(function (x) { return esc(MS.countryName(x.c)) + ' · ' + esc(UI.weightsLine(x.wi.weights, x.wi.label)); }).join(' ; ') }));
         c.appendChild(el('p', { class: 'muted small' }, ['R is the score of each year: ' + st.weights.gdp + '·ΔGDP − ' + st.weights.unemp + '·Δunemployment − ' + st.weights.infl + '·Δinflation + ' + st.weights.pubbal + '·Δpublic balance + ' + st.weights.tradebal + '·Δtrade balance (deviations from the reference path). Countries are ranked by the cumulative R, the sum of their yearly scores.']));
         /* latest year detail */
         var latestYear = Math.max.apply(null, yl);

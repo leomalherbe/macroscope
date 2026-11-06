@@ -747,10 +747,11 @@
     tbl.appendChild(tb); sh.appendChild(el('div', { class: 'tablewrap' }, [tbl]));
     sh.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: async function () {
       var all = Object.assign({}, s.shocks || {});
-      yearsToEdit.forEach(function (yy) { var o = {}; shockFields().forEach(function (f) { var i = inputs[yy + ':' + f.id]; o[f.id] = f.type === 'select' ? i.value : (f.type === 'check' ? i.checked : (MS.num(i.value) || 0)); }); all[shockKey(yy)] = o; });
+      yearsToEdit.forEach(function (yy) { var o = {}; shockFields().forEach(function (f) { var i = inputs[yy + ':' + f.id]; o[f.id] = f.type === 'select' ? i.value : (f.type === 'check' ? i.checked : (MS.num(i.value) || 0)); }); var prevE = ((s.shocks || {})[shockKey(yy)] || {}).elections; if (prevE) o.elections = prevE; all[shockKey(yy)] = o; });
       await patch({ shocks: all }, 'Shocks saved');
     } }, ['Save shocks']), el('span', { class: 'small muted' }, [isGame ? 'Previous years keep their shocks (see the replay below). The game’s shocks are separate from the warm-up’s.' : ''])]));
     c.appendChild(sh);
+    if (isGame) c.appendChild(electionsCard(s));
 
     /* ---- status ---- */
     c.appendChild(el('div', { id: 'runStatus' }));
@@ -766,6 +767,52 @@
     v.appendChild(c);
     renderRunStatus();
     if (runPreview && runPreview.phase === s.phase && Number(runPreview.round) === Number(s.round)) renderRunPreview();
+  }
+  /* ---- elections: voters' preferences = objective weights, per country or union-wide, from year N (stored in shocks['gN'].elections) ---- */
+  function electionsCard(s) {
+    var N = Number(s.round), key = shockKey(N, 'game');
+    var cur = (s.shocks || {})[key] || {}, list = Array.isArray(cur.elections) ? cur.elections : [];
+    var card = el('div', { class: 'card tint', style: 'margin:0 0 14px' });
+    card.appendChild(el('h3', {}, ['Elections · voters’ preferences from year ' + N]));
+    card.appendChild(el('p', { class: 'muted small' }, ['A new government changes what its voters reward: the weights of the objective function R for one country or for the whole union, from this year on (until the next election). A country’s own election prevails over a union-wide one. Announce it in the communiqué.']));
+    var playing = ov.groups.filter(function (g) { return !!g.country; });
+    function saveList(newList) {
+      var all = Object.assign({}, s.shocks || {}); var o = Object.assign({}, all[key] || {});
+      if (newList.length) o.elections = newList; else delete o.elections;
+      all[key] = o; return patch({ shocks: all }, 'Elections saved');
+    }
+    if (list.length) {
+      var ul = el('div', { class: 'chips', style: 'margin:4px 0 10px' });
+      list.forEach(function (e, idx) {
+        var txt = (e.scope === 'ALL' ? 'Whole union' : MS.countryName(e.scope)) + ' · ' + (e.label || 'new weights') + ' — ' + (e.weights ? UI.weightsLine(e.weights) : 'class weights');
+        var chip = el('span', { class: 'chip vote' }, [txt, ' ', el('button', { class: 'btn ghost sm', style: 'padding:0 6px;margin-left:4px', title: 'remove', onclick: function () { var nl = list.slice(); nl.splice(idx, 1); saveList(nl); } }, ['×'])]);
+        ul.appendChild(chip);
+      });
+      card.appendChild(ul);
+    } else card.appendChild(el('p', { class: 'small muted' }, ['No election recorded for year ' + N + '.']));
+    /* form */
+    var scope = el('select'); scope.appendChild(el('option', { value: 'ALL' }, ['Whole union']));
+    playing.forEach(function (g) { scope.appendChild(el('option', { value: g.country }, [MS.countryName(g.country) + ' (' + g.name + ')'])); });
+    var label = el('input', { type: 'text', placeholder: 'label shown to the players, e.g. "Left: unemployment first"', style: 'min-width:280px' });
+    var winputs = {};
+    function fillFrom(w) { MS.INDICATORS.forEach(function (i) { winputs[i.id].value = w && w[i.id] !== undefined && w[i.id] !== null ? w[i.id] : ''; }); }
+    function currentFor(sc) { return MS.weightsFor(Object.assign({}, s, { shocks: Object.assign({}, s.shocks || {}, (function () { var o = {}; o[key] = Object.assign({}, cur, { elections: [] }); return o; })()) }), N, sc === 'ALL' ? '__union__' : sc); }
+    var wrow = el('div', { class: 'params', style: 'margin:6px 0' });
+    MS.INDICATORS.forEach(function (i) { var inp = el('input', { type: 'number', step: 0.05, min: 0, style: 'width:5.5em' }); winputs[i.id] = inp; wrow.appendChild(el('div', {}, [el('label', { class: 'small' }, [i.label]), el('br'), inp])); });
+    fillFrom(currentFor('ALL'));
+    scope.addEventListener('change', function () { fillFrom(currentFor(scope.value)); });
+    var presets = el('div', { class: 'btnrow', style: 'margin:4px 0' });
+    MS.ELECTION_PRESETS.forEach(function (pz) { presets.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { fillFrom(pz.weights || s.weights); label.value = pz.label; } }, [pz.label])); });
+    card.appendChild(el('div', { class: 'btnrow' }, [el('label', { class: 'small' }, ['Scope ']), scope, label]));
+    card.appendChild(presets); card.appendChild(wrow);
+    card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () {
+      var w = {}, any = false; MS.INDICATORS.forEach(function (i) { var v = MS.num(winputs[i.id].value); if (winputs[i.id].value !== '' && !isNaN(v) && v >= 0) { w[i.id] = v; any = true; } });
+      if (!any) { UI.toast('Enter the five weights (or use a preset).'); return; }
+      var isReset = MS.sameWeights(w, s.weights);
+      var nl = list.slice(); nl.push({ scope: scope.value, weights: isReset ? null : w, label: label.value.trim() || (isReset ? 'Back to the class weights' : 'New weights') });
+      saveList(nl);
+    } }, ['Add election']), el('span', { class: 'xs muted' }, ['Weights need not add up to 1; the presets do (0.15 everywhere, 0.40 on the priority). Takes effect at the next Run.'])]));
+    return card;
   }
   function renderRunStatus() {
     var box = $('#runStatus'); if (!box) return;
@@ -901,7 +948,7 @@
       var rep = OPENMU.report({ params: params, years: N, policies: rp.policies, shocks: rp.shocks });
       var yr = rep.years[N - 1];
       var rows = [];
-      ov.groups.forEach(function (g) { var cc = g.country && yr.countries[g.country]; if (!cc) return; var r = countryRow(cc, g.country, N, s.weights); r._group = g; rows.push(r); });
+      ov.groups.forEach(function (g) { var cc = g.country && yr.countries[g.country]; if (!cc) return; var wi = MS.weightsInfo(s, N, g.country); var r = countryRow(cc, g.country, N, wi.weights); if (wi.elected) { r.detail.weights = wi.weights; r.detail.electionLabel = wi.label; } r._group = g; rows.push(r); });
       rows.push(unionRow(yr.union, N, 'UNION', { votes: rp.tallies[N], caps: rp.caps[N], shock: rp.shocks[N - 1] }));
       runPreview = { phase: 'game', round: N, rows: rows, ts: new Date().toISOString(), history: rep.years.slice(0, N - 1), tally: rp.tallies[N], caps: rp.caps[N], shock: rp.shocks[N - 1], warnings: rp.warnings };
       renderRunPreview(); UI.toast('Year ' + N + ' simulated');
@@ -934,6 +981,8 @@
       else lines.push(runPreview.shock && runPreview.shock.regime === 'float' ? 'No currency crisis this year (floating regime).' : 'No reserves crisis this year.');
       if (MS.num(sh.deval)) lines.push('Devaluation applied this year: ' + esc(MS.fmt(sh.deval, 1)) + ' %.');
       (runPreview.warnings || []).forEach(function (w) { lines.push('<span class="neg">⚠ ' + esc(w) + '</span>'); });
+      var wl = runPreview.rows.filter(function (r) { return r.detail && r.detail.weights; }).map(function (r) { return esc(r.key) + ': ' + esc(UI.weightsLine(r.detail.weights)) + (r.detail.electionLabel ? ' (' + esc(r.detail.electionLabel) + ')' : ''); });
+      if (wl.length) lines.push('<b>Objective weights this year</b> (after elections) — ' + wl.join(' · '));
       card.appendChild(el('div', { class: 'note small', html: lines.join('<br>') }));
     }
     if (isGame && unions.length) card.appendChild(el('div', { html: unionPanelHtml(unions[0].detail.extra, 'Monetary union · end of year ' + runPreview.round) }));

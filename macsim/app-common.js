@@ -164,7 +164,8 @@ var UI = (function () {
     /* contributions and totals */
     var bars = data.map(function (r) {
       var pos = 0, neg = 0, parts = [];
-      TRAJ_SERIES.forEach(function (s) { var v = val(r, s.id); if (v === null) return; var c = s.sign * (wts[s.id] || 0) * v; parts.push({ s: s, c: c, v: v }); if (c >= 0) pos += c; else neg += c; });
+      var wr = r.detail && r.detail.weights ? trajWeights(r.detail.weights) : wts;   /* per-row weights (elections) win over the class weights */
+      TRAJ_SERIES.forEach(function (s) { var v = val(r, s.id); if (v === null) return; var c = s.sign * (wr[s.id] || 0) * v; parts.push({ s: s, c: c, v: v }); if (c >= 0) pos += c; else neg += c; });
       var R = val(r, 'R'); if (R === null) R = pos + neg;
       return { year: r.year, parts: parts, pos: pos, neg: neg, R: R };
     });
@@ -211,6 +212,22 @@ var UI = (function () {
     h += lh + '</svg>';
     return h;
   }
+  /* compact text of a set of objective weights: 'GDP 0.15 · U 0.40 · π 0.15 · PB 0.15 · TB 0.15' (equal weights collapse) */
+  var W_SHORT = { gdp: 'GDP', unemp: 'U', infl: 'π', pubbal: 'PB', tradebal: 'TB' };
+  function weightsLine(w, label) {
+    w = w || {};
+    var ids = MS.INDICATORS.map(function (i) { return i.id; });
+    var vals = ids.map(function (id) { return MS.num(w[id]); });
+    var txt;
+    if (vals.every(function (v) { return Math.abs(v - vals[0]) < 1e-9; })) txt = MS.fmt(vals[0], 2) + ' everywhere';
+    else {
+      var counts = {}; vals.forEach(function (v) { var k = MS.fmt(v, 2); counts[k] = (counts[k] || 0) + 1; });
+      var common = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0];
+      var parts = ids.filter(function (id, k) { return MS.fmt(vals[k], 2) !== common; }).map(function (id, k) { return W_SHORT[id] + ' ' + MS.fmt(MS.num(w[id]), 2); });
+      txt = parts.join(' · ') + (counts[common] > 1 ? ' · others ' + common : '');
+    }
+    return (label ? label + ' — ' : '') + txt;
+  }
   function trajectoryLegendHtml() {
     var items = TRAJ_SERIES.concat([R_SERIES]);
     return '<div class="trajlegend">' + items.map(function (s) { return '<span><i style="' + (s.dash ? 'background:repeating-linear-gradient(90deg,' + s.color + ' 0 6px,transparent 6px 10px)' : 'background:' + s.color + ';height:10px') + '"></i>' + esc(s.label) + '</span>'; }).join('') + '</div>';
@@ -229,5 +246,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, download: download, copyText: copyText, store: store, read: read };
+  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();
