@@ -105,7 +105,9 @@ var OPENMU = (function () {
       chiU: 0.4,        // structural unemployment: +chiU × 100·D points (D = 5 % → u* + 2 pt)
       damageOff: false, // report helper: simulate emissions and intensities but force D = 0 (isolates the "climate" part of the decomposition)
       aC: 0.04,         // carbon intensity: −aC per point of carbon tax, next year
-      aG: 0.025,        // carbon intensity: −aG per unit of green investment, next year
+      aG: 0.05,         // carbon intensity: −aG·green/(1 + green/gSat) next year (diminishing returns: green 10 → −17 %/yr)
+      gSat: 5,          // saturation of the green lever (half the marginal gain at green = 5)
+      greenImport: 0.60, // import content of green investment (equipment): the excess over mu leaks abroad
       greenUnit: 0.002, // green lever: one unit = 0.2 pt of reference GDP of public investment
       rhoC: 0.15,       // inflation pass-through of a change in the carbon tax, per point
       ctaxUnit: 0.002   // carbon-tax revenue per point: ctaxUnit × emissions (1 point ≈ 0.2 % of GDP at the reference intensity)
@@ -443,7 +445,7 @@ var OPENMU = (function () {
         D = p.damageOff ? 0 : Math.min(p.dMax, Math.max(0, (ref.union.S0 > 0 ? p.chiD * (prevU.S - ref.union.S0) / ref.union.S0 : 0) + shockAt(shocks, t, 'disaster') / 100));
         ids.forEach(function (id) {
           var pv = prev[id];
-          ci[id] = Math.max(p.ciMin * p.ci0, pv.ci * (1 - p.aC * pv.ctax - p.aG * pv.green));
+          ci[id] = Math.max(p.ciMin * p.ci0, pv.ci * (1 - p.aC * pv.ctax - p.aG * pv.green / (1 + pv.green / p.gSat)));
           ctaxNow[id] = Math.max(0, lever(policies, id, t, 'ctax'));
           greenNow[id] = Math.max(0, lever(policies, id, t, 'green'));
         });
@@ -468,8 +470,12 @@ var OPENMU = (function () {
         ids.forEach(function (j) { w[id][j] = s[id][j] * (p.prices ? Math.pow(prev[j].Prel / Pi, -p.epsU) : 1); });
       });
       /* intra-union imports of i: base volume (1−sR)·μ·Y_i, split (and scaled) by the price-weighted partner weights */
-      function intraOf(id, Y) { var base = (1 - p.sR) * muF * Y, tot = 0; ids.forEach(function (j) { tot += w[id][j]; }); return base * tot; }
-      function exportsTo(id, Yof) { var X = 0; ids.forEach(function (j) { X += w[j][id] * (1 - p.sR) * muF * Yof(j); }); return X; }
+      /* v2.0: the import content of green investment above the economy's propensity leaks abroad (equipment); zero for v1.x (bit for bit) */
+      var extraIM = {};
+      ids.forEach(function (id) { extraIM[id] = eco ? Math.max(0, p.greenImport - p.mu) * Math.max(0, lever(policies, id, t, 'green')) * p.greenUnit * ref.countries[id].Y : 0; });
+      function imBase(id, Y) { return eco ? muF * Y + extraIM[id] : muF * Y; }
+      function intraOf(id, Y) { var base = (1 - p.sR) * imBase(id, Y), tot = 0; ids.forEach(function (j) { tot += w[id][j]; }); return base * tot; }
+      function exportsTo(id, Yof) { var X = 0; ids.forEach(function (j) { X += w[j][id] * (1 - p.sR) * imBase(j, Yof(j)); }); return X; }
 
       /* ---- the year at a given exchange rate: fixed point on {Y_i}, then the accounts. Pure (does not touch prev). ---- */
       function evalYear(xr) {
@@ -505,7 +511,7 @@ var OPENMU = (function () {
           ids.forEach(function (id) { IMU[id] = intraOf(id, Yof(id)); });
           ids.forEach(function (id) {
             var c = cur[id], pv = prev[id], Yc = Yof(id);
-            var IM = muF * Yc;
+            var IM = imBase(id, Yc);
             var IMR = p.sR * IM * priceLagF[id];
             var IMV = IMU[id] + xr * IMR;
             var X = c.XR + exportsTo(id, Yof);
@@ -543,7 +549,7 @@ var OPENMU = (function () {
         ids.forEach(function (id) {
           var c = cur[id], pv = prev[id], rc = ref.countries[id];
           var Y = c.Y;
-          var IM = muF * Y, IMU = IMUf[id], IMR = p.sR * IM * priceLagF[id], IMV = IMU + xr * IMR;
+          var IM = imBase(id, Y), IMU = IMUf[id], IMR = p.sR * IM * priceLagF[id], IMV = IMU + xr * IMR;
           var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
           var Tc = eco ? c.ctaxRate * ci[id] * Y : 0;      // v2.0: carbon tax, paid by firms on their emissions
           var YF = Y - c.AF - r1 * pv.L - Tc;
@@ -838,7 +844,7 @@ var OPENMU = (function () {
         r[id] = p.r + clampRate(lever(policies, id, t, 'rate'), p.rateMax) / 100;
         r1[id] = prevP.r[id];
         invF[id] = Math.max(p.ifloor, 1 - p.iota * (r1[id] - p.r));
-        ci[id] = Math.max(p.ciMin * p.ci0, pv.ci * (1 - p.aC * pv.ctax - p.aG * pv.green));
+        ci[id] = Math.max(p.ciMin * p.ci0, pv.ci * (1 - p.aC * pv.ctax - p.aG * pv.green / (1 + pv.green / p.gSat)));
         ctaxNow[id] = Math.max(0, lever(policies, id, t, 'ctax'));
         greenNow[id] = Math.max(0, lever(policies, id, t, 'green'));
         var d = pv.B / pv.Y;
@@ -878,7 +884,9 @@ var OPENMU = (function () {
           extraInc[id] = pv.s * (pv.Bh + pv.Bb) + (r1[z] + prev[z].s) * xr[id] * pv.Bf;   // interest on the partner's bills (its rate incl. its spread)
           capGain[id] = (xr[id] - xrPrev[id]) * pv.Bf;
         });
-        function imrOf(id, Y) { return muF * Y * priceLagF[id]; }
+        var extraIM = {};
+        SIDES.forEach(function (id) { extraIM[id] = Math.max(0, p.greenImport - p.mu) * Math.max(0, lever(policies, id, t, 'green')) * p.greenUnit * ref.countries[id].Y; });
+        function imrOf(id, Y) { return (muF * Y + extraIM[id]) * priceLagF[id]; }   // the import content of green investment above mu goes to the partner
         function stepFrom(Yof) {
           var next = {};
           SIDES.forEach(function (id) {

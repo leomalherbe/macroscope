@@ -16,7 +16,7 @@ var MS = (function () {
     { id: 'vat',      n: 4, label: 'Consumption tax (VAT)',       hint: 'tax on consumption spending; also lifts prices',       cat: 'supply' },
     /* v2.0 (model v2.0 only): one-sided levers, 0 to bounds.eco */
     { id: 'ctax',     n: 5, label: 'Carbon tax',                  hint: 'points; paid by firms on their emissions (1 pt ≈ 0.2 % of GDP of revenue); lifts prices the year it changes; cuts the carbon intensity by 4 % per point the next year', cat: 'eco', eco: true, unit: 'pt' },
-    { id: 'green',    n: 6, label: 'Green public investment',     hint: 'units of 0.2 pt of GDP of public investment (demand, deficit); cuts the carbon intensity by 2.5 % per unit the next year', cat: 'eco', eco: true, unit: '× 0.2 pt GDP' },
+    { id: 'green',    n: 6, label: 'Green public investment',     hint: 'units of 0.2 pt of GDP of public investment (demand, deficit); cuts the carbon intensity next year, with diminishing returns (5 units: −12.5 %, 10 units: −17 %). Green investment supports demand like public spending, but 60 % of it is imported equipment (about a third less effect on your GDP than public demand, and a worse trade balance) and its gain on your carbon intensity shrinks as you raise it.', cat: 'eco', eco: true, unit: '× 0.2 pt GDP' },
     /* duel (arcade mode): each player sets its own policy rate, in points around the reference, ±bounds.rate */
     { id: 'rate',     n: 7, label: 'Policy rate',                hint: 'points above (+) or below (−) the reference rate of 3 %; acts on investment next year, on debt service and on capital flows (a higher rate pulls capital in and appreciates your currency)', cat: 'money', eco: true, duel: true, unit: 'pt' }
   ];
