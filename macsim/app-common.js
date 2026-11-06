@@ -150,8 +150,14 @@ var UI = (function () {
     { id: 'unemp', label: 'Unemployment', color: '#b23b3b', sign: -1 },
     { id: 'infl', label: 'Inflation', color: '#c29d2c', sign: -1 },
     { id: 'pubbal', label: 'Public balance', color: '#2f7d4f', sign: 1 },
-    { id: 'tradebal', label: 'Trade balance', color: '#7a4fa3', sign: 1 }
+    { id: 'tradebal', label: 'Trade balance', color: '#7a4fa3', sign: 1 },
+    { id: 'emis', label: 'Emissions', color: '#3b8ea5', sign: -1, eco: true }   // sixth dimension (v2.0), drawn only when the rows carry it
   ];
+  /* the series present in a set of rows: the five, plus emissions when any row has a value for it */
+  function trajSeriesFor(rows) {
+    var hasEmis = (rows || []).some(function (r) { return r && r.emis !== undefined && r.emis !== null && r.emis !== ''; });
+    return TRAJ_SERIES.filter(function (s) { return !s.eco || hasEmis; });
+  }
   var R_SERIES = { id: 'R', label: 'R (total)', color: '#1b2437', dash: true };
   function trajWeights(w) { var d = MS.defaultState().weights; return Object.assign({}, d, w || {}); }
   function trajectorySvg(rows, opts) {
@@ -159,7 +165,8 @@ var UI = (function () {
     var W = 640, H = opts.height || 240, padL = 44, padR = 20, padT = opts.title ? 30 : 14;
     var wts = trajWeights(opts.weights);
     var fs = opts.fontScale || 1, f11 = Math.round(11 * fs), f14 = Math.round(14 * fs);
-    var seriesAll = TRAJ_SERIES.concat([R_SERIES]);
+    var SER = trajSeriesFor(rows);
+    var seriesAll = SER.concat([R_SERIES]);
     var legend = [], lx0 = padL, lrow = 0;
     if (opts.legend !== false) seriesAll.forEach(function (s) { var w = 18 + 6.4 * s.label.length + 12; if (lx0 + w > W - padR) { lx0 = padL; lrow++; } legend.push({ s: s, x: lx0, row: lrow }); lx0 += w; });
     var padB = opts.legend === false ? 22 + f11 : 30 + 16 * (lrow + 1);
@@ -173,7 +180,7 @@ var UI = (function () {
     var bars = data.map(function (r) {
       var pos = 0, neg = 0, parts = [];
       var wr = r.detail && r.detail.weights ? trajWeights(r.detail.weights) : wts;   /* per-row weights (elections) win over the class weights */
-      TRAJ_SERIES.forEach(function (s) { var v = val(r, s.id); if (v === null) return; var c = s.sign * (wr[s.id] || 0) * v; parts.push({ s: s, c: c, v: v }); if (c >= 0) pos += c; else neg += c; });
+      SER.forEach(function (s) { var v = val(r, s.id); if (v === null) return; var c = s.sign * (wr[s.id] || 0) * v; parts.push({ s: s, c: c, v: v }); if (c >= 0) pos += c; else neg += c; });
       var R = val(r, 'R'); if (R === null) R = pos + neg;
       return { year: r.year, parts: parts, pos: pos, neg: neg, R: R };
     });
@@ -221,10 +228,11 @@ var UI = (function () {
     return h;
   }
   /* compact text of a set of objective weights: 'GDP 0.15 · U 0.40 · π 0.15 · PB 0.15 · TB 0.15' (equal weights collapse) */
-  var W_SHORT = { gdp: 'GDP', unemp: 'U', infl: 'π', pubbal: 'PB', tradebal: 'TB' };
+  var W_SHORT = { gdp: 'GDP', unemp: 'U', infl: 'π', pubbal: 'PB', tradebal: 'TB' , emis: 'Emis' };
   function weightsLine(w, label) {
     w = w || {};
-    var ids = MS.INDICATORS.map(function (i) { return i.id; });
+    /* the sixth dimension (emissions) is listed only when it carries a weight */
+    var ids = MS.INDICATORS.filter(function (i) { return !i.eco || MS.num(w[i.id]) > 0; }).map(function (i) { return i.id; });
     var vals = ids.map(function (id) { return MS.num(w[id]); });
     var txt;
     if (vals.every(function (v) { return Math.abs(v - vals[0]) < 1e-9; })) txt = MS.fmt(vals[0], 2) + ' everywhere';
@@ -236,8 +244,8 @@ var UI = (function () {
     }
     return (label ? label + ' — ' : '') + txt;
   }
-  function trajectoryLegendHtml() {
-    var items = TRAJ_SERIES.concat([R_SERIES]);
+  function trajectoryLegendHtml(withEmis) {
+    var items = TRAJ_SERIES.filter(function (s) { return !s.eco || withEmis; }).concat([R_SERIES]);
     return '<div class="trajlegend">' + items.map(function (s) { return '<span><i style="' + (s.dash ? 'background:repeating-linear-gradient(90deg,' + s.color + ' 0 6px,transparent 6px 10px)' : 'background:' + s.color + ';height:10px') + '"></i>' + esc(s.label) + '</span>'; }).join('') + '</div>';
   }
   function download(filename, text, mime) {

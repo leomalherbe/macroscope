@@ -673,16 +673,20 @@ var OPENMU = (function () {
 
   /* ---------- report: deviations from the stationary reference, decomposed ---------- */
   var INDIC = ['gdp', 'unemp', 'infl', 'pubbal', 'tradebal'];
+  var INDIC_ECO = INDIC.concat(['emis']);   // v2.0: sixth dimension, emissions in % of the reference
+  function indicList(p) { return p.eco ? INDIC_ECO : INDIC; }
   function indicators(cy, rc, p) {
-    return {
+    var o = {
       gdp: 100 * (cy.Y / rc.Y - 1),
       unemp: cy.u - p.ustar,
       infl: cy.pi - p.pistar,
       pubbal: cy.pb,       // reference public balance is 0
       tradebal: cy.tb      // reference trade balance is 0
     };
+    if (p.eco) o.emis = p.ci0 > 0 ? 100 * (cy.E / (p.ci0 * rc.Y) - 1) : 0;   // emissions vs the reference, %
+    return o;
   }
-  function diff(a, b) { var d = {}; INDIC.forEach(function (k) { d[k] = a[k] - b[k]; }); return d; }
+  function diff(a, b, p) { var d = {}; indicList(p).forEach(function (k) { d[k] = a[k] - b[k]; }); return d; }
 
   function report(opts) {
     opts = opts || {};
@@ -690,7 +694,8 @@ var OPENMU = (function () {
     var years = Math.max(1, Math.round(num(opts.years) || 1));
     var policies = opts.policies || {}, shocks = opts.shocks || [];
     var ids = p.countries.map(function (c) { return c.id; });
-    var zero = {}; INDIC.forEach(function (k) { zero[k] = 0; });
+    var KEYS = indicList(p);
+    var zero = {}; KEYS.forEach(function (k) { zero[k] = 0; });
 
     /* v2.0: a fourth part, "climate" = the run with the damage on minus the same run with the damage forced to 0 (emissions,
        intensities and levers still simulated); reference, shocks and own-policy parts are computed with the damage off, so the
@@ -717,13 +722,13 @@ var OPENMU = (function () {
         var iShock = indicators(runShock.years[t].countries[id], rc, p);
         var iAll = indicators(runAll.years[t].countries[id], rc, p);
         var iAllOff = p.eco ? indicators(runAllOff.years[t].countries[id], rc, p) : iAll;
-        var total = diff(iAll, iRef);
-        var shock = diff(iShock, iRef);
-        var nat = runNat[id] ? diff(indicators(runNat[id].years[t].countries[id], rc, p), iShock) : zero;
-        var foreign = diff(diff(diff(iAllOff, iRef), shock), nat);
-        var climate = p.eco ? diff(iAll, iAllOff) : null;
+        var total = diff(iAll, iRef, p);
+        var shock = diff(iShock, iRef, p);
+        var nat = runNat[id] ? diff(indicators(runNat[id].years[t].countries[id], rc, p), iShock, p) : zero;
+        var foreign = diff(diff(diff(iAllOff, iRef, p), shock, p), nat, p);
+        var climate = p.eco ? diff(iAll, iAllOff, p) : null;
         var detail = {};
-        INDIC.forEach(function (k) { detail[k] = { shock: shock[k], nat: nat[k], foreign: foreign[k] }; if (climate) detail[k].climate = climate[k]; });
+        KEYS.forEach(function (k) { detail[k] = { shock: shock[k], nat: nat[k], foreign: foreign[k] }; if (climate) detail[k].climate = climate[k]; });
         var cy = runAll.years[t].countries[id];
         detail.extra = { gap: cy.gap, debt: 100 * cy.B / cy.Y, wealth: 100 * cy.V / cy.Y, u: cy.u, pi: cy.pi, P: cy.P,
           inv: rc.I ? 100 * (cy.I / rc.I - 1) : 0, loans: 100 * cy.L / cy.Y, deposits: 100 * cy.M / cy.Y };
@@ -732,7 +737,7 @@ var OPENMU = (function () {
         if (p.eco) { detail.extra.E = p.ci0 > 0 ? 100 * (cy.E / (p.ci0 * rc.Y) - 1) : 0; detail.extra.ci = cy.ci / p.ci0; detail.extra.ctax = cy.ctax; detail.extra.green = cy.green; detail.extra.D = 100 * cy.D; }   // v2.0: emissions vs reference %, carbon intensity (share of reference), levers, damage %
         var entry = { detail: detail, byPart: { total: total, shock: shock, nat: nat, foreign: foreign } };
         if (climate) entry.byPart.climate = climate;
-        INDIC.forEach(function (k) { entry[k] = total[k]; });
+        KEYS.forEach(function (k) { entry[k] = total[k]; });
         yr.countries[id] = entry;
       });
       var u = runAll.years[t].union, uRef = runRef.years[t].union;
@@ -771,6 +776,6 @@ var OPENMU = (function () {
       union: { R0: ref.union.R0, reserveMonths: p.reserveMonths, xr0: p.xr0, r0: p.r, alertShare: p.alertShare } };
   }
 
-  return { VERSION: VERSION, INDICATORS: INDIC, defaultParams: defaultParams, paramsFor: paramsFor, calibrate: calibrate, simulate: simulate, report: report, describe: describe, shares: shares };
+  return { VERSION: VERSION, INDICATORS: INDIC, INDICATORS_ECO: INDIC_ECO, defaultParams: defaultParams, paramsFor: paramsFor, calibrate: calibrate, simulate: simulate, report: report, describe: describe, shares: shares };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = OPENMU;

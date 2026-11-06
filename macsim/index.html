@@ -241,7 +241,7 @@
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title]), el('span', { id: 'formStatus', class: 'small muted' })]));
     if (!f.isWarm) {
       var wi = MS.weightsInfo(st, st.round, f.country);
-      if (wi.elected) card.appendChild(el('div', { class: 'note', id: 'objectiveNote', html: '<b>Your objective this year</b>' + (wi.label ? ' — ' + esc(wi.label) + (wi.scope === 'ALL' ? ' (union-wide election)' : ' (election in ' + esc(MS.countryName(wi.scope)) + ')') : '') + ': ' + MS.INDICATORS.map(function (i) { return esc(i.label.toLowerCase()) + ' <b>' + esc(MS.fmt(wi.weights[i.id], 2)) + '</b>'; }).join(' · ') + '. Voters have changed what they reward: R is computed with these weights from year ' + esc(wi.year) + ' on.' }));
+      if (wi.elected) card.appendChild(el('div', { class: 'note', id: 'objectiveNote', html: '<b>Your objective this year</b>' + (wi.label ? ' — ' + esc(wi.label) + (wi.scope === 'ALL' ? ' (union-wide election)' : ' (election in ' + esc(MS.countryName(wi.scope)) + ')') : '') + ': ' + MS.indicatorsFor(data.state).filter(function (i) { return !i.eco || MS.num(wi.weights[i.id]) > 0; }).map(function (i) { return esc(i.label.toLowerCase()) + ' <b>' + esc(MS.fmt(wi.weights[i.id], 2)) + '</b>'; }).join(' · ') + '. Voters have changed what they reward: R is computed with these weights from year ' + esc(wi.year) + ' on.' }));
     }
     var cap = null;
     if (rec && rec.status === 'forced') card.appendChild(el('div', { class: 'note', html: '<b>Reserves exhausted</b> at the end of year ' + (st.round - 1) + ' with the current account still in deficit: a devaluation of ' + esc(MS.fmt(vc0.forced, 0)) + ' % is imposed this year, without a vote.' }));
@@ -482,7 +482,7 @@
     weights = rowWeights(r, weights);
     ['nat', 'foreign', 'shock', 'climate'].forEach(function (p) {
       var Rp = d.R && d.R[p] !== undefined ? d.R[p] : null;
-      if (Rp === null) { var pd = {}, has = false; MS.INDICATORS.forEach(function (i) { var x = d[i.id] ? d[i.id][p] : null; if (x !== null && x !== undefined) { pd[i.id] = x; has = true; } }); if (has) Rp = MS.scoreR(pd, weights); }
+      if (Rp === null) { var pd = {}, has = false; MS.indicatorsFor(data.state).forEach(function (i) { var x = d[i.id] ? d[i.id][p] : null; if (x !== null && x !== undefined) { pd[i.id] = x; has = true; } }); if (has) Rp = MS.scoreR(pd, weights); }
       if (Rp !== null) out[p] = Rp;
     });
     return out;
@@ -492,24 +492,24 @@
     var parts = [['nat', 'of which your own policy'], ['foreign', 'of which foreign policies'], ['shock', 'of which the shocks'], ['climate', 'of which the climate']];
     var split = rSplit(r, weights);
     return parts.map(function (pp) {
-      var any = MS.INDICATORS.some(function (i) { return d[i.id] && d[i.id][pp[0]] !== undefined; }) || split[pp[0]] !== undefined;
+      var any = MS.indicatorsFor(data.state).some(function (i) { return d[i.id] && d[i.id][pp[0]] !== undefined; }) || split[pp[0]] !== undefined;
       if (!any) return '';
       var Rp = split[pp[0]] === undefined ? null : split[pp[0]];
       var Cp = cum && cum[pp[0]] !== undefined ? cum[pp[0]] : null;
-      return '<tr class="bd"><td class="small muted" style="padding-left:1.6em;white-space:nowrap">' + pp[1] + '</td>' + MS.INDICATORS.map(function (i) { var x = d[i.id] ? d[i.id][pp[0]] : null; return '<td class="num small ' + (x === null || x === undefined ? '' : UI.signedClass(i.sign * x)) + '">' + esc(x === null || x === undefined ? '' : MS.fmt(x, 3, true)) + '</td>'; }).join('') +
+      return '<tr class="bd"><td class="small muted" style="padding-left:1.6em;white-space:nowrap">' + pp[1] + '</td>' + MS.indicatorsFor(data.state).map(function (i) { var x = d[i.id] ? d[i.id][pp[0]] : null; return '<td class="num small ' + (x === null || x === undefined ? '' : UI.signedClass(i.sign * x)) + '">' + esc(x === null || x === undefined ? '' : MS.fmt(x, 3, true)) + '</td>'; }).join('') +
         '<td class="num small ' + (Rp === null ? '' : UI.signedClass(Rp)) + '">' + esc(Rp === null ? '' : MS.fmt(Rp, 3, true)) + '</td>' +
         '<td class="num small ' + (Cp === null ? '' : UI.signedClass(Cp)) + '">' + esc(Cp === null ? '' : MS.fmt(Cp, 3, true)) + '</td></tr>';
     }).join('');
   }
   function resultsTable(rows, firstCol) {
     var w = data && data.state ? data.state.weights : null;
-    var h = '<div class="tablewrap"><table><thead><tr><th>' + esc(firstCol || 'Year') + '</th>' + MS.INDICATORS.map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">score of the year</span></th><th class="num">Cum. R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">sum so far</span></th></tr></thead><tbody>';
+    var h = '<div class="tablewrap"><table><thead><tr><th>' + esc(firstCol || 'Year') + '</th>' + MS.indicatorsFor(data.state).map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">score of the year</span></th><th class="num">Cum. R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">sum so far</span></th></tr></thead><tbody>';
     var cumR = 0, cumParts = {}, anyR = false;
     rows.forEach(function (r) {
       var R = MS.num(r.R); var hasR = r.R !== null && r.R !== undefined && r.R !== '' && !isNaN(R);
       if (hasR) { cumR = MS.round3(cumR + R); anyR = true; }
       var sp = rSplit(r, w); Object.keys(sp).forEach(function (p) { cumParts[p] = MS.round3((cumParts[p] || 0) + sp[p]); });
-      h += '<tr' + (r._me ? ' class="me"' : '') + '><td>' + esc(r._label) + (r.detail && r.detail.weights ? '<br><span class="xs muted" title="weights after the election">' + esc(UI.weightsLine(r.detail.weights, r.detail.electionLabel || 'election')) + '</span>' : '') + '</td>' + MS.INDICATORS.map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(r[i.id])) + '">' + esc(MS.fmt(r[i.id], 3, true)) + '</td>'; }).join('') +
+      h += '<tr' + (r._me ? ' class="me"' : '') + '><td>' + esc(r._label) + (r.detail && r.detail.weights ? '<br><span class="xs muted" title="weights after the election">' + esc(UI.weightsLine(r.detail.weights, r.detail.electionLabel || 'election')) + '</span>' : '') + '</td>' + MS.indicatorsFor(data.state).map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(r[i.id])) + '">' + esc(MS.fmt(r[i.id], 3, true)) + '</td>'; }).join('') +
         '<td class="num ' + UI.signedClass(r.R) + '"><b>' + esc(MS.fmt(r.R, 3, true)) + '</b></td>' +
         '<td class="num ' + (anyR ? UI.signedClass(cumR) : '') + '"><b>' + esc(anyR ? MS.fmt(cumR, 3, true) : '—') + '</b></td></tr>' + breakdownRows(r, w, cumParts);
     });
