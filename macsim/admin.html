@@ -358,7 +358,7 @@
     var allowedInputs = {};
     MS.LEVERS.concat([MS.TARIFF, MS.EURO, MS.TFP]).forEach(function (l) {
       var cb = el('input', { type: 'checkbox' }); cb.checked = (s.warmup.allowed || []).indexOf(l.id) >= 0; allowedInputs[l.id] = cb;
-      allowedBox.appendChild(el('label', {}, [cb, ' ' + (l.n ? l.n + '. ' : '') + l.label]));
+      allowedBox.appendChild(el('label', {}, [cb, ' ' + (l.n ? l.n + '. ' : '') + l.label + (l.eco ? ' (v2.0)' : '')]));
     });
     box.appendChild(el('div', { class: 'small muted', style: 'margin-top:8px' }, ['Instruments allowed in the warm-up:'])); box.appendChild(allowedBox);
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Game']));
@@ -376,7 +376,7 @@
     box.appendChild(el('div', { class: 'params' }, [vStep.el, vCap.el, vDev.el, vForced.el, vDepr.el, vDef.el]));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Model version']));
     var mSel = el('select', { id: 'modelSel' });
-    [['v1.1', 'v1.1 — class 6: no price channel, reserves 3 months of imports'], ['v1.2', 'v1.2 — price levels enter trade (one-year lag), reserves 1.5 months'], ['v1.3', 'v1.3 — v1.2 + capital flows, fixed or floating exchange rate (per year), risk premium on public debt, central-bank backstop']].forEach(function (o) { mSel.appendChild(el('option', { value: o[0] }, [o[1]])); });
+    [['v1.1', 'v1.1 — class 6: no price channel, reserves 3 months of imports'], ['v1.2', 'v1.2 — price levels enter trade (one-year lag), reserves 1.5 months'], ['v1.3', 'v1.3 — v1.2 + capital flows, fixed or floating exchange rate (per year), risk premium on public debt, central-bank backstop'], ['v2.0', 'v2.0 — v1.3 + emissions, a global pollution stock and a damage function; carbon tax and green investment levers (backend v1.6 needed)']].forEach(function (o) { mSel.appendChild(el('option', { value: o[0] }, [o[1]])); });
     mSel.value = modelOf(s);
     box.appendChild(el('div', { class: 'params' }, [el('div', {}, [el('label', { class: 'small' }, ['Engine used by Run for this class (a game in progress should keep its version)']), el('br'), mSel])]));
     box.appendChild(el('p', { class: 'muted small' }, ['One country, one vote; a majority of the playing countries is needed (a country without a decision votes hold / austerity). The crisis vote is held only when the union’s reserves ended the previous year below the alert line.']));
@@ -386,8 +386,10 @@
     box.appendChild(el('p', { class: 'muted small' }, ['R = Σ weight × deviation, with negative signs on unemployment and inflation. The engine computes the five deviations; R is computed here with these weights.']));
     box.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () {
       var allowed = Object.keys(allowedInputs).filter(function (k) { return allowedInputs[k].checked; });
+      /* v2.0: the two ecological levers follow the model choice in the warm-up (added when switching to v2.0, dropped otherwise) */
+      MS.LEVERS.filter(function (l) { return l.eco; }).forEach(function (l) { var i = allowed.indexOf(l.id); if (mSel.value === 'v2.0' && i < 0 && !(s.sim && s.sim.model === 'v2.0')) allowed.push(l.id); if (mSel.value !== 'v2.0' && i >= 0) allowed.splice(i, 1); });
       var w = {}; Object.keys(wInputs).forEach(function (k) { w[k] = MS.num(wInputs[k].value); });
-      patch({ bounds: { lever: MS.num(pb.input.value), tariff: MS.num(pt.input.value), tfp: MS.num(pp.input.value) },
+      patch({ bounds: { lever: MS.num(pb.input.value), tariff: MS.num(pt.input.value), tfp: MS.num(pp.input.value), eco: MS.num(st().bounds.eco) || 10 },
         warmup: { country: wc.value, years: Math.max(1, Math.min(3, Math.round(MS.num(wy.input.value)) || 3)), allowed: allowed, maxNonZero: Math.round(MS.num(wm.input.value)), minText: Math.round(MS.num(wt.input.value)) },
         game: { allowTariff: gTar.checked, allowEuro: gEu.checked, allowTfp: gTfp.checked, maxNonZero: Math.round(MS.num(gm.input.value)), minText: Math.round(MS.num(gt.input.value)) },
         years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w,
@@ -477,7 +479,7 @@
   function tsvOf(d) {
     var g = groupById(d.groupId), p = d.payload; var lines = [];
     lines.push((g ? g.name : d.groupId) + '\t' + MS.countryName(d.country) + '\t' + (d.phase === 'warmup' ? 'warm-up' : 'year ' + d.round));
-    MS.LEVERS.forEach(function (l) { lines.push(l.n + '\t' + l.label + '\t' + p.years.map(function (y) { return MS.fmt(y.levers[l.id] || 0, 2); }).join('\t')); });
+    MS.leversFor(st()).forEach(function (l) { lines.push(l.n + '\t' + l.label + '\t' + p.years.map(function (y) { return MS.fmt(y.levers[l.id] || 0, 2); }).join('\t')); });
     var tar = p.years.map(function (y) { return MS.COUNTRIES.concat([MS.ROW]).map(function (c) { return c.id; }).filter(function (k) { return y.tariffs && MS.num(y.tariffs[k]); }).map(function (k) { return k + ' ' + MS.fmt(y.tariffs[k], 2, true); }).join(', ') || '—'; });
     lines.push('11\tTariffs\t' + tar.join('\t'));
     lines.push('\tEuro\t' + p.years.map(function (y) { return y.euro || 'none'; }).join('\t'));
@@ -495,8 +497,8 @@
       el('span', { class: 'inline' }, [el('button', { class: 'btn sm ghost', onclick: function () { UI.copyText(tsvOf(d)); UI.toast('Copied'); } }, ['Copy TSV']), el('label', { class: 'small' }, [cb, ' entered'])])
     ]));
     var tbl = el('table'); var tb = el('tbody');
-    MS.LEVERS.forEach(function (l) {
-      var tr = el('tr', {}, [el('td', {}, [el('span', { class: 'n' }, [l.n + '.']), l.label]), el('td', { class: 'unit' }, [l.unit])]);
+    MS.leversFor(st()).forEach(function (l) {
+      var tr = el('tr', {}, [el('td', {}, [el('span', { class: 'n' }, [l.n + '.']), l.label]), el('td', { class: 'unit' }, [l.unit || '% of ref.'])]);
       p.years.forEach(function (y) { var val = MS.num(y.levers[l.id] || 0); tr.appendChild(el('td', { class: 'num ' + (val ? '' : 'zero') }, [MS.fmt(val, 2, true)])); });
       tb.appendChild(tr);
     });
@@ -631,18 +633,22 @@
     { id: 'regime',     label: 'Exchange-rate regime',    unit: '',   hint: 'fixed: the reserves absorb the balance of payments (alert, crisis vote); float: the reserves are frozen and the exchange rate clears it (currency-crisis vote)', type: 'select', options: [['fixed', 'fixed'], ['float', 'floating']], v13: true },
     { id: 'flows',      label: 'Capital flows / sudden stop', unit: '%', hint: 'change of the rest of the world’s desired holdings of union bills (30 % of union GDP at the reference); −10 = flight to quality. Fixed: the reserves pay (−5 ≈ the whole stock); float: the currency depreciates (−30 ≈ +20 %). A persistent shock must be repeated every year', v13: true },
     { id: 'worldRate',  label: 'World interest rate',     unit: 'pt', hint: 'change of the rest of the world’s rate (3 % at the reference): a higher world rate pulls capital out of the union', v13: true },
-    { id: 'backstop',   label: 'Central-bank backstop',   unit: '',   hint: 'on: the central bank buys the residual bills of every member at the common rate (the spread of an indebted member is paid only on privately held bills); off: members above 110 % of debt must place their bills on the market — their rate rises until households and banks absorb them, and the flight to quality is not absorbed', type: 'check', v13: true }
+    { id: 'backstop',   label: 'Central-bank backstop',   unit: '',   hint: 'on: the central bank buys the residual bills of every member at the common rate (the spread of an indebted member is paid only on privately held bills); off: members above 110 % of debt must place their bills on the market — their rate rises until households and banks absorb them, and the flight to quality is not absorbed', type: 'check', v13: true },
+    /* v2.0 (emissions and damages): shown only when the class runs model v2.0 */
+    { id: 'worldEmissions', label: 'World emissions', unit: '%', hint: 'change of the rest of the world’s emissions (equal to the union’s at the reference); −30 = a global agreement, +30 = the rest of the world grows dirty', v20: true },
+    { id: 'disaster',   label: 'Climate disaster',        unit: '%',  hint: 'one-off extra damage this year (e.g. 3 = potential output −3 % for the year: unemployment, inflation, imports, repairs)', v20: true },
   ];
-  function shockFields() { var v13 = modelOf() === 'v1.3'; return SHOCK_FIELDS.filter(function (f) { return !f.v13 || v13; }); }
+  function shockFields() { var m = modelOf(), v13 = m === 'v1.3' || m === 'v2.0', v20 = m === 'v2.0'; return SHOCK_FIELDS.filter(function (f) { return (!f.v13 || v13) && (!f.v20 || v20); }); }
   var runPreview = null;   // {phase, round, rows:[...], union:[...]} built by the last run
   function engineOk() { return typeof OPENMU !== 'undefined' && OPENMU && typeof OPENMU.report === 'function'; }
   function engineLine() {
     var p = engineParams(), n = 0, ver = OPENMU.VERSION || '?';
     try { var d = OPENMU.describe ? OPENMU.describe(p) : null; if (d && d.version) ver = d.version; n = d && d.countries ? Object.keys(d.countries).length : (Array.isArray(p.countries) ? p.countries.length : 0); } catch (e) { n = Array.isArray(p.countries) ? p.countries.length : 0; }
-    return 'engine OPEN-MU v' + ver + ' · model ' + modelOf() + (modelOf() === 'v1.3' ? ' (capital flows, fixed or floating rate per year, market pressure; reserves ' + p.reserveMonths + ' months)' : modelOf() === 'v1.2' ? ' (prices in trade, reserves ' + p.reserveMonths + ' months)' : ' (no price channel, reserves ' + p.reserveMonths + ' months)') + ' · ' + n + ' members · ' + (modelOf() === 'v1.3' ? 'regime per year' : 'fixed exchange rate');
+    return 'engine OPEN-MU v' + ver + ' · model ' + modelOf() + (modelOf() === 'v2.0' ? ' (emissions and damages, carbon tax and green investment, on top of v1.3; reserves ' + p.reserveMonths + ' months)' : modelOf() === 'v1.3' ? ' (capital flows, fixed or floating rate per year, market pressure; reserves ' + p.reserveMonths + ' months)' : modelOf() === 'v1.2' ? ' (prices in trade, reserves ' + p.reserveMonths + ' months)' : ' (no price channel, reserves ' + p.reserveMonths + ' months)') + ' · ' + n + ' members · ' + (modelOf() === 'v1.3' ? 'regime per year' : 'fixed exchange rate');
   }
   /* model version of the class: 'v1.2' (prices in trade, reserves 1.5 months) or 'v1.1' (class 6; also any class without the key) */
-  function modelOf(s) { var m = ((s || st()).sim || {}).model; return m === 'v1.3' || m === 'v1.2' ? m : 'v1.1'; }
+  function modelOf(s) { var m = ((s || st()).sim || {}).model; return m === 'v2.0' || m === 'v1.3' || m === 'v1.2' ? m : 'v1.1'; }
+  function isCapModel(s) { var m = modelOf(s); return m === 'v1.3' || m === 'v2.0'; }
   function engineParams() {
     var p = OPENMU.paramsFor ? OPENMU.paramsFor(modelOf()) : OPENMU.defaultParams();
     var ov_ = st().sim || {};
@@ -668,6 +674,7 @@
   function unionRow(u, year, key, extra) {
     var x = { CA: u.CA, R: u.R, R0: u.R0, xr: u.xr, alert: !!u.alert, months: u.months, gdp: u.gdp, rate: u.r };
     if (u.regime) { x.regime = u.regime; x.dxr = u.dxr; x.CAp = u.CAp; x.KA = u.KA; x.Bw = u.Bw; x.Bf = u.Bf; x.backstop = u.backstop !== false; x.pressured = u.pressured || []; x.sBar = u.sBar; x.rw = u.rw; }   // v1.3
+    if (u.D !== undefined) { x.D = u.D; x.Sshare = u.Sshare; x.Erel = u.Erel; }   // v2.0: damage %, pollution stock vs start, union emissions vs reference %
     if (extra) Object.keys(extra).forEach(function (k) { x[k] = extra[k]; });
     return { key: key || 'UNION', year: year, gdp: '', unemp: '', infl: '', pubbal: '', tradebal: '', R: '', detail: { extra: roundDeep(x, 4) } };
   }
@@ -686,7 +693,7 @@
     row.R = MS.scoreR(dev, weights);
     /* R is linear in the indicators: split it the same way (own policy / foreign policies / shocks) */
     var Rparts = {}, anyPart = false;
-    ['shock', 'nat', 'foreign'].forEach(function (p) {
+    ['shock', 'nat', 'foreign', 'climate'].forEach(function (p) {
       var pd = {}, has = false;
       MS.INDICATORS.forEach(function (i) { var x = det[i.id] && det[i.id][p]; if (x !== undefined && x !== null) { pd[i.id] = x; has = true; } });
       if (has) { Rparts[p] = MS.scoreR(pd, weights); anyPart = true; }
@@ -706,7 +713,7 @@
     if (u.regime) h += '<div class="urow"><span>Current account incl. primary income · capital flows</span><span class="num">' + esc(MS.fmt(u.CAp, 2, true)) + ' · ' + esc(MS.fmt(u.KA, 2, true)) + '</span></div>';
     h += '<div class="urow"><span>Exchange rate (union currency per unit of world currency)</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + (u.regime && u.dxr !== undefined ? ' <span class="' + (u.dxr > 0 ? 'neg' : (u.dxr < 0 ? 'pos' : 'muted')) + '">(' + esc(MS.fmt(u.dxr, 1, true)) + ' % over the year)</span>' : '') + '</span></div>';
     if (u.regime && u.pressured && u.pressured.length) h += '<div class="urow"><span>Members under market pressure (debt &gt; 110 %)</span><span class="num neg">' + esc(u.pressured.map(function (c) { return MS.countryName(c); }).join(', ')) + '</span></div>';
-    return h + UI.voteLinesHtml(u) + '</div>';
+    return h + UI.climateLinesHtml(u) + UI.voteLinesHtml(u) + '</div>';
   }
   function renderRun() {
     var v = $('#view'); v.innerHTML = '';
@@ -970,6 +977,14 @@
     });
     card.appendChild(el('div', { html: h + '</tbody></table></div>' }));
     var unions = runPreview.rows.filter(function (r) { return String(r.key).indexOf('UNION') === 0; });
+    /* v2.0: climate line (last union row of the preview) and per-country emissions */
+    var lastU = unions.length ? unions[unions.length - 1].detail.extra : null;
+    if (lastU && lastU.D !== undefined) {
+      var ecoRows = runPreview.rows.filter(function (r) { return String(r.key).indexOf('UNION') !== 0 && r.detail && r.detail.extra && r.detail.extra.E !== undefined; });
+      var lastYear = Math.max.apply(null, ecoRows.map(function (r) { return Number(r.year); }).concat([0]));
+      var perC = ecoRows.filter(function (r) { return Number(r.year) === lastYear; }).map(function (r) { return esc(isGame ? MS.countryName(r.key) : (r._group ? r._group.name : r.key)) + ' E ' + esc(MS.fmt(r.detail.extra.E, 0, true)) + ' % · ci ' + esc(MS.fmt(100 * r.detail.extra.ci, 0)) + ' %'; });
+      card.appendChild(el('div', { class: 'note small', html: '<b>Climate</b> — pollution stock ' + esc(MS.fmt(100 * lastU.Sshare, 1)) + ' (start = 100) · damage ' + esc(MS.fmt(lastU.D, 1)) + ' % of potential output · union emissions ' + esc(MS.fmt(lastU.Erel, 0, true)) + ' % vs reference' + (perC.length ? '<br>' + perC.join(' · ') : '') }));
+    }
     if (isGame && runPreview.tally) {
       var t = runPreview.tally, cr = t.crisis || {}, sh = runPreview.shock || {};
       var lines = [];

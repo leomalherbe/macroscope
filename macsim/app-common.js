@@ -85,7 +85,7 @@ var UI = (function () {
   function yearChips(y, opts) {
     var chips = [];
     if (!y) return chips;
-    MS.LEVERS.forEach(function (l) { var v = MS.num(y.levers ? y.levers[l.id] : 0); if (v) chips.push({ label: (opts && opts.short ? l.id : l.label), value: v, unit: '%' }); });
+    MS.LEVERS.forEach(function (l) { var v = MS.num(y.levers ? y.levers[l.id] : 0); if (v) chips.push({ label: (opts && opts.short ? l.id : l.label), value: v, unit: l.eco ? (l.id === 'ctax' ? ' pt' : '') : '%' }); });
     Object.keys(y.tariffs || {}).forEach(function (p) { var v = MS.num(y.tariffs[p]); if (v) chips.push({ label: 'Tariff on ' + MS.countryName(p), value: v, unit: ' pt' }); });
     if (y.euro && y.euro !== 'none') chips.push({ label: 'Euro: ' + y.euro, value: null });
     if (MS.num(y.tfp)) chips.push({ label: 'TFP', value: MS.num(y.tfp), unit: '%' });
@@ -124,6 +124,14 @@ var UI = (function () {
     if (u.dxr !== undefined) h += '<div class="urow"><span>Change of the exchange rate over the year (+ = depreciation)</span><span class="num ' + (u.dxr > 0 ? 'neg' : (u.dxr < 0 ? 'pos' : '')) + '">' + esc(MS.fmt(u.dxr, 1, true)) + ' %</span></div>';
     if (u.KA !== undefined) h += '<div class="urow"><span>Capital flows (net inflows from the rest of the world)</span><span class="num ' + UI.signedClass(u.KA) + '">' + esc(MS.fmt(u.KA, 2, true)) + '</span></div>';
     if (u.pressured && u.pressured.length) h += '<div class="urow"><span>Members under market pressure (public debt above 110 % of GDP)</span><span class="num neg">' + esc(u.pressured.map(function (c) { return MS.countryName(c); }).join(', ')) + '</span></div>';
+    return h;
+  }
+  /* v2.0: the climate block of a union row (pollution stock, damage, emissions) */
+  function climateLinesHtml(u) {
+    if (!u || u.D === undefined) return '';
+    var h = '<div class="urow"><span>Global pollution stock (start = 100)</span><span class="num">' + esc(MS.fmt(100 * (u.Sshare || 1), 1)) + '</span></div>';
+    h += '<div class="urow"><span>Climate damage this year (loss of potential output)</span><span class="num ' + (u.D > 0 ? 'neg' : '') + '">' + esc(MS.fmt(u.D, 1)) + ' %</span></div>';
+    if (u.Erel !== undefined) h += '<div class="urow"><span>Union emissions vs the reference</span><span class="num ' + UI.signedClass(-u.Erel) + '">' + esc(MS.fmt(u.Erel, 0, true)) + ' %</span></div>';
     return h;
   }
   /* a pledge's attachments: numbers (non-zero levers) and the vote it announces; « words only » when it carries neither */
@@ -246,5 +254,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, climateLinesHtml: climateLinesHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();
