@@ -172,7 +172,7 @@ const KEY = 'TESTKEY';
   await board.waitForSelector('text=Ranking');
   const bt = await board.textContent('#app');
   must(/Exchange-rate regime/.test(bt) && /Risk premium/.test(bt), 'board: regime line and risk-premium column');
-  must(/Key indicators · end of year 3/.test(bt) && (await board.$$('.factgrid .country')).length >= 2 && /vs year 2/.test(bt), 'board: one fact sheet per country with the change since year 2');
+  must(/Key indicators · end of year 3/.test(bt) && (await board.$$('table.facttable tbody tr')).length >= 2 && /the change since year 2/.test(bt), 'board: one fact sheet per country with the change since year 2');
   await board.screenshot({ path: OUT + '/v13-b1-board.png', fullPage: true });
 
   must(errors.length === 0, 'no page errors (' + errors.join(' | ') + ')');

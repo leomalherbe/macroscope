@@ -102,7 +102,7 @@
     app.innerHTML = '';
     if (st.communique) app.appendChild(el('div', { class: 'communique', style: 'margin-bottom:18px;font-size:1.15rem' }, [el('div', { class: 'kicker' }, ['Administrator’s communiqué']), st.communique]));
 
-    var left = el('div'), right = el('div'), reveals = [];
+    var left = el('div'), right = el('div'), reveals = [], factCard = null;
     /* submissions */
     var subCard = el('div', { class: 'card' }); subCard.appendChild(el('h2', {}, ['Submissions']));
     var grid = el('div', { class: 'status-grid' });
@@ -168,19 +168,16 @@
         lb.forEach(function (r) { var e = r.years[latestYear]; if (!e) return; var cp = e.detail && e.detail.extra ? e.detail.extra.compet : undefined; hd += '<tr><td><b>' + esc(MS.countryName(r.key)) + '</b></td>' + MS.indicatorsFor(st).map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(e[i.id])) + '">' + esc(MS.fmt(e[i.id], 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(e.R) + '"><b>' + esc(MS.fmt(e.R, 3, true)) + '</b></td>' + (hasComp ? '<td class="num ' + (cp === undefined ? '' : UI.signedClass(-cp)) + '">' + esc(cp === undefined ? '—' : MS.fmt(cp, 2, true)) + '</td>' : '') + (hasSpread ? '<td class="num ' + (e.detail && e.detail.extra && e.detail.extra.spread > 0 ? 'neg' : '') + '">' + esc(e.detail && e.detail.extra && e.detail.extra.spread !== undefined ? MS.fmt(e.detail.extra.spread, 2) : '—') + '</td>' : '') + (hasE ? '<td class="num ' + (e.detail && e.detail.extra && e.detail.extra.E !== undefined ? UI.signedClass(-e.detail.extra.E) : '') + '">' + esc(e.detail && e.detail.extra && e.detail.extra.E !== undefined ? MS.fmt(e.detail.extra.E, 0, true) : '—') + '</td>' : '') + '</tr>'; });
         det.appendChild(el('div', { html: hd + '</tbody></table></div>' }));
         left.appendChild(c); left.appendChild(det);
-        /* fact sheets: the key indicators of every country, end of the latest year */
+        /* key indicators of every country, end of the latest year: full width, under the two columns */
         var fc = el('div', { class: 'card' }); fc.appendChild(el('h2', {}, ['Key indicators · end of year ' + latestYear]));
-        var fg = el('div', { class: 'factgrid' });
         function uxr(y) { var u = (data.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'UNION' && Number(r.year) === Number(y) && r.detail && r.detail.extra; })[0]; return u ? u.detail.extra.xr : null; }
-        lb.slice().sort(function (a, b) { return MS.countryName(a.key).localeCompare(MS.countryName(b.key)); }).forEach(function (r) {
-          var e = r.years[latestYear]; if (!e) return; var p0 = r.years[latestYear - 1] || null;
-          var gname = groupName(((data.groups || []).filter(function (g) { return g.country === r.key; })[0] || {}).groupId);
-          var ex = e.detail && e.detail.extra && e.detail.extra.exited ? ' <span class="pill closed">out of the union</span>' : '';
-          fg.appendChild(el('div', { class: 'country', html: '<h3>' + esc(MS.countryName(r.key)) + (gname ? ' <span class="small muted">' + esc(gname) + '</span>' : '') + ex + '</h3>' + UI.factSheetHtml(e, p0, { xr: uxr(latestYear), xrPrev: p0 ? uxr(latestYear - 1) : null, mini: true }) }));
+        var fItems = lb.slice().sort(function (a, b) { return MS.countryName(a.key).localeCompare(MS.countryName(b.key)); }).filter(function (r) { return r.years[latestYear]; }).map(function (r) {
+          var e = r.years[latestYear], p0 = r.years[latestYear - 1] || null;
+          return { name: MS.countryName(r.key), sub: groupName(((data.groups || []).filter(function (g) { return g.country === r.key; })[0] || {}).groupId), badge: e.detail && e.detail.extra && e.detail.extra.exited ? '<span class="pill closed">out of the union</span>' : '', row: e, prev: p0, ctx: { xr: uxr(latestYear), xrPrev: p0 ? uxr(latestYear - 1) : null } };
         });
-        fc.appendChild(fg);
-        fc.appendChild(el('p', { class: 'muted small' }, ['Levels for inflation, unemployment and debt; GDP as the gap to the reference path; balances in % of GDP. Arrows: change since the previous year, green when it helps the country.']));
-        left.appendChild(fc);
+        fc.appendChild(el('div', { html: UI.factTableHtml(fItems) }));
+        fc.appendChild(el('p', { class: 'muted small' }, ['Inflation, unemployment and debt are levels (reference 2 %, 7 %, about 105 % of GDP); GDP is the gap to the reference path; balances in % of GDP. Exchange rate: euros per unit of world currency for the members (up = the euro depreciates), units of its own currency per euro for a country out of the union' + (MS.isDuel(st) ? ', units of your currency per unit of your partner’s in a duel' : '') + '. Under each value: the change since year ' + (latestYear - 1) + ', green when it helps the country, red when it hurts.']));
+        factCard = fc;
         /* trajectories: one small chart per country */
         var tg = el('div', { class: 'trajgrid' });
         lb.forEach(function (r) {
@@ -256,6 +253,7 @@
       left.appendChild(wc);
     }
     app.appendChild(el('div', { class: 'grid2' }, [left, right]));
+    if (factCard) app.appendChild(factCard);
     reveals.forEach(function (c) { app.appendChild(c); });
   }
   function updateCountdown() {

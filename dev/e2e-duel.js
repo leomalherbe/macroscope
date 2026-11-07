@@ -108,7 +108,7 @@ const KEY = 'TESTKEY';
   must(/Your partner · Pair 1 · Country B/.test(stuTxt) && /of which your partner’s policy/.test(stuTxt), 'student page: the partner\'s results table and the « of which your partner » line');
   must(/Your duel’s decisions · year 1/.test(stuTxt) && /Carbon tax/.test(stuTxt) && !/Pair 2/.test((await stu.textContent('#alldecisions'))), 'student page: the partner\'s decisions once the round is closed, not the other pairs\'');
   must((await stu.$$('.trajgrid svg.traj')).length === 2 && (await stu.$$('tr.partner')).length === 1 && (await stu.$$('tr.me')).length >= 1, 'student page: both charts side by side; ranking highlights you and your partner');
-  must(/Key indicators · Pair 1 · Country A/.test(stuTxt) && / per partner unit/.test(stuTxt) && /Current account/.test(stuTxt), 'student page (duel): fact sheet with the bilateral exchange rate');
+  must(/Key indicators · Pair 1 · Country A/.test(stuTxt) && /per partner unit/.test(stuTxt) && /Current account/.test(stuTxt), 'student page (duel): fact sheet with the bilateral exchange rate');
   await stu.screenshot({ path: OUT + '/duel-s1-results.png', fullPage: true });
 
   /* year 2: float + demand shock in A */

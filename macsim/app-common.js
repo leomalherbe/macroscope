@@ -121,45 +121,69 @@ var UI = (function () {
     return h;
   }
   /* Fact sheet of a country: key indicators at the end of a year, with the change since the previous year.
-     row / prev: published result rows of the country (prev may be null); ctx: {xr, xrPrev, duel} — the union's exchange rate of the
+     row / prev: published result rows of the country (prev may be null); ctx: {xr, xrPrev} — the union's exchange rate of the
      same years (price of the world currency in the union's currency). Levels where the model has them (inflation, unemployment, debt),
-     deviations from the reference otherwise (GDP). Older rows without the current account fall back on the trade balance. */
+     deviations from the reference otherwise (GDP). Older rows without the current account fall back on the trade balance.
+     factItems gives the list; factSheetHtml draws tiles (team page), factTableHtml one table for several countries (board). */
+  function factItems(row, prev, ctx) {
+    ctx = ctx || {};
+    var x = (row && row.detail && row.detail.extra) || {}, px = (prev && prev.detail && prev.detail.extra) || null;
+    function n(v) { return v === undefined || v === null || v === '' || isNaN(Number(v)) ? null : Number(v); }
+    var out = [];
+    /* good: +1 if a rise helps the country, −1 if it hurts, 0 if neither */
+    function add(key, label, unit, v, pv, d, good, signed, note) { if (v !== null) out.push({ key: key, label: label, unit: unit, v: v, dv: pv === null || pv === undefined ? null : v - pv, d: d, good: good, signed: !!signed, note: note || '' }); }
+    add('gdp', 'GDP', '% vs ref.', n(row.gdp), prev ? n(prev.gdp) : null, 2, 1, true);
+    add('pi', 'Inflation', '%', n(x.pi), px ? n(px.pi) : null, 2, 0);
+    add('u', 'Unemployment', '%', n(x.u), px ? n(px.u) : null, 2, -1);
+    add('pb', 'Public balance', '% of GDP', n(row.pubbal), prev ? n(prev.pubbal) : null, 2, 1, true);
+    if (n(x.ca) !== null) add('ca', 'Current account', '% of GDP', n(x.ca), px ? n(px.ca) : null, 2, 1, true);
+    else add('ca', 'Trade balance', '% of GDP', n(row.tradebal), prev ? n(prev.tradebal) : null, 2, 1, true);
+    if (x.exited) add('xr', 'Exchange rate', 'per €', n(x.fx), px && px.exited ? n(px.fx) : (px ? 1 : null), 3, 0, false, (x.peg ? 'pegged' : 'floating') + ' · ' + MS.fmt(x.fxWorld, 3) + ' per world unit');
+    else if (n(x.xr) !== null) add('xr', 'Exchange rate', 'per partner unit', n(x.xr), px ? n(px.xr) : null, 3, 0, false, 'up = your currency depreciates');
+    else if (n(ctx.xr) !== null) add('xr', 'Exchange rate', '€ per world unit', n(ctx.xr), n(ctx.xrPrev), 3, 0, false, 'up = the euro depreciates');
+    add('debt', 'Public debt', '% of GDP', n(x.debt), px ? n(px.debt) : null, 1, -1);
+    if (n(x.spread) !== null) add('spread', 'Risk premium', 'pt', n(x.spread), px ? n(px.spread) : null, 2, -1, false, x.pressured ? 'under market pressure' : (n(x.spread) > 0 ? 'debt above 110 % of GDP' : 'none below 110 % of debt'));
+    return out;
+  }
+  function factDeltaHtml(it, prevYear) {
+    if (it.dv === null) return '';
+    var flat = Math.abs(it.dv) < 0.5 * Math.pow(10, -it.d);
+    var cls = flat || !it.good ? 'flat' : (it.dv * it.good > 0 ? 'up' : 'down');
+    return '<span class="d ' + cls + '">' + (flat ? '= ' : (it.dv > 0 ? '▲ ' : '▼ ')) + esc(MS.fmt(it.dv, it.d, true)) + (prevYear ? ' vs year ' + esc(prevYear) : '') + '</span>';
+  }
   function factSheetHtml(row, prev, ctx) {
     if (!row) return '';
-    ctx = ctx || {};
-    var x = (row.detail && row.detail.extra) || {}, px = (prev && prev.detail && prev.detail.extra) || null;
-    function n(v) { return v === undefined || v === null || v === '' || isNaN(Number(v)) ? null : Number(v); }
-    var tiles = [];
-    /* good: +1 if a rise is good news, −1 if bad, 0 if neither */
-    function tile(label, unit, v, pv, d, good, note, signed) {
-      if (v === null) return;
-      var dv = pv === null || pv === undefined ? null : v - pv;
-      var cls = dv === null || Math.abs(dv) < 0.5 * Math.pow(10, -d) || !good ? 'flat' : (dv * good > 0 ? 'up' : 'down');
-      tiles.push('<div class="fact"><div class="lab">' + esc(label) + '</div><div class="val">' + esc(MS.fmt(v, d, !!signed)) + '<span class="u">' + esc(unit) + '</span></div>' +
-        (dv === null ? '<div class="d flat">&nbsp;</div>' : '<div class="d ' + cls + '">' + (dv > 0 ? '▲ ' : (dv < 0 ? '▼ ' : '')) + esc(MS.fmt(dv, d, true)) + ' vs year ' + esc(prev.year) + '</div>') + (note ? '<div class="d flat note">' + note + '</div>' : '') + '</div>');
-    }
-    tile('GDP', '% vs ref.', n(row.gdp), prev ? n(prev.gdp) : null, 2, 1, null, true);
-    tile('Inflation', '%', n(x.pi), px ? n(px.pi) : null, 2, 0);
-    tile('Unemployment', '%', n(x.u), px ? n(px.u) : null, 2, -1);
-    tile('Public balance', '% of GDP', n(row.pubbal), prev ? n(prev.pubbal) : null, 2, 1, null, true);
-    if (n(x.ca) !== null) tile('Current account', '% of GDP', n(x.ca), px ? n(px.ca) : null, 2, 1, null, true);
-    else tile('Trade balance', '% of GDP', n(row.tradebal), prev ? n(prev.tradebal) : null, 2, 1, null, true);
-    /* exchange rate: exited country (price of a euro in its currency), duel (price of the partner's currency), member (price of the world currency in euros) */
-    if (x.exited) tile('Exchange rate', ' per €', n(x.fx), px && px.exited ? n(px.fx) : (px ? 1 : null), 3, 0, x.peg ? 'pegged · ' + esc(MS.fmt(x.fxWorld, 3)) + ' per world unit' : 'floating · ' + esc(MS.fmt(x.fxWorld, 3)) + ' per world unit');
-    else if (n(x.xr) !== null) tile('Exchange rate', ' per partner unit', n(x.xr), px ? n(px.xr) : null, 3, 0, 'up = your currency depreciates');
-    else if (n(ctx.xr) !== null) tile('Exchange rate', ' € per world unit', n(ctx.xr), n(ctx.xrPrev), 3, 0, 'up = the euro depreciates');
-    tile('Public debt', '% of GDP', n(x.debt), px ? n(px.debt) : null, 1, -1);
-    if (n(x.spread) !== null) tile('Risk premium', 'pt', n(x.spread), px ? n(px.spread) : null, 2, -1, x.pressured ? '<span class="neg">under market pressure</span>' : (n(x.spread) > 0 ? 'debt above 110 % of GDP' : 'none below 110 % of debt'));
-    return '<div class="facts' + (ctx.mini ? ' mini' : '') + '">' + tiles.join('') + '</div>';
+    return '<div class="facts">' + factItems(row, prev, ctx).map(function (it) {
+      return '<div class="fact"><div class="lab">' + esc(it.label) + '</div><div class="val">' + esc(MS.fmt(it.v, it.d, it.signed)) + '<span class="u">' + esc(it.unit) + '</span></div>' +
+        '<div>' + (factDeltaHtml(it, prev ? prev.year : null) || '<span class="d flat">&nbsp;</span>') + '</div>' + (it.note ? '<div class="d flat fnote' + (it.key === 'spread' && /pressure/.test(it.note) ? ' neg' : '') + '">' + esc(it.note) + '</div>' : '') + '</div>';
+    }).join('') + '</div>';
+  }
+  /* items: [{name, sub, badge, row, prev, ctx}] → one row per country, one column per indicator (the board) */
+  function factTableHtml(items) {
+    var cols = [];
+    items.forEach(function (o) { factItems(o.row, o.prev, o.ctx).forEach(function (it) { if (!cols.some(function (c) { return c.key === it.key; })) cols.push({ key: it.key, label: it.label, unit: it.unit }); }); });
+    var order = ['gdp', 'pi', 'u', 'pb', 'ca', 'xr', 'debt', 'spread'];
+    cols.sort(function (a, b) { return order.indexOf(a.key) - order.indexOf(b.key); });
+    var h = '<div class="tablewrap"><table class="facttable"><thead><tr><th>Country</th>' + cols.map(function (c) { return '<th class="num">' + esc(c.label) + '<br><span class="unit">' + esc(c.key === 'xr' ? 'see note' : c.unit) + '</span></th>'; }).join('') + '</tr></thead><tbody>';
+    items.forEach(function (o) {
+      var its = factItems(o.row, o.prev, o.ctx);
+      h += '<tr><td><b>' + esc(o.name) + '</b>' + (o.badge ? ' ' + o.badge : '') + (o.sub ? '<br><span class="small muted">' + esc(o.sub) + '</span>' : '') + '</td>' + cols.map(function (c) {
+        var it = its.filter(function (z) { return z.key === c.key; })[0];
+        if (!it) return '<td class="num muted">—</td>';
+        var warn = (c.key === 'spread' && it.v > 0) ? ' neg' : '';
+        return '<td class="num' + warn + '"><span class="v">' + esc(MS.fmt(it.v, it.d, it.signed)) + (c.key === 'xr' ? ' <span class="unit">' + esc(it.unit) + '</span>' : '') + '</span>' + factDeltaHtml(it, null) + '</td>';
+      }).join('') + '</tr>';
+    });
+    return h + '</tbody></table></div>';
   }
   /* §12: exits and retaliation, lines of a union row's detail.extra (empty when nobody left) */
   function exitLinesHtml(u) {
     if (!u) return '';
     var h = '';
     (u.announced || []).forEach(function (c) { h += '<div class="urow"><span><b>' + esc(MS.countryName(c)) + '</b> announced its exit</span><span class="num neg">out of the union next year</span></div>'; });
-    if (u.exited && u.exited.length) h += '<div class="urow"><span>Out of the union (own currency)</span><span class="num">' + esc(u.exited.map(function (c) { var x = u.exitInfo && u.exitInfo[c]; return MS.countryName(c) + (x ? ' · ' + MS.fmt(x.fx, 3) + ' per € (' + (x.peg ? 'peg' : 'float') + ')' : ''); }).join(' · ')) + '</span></div>';
+    if (u.exited && u.exited.length) h += '<div class="urow"><span>Out of the union (own currency)</span><span class="num wrap">' + esc(u.exited.map(function (c) { var x = u.exitInfo && u.exitInfo[c]; return MS.countryName(c) + (x ? ' · ' + MS.fmt(x.fx, 3) + ' per € (' + (x.peg ? 'peg' : 'float') + ')' : ''); }).join(' · ')) + '</span></div>';
     var rt = u.retaliation || {};
-    Object.keys(rt).forEach(function (c) { var m = rt[c]; if (!m || (!m.tariff && !m.sale && !m.settle)) return; h += '<div class="urow"><span>Union measures against ' + esc(MS.countryName(c)) + '</span><span class="num">' + [m.tariff ? 'tariff ' + MS.fmt(m.tariff, 0) + ' %' : '', m.sale ? 'sale of ' + MS.fmt(m.sale, 0) + ' % of its bills held by the central bank' : '', m.settle ? 'TARGET balance settled' : ''].filter(Boolean).map(esc).join(' · ') + '</span></div>'; });
+    Object.keys(rt).forEach(function (c) { var m = rt[c]; if (!m || (!m.tariff && !m.sale && !m.settle)) return; h += '<div class="urow"><span>Union measures against ' + esc(MS.countryName(c)) + '</span><span class="num wrap">' + [m.tariff ? 'tariff ' + MS.fmt(m.tariff, 0) + ' %' : '', m.sale ? 'sale of ' + MS.fmt(m.sale, 0) + ' % of its bills held by the central bank' : '', m.settle ? 'TARGET balance settled' : ''].filter(Boolean).map(esc).join(' · ') + '</span></div>'; });
     return h;
   }
   /* §12: the currency panel of a country that has left the union (its result row's detail.extra) */
@@ -353,5 +377,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();
