@@ -37,20 +37,20 @@ Flux d'un tour : l'administrateur ouvre les soumissions → les équipes soumett
 
 Règles transverses : votes à la **majorité des votants** (PR #25) ; **élections** = changement des poids de R par pays ou pour l'union à partir d'une année (onglet Run, stockées dans `state.shocks['gN'].elections`) ; chocs du warm-up (`'1'…`) et de la partie (`'g1'…`) séparés ; R = score de l'année, classement sur le R cumulé.
 
-Calibration en cours (7/11, validée par Léo) : pour v1.3+/duel, réserves à 3 mois, avoirs croisés divisés par deux (RdM 15 % du PIB de l'union, bons étrangers 7,5 % de la richesse) — voir spec §9.8 quand elle est fusionnée.
+Calibration du 7/11 (PR #29, validée par Léo) : pour v1.3+/duel, réserves à 3 mois, avoirs croisés divisés par deux (RdM 15 % du PIB de l'union, bons étrangers ≈ 7 % de la richesse), hausse votée de 0,5 pt → appréciation 3,7 % en flottant — spec §9.8.
 
 ## 4. Backend : versions et redéploiement
 
 Le pied de page de la console affiche « backend vX.Y ». Toute modification de `core.js`, `dev/service.js` ou `dev/gas-adapter.js` change `Code.gs` ; un **changement de comportement** exige : Google Sheet → Extensions → Apps Script → remplacer tout `Code.gs` → enregistrer → **Déployer → Gérer les déploiements → ✎ → Nouvelle version → Déployer** (l'URL ne change pas). Un simple re-bundle (core.js modifié pour les pages seulement) ne l'exige pas, mais ne nuit pas. Dernière version : **1.8** (`out/Code.gs`). Migration de feuille automatique (colonne `emis`).
 
-## 5. Outils de développement (`dev/`, à la racine du dépôt depuis la PR de handover)
+## 5. Outils de développement (`dev/` à la racine du dépôt, depuis la PR #29)
 
 - `node dev/build.js` — assemble `macsim/Code.gs`.
 - `node dev/engine-test.js` — moteur : stationnarité (60 ans), identités SFC (20 graines × 40 ans), régressions bit-à-bit entre versions, propriétés (érosion d'une relance, courbe en J, votes, climat, duel), **imprime les ordres de grandeur** utilisés dans les slides et la page du modèle. Doit finir par `ENGINE OK`.
 - `node dev/gas-fake-test.js` — backend contre un faux SpreadsheetApp. `GAS adapter OK`.
 - `PORT=8794 node dev/mock-server.js &` puis `E2E_PORT=8794 node dev/e2e.js <dir>` (union v1.1, scénario complet), `e2e-v13.js`, `e2e-v20.js`, `e2e-duel.js` — Playwright sur les vraies pages ; clé admin `TESTKEY`. Doivent finir par `ALL GOOD`.
 - `node dev/shot-deck.js <deck.html> <dir>` — rend un deck reveal.js et signale les débordements (`OVERFLOW`).
-- Dépendances : Node ≥ 18, Playwright (préinstallé dans l'environnement d'origine ; sinon `npm i playwright` + `npx playwright install chromium`), `devdeps/` (`npm install` dans `devdeps/` : reveal.js, chart.js, katex pour le rendu hors ligne des decks).
+- Dépendances : Node ≥ 18, Playwright (préinstallé dans l'environnement d'origine ; sinon `npm i playwright` + `npx playwright install chromium`), `cd dev && npm install` (reveal.js, chart.js, katex, pdfjs pour le rendu hors ligne).
 
 Discipline : toute modification du moteur passe par les trois niveaux de tests ; les versions antérieures doivent rester identiques au bit près (tests de régression) ; une classe en cours ne doit jamais changer de comportement.
 
