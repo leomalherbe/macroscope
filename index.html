@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Macroscope · the open-economy policy game</title>
+<meta name="description" content="Macroscope: govern a country in a monetary union, year after year, against the other governments — on a stock-flow consistent model you can read in full. A classroom game for international macroeconomics.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1b2437;--muted:#5b6475;--bg:#fbfaf6;--card:#fff;--line:#e6e2d6;--gold:#c29d2c;--gold-soft:#f5ecd2;--navy:#14213d;--blue:#2f5d9e;--green:#2f7d4f;--red:#b23b3b}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;line-height:1.55;font-size:16px}
+a{color:var(--blue)}
+h1,h2,h3{font-family:"Source Serif 4",Georgia,serif;letter-spacing:-.01em;margin:0;color:var(--navy)}
+h1{font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;color:#fff}
+h2{font-size:clamp(1.4rem,2.6vw,1.9rem);margin-bottom:.5em}
+h3{font-size:1.1rem;margin-bottom:.35em}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+.kicker{font-size:.74rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.muted{color:var(--muted)}.small{font-size:.9rem}
+header.hero{background:radial-gradient(circle at 85% 15%,#24365e 0,var(--navy) 60%);color:#fff;padding:64px 0 56px}
+.hero p.lead{font-size:1.2rem;color:#d9dce4;max-width:720px;margin:18px 0 26px}
+.hero .cta{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-block;border-radius:999px;padding:10px 20px;font-weight:600;text-decoration:none;border:1px solid transparent}
+.btn.primary{background:var(--gold);color:var(--navy)}
+.btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+.btn.ghost.dark{color:var(--navy);border-color:var(--line);background:#fff}
+section{padding:52px 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+@media (max-width:820px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:0 1px 2px rgba(20,33,61,.04)}
+.card .big{font-family:"Source Serif 4",serif;font-size:1.8rem;font-weight:700;color:var(--gold);line-height:1}
+figure{margin:0}
+figure img{width:100%;height:auto;border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(20,33,61,.08);display:block}
+figcaption{font-size:.82rem;color:var(--muted);margin-top:8px}
+ul.chk{list-style:none;padding:0;margin:.4em 0}
+ul.chk li{position:relative;padding-left:1.3em;margin:.35em 0}
+ul.chk li::before{content:"";position:absolute;left:0;top:.55em;width:.55em;height:.55em;border-radius:2px;background:var(--gold)}
+.levels{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+@media (max-width:900px){.levels{grid-template-columns:1fr 1fr}}
+.level{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.level b{display:block;color:var(--navy);font-family:"Source Serif 4",serif;font-size:1.05rem}
+.level span{font-size:.85rem;color:var(--muted)}
+.steps{counter-reset:s}
+.steps .card{position:relative;padding-left:64px}
+.steps .card::before{counter-increment:s;content:counter(s);position:absolute;left:18px;top:16px;width:32px;height:32px;border-radius:50%;background:var(--gold-soft);color:var(--navy);font-weight:700;display:flex;align-items:center;justify-content:center;font-family:"Source Serif 4",serif}
+table.p{width:100%;border-collapse:collapse;font-size:.9rem}
+table.p th,table.p td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background:#f3f1ea;padding:1px 6px;border-radius:5px}
+footer{padding:30px 0 50px;color:var(--muted);font-size:.88rem}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.quote{border-left:4px solid var(--gold);padding:6px 18px;background:var(--gold-soft);border-radius:0 10px 10px 0;margin:14px 0}
+</style>
+</head>
+<body>
+
+<header class="hero"><div class="wrap">
+  <div class="kicker">A classroom game for international macroeconomics</div>
+  <h1>Macroscope</h1>
+  <p class="lead">Govern a country in a monetary union, year after year, against the other governments — on a stock-flow consistent model you can read in full. Seven teams, four levers, two votes at the council, and a shared stock of reserves that somebody will empty.</p>
+  <div class="cta">
+    <a class="btn primary" href="demo.html">See a played game</a>
+    <a class="btn ghost" href="../macsim/model.html">Read the model</a>
+    <a class="btn ghost" href="https://github.com/leomalherbe/internationalfinancialmacro">Source on GitHub</a>
+  </div>
+</div></header>
+
+<section><div class="wrap">
+  <div class="grid2">
+    <div>
+      <div class="kicker">What it is</div>
+      <h2>A macroeconomy you can see move</h2>
+      <p>Macroscope is a multiplayer policy game. Each team runs the government of one member of a monetary union: it sets public demand, social benefits, income tax and consumption tax for the year, votes on the common central bank's rate, posts pledges at the council of ministers — and then the model runs. The report comes back with five results (GDP, unemployment, inflation, public balance, trade balance), a score, and a decomposition that says exactly how much of each result came from the team's own policy, from the other governments, and from the administrator's shocks.</p>
+      <p>Nothing is hidden: the engine is a stock-flow consistent model in the tradition of Godley and Lavoie, every equation is published, and every stock is the sum of its flows. Students can predict before they decide, and check afterwards.</p>
+    </div>
+    <figure><img src="img/desk-results.png" alt="A team's results: five indicators, the score R and the « of which » lines"><figcaption>A team's report: five results, the score, and the lines « of which your own policy / foreign policies / the shocks / the climate ».</figcaption></figure>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="kicker">How a session unfolds</div>
+  <h2>Three movements</h2>
+  <div class="grid3 steps">
+    <div class="card"><h3>Warm-up</h3><p class="small">Every team governs the same country for three years, alone, with a strategy written before and an analysis after. Same shock for everyone: the first lesson is about multipliers, leakages and the restoring forces of the model.</p></div>
+    <div class="card"><h3>The game</h3><p class="small">One country each, year by year. The administrator announces the shocks of the year in a communiqué, opens a timer, convenes the council. Decisions stay secret while the round is open and are revealed when it closes. The run, the ranking on the board, and on to the next year.</p></div>
+    <div class="card"><h3>The debrief</h3><p class="small">Who drained the common reserves, who kept their pledges, what the crisis vote did. The decomposition and the year-by-year charts turn the argument into evidence.</p></div>
+  </div>
+  <div class="grid2" style="margin-top:28px">
+    <figure><img src="img/board-union.png" alt="The board: the monetary union's reserves, current account, exchange rate and the votes"><figcaption>The board, projected in class: the union's reserves and current account, the exchange rate, the votes of the year.</figcaption></figure>
+    <div>
+      <h3>Two votes at the council</h3>
+      <ul class="chk small">
+        <li><strong>The central bank's rate</strong> — cut, hold or hike, one country one vote, a majority moves it by half a point, permanently.</li>
+        <li><strong>The reserves crisis</strong> — when the union's reserves fall below the alert line, the year opens with a vote before any decision: <em>austerity</em> for all, or <em>devaluation</em>. Exhausted reserves force a devaluation.</li>
+      </ul>
+      <h3 style="margin-top:14px">The administrator holds the dice</h3>
+      <p class="small">World demand, the central bank's rate, household confidence, an oil shock, a devaluation; in the richer versions a sudden stop of capital inflows, the exchange-rate regime, the central bank's backstop, a climate disaster — and elections that change what a country's voters want from their government.</p>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="kicker">The model, as levels</div>
+  <h2>One engine, five levels of difficulty</h2>
+  <p class="small muted">Each class picks its version; a class in progress keeps it. Every level contains the previous one.</p>
+  <div class="levels">
+    <div class="level"><b>1 · The union</b><span>Chapter-6 open economies joined in a monetary union: households, firms on bank credit, governments, a common central bank, intra-union trade, a fixed rate with the rest of the world and a shared stock of reserves.</span></div>
+    <div class="level"><b>2 · Prices</b><span>The price level enters trade: a member that inflates faster loses competitiveness, cumulatively. Internal devaluation becomes the only way back.</span></div>
+    <div class="level"><b>3 · Capital</b><span>Capital flows and a per-year choice of regime, fixed or floating; a risk premium on public debt; sudden stops; the central bank's backstop — Mundell–Fleming written with stocks.</span></div>
+    <div class="level"><b>4 · Climate</b><span>Production emits, a global stock accumulates, a damage function raises structural unemployment and inflation; a carbon tax and green investment to cut the carbon intensity, with a sixth objective dimension voters may turn on.</span></div>
+    <div class="level"><b>Duel</b><span>Arcade mode: two identical countries, two currencies, one shared climate, pairs played in parallel. Interdependence with nothing to hide behind.</span></div>
+  </div>
+  <p class="small" style="margin-top:16px">The engine is called <strong>OPEN-MU</strong>; its equations, parameters and orders of magnitude are on the <a href="../macsim/model.html">model page</a>. Every version is tested for stationarity and for stock-flow consistency on every run.</p>
+</div></section>
+
+<section><div class="wrap">
+  <div class="grid2">
+    <div>
+      <div class="kicker">What students learn</div>
+      <h2>Mechanisms, not slogans</h2>
+      <ul class="chk">
+        <li><strong>Multipliers and leakages</strong> — a stimulus is a third imports, half of which are the partners' exports.</li>
+        <li><strong>The external constraint</strong> — twin deficits, a common pool of reserves, the alert line that someone else's policy brings closer.</li>
+        <li><strong>Internal devaluation</strong> — the Hume mechanism inside a union, year by year.</li>
+        <li><strong>Mundell–Fleming with stocks</strong> — a rate hike that appreciates the currency, a sudden stop that depreciates it, and what a fixed peg costs.</li>
+        <li><strong>Market pressure</strong> — a risk premium that turns one member's debt into everybody's balance-of-payments problem, and what the central bank's backstop is for.</li>
+        <li><strong>A global public good</strong> — the free-rider's arithmetic, visible in the tables.</li>
+        <li><strong>Coordination</strong> — pledges, retaliation, reputation: the prisoner's dilemma, played ten times.</li>
+      </ul>
+    </div>
+    <figure><img src="img/chart.png" alt="The stacked-bar chart of the objective: contributions of the five dimensions, year by year"><figcaption>« Your objective, year by year »: what helped the score above zero, what hurt it below, R as a dashed line.</figcaption></figure>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="grid2">
+    <figure><img src="img/board-duel.png" alt="The board of a duel class: two pairs, each with its exchange rate, reserves and climate"><figcaption>Duel mode: every pair is its own world.</figcaption></figure>
+    <div>
+      <div class="kicker">For teachers</div>
+      <h2>Runs in a browser, keeps its data in a spreadsheet</h2>
+      <p>Three static pages (teams, administrator, board) and a small Google Apps Script backend bound to a Google Sheet. No installation for students: a PIN per team, on a phone or a laptop. The model runs in the administrator's browser.</p>
+      <ul class="chk small">
+        <li>Deploy your own copy in about fifteen minutes: copy the sheet, paste the script, fork the pages — the <a href="https://github.com/leomalherbe/internationalfinancialmacro/blob/main/macsim/README.md">guide</a> walks through it.</li>
+        <li>A session of three hours covers the warm-up and five to eight years of the game; a duel class plays a year a minute.</li>
+        <li>Slides for a full course are on the <a href="../">course site</a>: the game is class 6 of <em>International Financial Macroeconomics</em>, after inflation, interest rates, fiscal policy, the balance of payments and the stock-flow model itself.</li>
+      </ul>
+      <p class="small">Questions, a class to set up, or a wish to contribute: <a href="mailto:leo.malherbe@kedgebs.com">leo.malherbe@kedgebs.com</a>.</p>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="kicker">Background</div>
+  <h2>Where it comes from</h2>
+  <div class="grid3">
+    <div class="card"><h3>The model</h3><p class="small">Godley, W. &amp; Lavoie, M. (2007), <em>Monetary Economics</em>, Palgrave Macmillan — chapter 6 (an open economy with a fixed exchange rate and reserves) for the core, chapter 12 (two countries, capital flows, fixed versus flexible rates) for the capital account. Firms, banks and a horizontalist credit channel added; prices and competitiveness, a climate block and an arcade variant on top.</p></div>
+    <div class="card"><h3>The ecological block</h3><p class="small">Dafermos, Y., Nikolaidi, M. &amp; Galanis, G. (2017), "A stock-flow-fund ecological macroeconomic model", <em>Ecological Economics</em>, 131 — the DEFINE model, reduced here to emissions, a stock, a damage function and two levers, on a compressed time scale.</p></div>
+    <div class="card"><h3>The course</h3><p class="small">Developed for the Master course <em>International Financial Macroeconomics</em> at KEDGE Business School, 2026, by Léo Malherbe. Open source, on <a href="https://github.com/leomalherbe/internationalfinancialmacro">GitHub</a>.</p></div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <span>Macroscope · the open-economy policy game · Léo Malherbe, KEDGE Business School</span>
+  <span><a href="mailto:leo.malherbe@kedgebs.com">leo.malherbe@kedgebs.com</a> · <a href="../">Course home</a></span>
+</div></footer>
+</body>
+</html>
