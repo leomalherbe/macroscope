@@ -1153,6 +1153,7 @@ var OPENMU = (function () {
         detail.extra = { gap: cy.gap, debt: 100 * cy.B / cy.Y, wealth: 100 * cy.V / cy.Y, u: cy.u, pi: cy.pi, P: cy.P,
           inv: rc.I ? 100 * (cy.I / rc.I - 1) : 0, loans: 100 * cy.L / cy.Y, deposits: 100 * cy.M / cy.Y };
         if (p.prices && cy.compet !== undefined) detail.extra.compet = cy.compet;   // price level vs the union's, %
+        if (cy.CAi !== undefined) detail.extra.ca = 100 * cy.CAi / cy.Y;          // the member's current account (trade + primary income), % of GDP — for the fact sheet
         if (p.capital) { detail.extra.foreign = 100 * runAll.years[t].union.xr * cy.Bf / cy.Y; detail.extra.spread = 100 * cy.spread; detail.extra.pressured = !!cy.pressured; }   // v1.3: foreign bills % of GDP, spread in points
         if (p.eco) { detail.extra.E = p.ci0 > 0 ? 100 * (cy.E / (p.ci0 * rc.Y) - 1) : 0; detail.extra.ci = cy.ci / p.ci0; detail.extra.ctax = cy.ctax; detail.extra.green = cy.green; detail.extra.D = 100 * cy.D; }   // v2.0: emissions vs reference %, carbon intensity (share of reference), levers, damage %
         if (cy.exited !== undefined) {
@@ -1493,7 +1494,8 @@ var OPENMU = (function () {
         var cy = runAll.years[t].countries[id], pr = runAll.years[t].pair;
         detail.extra = { gap: cy.gap, debt: 100 * cy.B / cy.Y, wealth: 100 * cy.V / cy.Y, u: cy.u, pi: cy.pi, P: cy.P, inv: 100 * (cy.I / rc.I - 1), loans: 100 * cy.L / cy.Y, deposits: 100 * cy.M / cy.Y,
           compet: cy.compet, foreign: 100 * cy.xr * cy.Bf / cy.Y, spread: 100 * cy.spread, pressured: !!cy.pressured, E: 100 * (cy.E / rc.E0 - 1), ci: cy.ci / p.ci0, ctax: cy.ctax, green: cy.green, D: 100 * cy.D,
-          rate: cy.rate, reserves: id === 'A' ? 100 * pr.RA / pr.R0A : 100 * pr.RB / pr.R0B, months: id === 'A' ? pr.monthsA : pr.monthsB, forced: cy.forced };
+          rate: cy.rate, reserves: id === 'A' ? 100 * pr.RA / pr.R0A : 100 * pr.RB / pr.R0B, months: id === 'A' ? pr.monthsA : pr.monthsB, forced: cy.forced,
+          ca: 100 * cy.CAi / cy.Y, xr: cy.xr };   // fact sheet: current account % of GDP, price of the partner's currency
         var entry = { detail: detail, byPart: { total: total, shock: shock, nat: nat, foreign: foreign, climate: climate } };
         KEYS.forEach(function (k) { entry[k] = total[k]; });
         yr.countries[id] = entry;

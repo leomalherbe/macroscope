@@ -85,6 +85,7 @@ const KEY = 'TESTKEY';
   await stu.waitForSelector('#app');
   const st1 = await stu.textContent('#app');
   must(/floating/.test(st1) && /Change of the exchange rate over the year/.test(st1) && /foreign bills held by households/.test(st1) && /risk premium on public debt/.test(st1), 'student page: regime line, exchange-rate change, foreign bills and spread in the ratios line');
+  must(/Key indicators · France/.test(st1) && /Current account/.test(st1) && /Public debt/.test(st1) && /Risk premium/.test(st1) && /€ per world unit/.test(st1), 'student page: fact sheet (current account, debt, risk premium, exchange rate)');
   await stu.screenshot({ path: OUT + '/v13-s1-float.png', fullPage: true });
 
   /* year 2: currency crisis (depreciation > 10 % in year 1, regime still float) */
@@ -171,6 +172,7 @@ const KEY = 'TESTKEY';
   await board.waitForSelector('text=Ranking');
   const bt = await board.textContent('#app');
   must(/Exchange-rate regime/.test(bt) && /Risk premium/.test(bt), 'board: regime line and risk-premium column');
+  must(/Key indicators · end of year 3/.test(bt) && (await board.$$('table.facttable tbody tr')).length >= 2 && /the change since year 2/.test(bt), 'board: one fact sheet per country with the change since year 2');
   await board.screenshot({ path: OUT + '/v13-b1-board.png', fullPage: true });
 
   must(errors.length === 0, 'no page errors (' + errors.join(' | ') + ')');

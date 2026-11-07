@@ -632,6 +632,18 @@
       : 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the administrator may decree a devaluation.']));
     return card;
   }
+  /* fact sheet: the key indicators of the country at the end of the latest published year, with the change since the year before */
+  function factCard(rows, unionRows, who) {
+    var list = (rows || []).filter(function (r) { return r.detail && r.detail.extra; }).sort(function (a, b) { return a.year - b.year; });
+    if (!list.length) return null;
+    var last = list[list.length - 1], prev = list.length > 1 ? list[list.length - 2] : null;
+    function ux(y) { var u = (unionRows || []).filter(function (r) { return Number(r.year) === Number(y) && r.detail && r.detail.extra; })[0]; return u ? u.detail.extra.xr : null; }
+    var card = el('div', { class: 'card' });
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Key indicators · ' + who]), el('span', { class: 'small muted' }, ['end of year ' + last.year])]));
+    card.appendChild(el('div', { html: UI.factSheetHtml(last, prev, { xr: ux(last.year), xrPrev: prev ? ux(prev.year) : null }) }));
+    card.appendChild(el('p', { class: 'xs muted', style: 'margin:.4em 0 0' }, ['Inflation, unemployment and debt are levels (reference: 2 %, 7 %, about 105 % of GDP); GDP is the gap to the reference path; the balances are in % of GDP (0 at the reference). Arrows: change since the previous year, green when it helps your country, red when it hurts.']));
+    return card;
+  }
   /* the five objective dimensions over time, as an SVG chart */
   function trajectoryCard(rows, title) {
     var card = el('div', { class: 'card' });
@@ -662,6 +674,7 @@
       }
       var rl = ratiosLine(mine); if (rl) card.appendChild(rl);
       box.appendChild(card);
+      var fcW = factCard(mine, (data.union || []).filter(function (r) { return r.phase === 'warmup'; }), MS.countryName(st.warmup.country) + ' under your plan'); if (fcW) box.appendChild(fcW);
       if (mine.length) box.appendChild(trajectoryCard(mine, 'Your objective, year by year · ' + MS.countryName(st.warmup.country)));
       var up = unionPanel((data.union || []).filter(function (r) { return r.phase === 'warmup'; }), 'The monetary union during your plan'); if (up) box.appendChild(up);
       if (st.revealWarmup && (data.warmupAll || []).length) {
@@ -682,6 +695,7 @@
     }
     /* game */
     var mineG = (data.myResults || []).filter(function (r) { return r.phase === 'game'; }).sort(function (a, b) { return a.year - b.year; });
+    var fcG = factCard(mineG, (data.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'UNION'; }), MS.countryName(data.group.country)); if (fcG) box.appendChild(fcG);
     var cardG = el('div', { class: 'card' });
     cardG.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [MS.countryName(data.group.country) + ' · results so far']), el('span', { class: 'small muted' }, [weightsLine(w)])]));
     if (!mineG.length) cardG.appendChild(el('p', { class: 'muted' }, ['No year has been simulated yet.']));
