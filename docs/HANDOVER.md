@@ -55,6 +55,8 @@ Le pied de page de la console affiche « backend vX.Y ». Toute modification de 
 
 Discipline : toute modification du moteur passe par les trois niveaux de tests ; les versions antérieures doivent rester identiques au bit près (tests de régression) ; une classe en cours ne doit jamais changer de comportement.
 
+**Cache des pages** : chaque page charge `style.css`, `config.js`, `core.js`, `app-common.js` et `engine.js` avec un suffixe `?v=AAAAMMJJnn` (macsim/*.html et macroscope/demo.html). **À incrémenter à chaque modification de ces fichiers** (`sed -i 's/?v=OLD/?v=NEW/g' macsim/*.html macroscope/demo.html`), sinon un navigateur peut associer une page neuve à un script ancien en cache — symptôme vu le 7/11 : board « Connection lost… retrying ». Une erreur d'affichage est désormais signalée comme telle (« Display error: … ») et non comme une perte de connexion.
+
 ## 6. Documents
 
 - `docs/openmu-spec.md` — spécification complète, section par version (§1–§11), avec les écarts « as implemented ». À lire avant de toucher au moteur.
