@@ -138,6 +138,8 @@ var UI = (function () {
     add('pb', 'Public balance', '% of GDP', n(row.pubbal), prev ? n(prev.pubbal) : null, 2, 1, true);
     if (n(x.ca) !== null) add('ca', 'Current account', '% of GDP', n(x.ca), px ? n(px.ca) : null, 2, 1, true);
     else add('ca', 'Trade balance', '% of GDP', n(row.tradebal), prev ? n(prev.tradebal) : null, 2, 1, true);
+    /* price competitiveness (v1.2+): price level against the union's average (against the partner's in a duel), in a common currency */
+    if (n(x.compet) !== null) add('compet', 'Relative price level', ctx.duel ? '% vs partner' : '% vs union', n(x.compet), px ? n(px.compet) : null, 2, -1, true, (n(x.compet) > 0.005 ? 'dearer: less competitive' : (n(x.compet) < -0.005 ? 'cheaper: more competitive' : 'as competitive')));
     if (x.exited) add('xr', 'Exchange rate', 'per €', n(x.fx), px && px.exited ? n(px.fx) : (px ? 1 : null), 3, 0, false, (x.peg ? 'pegged' : 'floating') + ' · ' + MS.fmt(x.fxWorld, 3) + ' per world unit');
     else if (n(x.xr) !== null) add('xr', 'Exchange rate', 'per partner unit', n(x.xr), px ? n(px.xr) : null, 3, 0, false, 'up = your currency depreciates');
     else if (n(ctx.xr) !== null) add('xr', 'Exchange rate', '€ per world unit', n(ctx.xr), n(ctx.xrPrev), 3, 0, false, 'up = the euro depreciates');
@@ -153,7 +155,8 @@ var UI = (function () {
   }
   function factSheetHtml(row, prev, ctx) {
     if (!row) return '';
-    return '<div class="facts">' + factItems(row, prev, ctx).map(function (it) {
+    var its = factItems(row, prev, ctx);
+    return '<div class="facts' + (its.length > 8 ? ' n5' : '') + '">' + its.map(function (it) {
       return '<div class="fact"><div class="lab">' + esc(it.label) + '</div><div class="val">' + esc(MS.fmt(it.v, it.d, it.signed)) + '<span class="u">' + esc(it.unit) + '</span></div>' +
         '<div>' + (factDeltaHtml(it, prev ? prev.year : null) || '<span class="d flat">&nbsp;</span>') + '</div>' + (it.note ? '<div class="d flat fnote' + (it.key === 'spread' && /pressure/.test(it.note) ? ' neg' : '') + '">' + esc(it.note) + '</div>' : '') + '</div>';
     }).join('') + '</div>';
@@ -162,16 +165,19 @@ var UI = (function () {
   function factTableHtml(items) {
     var cols = [];
     items.forEach(function (o) { factItems(o.row, o.prev, o.ctx).forEach(function (it) { if (!cols.some(function (c) { return c.key === it.key; })) cols.push({ key: it.key, label: it.label, unit: it.unit }); }); });
-    var order = ['gdp', 'pi', 'u', 'pb', 'ca', 'xr', 'debt', 'spread'];
+    var order = ['gdp', 'pi', 'u', 'pb', 'ca', 'compet', 'xr', 'debt', 'spread'];
     cols.sort(function (a, b) { return order.indexOf(a.key) - order.indexOf(b.key); });
-    var h = '<div class="tablewrap"><table class="facttable"><thead><tr><th>Country</th>' + cols.map(function (c) { return '<th class="num">' + esc(c.label) + '<br><span class="unit">' + esc(c.key === 'xr' ? 'see note' : c.unit) + '</span></th>'; }).join('') + '</tr></thead><tbody>';
+    /* the exchange-rate column: the members' unit in the header, another unit (a country out of the union, its own currency) in the cell */
+    var xrUnit = null; items.forEach(function (o) { factItems(o.row, o.prev, o.ctx).forEach(function (it) { if (it.key === 'xr' && !(o.row.detail && o.row.detail.extra && o.row.detail.extra.exited) && !xrUnit) xrUnit = it.unit; }); });
+    cols.forEach(function (c) { if (c.key === 'xr' && xrUnit) c.unit = xrUnit; });
+    var h = '<div class="tablewrap"><table class="facttable"><thead><tr><th>Country</th>' + cols.map(function (c) { return '<th class="num">' + esc(c.label) + '<br><span class="unit">' + esc(c.unit) + '</span></th>'; }).join('') + '</tr></thead><tbody>';
     items.forEach(function (o) {
       var its = factItems(o.row, o.prev, o.ctx);
       h += '<tr><td><b>' + esc(o.name) + '</b>' + (o.badge ? ' ' + o.badge : '') + (o.sub ? '<br><span class="small muted">' + esc(o.sub) + '</span>' : '') + '</td>' + cols.map(function (c) {
         var it = its.filter(function (z) { return z.key === c.key; })[0];
         if (!it) return '<td class="num muted">—</td>';
         var warn = (c.key === 'spread' && it.v > 0) ? ' neg' : '';
-        return '<td class="num' + warn + '"><span class="v">' + esc(MS.fmt(it.v, it.d, it.signed)) + (c.key === 'xr' ? ' <span class="unit">' + esc(it.unit) + '</span>' : '') + '</span>' + factDeltaHtml(it, null) + '</td>';
+        return '<td class="num' + warn + '"><span class="v">' + esc(MS.fmt(it.v, it.d, it.signed)) + (c.key === 'xr' && it.unit !== c.unit ? ' <span class="unit">' + esc(it.unit) + '</span>' : '') + '</span>' + factDeltaHtml(it, null) + '</td>';
       }).join('') + '</tr>';
     });
     return h + '</tbody></table></div>';
