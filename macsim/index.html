@@ -640,8 +640,8 @@
     function ux(y) { var u = (unionRows || []).filter(function (r) { return Number(r.year) === Number(y) && r.detail && r.detail.extra; })[0]; return u ? u.detail.extra.xr : null; }
     var card = el('div', { class: 'card' });
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Key indicators · ' + who]), el('span', { class: 'small muted' }, ['end of year ' + last.year])]));
-    card.appendChild(el('div', { html: UI.factSheetHtml(last, prev, { xr: ux(last.year), xrPrev: prev ? ux(prev.year) : null }) }));
-    card.appendChild(el('p', { class: 'xs muted', style: 'margin:.4em 0 0' }, ['Inflation, unemployment and debt are levels (reference: 2 %, 7 %, about 105 % of GDP); GDP is the gap to the reference path; the balances are in % of GDP (0 at the reference). Arrows: change since the previous year, green when it helps your country, red when it hurts.']));
+    card.appendChild(el('div', { html: UI.factSheetHtml(last, prev, { xr: ux(last.year), xrPrev: prev ? ux(prev.year) : null, duel: MS.isDuel(data.state) }) }));
+    card.appendChild(el('p', { class: 'xs muted', style: 'margin:.4em 0 0' }, ['Inflation, unemployment and debt are levels (reference: 2 %, 7 %, about 105 % of GDP); GDP is the gap to the reference path; the balances are in % of GDP (0 at the reference); the relative price level compares your prices with ' + (MS.isDuel(data.state) ? 'your partner’s' : 'the union’s average') + ' in a common currency (above 0: less competitive — you export less and import more the next year). Arrows: change since the previous year, green when it helps your country, red when it hurts.']));
     return card;
   }
   /* the five objective dimensions over time, as an SVG chart */

@@ -202,7 +202,8 @@ body.board{font-size:17px}
 .trajlegend i{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
 /* fact sheet: key indicators of a country (team page: tiles; board: one table) */
 .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:4px 0}
-@media (max-width:720px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.facts.n5{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:720px){.facts, .facts.n5{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .fact .fnote{white-space:normal}
 .fact{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--card);min-width:0}
 .fact .lab{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
@@ -216,3 +217,4 @@ body.board{font-size:17px}
 .facttable td.neg .v{color:var(--red)}
 .grid2 > *{min-width:0}
 @media (max-width:560px){.union .num{white-space:normal;text-align:right;min-width:0}}
+.fact .d.fnote{white-space:normal}
