@@ -37,16 +37,16 @@ table.res th{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color
   var $ = UI.$, el = UI.el, esc = UI.esc;
   var YEARS = 8;
   var story = [
-    { shocks: { world: -3 }, text: 'Year 1 · World recession: the rest of the world buys 3 % less. France and Spain stimulate; Germany does not.' },
-    { shocks: { world: -3 }, text: 'Year 2 · The recession lasts. Italy launches a green investment programme; the council votes to hold the rate.' },
-    { shocks: { imports: 5 }, text: 'Year 3 · Oil shock: imports cost 5 % more for the same output. The reserves end the year under the alert line.' },
+    { shocks: { world: -6 }, text: 'Year 1 · World recession: the rest of the world buys 6 % less. France and Spain stimulate; Germany does not.' },
+    { shocks: { world: -6 }, text: 'Year 2 · The recession lasts. Italy launches a green investment programme; the council votes to hold the rate.' },
+    { shocks: { imports: 10 }, text: 'Year 3 · Oil shock: imports cost 10 % more for the same output. The reserves end the year under the alert line.' },
     { shocks: {}, text: 'Year 4 · Crisis vote before the decisions: austerity wins 4–3. Public demand and benefits capped at −5 for everyone.' },
     { shocks: { disaster: 3 }, text: 'Year 5 · A climate disaster takes 3 points of potential output. Belgium and Austria introduce a carbon tax.' },
-    { shocks: {}, text: 'Year 6 · Spain stimulates again; the current account stays in deficit and the reserves are exhausted.' },
-    { shocks: { world: 3, deval: 15 }, text: 'Year 7 · Forced devaluation of 15 %. Portfolios rebalance towards the union; a union-wide carbon tax of 3 points is agreed.' },
+    { shocks: { flows: -5 }, text: 'Year 6 · Sudden stop: foreign investors cut their holdings of union bills by 5 %. Spain stimulates again; the reserves end the year at 6 %.' },
+    { shocks: { world: 3, deval: 10 }, text: 'Year 7 · Second crisis vote: devaluation wins 5–2. The currency drops 10 %, import prices jump, portfolios flow back; a union-wide carbon tax of 3 points is agreed.' },
     { shocks: {}, text: 'Year 8 · World recovery. The ranking is decided on the cumulative score.' }
   ];
-  var Z = { world: 0, rate: 0, confidence: 0, imports: 0, deval: 0, worldEmissions: 0, disaster: 0 };
+  var Z = { world: 0, rate: 0, confidence: 0, imports: 0, deval: 0, flows: 0, worldEmissions: 0, disaster: 0 };
   var shocks = story.map(function (s) { return Object.assign({}, Z, s.shocks); });
   function plan(rows) { return rows.map(function (r) { return r || {}; }); }
   var ctaxAll = function (y) { return y >= 6 ? { ctax: 3 } : {}; };
@@ -91,7 +91,7 @@ table.res th{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color
     '<div class="urow"><span>Central bank rate</span><span class="num">' + esc(MS.fmt(100 * u.r, 2)) + ' %</span></div>' +
     UI.climateLinesHtml(u) }));
   var path = rep.years.map(function (y, t) { return 'y' + (t + 1) + ': ' + MS.fmt(100 * y.union.R / y.union.R0, 0) + ' %'; }).join(' · ');
-  c1.appendChild(el('p', { class: 'small muted', style: 'margin:.5em 0 0' }, ['Reserves, % of the initial stock — ' + path + ' (a devaluation makes households repatriate part of their foreign bills and foreign investors top up their union bills: the reserves refill). Damage: ' + rep.years.map(function (y) { return MS.fmt(y.union.D, 1); }).join(' / ') + ' %.']));
+  c1.appendChild(el('p', { class: 'small muted', style: 'margin:.5em 0 0' }, ['Reserves, % of the initial stock — ' + path + ' (after the devaluation, households repatriate part of their foreign bills and foreign investors top up their union bills: the reserves refill). Damage: ' + rep.years.map(function (y) { return MS.fmt(y.union.D, 1); }).join(' / ') + ' %.']));
   app.appendChild(c1);
   /* ranking */
   var lb = ids.map(function (id) { var cum = 0; rows[id].forEach(function (r) { cum += r.R; }); return { id: id, cum: MS.round3(cum), rs: rows[id].map(function (r) { return r.R; }) }; });
