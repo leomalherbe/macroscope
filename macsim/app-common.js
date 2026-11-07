@@ -87,7 +87,11 @@ var UI = (function () {
     if (!y) return chips;
     MS.LEVERS.forEach(function (l) { var v = MS.num(y.levers ? y.levers[l.id] : 0); if (v) chips.push({ label: (opts && opts.short ? l.id : l.label), value: v, unit: l.duel ? ' pt' : (l.eco ? (l.id === 'ctax' ? ' pt' : '') : '%') }); });
     Object.keys(y.tariffs || {}).forEach(function (p) { var v = MS.num(y.tariffs[p]); if (v) chips.push({ label: 'Tariff on ' + MS.countryName(p), value: v, unit: ' pt' }); });
-    if (y.euro && y.euro !== 'none') chips.push({ label: 'Euro: ' + y.euro, value: null });
+    if (y.euro === 'leave') chips.push({ label: 'Leaves the union', value: null });
+    /* §12: exchange-rate decisions of a country that has left the union */
+    if (y.fx) chips.push({ label: y.fx === 'peg' ? 'Peg to the euro' : 'Floating currency', value: null });
+    if (MS.num(y.pegChange)) chips.push({ label: MS.num(y.pegChange) > 0 ? 'Devaluation' : 'Revaluation', value: Math.abs(MS.num(y.pegChange)), unit: '%' });
+    if (y.absorb) chips.push({ label: 'Central bank buys back the bills sold', value: null });
     if (MS.num(y.tfp)) chips.push({ label: 'TFP', value: MS.num(y.tfp), unit: '%' });
     return chips;
   }
@@ -115,6 +119,35 @@ var UI = (function () {
     else if (c.active && c.kind === 'currency') h += '<div class="urow"><span>Currency crisis · vote</span><span class="num">' + esc(c.austerity) + ' defend · ' + esc(c.devaluation) + ' let it float → <b>' + (c.outcome === 'float' ? 'let it float' : 'defend (rate raised)') + '</b></span></div>';
     else if (c.active) h += '<div class="urow"><span>Reserves crisis · vote</span><span class="num">' + esc(c.austerity) + ' austerity · ' + esc(c.devaluation) + ' devaluation → <b>' + esc(c.outcome || '—') + '</b>' + (c.outcome === 'austerity' && u.caps && u.caps.length ? ' (capped: ' + esc(u.caps.join(', ')) + ')' : '') + '</span></div>';
     return h;
+  }
+  /* §12: exits and retaliation, lines of a union row's detail.extra (empty when nobody left) */
+  function exitLinesHtml(u) {
+    if (!u) return '';
+    var h = '';
+    (u.announced || []).forEach(function (c) { h += '<div class="urow"><span><b>' + esc(MS.countryName(c)) + '</b> announced its exit</span><span class="num neg">out of the union next year</span></div>'; });
+    if (u.exited && u.exited.length) h += '<div class="urow"><span>Out of the union (own currency)</span><span class="num">' + esc(u.exited.map(function (c) { var x = u.exitInfo && u.exitInfo[c]; return MS.countryName(c) + (x ? ' · ' + MS.fmt(x.fx, 3) + ' per € (' + (x.peg ? 'peg' : 'float') + ')' : ''); }).join(' · ')) + '</span></div>';
+    var rt = u.retaliation || {};
+    Object.keys(rt).forEach(function (c) { var m = rt[c]; if (!m || (!m.tariff && !m.sale && !m.settle)) return; h += '<div class="urow"><span>Union measures against ' + esc(MS.countryName(c)) + '</span><span class="num">' + [m.tariff ? 'tariff ' + MS.fmt(m.tariff, 0) + ' %' : '', m.sale ? 'sale of ' + MS.fmt(m.sale, 0) + ' % of its bills held by the central bank' : '', m.settle ? 'TARGET balance settled' : ''].filter(Boolean).map(esc).join(' · ') + '</span></div>'; });
+    return h;
+  }
+  /* §12: the currency panel of a country that has left the union (its result row's detail.extra) */
+  function currencyPanelHtml(x, opts) {
+    if (!x || !x.exited) return '';
+    opts = opts || {};
+    var h = '<div class="union">' + (opts.title ? '<h3>' + esc(opts.title) + '</h3>' : '');
+    h += '<div class="urow"><span>Exchange-rate regime</span><span class="num">' + (x.peg ? 'peg to the euro' : 'floating') + (x.forced ? ' <span class="pill closed">forced devaluation</span>' : '') + '</span></div>';
+    h += '<div class="urow"><span>Price of one euro in your currency (+ = depreciation)</span><span class="num">' + esc(MS.fmt(x.fx, 3)) + ' <span class="' + (x.dfx > 0 ? 'neg' : (x.dfx < 0 ? 'pos' : 'muted')) + '">(' + esc(MS.fmt(x.dfx, 1, true)) + ' % over the year)</span></span></div>';
+    h += '<div class="urow"><span>Price of the world currency in your currency</span><span class="num">' + esc(MS.fmt(x.fxWorld, 3)) + '</span></div>';
+    h += '<div class="urow"><span>Your policy rate · rate on your bills</span><span class="num">' + esc(MS.fmt(x.rate, 2)) + ' % · ' + esc(MS.fmt(x.rEff, 2)) + ' %</span></div>';
+    if (x.peg) {
+      var pct = Math.max(0, Math.min(100, 100 * (x.RXshare || 0)));
+      h += '<div class="urow"><span>Your foreign reserves (share received at the exit)</span><span class="num">' + esc(MS.fmt(100 * (x.RXshare || 0), 0)) + ' %' + (x.RXalert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+        '<div class="bar reserves"><i class="' + (x.RXalert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>';
+    }
+    h += '<div class="urow"><span>Your bills held by the union’s central bank</span><span class="num">' + esc(MS.fmt(x.BcbU, 1)) + ' % of GDP' + (x.sold ? ' <span class="neg">(' + esc(MS.fmt(x.sold, 1)) + ' % sold this year)</span>' : '') + '</span></div>';
+    h += '<div class="urow"><span>TARGET balance (+: your central bank owes the union, in euros)</span><span class="num ' + (x.T2 > 0 ? 'neg' : '') + '">' + esc(MS.fmt(x.T2, 1, true)) + ' % of GDP' + (x.settled ? ' · settled this year' : '') + '</span></div>';
+    if (x.tariff) h += '<div class="urow"><span>Union tariff on your exports</span><span class="num neg">' + esc(MS.fmt(x.tariff, 0)) + ' %</span></div>';
+    return h + '</div>';
   }
   /* v1.3: regime / capital-flow lines of a union row (empty for v1.1 / v1.2 rows) */
   function regimeLinesHtml(u) {
@@ -288,5 +321,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

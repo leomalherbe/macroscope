@@ -529,5 +529,104 @@ console.log('\n===== v2.0 specifics =====');
   must(fy > 0 && fd.years[fy].pair.e > fd.years[fy - 1].pair.e * 1.14, 'duel: A exhausts its reserves → forced devaluation of A′s currency (year ' + (fy + 1) + ')');
 }
 
+/* ===================== EXIT (leaving the union, spec section 12) ===================== */
+console.log('\n===== EXIT (spec section 12) =====');
+{
+  const maxDiff = (a, b) => { let m = 0; a.years.forEach((y, t) => { IDS.forEach(id => ['Y', 'B', 'V', 'pi', 'tb', 'pb', 'M', 'H', 'Bf', 'Bw'].forEach(k => { const d = Math.abs(y.countries[id][k] - b.years[t].countries[id][k]) / Math.max(1, Math.abs(b.years[t].countries[id][k])); if (d > m) m = d; })); ['R', 'xr'].forEach(k => { const d = Math.abs(y.union[k] - b.years[t].union[k]); if (d > m) m = d; }); }); return m; };
+  /* (a) the exit engine without an effective exit reproduces the union engine */
+  ['v1.3', 'v2.0'].forEach(v => {
+    const P = OPENMU.paramsFor(v), rnd = rng(77), inp = randomInputs(rnd, 8, 1, true, v === 'v2.0');
+    const base = OPENMU.simulate({ params: P, years: 8, policies: inp.policies, shocks: inp.shocks });
+    const pol2 = JSON.parse(JSON.stringify(inp.policies)); pol2.AUT[9] = { leave: 1 };
+    const gen = OPENMU.simulate({ params: P, years: 8, policies: pol2, shocks: inp.shocks });
+    must(gen.exits && gen.exits.AUT === 10 && maxDiff(gen, base) < 1e-9, 'exit (' + v + '): the exit engine with no exit inside the horizon reproduces the union engine under random levers/shocks/regimes (max ' + maxDiff(gen, base).toExponential(2) + ')');
+  });
+  must(OPENMU.simulate({ params: OPENMU.paramsFor('v1.2'), years: 3, policies: { FRA: [{ leave: 1 }] } }).exits === undefined, 'exit: ignored before v1.3 (no capital account): the union engine runs');
+  /* (b) an exit at the reference with no shock changes nothing; balance sheets at the exit date */
+  const P3 = OPENMU.paramsFor('v1.3');
+  ['float', 'peg'].forEach(reg => {
+    const pol = { FRA: [{ leave: 1 }] }; for (let t = 1; t < 10; t++) pol.FRA[t] = reg === 'peg' ? { peg: 1 } : {};
+    const r = OPENMU.simulate({ params: P3, years: 10, policies: pol });
+    let m = 0; r.years.forEach(y => IDS.forEach(id => { const c = y.countries[id], rc = r.ref.countries[id]; m = Math.max(m, Math.abs(c.Y / rc.Y - 1), Math.abs(c.pi - 2) / 100, Math.abs(c.pb) / 100, Math.abs(c.fx - 1)); }));
+    const y = r.years[2].countries.FRA, rc = r.ref.countries.FRA;
+    must(m < 1e-10 && Math.abs(y.BcbU - rc.Bcb) < 1e-9 && Math.abs(y.T2 + rc.Bcb) < 1e-9 && Math.abs(y.RX - r.ref.union.R0 * 75 / 337) < 1e-9 && Math.abs(r.years[2].union.R - r.ref.union.R0 * 262 / 337) < 1e-9,
+      'exit (' + reg + '): at the reference, nothing moves (max ' + m.toExponential(1) + '); the union keeps France′s bills (' + (100 * y.BcbU / y.Y).toFixed(2) + ' % of GDP) and owes its BCN the same in TARGET (' + (100 * y.T2 / y.Y).toFixed(2) + ' %); reserves split by size');
+  });
+  /* (c) identities under random levers, shocks, regimes, pegs, two exits and retaliation */
+  {
+    let maxId = 0, maxSec = 0, fails = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const rnd = rng(seed * 31), Y = 12, v = seed % 2 ? 'v1.3' : 'v2.0';
+      const inp = randomInputs(rnd, Y, 1, true, v === 'v2.0');
+      const x1 = IDS[1 + Math.floor(rnd() * 6)], x2 = seed % 3 === 0 ? IDS[(IDS.indexOf(x1) % 6) + 1] : null, a1 = 1 + Math.floor(rnd() * 3);
+      inp.policies[x1][a1].leave = 1; if (x2) inp.policies[x2][a1 + 2].leave = 1;
+      [x1, x2].forEach(x => { if (x) inp.policies[x].forEach((y, t) => { if (t > a1) { y.rate = (rnd() - 0.5) * 4; y.peg = rnd() < 0.4 ? 1 : 0; y.pegChange = y.peg && rnd() < 0.3 ? (rnd() - 0.3) * 20 : 0; y.absorb = rnd() < 0.5 ? 1 : 0; } }); });
+      const ret = [];
+      inp.shocks.forEach((s, t) => { s.exitShocks = {}; s.exitShocks[x1] = { confidence: (rnd() - 0.5) * 6, flows: (rnd() - 0.5) * 30, run: rnd() < 0.3 ? (rnd() - 0.3) * 2 : 0 }; const rr = {}; rr[x1] = { tariff: rnd() < 0.5 ? 10 : 0, sale: rnd() < 0.4 ? 50 : 0, settle: rnd() < 0.3 ? 1 : 0 }; if (x2) rr[x2] = { tariff: 20, sale: 25 }; ret.push(rr); });
+      try {
+        const r = OPENMU.simulate({ params: OPENMU.paramsFor(v), years: Y, policies: inp.policies, shocks: inp.shocks, retaliation: ret });
+        maxId = Math.max(maxId, r.checks.maxIdentityError); r.years.forEach(y => { maxSec = Math.max(maxSec, y.union.sectorError); });
+      } catch (e) { fails++; console.log('  seed ' + seed + ': ' + e.message); }
+    }
+    must(fails === 0 && maxId < 1e-9 && maxSec < 1e-9, 'exit: identities (union CB with its claims on exited countries, each BCN balance sheet, sector balances = CA′ for the union and for each exited country, wealth = assets, BoP) under random levers/shocks/regimes/pegs/retaliation, two exits, 20 seeds × 12 y (max ' + maxId.toExponential(2) + ' / ' + maxSec.toExponential(2) + ')');
+  }
+  /* (d) properties and magnitudes, France, v1.3 (no climate drift) */
+  const Y = 6;
+  const run = (polX, sh, ret) => { const pol = { FRA: [{ leave: 1 }] }; for (let t = 1; t < Y; t++) pol.FRA[t] = Object.assign({}, (polX && (polX[t] || polX.all)) || {}); return OPENMU.report({ params: P3, years: Y, policies: pol, shocks: sh || [], retaliation: ret || [] }); };
+  const xF = (r, t) => r.years[t].countries.FRA, ex = (r, t) => xF(r, t).detail.extra;
+  const show = (name, r) => console.log('exit — ' + name + ': E ' + r.years.slice(1, 5).map((y, i) => ex(r, i + 1).fx.toFixed(3)).join(' ') + ' | GDP ' + r.years.slice(1, 5).map(y => f(y.countries.FRA.gdp, 2)).join(' ') + ' | π ' + r.years.slice(1, 5).map(y => f(y.countries.FRA.infl, 2)).join(' ') + ' | TB ' + r.years.slice(1, 5).map(y => f(y.countries.FRA.tradebal, 2)).join(' ') + ' | PB ' + r.years.slice(1, 5).map(y => f(y.countries.FRA.pubbal, 2)).join(' ') + ' | DEU GDP ' + r.years.slice(1, 3).map(y => f(y.countries.DEU.gdp, 2)).join(' '));
+  const cut = run({ all: { rate: -1 } }), hike = run({ all: { rate: 1 } });
+  must(ex(cut, 1).fx > 1.05 && xF(cut, 1).infl > 1.5 && xF(cut, 2).gdp > 0.5 && ex(hike, 1).fx < 0.95 && xF(hike, 2).gdp < -0.5, 'exit (float): a rate cut of 1 pt depreciates the new currency (' + f(100 * (ex(cut, 1).fx - 1), 1) + ' %), imported inflation, GDP up the year after (J-curve first); a hike does the reverse');
+  show('rate −1 pt, float', cut); show('rate +1 pt, float', hike);
+  const stim = run({ all: { pubdem: 5 } }), stimPeg = run({ all: { peg: 1, pubdem: 5 } });
+  must(ex(stim, 4).fx > ex(stim, 1).fx && ex(stim, 1).fx > 1 && ex(stimPeg, 4).fx === 1 && ex(stimPeg, 4).RXshare < 0.7, 'exit: public demand +5 for good: the currency slides in a float, the reserves drain in a peg (' + (100 * ex(stimPeg, 4).RXshare).toFixed(0) + ' % of the share after 4 years)');
+  show('public demand +5, float', stim); show('public demand +5, peg', stimPeg);
+  console.log('exit — public demand +5, peg: reserves % of the share received ' + stimPeg.years.slice(1).map((y, i) => (100 * ex(stimPeg, i + 1).RXshare).toFixed(0)).join(' '));
+  const dv = []; dv[1] = { peg: 1, pegChange: 10 }; for (let t = 2; t < Y; t++) dv[t] = { peg: 1 };
+  const deval = run(dv);
+  must(Math.abs(ex(deval, 1).fx - 1.1) < 1e-12 && xF(deval, 1).infl > 2 && ex(deval, 2).RXshare > 1, 'exit (peg): a 10 % devaluation decided by the team moves the parity, imports inflation (' + f(xF(deval, 1).infl, 1) + ' pt), refills the reserves by revaluation');
+  show('peg, devaluation 10 % in year 2', deval);
+  const fp = []; for (let t = 1; t < 12; t++) fp[t] = { peg: 1, pubdem: 10, benefits: 10 };
+  const fdx = (() => { const pol = { FRA: [{ leave: 1 }] }; for (let t = 1; t < 12; t++) pol.FRA[t] = fp[t]; return OPENMU.simulate({ params: P3, years: 12, policies: pol }); })();
+  const fy = fdx.years.findIndex(y => y.countries.FRA.forced);
+  must(fy > 1 && fdx.years[fy].countries.FRA.fx > fdx.years[fy - 1].countries.FRA.fx * 1.14, 'exit (peg): reserves exhausted with a deficit → forced devaluation of 15 % (year ' + (fy + 1) + ')');
+  let sh = []; sh[1] = { exitShocks: { FRA: { flows: -20 } } }; const flight = run({}, sh);
+  sh = []; sh[1] = { exitShocks: { FRA: { confidence: -3 } } }; const conf = run({}, sh);
+  must(ex(flight, 1).fx > 1.1 && xF(flight, 1).infl > 2 && Math.abs(flight.years[1].countries.DEU.detail.gdp.shock) < 1e-12 && xF(conf, 1).gdp < -1, 'exit: administrator shocks hit the exited country only: RoW sells 20 % of its bills → depreciation ' + f(100 * (ex(flight, 1).fx - 1), 1) + ' %; household confidence −3 % → GDP ' + f(xF(conf, 1).gdp, 2) + ' %');
+  show('RoW sells 20 % of French bills in year 2 (one year)', flight); show('confidence −3 % in year 2', conf);
+  sh = []; sh[0] = { exitShocks: { FRA: { run: 1 } } }; const dep = run({}, sh);
+  const noRun = run({});
+  must(dep.years[0].union.Rshare < noRun.years[0].union.Rshare - 0.05 && dep.years[2].union.Rshare < noRun.years[2].union.Rshare - 0.05, 'exit: a deposit run of 1 pt of wealth in the announcement year drains the COMMON reserves (' + (100 * dep.years[0].union.Rshare).toFixed(0) + ' % of R0 vs ' + (100 * noRun.years[0].union.Rshare).toFixed(0) + ' %), and it lasts');
+  let ret = []; for (let t = 1; t < Y; t++) ret[t] = { FRA: { tariff: 10 } }; const tariff = run({}, [], ret);
+  must(xF(tariff, 1).gdp < -1 && xF(tariff, 1).detail.gdp.foreign < -1 && Math.abs(xF(tariff, 1).detail.gdp.nat) < 1e-9 && tariff.years[3].union.Rshare > noRun.years[3].union.Rshare, 'exit: a union tariff of 10 % on French goods: France′s GDP ' + f(xF(tariff, 1).gdp, 2) + ' % (counted as the others′ policy), the union′s reserves rise');
+  show('union tariff 10 % from year 2', tariff);
+  ret = []; ret[1] = { FRA: { sale: 50 } };
+  const sale = run({}, [], ret), saleAbs = run({ all: { absorb: 1 } }, [], ret);
+  must(ex(sale, 1).fx > 1.05 && ex(sale, 1).rEff > 3.1 && Math.abs(ex(saleAbs, 1).rEff - 3) < 1e-9 && ex(saleAbs, 1).fx > 1.05 && Math.abs(ex(sale, 1).BcbU - ex(noRun, 1).BcbU / 2) < 0.2, 'exit: the union sells half of its French bills: depreciation ' + f(100 * (ex(sale, 1).fx - 1), 1) + ' % and bill rate ' + ex(sale, 1).rEff.toFixed(2) + ' %; if the BCN buys them back, no rate rise but the depreciation stays (' + f(100 * (ex(saleAbs, 1).fx - 1), 1) + ' %)');
+  show('the union sells 50 % of its French bills in year 2', sale); show('same, bought back by the BCN', saleAbs);
+  /* the union's net claim on an exited country (its bills + TARGET) = the country's cumulative balance-of-payments deficit beyond its
+     share: a deposit run while a member is charged to it through the bills the union keeps */
+  sh = []; sh[0] = { exitShocks: { FRA: { run: 3 } } };
+  const pre = run({}, sh), net = r => ex(r, 1).BcbU + ex(r, 1).T2;
+  must(Math.abs(net(noRun)) < 1e-9 && net(pre) > 3, 'exit: net claim of the union on France at the exit (bills + TARGET, % of GDP): 0 at the reference, ' + net(pre).toFixed(2) + ' after a deposit run of 3 pts of wealth while a member (TARGET alone ' + ex(pre, 1).T2.toFixed(2) + ' %)');
+  /* settlement of a TARGET debt (the BCN owes the union: here after a 30 % devaluation of the union just before the exit) */
+  const dv30 = [{ deval: 30 }];
+  const owe = run({}, dv30); ret = []; ret[2] = { FRA: { settle: 1 } }; const settled = run({}, dv30, ret);
+  must(ex(owe, 1).T2 > 1 && Math.abs(ex(settled, 2).T2) < 1e-12 && settled.years[2].union.R > owe.years[2].union.R, 'exit: settlement voted by the council: the BCN pays its TARGET debt (' + ex(owe, 1).T2.toFixed(2) + ' % of GDP) out of its reserves, the union′s reserves rise');
+  const dec = cut.years[2].countries.FRA, decD = tariff.years[2].countries.DEU;
+  must(['gdp', 'infl', 'tradebal'].every(k => Math.abs(dec.detail[k].shock + dec.detail[k].nat + dec.detail[k].foreign - dec[k]) < 1e-9 && Math.abs(decD.detail[k].shock + decD.detail[k].nat + decD.detail[k].foreign - decD[k]) < 1e-9), 'exit: the decomposition adds up (exit and its policies: own; retaliation: foreign for the exited country)');
+  const u2 = cut.years[2].union;
+  must(u2.exited && u2.exited[0] === 'FRA' && u2.members.length === 6 && Math.abs(noRun.years[2].union.gdp) < 1e-9, 'exit: union aggregates (GDP, reserves) on the six remaining members');
+  /* two exits: the rate between two exited countries goes through the euro */
+  {
+    const pol = { FRA: [{ leave: 1 }, { rate: -1 }, { rate: -1 }, { rate: -1 }], ITA: [{}, { leave: 1 }, { rate: 1 }, { rate: 1 }] };
+    const t0 = Date.now();
+    const r = OPENMU.report({ params: OPENMU.paramsFor('v2.0'), years: 8, policies: pol, shocks: Array(8).fill({ regime: 'float' }) });
+    const ms = Date.now() - t0, y = r.years[3];
+    must(y.union.exited.length === 2 && ex(r, 3).fx > 1 && y.countries.ITA.detail.extra.fx < 1 && r.checks.maxIdentityError < 1e-9, 'exit: two exits (France cuts, Italy hikes, union floating): ' + y.union.members.length + ' members, E FRA ' + ex(r, 3).fx.toFixed(3) + ', E ITA ' + y.countries.ITA.detail.extra.fx.toFixed(3) + ' (cross rate ' + (ex(r, 3).fx / y.countries.ITA.detail.extra.fx).toFixed(3) + ')');
+    must(ms < 15000, 'exit: report of 8 years with two floating exits and a floating union in ' + ms + ' ms');
+  }
+}
+
 console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' : '\nENGINE OK');
 process.exit(failed ? 1 : 0);

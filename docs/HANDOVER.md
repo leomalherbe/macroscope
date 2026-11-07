@@ -33,6 +33,7 @@ Flux d'un tour : l'administrateur ouvre les soumissions → les équipes soumett
 | v1.2 | niveau des prix relatif dans les échanges (compétitivité, dévaluation interne), réserves 1,5 mois | — |
 | v1.3 | flux de capitaux, régime de change fixe/flottant **par année** (éditeur de chocs), prime de risque (dette > 110 % PIB), chocs sudden stop / taux mondial / backstop, crise de change (vote defend / float) | — |
 | v2.0 | émissions, stock mondial, dommage (chômage structurel, inflation sur potentiel abaissé), leviers taxe carbone et investissement vert (60 % importé, rendements décroissants), 6ᵉ dimension « emissions » à poids 0 (activable par élection), ligne « of which the climate » | **1.6+** |
+| sortie (§12) | v1.3 et v2.0 avec `sim.exit` : un membre annonce sa sortie (`leave`), sort l'année suivante (monnaie propre flottante ou ancrée, taux directeur, BCN, TARGET), conseil de représailles (tarif, vente des titres, règlement du TARGET ; médiane), chocs administrateur propres ; `OPENMU.simulateExit`, appelé seulement si une sortie est annoncée | **1.9** |
 | duel | mode arcade : paires de pays identiques, deux monnaies, climat fermé, taux directeur comme levier, chocs asymétriques | **1.8** |
 
 Règles transverses : votes à la **majorité des votants** (PR #25) ; **élections** = changement des poids de R par pays ou pour l'union à partir d'une année (onglet Run, stockées dans `state.shocks['gN'].elections`) ; chocs du warm-up (`'1'…`) et de la partie (`'g1'…`) séparés ; R = score de l'année, classement sur le R cumulé.
@@ -41,14 +42,14 @@ Calibration du 7/11 (PR #29, validée par Léo) : pour v1.3+/duel, réserves à 
 
 ## 4. Backend : versions et redéploiement
 
-Le pied de page de la console affiche « backend vX.Y ». Toute modification de `core.js`, `dev/service.js` ou `dev/gas-adapter.js` change `Code.gs` ; un **changement de comportement** exige : Google Sheet → Extensions → Apps Script → remplacer tout `Code.gs` → enregistrer → **Déployer → Gérer les déploiements → ✎ → Nouvelle version → Déployer** (l'URL ne change pas). Un simple re-bundle (core.js modifié pour les pages seulement) ne l'exige pas, mais ne nuit pas. Dernière version : **1.8** (`out/Code.gs`). Migration de feuille automatique (colonne `emis`).
+Le pied de page de la console affiche « backend vX.Y ». Toute modification de `core.js`, `dev/service.js` ou `dev/gas-adapter.js` change `Code.gs` ; un **changement de comportement** exige : Google Sheet → Extensions → Apps Script → remplacer tout `Code.gs` → enregistrer → **Déployer → Gérer les déploiements → ✎ → Nouvelle version → Déployer** (l'URL ne change pas). Un simple re-bundle (core.js modifié pour les pages seulement) ne l'exige pas, mais ne nuit pas. Dernière version : **1.9** (`macsim/Code.gs`) : sortie de l'union (§12). Migration de feuille automatique (colonne `emis`).
 
 ## 5. Outils de développement (`dev/` à la racine du dépôt, depuis la PR #29)
 
 - `node dev/build.js` — assemble `macsim/Code.gs`.
 - `node dev/engine-test.js` — moteur : stationnarité (60 ans), identités SFC (20 graines × 40 ans), régressions bit-à-bit entre versions, propriétés (érosion d'une relance, courbe en J, votes, climat, duel), **imprime les ordres de grandeur** utilisés dans les slides et la page du modèle. Doit finir par `ENGINE OK`.
 - `node dev/gas-fake-test.js` — backend contre un faux SpreadsheetApp. `GAS adapter OK`.
-- `PORT=8794 node dev/mock-server.js &` puis `E2E_PORT=8794 node dev/e2e.js <dir>` (union v1.1, scénario complet), `e2e-v13.js`, `e2e-v20.js`, `e2e-duel.js` — Playwright sur les vraies pages ; clé admin `TESTKEY`. Doivent finir par `ALL GOOD`.
+- `PORT=8794 node dev/mock-server.js &` puis `E2E_PORT=8794 node dev/e2e.js <dir>` (union v1.1, scénario complet), `e2e-v13.js`, `e2e-v20.js`, `e2e-duel.js`, `e2e-exit.js` — Playwright sur les vraies pages ; clé admin `TESTKEY`. Doivent finir par `ALL GOOD`. Playwright doit correspondre au Chromium installé (dans l'environnement du 7/11 : `cd dev && npm i playwright@1.63.0` pour `/opt/pw-browsers/chromium-1243`).
 - `node dev/shot-deck.js <deck.html> <dir>` — rend un deck reveal.js et signale les débordements (`OVERFLOW`).
 - Dépendances : Node ≥ 18, Playwright (préinstallé dans l'environnement d'origine ; sinon `npm i playwright` + `npx playwright install chromium`), `cd dev && npm install` (reveal.js, chart.js, katex, pdfjs pour le rendu hors ligne).
 

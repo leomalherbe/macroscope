@@ -110,7 +110,9 @@ var OPENMU = (function () {
       greenImport: 0.60, // import content of green investment (equipment): the excess over mu leaks abroad
       greenUnit: 0.002, // green lever: one unit = 0.2 pt of reference GDP of public investment
       rhoC: 0.15,       // inflation pass-through of a change in the carbon tax, per point
-      ctaxUnit: 0.002   // carbon-tax revenue per point: ctaxUnit × emissions (1 point ≈ 0.2 % of GDP at the reference intensity)
+      ctaxUnit: 0.002,  // carbon-tax revenue per point: ctaxUnit × emissions (1 point ≈ 0.2 % of GDP at the reference intensity)
+      /* §12: leaving the union */
+      forcedDevalExit: 15 // an exited country on a peg whose reserves are exhausted with a current-account deficit: devaluation, %
     };
     if (!useFirms) { p.alpha2 = 0.185; p.lambda0 = 0.70; }
     if (usePrices) { p.reserveMonths = 1.5; }
@@ -288,7 +290,20 @@ var OPENMU = (function () {
   function simulate(opts) {
     opts = opts || {};
     var p = mergeParams(opts.params);
+    /* §12: a member that announces its exit (policy `leave`) switches the run to the exit engine (v1.3+ only); otherwise the
+       union path below runs unchanged, bit for bit */
+    if (p.firms && p.capital && exitYears(p, opts.policies).any) return simulateExit(p, opts);
     return p.firms ? simulateV11(p, opts) : simulateV10(p, opts);
+  }
+  /* year index (0-based) from which each member is out of the union: the year after its first `leave` */
+  function exitYears(p, policies) {
+    var o = { any: false, at: {} };
+    (p.countries || []).forEach(function (c) {
+      var arr = policies && policies[c.id];
+      if (!arr) return;
+      for (var t = 0; t < arr.length; t++) if (arr[t] && num(arr[t].leave) > 0) { o.at[c.id] = t + 1; o.any = true; break; }
+    });
+    return o;
   }
 
   /* v1.0 path — kept verbatim (zero-valued firm/bank fields added to the output only) */
@@ -680,6 +695,400 @@ var OPENMU = (function () {
     return out;
   }
 
+  /* =====================================================================
+     EXIT (spec §12): a member leaves the union. Same economy as v1.3/v2.0;
+     each country c has a currency rate E_c (price of one euro in c's
+     currency; 1 for members) and a policy rate rb_c (the union's r for
+     members, r* + lever `rate` for an exited country). An exited country:
+     new currency at 1:1 (all its debt redenominated), national central
+     bank (BCN) taking its cash H, advances A and a share of the reserves
+     by size; the union's central bank keeps its bills (BcbU, in the new
+     currency) and a TARGET balance T2 (euros, > 0: the BCN owes the
+     union) closes both balance sheets. Float (E clears its balance of
+     payments, reserves frozen) or peg against the euro (reserves absorb,
+     parity moves by the lever `pegChange`, forced devaluation of 15 % when
+     exhausted). Producer-currency pricing as with the RoW. Retaliation by
+     the union (opts.retaliation[t][id]: tariff %, sale % of BcbU, settle
+     T2) and administrator shocks (shocks[t].exitShocks[id]: confidence %,
+     flows %, run points of wealth). Called only when some member leaves;
+     simulateV11 is untouched.
+     ===================================================================== */
+  function simulateExit(p, opts) {
+    var ref = calibrate(p);
+    var s = ref.shares;
+    var ids = p.countries.map(function (c) { return c.id; });
+    var size = {}; p.countries.forEach(function (c) { size[c.id] = ref.countries[c.id].Y; });
+    var years = Math.max(1, Math.round(num(opts.years) || 1));
+    var policies = opts.policies || {}, shocks = opts.shocks || [], retal = opts.retaliation || [];
+    var exitAt = exitYears(p, policies).at;
+    var TOL = 1e-13, CAP = 500;
+    var eco = !!p.eco;
+    var omegaU = p.omega * (1 - p.sR) / p.sR;   // pass-through of the rate against the euro (imports from the union), same per unit of import share
+    var prev = {}, prevU = { xr: ref.union.xr0, R: ref.union.R0, NWcb: 0, r: ref.union.r0, rw: p.rw, backstop: true, S: eco ? ref.union.S0 : 0 };
+    ids.forEach(function (id) {
+      var rc = ref.countries[id];
+      prev[id] = { Y: rc.Y, V: rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1,
+        Bf: rc.Bf || 0, Bw: rc.Bw || 0, Bb: rc.Bb, s: 0, ci: p.ci0, ctax: 0, green: 0,
+        H0: rc.H, runCum: 0, E: 1, rb: p.r, out: false, BcbU: 0, BcbN: 0, T2: 0, RX: 0, RX0: 0, NWn: 0, peg: false, CApX: 0 };
+    });
+    function pol(id, t, key) { return lever(policies, id, t, key); }
+    function rt(t, id, key) { var y = retal && retal[t]; var o = y && y[id]; return o ? num(o[key]) : 0; }
+    function xs(t, id, key) { var y = shocks && shocks[t]; var o = y && y.exitShocks && y.exitShocks[id]; return o ? num(o[key]) : 0; }
+    var out = { years: [], ref: ref, checks: { maxIdentityError: 0, maxIterations: 0 }, exits: exitAt };
+
+    for (var t = 0; t < years; t++) {
+      /* ---- exits that take effect this year: balance sheets at the start of the year (spec 12.3) ---- */
+      var memSize = 0, Rbefore = prevU.R;
+      ids.forEach(function (j) { if (!prev[j].out) memSize += size[j]; });
+      ids.forEach(function (id) {
+        if (exitAt[id] !== t) return;
+        var pv = prev[id];
+        var RX = Rbefore * size[id] / memSize;              // share of the common reserves, by size (world currency)
+        pv.out = true; pv.E = 1;
+        pv.BcbU = pv.Bcb;                                      // the union's central bank keeps the bills it holds (now in the new currency)
+        pv.BcbN = 0;                                           // the BCN starts with no bills
+        pv.Bcb = 0;
+        pv.RX = RX; pv.RX0 = RX;
+        pv.T2 = pv.A + prevU.xr * RX - pv.H0;                  // BCN: H = A + xr·RX − T2  ⇒ T2 > 0: the BCN owes the union
+        pv.NWn = 0;
+        prevU.R -= RX;
+      });
+      var isOut = {}, mem = [], outs = [];
+      ids.forEach(function (id) { isOut[id] = !!prev[id].out; if (isOut[id]) outs.push(id); else mem.push(id); });
+      var announce = {}; ids.forEach(function (id) { announce[id] = exitAt[id] === t + 1; });
+      var memTot = 0; mem.forEach(function (id) { memTot += size[id]; });
+
+      var deval = shockAt(shocks, t, 'deval');
+      var r = p.r + shockAt(shocks, t, 'rate') / 100;
+      var r1 = prevU.r;
+      var muF = p.mu * (1 + shockAt(shocks, t, 'imports') / 100);
+      var worldF = (p.YRoW0 / ref.union.YRoW0) * (1 + shockAt(shocks, t, 'world') / 100);
+      var sh = shocks && shocks[t] ? shocks[t] : {};
+      var regime = sh.regime === 'float' ? 'float' : 'fixed';
+      var flowsF = 1 + shockAt(shocks, t, 'flows') / 100;
+      var rw = p.rw + shockAt(shocks, t, 'worldRate') / 100;
+      var rw1 = prevU.rw;
+      var backstop = sh.backstop !== false;
+      var bsPrev = prevU.backstop;
+      /* policy rates, consumption propensities, investment of the year */
+      var rb = {}, a1 = {}, invF = {};
+      ids.forEach(function (id) {
+        rb[id] = isOut[id] ? p.r + Math.max(-0.02, Math.min(0.02, pol(id, t, 'rate') / 100)) : r;
+        var conf = isOut[id] ? 1 : 1 + shockAt(shocks, t, 'confidence') / 100;   // the union's confidence shock no longer reaches an exited country
+        a1[id] = p.alpha1 * conf * ((isOut[id] || announce[id]) ? 1 + xs(t, id, 'confidence') / 100 : 1);
+        invF[id] = Math.max(p.ifloor, 1 - p.iota * (prev[id].rb - p.r));
+      });
+      /* exchange-rate regime and parity of each exited country (peg: E given; float: solved below) */
+      var pegged = {}, Epeg = {}, forced = {};
+      outs.forEach(function (id) {
+        var pv = prev[id];
+        pegged[id] = pol(id, t, 'peg') > 0;
+        forced[id] = pegged[id] && pv.peg && pv.RX <= 0 && pv.CApX < 0;
+        Epeg[id] = pv.E * (1 + Math.max(-20, Math.min(20, pol(id, t, 'pegChange'))) / 100) * (forced[id] ? 1 + p.forcedDevalExit / 100 : 1);
+      });
+      /* v2.0 block */
+      var D = 0, ci = {}, ctaxNow = {}, greenNow = {};
+      if (eco) {
+        D = p.damageOff ? 0 : Math.min(p.dMax, Math.max(0, (ref.union.S0 > 0 ? p.chiD * (prevU.S - ref.union.S0) / ref.union.S0 : 0) + shockAt(shocks, t, 'disaster') / 100));
+        ids.forEach(function (id) {
+          var pv = prev[id];
+          ci[id] = Math.max(p.ciMin * p.ci0, pv.ci * (1 - p.aC * pv.ctax - p.aG * pv.green / (1 + pv.green / p.gSat)));
+          ctaxNow[id] = Math.max(0, pol(id, t, 'ctax'));
+          greenNow[id] = Math.max(0, pol(id, t, 'green'));
+        });
+      }
+      /* spreads from last year's debt ratios; members' pressure and the union-average spread (members only) */
+      var spread = {}, sBar = 0, pressured = {};
+      ids.forEach(function (id) {
+        var d = prev[id].B / prev[id].Y;
+        spread[id] = p.phi * Math.max(0, d - p.dstar);
+        pressured[id] = !isOut[id] && d > p.dstar;
+        if (!isOut[id]) sBar += spread[id] * size[id] / memTot;
+      });
+      /* trade weights: last year's prices in a common currency; union tariff on imports from an exited country */
+      var tar = {}; outs.forEach(function (id) { tar[id] = 1 + Math.max(0, rt(t, id, 'tariff')) / 100; });
+      var priceLagF = {}, w = {};
+      ids.forEach(function (id) {
+        var Pi = prev[id].Prel, Ei = prev[id].E;
+        priceLagF[id] = Math.pow(Ei * prevU.xr / (ref.union.xr0 * Pi), -p.eps);
+        w[id] = {};
+        ids.forEach(function (j) {
+          var tf = (!isOut[id] && isOut[j]) ? tar[j] : 1;
+          w[id][j] = s[id][j] * Math.pow((prev[j].Prel / prev[j].E) * Ei / Pi * tf, -p.epsU);
+        });
+      });
+      var extraIM = {};
+      ids.forEach(function (id) { extraIM[id] = eco ? Math.max(0, p.greenImport - p.mu) * Math.max(0, pol(id, t, 'green')) * p.greenUnit * ref.countries[id].Y : 0; });
+      function imBase(id, Y) { return eco ? muF * Y + extraIM[id] : muF * Y; }
+      function intraVol(id, Y) { var tot = 0; ids.forEach(function (j) { tot += w[id][j]; }); return (1 - p.sR) * imBase(id, Y) * tot; }
+      function exportsTo(id, Yof) { var X = 0; ids.forEach(function (j) { X += w[j][id] * (1 - p.sR) * imBase(j, Yof(j)); }); return X; }
+      /* sales of the union's holdings of an exited country's bills, settlement of its TARGET balance (retaliation of the year) */
+      var saleSh = {}, settle = {};
+      outs.forEach(function (id) { saleSh[id] = Math.max(0, Math.min(100, rt(t, id, 'sale'))) / 100; settle[id] = rt(t, id, 'settle') > 0 && prev[id].T2 > 0; });
+
+      /* ---- the year at given exchange rates (xr, and E of the floating exited countries). Pure. ---- */
+      function evalYear(xr, Ef) {
+        var E = {};
+        ids.forEach(function (id) { E[id] = !isOut[id] ? 1 : (pegged[id] ? Epeg[id] : Ef[id]); });
+        function intraVal(id, Y) { var tot = 0; ids.forEach(function (j) { tot += w[id][j] * E[id] / E[j]; }); return (1 - p.sR) * imBase(id, Y) * tot; }
+        function tariffRev(id, Y) {   // a member's tariff revenue on its imports from exited countries (euros)
+          if (isOut[id]) return 0;
+          var tot = 0; outs.forEach(function (j) { tot += w[id][j] * (tar[j] - 1) / E[j]; });
+          return (1 - p.sR) * imBase(id, Y) * tot;
+        }
+        var cur = {};
+        ids.forEach(function (id) {
+          var rc = ref.countries[id], pv = prev[id];
+          var tau = rc.tau * (1 + pol(id, t, 'vat') / 100);
+          cur[id] = {
+            G: rc.G * (1 + pol(id, t, 'pubdem') / 100) + (eco ? greenNow[id] * p.greenUnit * rc.Y : 0),
+            GREEN: eco ? greenNow[id] * p.greenUnit * rc.Y : 0, ctaxRate: eco ? ctaxNow[id] * p.ctaxUnit : 0,
+            TR: rc.TR * (1 + pol(id, t, 'benefits') / 100),
+            theta: rc.theta * (1 + pol(id, t, 'inctax') / 100),
+            tau: tau, tauc: tau / (1 + tau),
+            XR: rc.xR * worldF * Math.pow(E[id] * xr / (ref.union.xr0 * pv.Prel), p.eta),
+            I: rc.I * invF[id], AF: p.delta * rc.K, Y: pv.Y
+          };
+        });
+        var extraInc = {}, capGain = {};
+        ids.forEach(function (id) {
+          var pv = prev[id];
+          extraInc[id] = pv.s * (pv.Bh + pv.Bb) + rw1 * E[id] * xr * pv.Bf;
+          capGain[id] = (E[id] * xr - pv.E * prevU.xr) * pv.Bf;
+        });
+        function stepFrom(Yof) {
+          var next = {};
+          ids.forEach(function (id) {
+            var c = cur[id], pv = prev[id], Yc = Yof(id);
+            var IMR = p.sR * imBase(id, Yc) * priceLagF[id];
+            var IMV = intraVal(id, Yc) + E[id] * xr * IMR;
+            var X = c.XR + exportsTo(id, Yof);
+            var YF = Yc - c.AF - pv.rb * pv.L - (eco ? c.ctaxRate * ci[id] * Yc : 0);
+            var base = YF + pv.rb * (pv.Bh + pv.M) + extraInc[id];
+            var YD = (1 - c.theta) * base + c.TR;
+            var CE = a1[id] * YD + p.alpha2 * pv.V;
+            var C = (1 - c.tauc) * CE - tariffRev(id, Yc);
+            next[id] = C + c.G + c.I + X - IMV;
+          });
+          return next;
+        }
+        var iter = 0, maxChange = Infinity, lastChange = Infinity, grow = 0, solved = false;
+        while (maxChange > TOL && iter < CAP) {
+          lastChange = maxChange; maxChange = 0;
+          var next = stepFrom(function (id) { return cur[id].Y; });
+          ids.forEach(function (id) { var ch = Math.abs(next[id] - cur[id].Y) / ref.countries[id].Y; if (ch > maxChange) maxChange = ch; });
+          if (!solved && ((maxChange > lastChange && ++grow >= 2) || iter === 150)) { next = solveLinear(stepFrom, ids); solved = true; } else if (maxChange <= lastChange) grow = 0;
+          ids.forEach(function (id) { cur[id].Y = next[id]; });
+          iter++;
+        }
+        if (maxChange > TOL) throw new Error('OPENMU: fixed point did not converge in year ' + (t + 1) + ' (change ' + maxChange + ')');
+
+        /* the union's central-bank income on its claims on exited countries (euros), rebated to the members by size */
+        var incX = 0;
+        outs.forEach(function (id) { var pv = prev[id]; incX += (pv.rb + pv.s) * pv.BcbU / E[id] + r1 * pv.T2; });
+        /* RoW demand for the members' bills (world currency), allocated across members (flight to quality) */
+        var memBw0 = ref.union.Bw0 * memTot / ref.union.totalSize;
+        var BwDollar = memBw0 * (1 + p.chiW * (r - rw) - p.chiS * sBar) * flowsF;
+        var wsh = {}, wtot = 0;
+        mem.forEach(function (id) { var wgt = size[id] * Math.exp(-p.psi * spread[id] * (!backstop && pressured[id] ? 2 : 1)); wsh[id] = wgt; wtot += wgt; });
+        mem.forEach(function (id) { wsh[id] = wtot > 0 ? wsh[id] / wtot : 0; });
+
+        var year = { countries: {}, union: {} }, newPrev = {}, excessX = {};
+        var U = { H: 0, BcbA: 0, CA: 0, IMRv: 0, Y: 0, TB: 0, PY: 0, prim: 0, KA: 0, Bw: 0, Bf: 0, Sav: 0, Firm: 0, PB: 0, Assets: 0, V: 0, unabs: 0, E: 0, claims: 0, BcbUv: 0 };
+        var maxXErr = 0;
+        ids.forEach(function (id) {
+          var c = cur[id], pv = prev[id], rc = ref.countries[id], out_ = isOut[id], Ei = E[id];
+          var Y = c.Y;
+          var IM = imBase(id, Y), IMU = intraVol(id, Y), IMR = p.sR * IM * priceLagF[id];
+          var IMV = intraVal(id, Y) + Ei * xr * IMR;
+          var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
+          var Tc = eco ? c.ctaxRate * ci[id] * Y : 0;
+          var Tt = tariffRev(id, Y);
+          var YF = Y - c.AF - pv.rb * pv.L - Tc;
+          var base = YF + pv.rb * (pv.Bh + pv.M) + extraInc[id];
+          var YD = (1 - c.theta) * base + c.TR;
+          var CE = a1[id] * YD + p.alpha2 * pv.V;
+          var C = (1 - c.tauc) * CE - Tt;
+          var T = c.theta * base + c.tauc * CE + Tc + Tt;
+          var V = pv.V + YD - CE + capGain[id];
+          var govInt, Fcb;
+          if (!out_) {
+            govInt = r1 * pv.B + pv.s * (pv.B - (bsPrev ? pv.Bcb : 0));
+            Fcb = r1 * (pv.Bcb + pv.A) + (bsPrev ? 0 : pv.s * pv.Bcb) + incX * size[id] / memTot;
+          } else {
+            govInt = pv.rb * pv.B + pv.s * (pv.B - pv.BcbN);           // the BCN does not charge the spread (it is the backstop)
+            Fcb = pv.rb * (pv.BcbN + pv.A) - r1 * Ei * pv.T2;         // BCN profit: interest on bills and advances, minus interest on TARGET
+          }
+          var B = pv.B + c.G + c.TR + govInt - T - Fcb;
+          var PB = T + Fcb - c.G - c.TR - govInt;
+          var K = pv.K + c.I - c.AF, L = pv.L + c.I - c.AF;
+          var sEff = spread[id], rEff;
+          /* deposit flight: a lasting portfolio shift towards foreign bills, cumulated from the announcement (reversed by a negative entry) */
+          var run = pv.runCum + (announce[id] || out_ ? xs(t, id, 'run') / 100 : 0);
+          function portfolio(rE) {
+            var all = V * billsShare(p, rE);
+            var lamF = Math.max(0, Math.min(billsShare(p, rE), rc.lambdaF0 + run + p.lambdaF1 * (rw - rE)));
+            var o = { Bf: lamF * V / (Ei * xr), Bh: all - lamF * V, M: (V - all) * p.nu, H: (V - all) * (1 - p.nu) };
+            o.Bb = Math.max(0, o.M - L); o.A = Math.max(0, L - o.M);
+            return o;
+          }
+          var Bw, pf, BcbU = 0, BcbN = 0, Bcb = 0, T2 = 0, RX = 0, NWn = 0, use = 0, sold = 0, CApX = 0, KAX = 0;
+          if (!out_) {
+            Bw = xr * BwDollar * wsh[id] * (announce[id] ? 1 + xs(t, id, 'flows') / 100 : 1);
+            pf = portfolio(r + sEff);
+            if (!backstop && pressured[id]) {
+              var target = B - pv.Bcb - Bw;
+              var f = function (rE) { var o = portfolio(rE); return o.Bh + o.Bb - target; };
+              var lo = r + sEff, hi = p.rEffMax;
+              if (f(lo) >= 0) pf = portfolio(lo);
+              else if (f(hi) < 0) { pf = portfolio(hi); sEff = hi - r; U.unabs += target - (pf.Bh + pf.Bb); }
+              else { for (var k = 0; k < 60; k++) { var mid = (lo + hi) / 2; if (f(mid) < 0) lo = mid; else hi = mid; } sEff = hi - r; pf = portfolio(hi); }
+            }
+            Bcb = B - pf.Bh - pf.Bb - Bw;
+            rEff = r + sEff;
+          } else {
+            var BwX$ = ref.union.Bw0 * size[id] / ref.union.totalSize * (1 + p.chiW * (rb[id] - rw) - p.chiS * spread[id]) * (1 + xs(t, id, 'flows') / 100);
+            Bw = Ei * xr * BwX$;
+            BcbU = pv.BcbU * (1 - saleSh[id]);
+            sold = pv.BcbU - BcbU;
+            pf = portfolio(rb[id] + sEff);
+            if (sold > 0 && !(pol(id, t, 'absorb') > 0)) {
+              /* the sold bills must be absorbed by households and banks: the bill rate rises (cap rEffMax) */
+              var need = pf.Bh + pf.Bb + sold;
+              var g = function (rE) { var o = portfolio(rE); return o.Bh + o.Bb - need; };
+              var lo2 = rb[id] + sEff, hi2 = Math.max(lo2, p.rEffMax);
+              if (g(hi2) < 0) { pf = portfolio(hi2); sEff = hi2 - rb[id]; }
+              else { for (var k2 = 0; k2 < 60; k2++) { var mid2 = (lo2 + hi2) / 2; if (g(mid2) < 0) lo2 = mid2; else hi2 = mid2; } sEff = hi2 - rb[id]; pf = portfolio(hi2); }
+            }
+            BcbN = B - pf.Bh - pf.Bb - Bw - BcbU;                      // the BCN buys the residual (lender of last resort)
+            rEff = rb[id] + sEff;
+            T2 = settle[id] ? 0 : pv.T2;
+            var TBx = X - IMV;
+            CApX = TBx + rw1 * Ei * xr * pv.Bf - (pv.rb + pv.s) * (pv.Bw + pv.BcbU) - r1 * Ei * pv.T2;
+            KAX = (Bw - pv.Bw) + (BcbU - pv.BcbU) - Ei * xr * (pf.Bf - pv.Bf) + Ei * (T2 - pv.T2);
+            if (pegged[id]) RX = pv.RX + (CApX + KAX) / (Ei * xr);
+            else { use = settle[id] ? Math.min(Math.max(0, pv.RX), pv.T2 / xr) : 0; RX = pv.RX - use; }
+            excessX[id] = CApX + KAX - Ei * xr * (RX - pv.RX);         // zero in a peg by construction; E clears it in a float
+            NWn = pv.NWn + (Ei * xr - pv.E * prevU.xr) * pv.RX - (Ei - pv.E) * pv.T2;
+            var errX = Math.abs(pf.H - (BcbN + pf.A + Ei * xr * RX - Ei * T2 - NWn)) / Math.max(1, pf.H);
+            var savX = (YD - CE) + (c.AF - c.I) + PB;
+            var errS = Math.abs(savX - CApX) / Math.max(1, Math.abs(CApX));
+            var errW = Math.abs(pf.Bh + pf.M + pf.H + Ei * xr * pf.Bf - V) / V;
+            maxXErr = Math.max(maxXErr, errX, errS, errW);
+          }
+          var TB = X - IMV;
+          var gap = 100 * (Y / rc.Y - 1);
+          var gapD = eco ? 100 * (Y / (rc.Y * (1 - D)) - 1) : gap;
+          var u = p.ustar + (eco ? p.chiU * 100 * D : 0) - p.beta * gap;
+          var dW = 100 * (Ei * xr - pv.E * prevU.xr) / (pv.E * prevU.xr), dE = 100 * (Ei - pv.E) / pv.E;
+          var pi = p.pistar + p.kappa * gapD + p.rho * (c.tau - pv.tau) * 100 + p.omega * dW + (out_ ? omegaU * dE : 0) + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
+          var P = pv.P * (1 + pi / 100);
+          var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);
+          year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
+            V: V, Bh: pf.Bh, H: pf.H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
+            pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: rb[id],
+            I: c.I, K: K, L: L, M: pf.M, Bb: pf.Bb, A: pf.A, AF: c.AF, YF: YF,
+            Bf: pf.Bf, Bw: Bw, spread: sEff, rEff: rEff, pressured: !!pressured[id], capGain: capGain[id],
+            CAi: out_ ? CApX : TB + rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw,
+            E: eco ? ci[id] * Y : 0, ci: eco ? ci[id] : 0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0, GREEN: c.GREEN || 0, Tc: Tc, D: D,
+            exited: out_, announced: !!announce[id], fx: out_ ? Ei : 1, dfx: out_ ? dE : 0, peg: !!pegged[id], forced: !!forced[id], tariffRev: Tt,
+            BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, sold: sold, settled: !!settle[id], tariff: out_ ? 100 * (tar[id] - 1) : 0, KAX: KAX };
+          if (eco) U.E += ci[id] * Y;
+          newPrev[id] = { Y: Y, V: V, Bh: pf.Bh, M: pf.M, H0: pf.H, B: B, Bcb: Bcb, A: pf.A, K: K, L: L, tau: c.tau, P: P, Prel: Prel, Bf: pf.Bf, Bw: Bw, Bb: pf.Bb, s: sEff,
+            ci: eco ? ci[id] : p.ci0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0,
+            runCum: run, E: Ei, rb: rb[id], out: out_, BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, NWn: NWn, peg: !!pegged[id], CApX: CApX };
+          if (!out_) {
+            U.H += pf.H; U.BcbA += Bcb + pf.A; U.CA += c.XR - xr * IMR; U.IMRv += xr * IMR; U.Y += Y; U.TB += TB; U.PY += Prel * rc.Y;
+            U.prim += rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw;
+            U.KA += (Bw - pv.Bw) - xr * (pf.Bf - pv.Bf);
+            U.Bw += Bw; U.Bf += pf.Bf; U.Sav += YD - CE; U.Firm += c.AF - c.I; U.PB += PB; U.V += V; U.Assets += pf.Bh + pf.M + pf.H + xr * pf.Bf;
+          } else {
+            U.KA -= (BcbU - pv.BcbU) / Ei + (T2 - pv.T2);
+            U.claims += BcbU / Ei + T2;
+            U.BcbUv += pv.BcbU * (1 / Ei - 1 / pv.E);
+          }
+        });
+        U.prim += incX;
+        var CAp = U.TB + U.prim;                     // members' current account incl. trade with exited countries and primary income
+        var excess = CAp + U.KA;
+        var R = regime === 'float' ? prevU.R : prevU.R + excess / xr;
+        var NWcb = prevU.NWcb + (xr - prevU.xr) * prevU.R + U.BcbUv;
+        var Pu = 0; mem.forEach(function (id) { Pu += year.countries[id].Prel * size[id]; }); Pu = Pu / memTot;
+        ids.forEach(function (id) { var cy = year.countries[id]; cy.compet = 100 * (cy.Prel / cy.fx / Pu - 1); });
+        year.union = { Y: U.Y, CA: U.CA, R: R, R0: ref.union.R0, xr: xr, r: r, alert: regime === 'fixed' && R < p.alertShare * ref.union.R0,
+          months: U.IMRv > 0 ? 12 * R * xr / U.IMRv : Infinity, NWcb: NWcb, sumTB: U.TB, iterations: iter, P: Pu,
+          regime: regime, CAp: CAp, primInc: U.prim, KA: U.KA, Bw: U.Bw, Bf: U.Bf, rw: rw, backstop: backstop, sBar: sBar,
+          dxr: 100 * (xr - prevU.xr) / prevU.xr, unabsorbed: U.unabs, excess: excess, members: mem.slice(), exited: outs.slice(), claimsX: U.claims };
+        if (eco) {
+          var Ew = ref.union.Ew0 * (1 + shockAt(shocks, t, 'worldEmissions') / 100);
+          var S = prevU.S + U.E + Ew;
+          year.union.S = S; year.union.Sshare = ref.union.S0 > 0 ? S / ref.union.S0 : 1; year.union.D = D; year.union.Eu = U.E; year.union.Ew = Ew;
+          year.union.Erel = ref.union.Eu0 > 0 ? 100 * (U.E / ref.union.Eu0 - 1) : 0;
+        }
+        var identErr = Math.abs(U.H - U.BcbA - xr * R - U.claims + NWcb) / U.H;
+        var secErr = Math.abs(U.Sav + U.Firm + U.PB - CAp) / Math.max(1, Math.abs(CAp));
+        var wealthErr = Math.abs(U.Assets - U.V) / U.V;
+        var bopErr = Math.abs(U.KA - xr * (R - prevU.R) + CAp) / Math.max(1, Math.abs(CAp) + Math.abs(U.KA));
+        year.union.identityError = Math.max(identErr, maxXErr);
+        year.union.sectorError = Math.max(secErr, wealthErr, bopErr);
+        return { year: year, newPrev: newPrev, excess: excess, excessX: excessX, iter: iter };
+      }
+
+      /* ---- solving the year: E of each floating exited country (Gauss-Seidel over countries, 1-D bracket + secant each),
+         inside xr when the union floats ---- */
+      var floaters = outs.filter(function (id) { return !pegged[id]; });
+      function root(f, x0) {
+        var f0 = f(x0); if (f0 === 0) return x0;
+        var lo = x0, hi = x0, flo = f0, fhi = f0, k = 0, up = x0, dn = x0, fu = f0, fd = f0;
+        /* expand both ways until the sign changes */
+        while (k < 80) {
+          up = up * 1.05; fu = f(up); if (fu * f0 <= 0) { lo = up / 1.05; hi = up; flo = f(lo); fhi = fu; break; }
+          dn = dn / 1.05; fd = f(dn); if (fd * f0 <= 0) { lo = dn; hi = dn * 1.05; flo = fd; fhi = f(hi); break; }
+          k++;
+        }
+        if (k >= 80) throw new Error('OPENMU: no exchange rate clears the balance of payments in year ' + (t + 1));
+        for (var j = 0; j < 100 && Math.abs(hi - lo) > 1e-14 * hi; j++) {
+          var mid = Math.abs(fhi - flo) > 0 ? lo - flo * (hi - lo) / (fhi - flo) : (lo + hi) / 2;
+          if (!(mid > Math.min(lo, hi) && mid < Math.max(lo, hi))) mid = (lo + hi) / 2;
+          var fm = f(mid);
+          if (fm === 0) return mid;
+          if (fm * flo < 0) { hi = mid; fhi = fm; } else { lo = mid; flo = fm; }
+          if (Math.abs(fm) < 1e-13 * ref.union.totalSize) return mid;
+        }
+        return (lo + hi) / 2;
+      }
+      var Ef = {}; floaters.forEach(function (id) { Ef[id] = prev[id].E; });
+      function solveE(xr) {
+        if (!floaters.length) return;
+        for (var sweep = 0; sweep < 40; sweep++) {
+          var moved = 0;
+          floaters.forEach(function (id) {
+            var old = Ef[id];
+            Ef[id] = root(function (e) { var tmp = {}; Object.keys(Ef).forEach(function (k) { tmp[k] = Ef[k]; }); tmp[id] = e; return evalYear(xr, tmp).excessX[id]; }, Ef[id]);
+            moved = Math.max(moved, Math.abs(Ef[id] - old) / old);
+          });
+          if (floaters.length === 1 || moved < 1e-12) break;
+        }
+      }
+      var res, xrY;
+      if (regime === 'float') {
+        xrY = root(function (x) { solveE(x); return evalYear(x, Ef).excess; }, prevU.xr);
+        solveE(xrY);
+      } else {
+        xrY = prevU.xr * (1 + deval / 100);
+        solveE(xrY);
+      }
+      res = evalYear(xrY, Ef);
+      var year = res.year;
+      if (res.iter > out.checks.maxIterations) out.checks.maxIterations = res.iter;
+      if (year.union.identityError > out.checks.maxIdentityError) out.checks.maxIdentityError = year.union.identityError;
+      out.years.push(year);
+      ids.forEach(function (id) { prev[id] = res.newPrev[id]; });
+      prevU = { xr: year.union.xr, R: year.union.R, NWcb: year.union.NWcb, r: r, rw: rw, backstop: backstop, S: eco ? year.union.S : 0 };
+    }
+    return out;
+  }
+
   /* ---------- report: deviations from the stationary reference, decomposed ---------- */
   var INDIC = ['gdp', 'unemp', 'infl', 'pubbal', 'tradebal'];
   var INDIC_ECO = INDIC.concat(['emis']);   // v2.0: sixth dimension, emissions in % of the reference
@@ -712,8 +1121,10 @@ var OPENMU = (function () {
     var pOff = p.eco ? Object.assign({}, p, { damageOff: true }) : p;
     var runRef = simulate({ params: pOff, years: years });
     var runShock = simulate({ params: pOff, years: years, shocks: shocks });
-    var runAllOff = simulate({ params: pOff, years: years, policies: policies, shocks: shocks });
-    var runAll = p.eco ? simulate({ params: p, years: years, policies: policies, shocks: shocks }) : runAllOff;
+    /* §12: the union's retaliation against an exited country is the other members' policy: in the full runs only ("foreign" for it) */
+    var retal = opts.retaliation;
+    var runAllOff = simulate({ params: pOff, years: years, policies: policies, shocks: shocks, retaliation: retal });
+    var runAll = p.eco ? simulate({ params: p, years: years, policies: policies, shocks: shocks, retaliation: retal }) : runAllOff;
     var runNat = {};
     ids.forEach(function (id) {
       if (policies[id] && policies[id].some(function (y) { return y && Object.keys(y).some(function (k) { return num(y[k]) !== 0; }); })) {
@@ -744,20 +1155,34 @@ var OPENMU = (function () {
         if (p.prices && cy.compet !== undefined) detail.extra.compet = cy.compet;   // price level vs the union's, %
         if (p.capital) { detail.extra.foreign = 100 * runAll.years[t].union.xr * cy.Bf / cy.Y; detail.extra.spread = 100 * cy.spread; detail.extra.pressured = !!cy.pressured; }   // v1.3: foreign bills % of GDP, spread in points
         if (p.eco) { detail.extra.E = p.ci0 > 0 ? 100 * (cy.E / (p.ci0 * rc.Y) - 1) : 0; detail.extra.ci = cy.ci / p.ci0; detail.extra.ctax = cy.ctax; detail.extra.green = cy.green; detail.extra.D = 100 * cy.D; }   // v2.0: emissions vs reference %, carbon intensity (share of reference), levers, damage %
+        if (cy.exited !== undefined) {
+          /* §12: exit fields (present only in runs where a member leaves) */
+          var ex = detail.extra;
+          ex.exited = !!cy.exited; ex.announced = !!cy.announced;
+          if (cy.exited) {
+            ex.fx = cy.fx; ex.dfx = cy.dfx; ex.fxWorld = cy.fx * runAll.years[t].union.xr; ex.peg = cy.peg; ex.forced = cy.forced;
+            ex.rate = 100 * cy.r; ex.rEff = 100 * cy.rEff; ex.tariff = cy.tariff; ex.sold = 100 * cy.sold / cy.Y; ex.settled = cy.settled;
+            ex.T2 = 100 * cy.T2 * cy.fx / cy.Y; ex.BcbU = 100 * cy.BcbU / cy.Y; ex.RXshare = cy.RX0 > 0 ? cy.RX / cy.RX0 : 0;
+            ex.RXalert = cy.peg && cy.RX < p.alertShare * cy.RX0;
+          }
+        }
         var entry = { detail: detail, byPart: { total: total, shock: shock, nat: nat, foreign: foreign } };
         if (climate) entry.byPart.climate = climate;
         KEYS.forEach(function (k) { entry[k] = total[k]; });
         yr.countries[id] = entry;
       });
       var u = runAll.years[t].union, uRef = runRef.years[t].union;
+      var uRefY = uRef.Y;
+      if (u.exited && u.exited.length) { uRefY = 0; u.members.forEach(function (id) { uRefY += runRef.years[t].countries[id].Y; }); }   // §12: the union without the exited countries
       yr.union = { Y: u.Y, CA: u.CA, R: u.R, R0: u.R0, xr: u.xr, r: u.r, alert: u.alert, months: u.months,
-        gdp: 100 * (u.Y / uRef.Y - 1), CAref: uRef.CA, Rshare: u.R / u.R0 };
+        gdp: 100 * (u.Y / uRefY - 1), CAref: uRef.CA, Rshare: u.R / u.R0 };
       if (p.capital) {
         var press = ids.filter(function (id) { return runAll.years[t].countries[id].pressured; });
         yr.union.regime = u.regime; yr.union.dxr = u.dxr; yr.union.CAp = u.CAp; yr.union.KA = u.KA; yr.union.Bw = u.Bw; yr.union.Bf = u.Bf;
         yr.union.backstop = u.backstop; yr.union.pressured = press; yr.union.sBar = 100 * u.sBar; yr.union.rw = u.rw; yr.union.unabsorbed = u.unabsorbed;
       }
       if (p.eco) { yr.union.Sshare = u.Sshare; yr.union.D = 100 * u.D; yr.union.Erel = u.Erel; yr.union.Ew = u.Ew; yr.union.Eu = u.Eu; }
+      if (u.exited) { yr.union.exited = u.exited; yr.union.members = u.members; yr.union.announced = ids.filter(function (id) { return runAll.years[t].countries[id].announced; }); }
       out.years.push(yr);
     }
     out.checks = runAll.checks;

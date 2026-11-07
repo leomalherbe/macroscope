@@ -47,7 +47,7 @@ const KEY = 'TESTKEY';
   await admin.waitForTimeout(700);
   let ov = await api({ action: 'admin.overview', key: KEY, classId: cid });
   must(ov.state.sim.model === 'v2.0' && ov.state.warmup.allowed.indexOf('ctax') >= 0 && ov.state.warmup.allowed.indexOf('green') >= 0 && ov.state.bounds.eco === 10, 'class switched to v2.0: the carbon tax and green investment join the warm-up levers, eco bound 10');
-  must(/backend v1\.8/.test(await admin.textContent('#footTime')), 'backend reports v1.8');
+  must(/backend v1\.9/.test(await admin.textContent('#footTime')), 'backend reports v1.9');
 
   /* warm-up: shocks editor shows the v2.0 rows; open submissions */
   await admin.click('#tabs button:has-text("Run")');

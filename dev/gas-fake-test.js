@@ -96,4 +96,45 @@ must(sheets.Decisions._v.length === 1 && sheets.Results._v.length === 1, 'decisi
 must(!sheets.Config._v.some(row => String(row[0]) === 'state:' + cid) && sheets.Config._v.some(row => String(row[0]) === 'adminKey'), 'state row removed, admin key kept');
 r = call({ action: 'state', pin }); must(!r.ok, 'old PIN no longer works');
 r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'other class untouched');
+/* §12: leaving the union, the exited country's decisions, the retaliation council (backend 1.9) */
+{
+  const MS = require('../macsim/core.js');
+  let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
+  r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
+  const [pF, pD, pI] = r2.groups.map(g => g.pin);
+  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.9', 'backend reports v1.9');
+  const dec = (pin, y, votes) => call({ action: 'submit', pin, phase: 'game', round: Number(call({ action: 'state', pin }).state.round), payload: { years: [y], text: 'x'.repeat(130), votes: votes || { rate: 'hold' } } });
+  call({ action: 'admin.state.set', key, classId: cx, patch: { phase: 'game', round: 1, status: 'open', sim: { model: 'v1.2', exit: true } } });
+  r2 = dec(pF, { levers: {}, euro: 'leave' }); must(!r2.ok && /not available/.test(r2.errors.join(' ')), 'leaving refused in a v1.2 class (no capital account)');
+  call({ action: 'admin.state.set', key, classId: cx, patch: { sim: { model: 'v1.3', exit: false } } });
+  r2 = dec(pF, { levers: {}, euro: 'leave' }); must(!r2.ok, 'leaving refused while the administrator has not allowed it');
+  call({ action: 'admin.state.set', key, classId: cx, patch: { sim: { exit: true } } });
+  r2 = dec(pF, { levers: { pubdem: 1 }, euro: 'leave' }); must(r2.ok && r2.used.indexOf('euro') >= 0, 'France announces its exit (v1.3 class, exit allowed)');
+  r2 = dec(pD, { levers: { rate: 1 } }); must(!r2.ok, 'a member cannot set a policy rate');
+  r2 = dec(pD, { levers: {}, fx: 'peg' }); must(!r2.ok && /left the union/.test(r2.errors.join(' ')), 'a member cannot take exchange-rate decisions');
+  /* year 2: France is out */
+  call({ action: 'admin.state.set', key, classId: cx, patch: { round: 2, status: 'open', exits: { FRA: 2 } } });
+  r2 = dec(pF, { levers: { rate: -1, pubdem: 2 }, fx: 'peg', pegChange: 5, absorb: true }, { rate: 'cut' }); must(r2.ok, 'exited France: policy rate, peg with a 5 % change of parity, buy-back accepted');
+  r2 = call({ action: 'state', pin: pF }); const myd = r2.myDecisions.filter(d => d.round === 2)[0].payload;
+  must(myd.years[0].fx === 'peg' && myd.years[0].pegChange === 5 && myd.years[0].absorb === true && myd.years[0].levers.rate === -1 && !myd.votes.rate, 'exchange-rate decisions stored; the exited country′s council vote is dropped');
+  r2 = dec(pF, { levers: {}, fx: 'float', pegChange: 3 }); must(!r2.ok && /needs a peg/.test(r2.errors.join(' ')), 'a change of parity needs a peg');
+  r2 = dec(pF, { levers: {}, fx: 'peg', pegChange: 25 }); must(!r2.ok && /±20/.test(r2.errors.join(' ')), 'change of parity bounded at ±20 %');
+  r2 = dec(pF, { levers: {}, euro: 'leave' }); must(!r2.ok && /already announced/.test(r2.errors.join(' ')), 'a second exit refused');
+  /* retaliation council */
+  call({ action: 'admin.state.set', key, classId: cx, patch: { status: 'closed', retaliation: { '2': { FRA: { status: 'open', settleOpen: false } } } } });
+  r2 = dec(pD, { levers: {} }); must(!r2.ok && /retaliation is in session/.test(r2.error), 'decisions refused while the retaliation council sits');
+  const rv = (pin, pl) => call({ action: 'submit', pin, phase: 'retaliation', round: 2, payload: pl });
+  must(!rv(pF, { target: 'FRA', tariff: 10, sale: 0 }).ok, 'the exited country does not vote on retaliation against itself');
+  must(!rv(pD, { target: 'FRA', tariff: 7, sale: 0 }).ok, 'tariff outside the scale refused');
+  must(rv(pD, { target: 'FRA', tariff: 10, sale: 50, settle: true }).ok && rv(pI, { target: 'FRA', tariff: 20, sale: 0 }).ok, 'members vote (Germany: tariff 10, sale 50; Italy: tariff 20)');
+  r2 = call({ action: 'state', pin: pD }); must(r2.retaliationVotesIn === 2 && r2.myDecisions.some(d => d.phase === 'retaliation' && d.payload.tariff === 10 && d.payload.settle === false), 'votes stored; settlement dropped while not on the agenda');
+  const T = MS.tallyRetaliation([{ tariff: 10, sale: 50 }, { tariff: 20, sale: 0 }], 2);
+  must(T.tariff === 10 && T.sale === 0 && !T.settle, 'tally: lower median of the votes (tariff 10, sale 0)');
+  must(MS.tallyRetaliation([{ tariff: 20, sale: 100 }], 3).tariff === 0, 'tally: absent members count as 0');
+  call({ action: 'admin.state.set', key, classId: cx, patch: { retaliation: { '2': { FRA: { status: 'closed', outcome: { tariff: 10, sale: 0, settle: false } } } }, crisis: { '2': { status: 'open' } } } });
+  r2 = call({ action: 'state', pin: pI }); must(r2.decisionsAll.some(x => x.round === 2 && x.retaliationVotes.length === 2), 'retaliation votes revealed once the council is closed');
+  must(MS.retaliationIn(r2.state, 'FRA', 3).tariff === 10 && MS.retaliationIn(r2.state, 'FRA', 1).tariff === 0, 'measures in force from the council year on');
+  r2 = call({ action: 'submit', pin: pF, phase: 'crisis', round: 2, payload: { crisis: 'devaluation' } }); must(!r2.ok && /does not vote/.test(r2.error), 'the exited country does not vote in a reserves crisis');
+  call({ action: 'admin.class.delete', key, classId: cx, name: 'Exit class' });
+}
 console.log('\nGAS adapter OK');

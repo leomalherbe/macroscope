@@ -63,7 +63,7 @@
           '<div class="bar reserves"><i class="' + (u.alert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>') +
       '<div class="urow"><span>Current account with the rest of the world</span><span class="num ' + UI.signedClass(u.CA) + '">' + esc(MS.fmt(u.CA, 2, true)) + '</span></div>' +
       '<div class="urow"><span>Exchange rate</span><span class="num">' + esc(MS.fmt(u.xr, 3)) + '</span></div>' +
-      UI.regimeLinesHtml(u) + UI.climateLinesHtml(u) + UI.voteLinesHtml(u) + crisisRoundHtml() }));
+      UI.regimeLinesHtml(u) + UI.exitLinesHtml(u) + UI.climateLinesHtml(u) + UI.voteLinesHtml(u) + crisisRoundHtml() + retaliationRoundHtml() }));
     return c;
   }
   /* the reserves-crisis round of the current year (voted before the decisions): in progress, or its outcome */
@@ -75,6 +75,17 @@
     if (rec.status === 'forced') return '<div class="urow"><span>Year ' + esc(st.round) + '</span><span class="num neg">reserves exhausted → forced devaluation</span></div>';
     if (cur) return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num">' + esc(rec.austerity) + ' defend · ' + esc(rec.devaluation) + ' let it float → <b>' + (rec.outcome === 'float' ? 'let it float' : 'defend') + '</b></span></div>';
     return '<div class="urow"><span>Crisis vote · year ' + esc(st.round) + '</span><span class="num">' + esc(rec.austerity) + ' austerity · ' + esc(rec.devaluation) + ' devaluation → <b>' + esc(rec.outcome) + '</b></span></div>';
+  }
+  /* §12: the councils on retaliation of the current year */
+  function retaliationRoundHtml() {
+    var st = data.state; if (st.phase !== 'game') return '';
+    var y = (st.retaliation || {})[String(st.round)] || {}, h = '';
+    Object.keys(y).sort().forEach(function (tg) {
+      var r = MS.retaliationOf(st, st.round, tg); if (!r) return;
+      if (r.status === 'open') h += '<div class="urow"><span>Council on retaliation against ' + esc(MS.countryName(tg)) + '</span><span class="num"><span class="pill open">in progress</span> ' + esc(data.retaliationVotesIn || 0) + ' vote(s)</span></div>';
+      else { var o = r.outcome || {}; h += '<div class="urow"><span>Council on retaliation against ' + esc(MS.countryName(tg)) + ' · year ' + esc(st.round) + '</span><span class="num">tariff ' + esc(MS.fmt(o.tariff || 0, 0)) + ' % · sale ' + esc(MS.fmt(o.sale || 0, 0)) + ' %' + (r.settleOpen ? ' · TARGET settled: ' + (o.settle ? 'yes' : 'no') : '') + '</span></div>'; }
+    });
+    return h;
   }
   function render() {
     var st = data.state;

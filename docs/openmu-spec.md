@@ -1,4 +1,4 @@
-# OPEN-MU — specification (v1, fixed exchange rate)
+# OPEN-MU — specification (v1, fixed exchange rate; sections up to §12)
 
 Game engine replacing MacSim 2 in the policy desk. Runs in the browser (admin console) and in Node (tests). Decided with Léo on 3 Nov 2026: option 1 (chapter-6 OPEN/REG logic extended to N countries in a monetary union, rest of the world exogenous), **fixed exchange rate with reserves**, devaluation decreed by the administrator near the alert threshold, two "thermometer" equations (unemployment, inflation) outside the dynamics, no sandbox, no tariffs in v1.
 
@@ -365,3 +365,189 @@ Desk: one sentence under the lever and in the rules line; model page: equations 
 
 ### §9.8 Recalibration of the reserves and the cross-holdings (validated by Léo, 07/11)
 With the first calibration (reserves 1.5 months = 1.9 % of GDP inherited from v1.2, gross cross-holdings 30 % of GDP each way), portfolio moves dwarfed the reserves: a voted rate cut of 0.5 pt emptied them within a year, a devaluation refilled them to 300 % through repatriation (households' foreign bills, valued at λF·V in union currency, shrink in world currency when xr rises; the RoW tops up its union bills). The direction is chapter 12's; the magnitude was unplayable. From v1.3 on (v1.3, v2.0, duel): **reserveMonths = 3, bwShare = 0.15** (RoW holdings of union bills 15 % of union GDP, households' foreign bills ≈ 7 % of wealth), portfolio sensitivities re-tuned to **χw = 3, λf1 = 0.7** (duel: λf1 = 0.25) so that a 0.5 pt rate step still moves a floating rate by ≈ 3.7 % (duel: ≈ 7 % per point). v1.2 keeps 1.5 months (no capital flows); v1.1 keeps 3 months. Magnitudes after the change (France / union, v1.3): float rate +0.5 → xr −3.7 % on impact, union GDP −0.9 % next year; float sudden stop −20 % → depreciation 13 %, −30 % → 21 %, inflation +1.7 / +2.8 pt; fixed sudden stop −5 % → reserves 80 %, −30 % → exhausted in a year; fixed rate cut −0.5 → 74 %; world demand −5 % → 85 / 71 / 58 / 47 %, −10 % → 69 / 41 / 16 %; devaluation 10 % in fixed → reserves refill to ≈ 160 %; union-wide stimulus +5 → 94 / 86 / 76 %. Duel, A alone +10 (fixed): A's reserves 93, 84, 74, 64, 52, 40, 28 % (alert in year 8); float: e +3.9 % → +23 % over five years; A's rate +1 (float): e −6.9 %.
+
+## 12. Leaving the union — sortie de l'union monétaire (validée par Léo, 07/11 ; implémentée, moteur 2.0 + `simulateExit`, backend 1.9)
+
+Statut : **validée et implémentée** (voir 12.9 pour les écarts « as implemented » et la correction de signe du TARGET). Validé par Léo le 07/11 : bilans à la sortie (12.3) avec redénomination de **toute** la dette publique, y compris celle détenue par le reste du monde ; soldes TARGET ; sortie unilatérale ; régime de change choisi par le pays sortant ; la banque centrale de l'union **garde les titres de X** qu'elle détient, ce qui permet au conseil de les vendre ; montants des représailles (tarif, part vendue) votés par le conseil ; plusieurs sorties possibles dans une partie, toutes irréversibles ; transmission complète du change aux prix de toutes les importations du pays sorti. Pas de coûts de transition automatiques : ils passent par des chocs administrateur et par un conseil de représailles (12.5). Les ordres de grandeur marqués « cible » sont à mesurer avec `dev/engine-test.js` ; ceux marqués « mesuré » viennent de l'état de référence actuel (v2.0).
+
+### 12.0 Avant cette version
+
+Le champ `euro: 'leave'|'join'` et la case `game.allowEuro` existaient (hérités de MacSim) sans effet dans le moteur. Depuis le backend 1.9, `join` est refusé, `leave` n'est accepté que si `MS.exitAllowed(state)` (v1.3/v2.0 et `sim.exit`), et la case de la console pilote `sim.exit` (elle est désactivée si le modèle n'est pas v1.3 ou v2.0).
+
+### 12.1 Objectif pédagogique
+
+Montrer ce qu'une sortie rend (un taux et un change à soi, la dévaluation externe au lieu de la dévaluation interne), ce qu'elle coûte (inflation importée, perte de la part des réserves communes, solde TARGET, réaction des marchés et des partenaires) et ce qu'elle impose aux autres (commerce, réserves, votes). Les coûts qui dépendent des réactions (marchés, partenaires) ne sont pas automatiques : l'administrateur et le conseil les décident, ce qui en fait un objet de négociation.
+
+### 12.2 Règle de jeu
+
+- **Décision unilatérale** de l'équipe : choix `leave` avec les décisions de l'année N (secret tant que le tour est ouvert, révélé à la publication comme les votes). Pas de vote du conseil sur la sortie elle-même.
+- **Calendrier** : N est l'année de l'annonce (le pays est encore membre). La sortie est **effective au 1er janvier de N+1** : nouvelle monnaie, banque centrale nationale. Au début de N+1, avant les décisions, se tient le **conseil de représailles** (12.5).
+- **Irréversible** dans la partie (pas de `join`).
+- **Plusieurs sorties** possibles dans la même partie, chacune irréversible : chaque pays sorti a sa monnaie et son change contre l'euro ; les taux croisés entre deux pays sortis passent par l'euro (`e_Y / e_X`), et leurs échanges suivent les mêmes règles que ceux d'un pays sorti avec l'union. Chaque sortie ouvre son propre conseil de représailles. Les membres restants votent ; un pays sorti ne vote pas sur les représailles visant un autre pays sorti.
+- **Après la sortie**, le pays : choisit chaque année son **régime de change** (flottant ou parité contre l'euro) et, en parité, peut dévaluer ou réévaluer (12.4) ; obtient le levier `rate` du mode duel (points autour de r*, ±2, pas 0,25) ; garde les six autres leviers ; ne vote plus au conseil (taux, crise de réserves, crise de change) — les majorités se comptent sur les membres restants ; reste classé avec le même R.
+- **Disponibilité** : classes v1.3 et v2.0 seulement (il faut le compte financier et le change flottant de §9). Pas en v1.1/v1.2, pas en duel. Activation par classe : `sim.exit = true` (Control → Parameters), qui remplace `game.allowEuro`.
+
+### 12.3 Bilans au moment de la sortie (début de N+1) — validé
+
+Notation : X le pays sortant, NC sa nouvelle monnaie, `e_X` = prix d'un euro en NC (`e_X` ↑ = dépréciation de la NC), `e_X = 1` à la sortie.
+
+**Redénomination 1 pour 1 de toute la dette publique et de tout ce qui relève du droit national** : billets `H_X`, dépôts `M_X`, prêts `L_X`, titres publics détenus par les ménages `Bh_X`, les banques `Bb_X`, la banque centrale `Bcb_X` **et le reste du monde `Bw_X`**, avances `A_X`. Aucun effet de richesse à la sortie.
+
+**Ce qui reste en monnaie étrangère** : les titres étrangers des ménages `Bf_X` (en monnaie mondiale), le solde TARGET (en euros, ci-dessous).
+
+**Ce qui change de détenteur** : rien d'autre que la banque centrale. Les titres de X détenus par la banque centrale de l'union, notés désormais `BcbU_X`, restent à son actif (en NC, redénominés comme le reste de la dette) : l'union devient un créancier de X en NC.
+
+**Conséquences de la redénomination de `Bw_X`** (mesuré à la référence : `Bw_X` = 15 % du PIB, `Bf_X` = 15 % du PIB) :
+- la dette publique de X est entièrement en NC : une dépréciation ne l'alourdit pas ; le ratio dette/PIB et la prime de risque de §9.6 ne bougent que par les flux ;
+- une dépréciation **améliore** la position extérieure nette de X : ses avoirs (`Bf_X`) prennent de la valeur en NC, ses engagements envers le reste du monde (`Bw_X`) n'en prennent pas. Une dépréciation de 20 % ≈ +3 points de PIB de position nette, au profit des ménages ;
+- le perdant est le **reste du monde**, dont la créance sur X se déprécie avec la NC. Pour lui, c'est un défaut partiel : la raison naturelle d'une vente des titres de X, que l'administrateur peut déclencher (12.5).
+
+**Banque centrale nationale (BCN_X)** : reprend `H_X` au passif, `A_X` à l'actif (mais pas les titres publics, qui restent à l'union), plus une **part des réserves communes** `R_X = R · Y*_X / ΣY*` (clé de capital = taille de référence). Le solde de son bilan est un **solde TARGET** envers la banque centrale de l'union, en euros :
+
+```
+T2_X = A_X + xr · R_X − H_X                  (en euros, à la date de sortie ; > 0 : BCN_X doit à l'union) — signe corrigé, voir 12.9
+```
+
+Mesuré à la référence : `H − A` = 8,8 % du PIB, part des réserves 3,75 % → **T2_X ≈ −5,1 % du PIB : c'est l'union qui doit à la BCN_X exactement les titres de X qu'elle garde** (`Bcb` = 5,1 %), la contrepartie des billets de X que ces titres couvraient. À la sortie, l'union détient 5 % du PIB de X en titres en NC et doit autant en euros à la BCN_X : la créance nette de l'union sur X (`BcbU_X + T2_X`) est nulle. Elle est égale, en général, au déficit cumulé de la balance des paiements de X au-delà de sa part (identité vérifiée : pour chaque membre, Δ(H − Bcb − A) = son excédent de balance des paiements) : un pays qui a fait fuir ses capitaux avant de sortir sort avec plus de titres détenus par l'union. `T2_X` est un stock en euros, rémunéré au taux de l'union `r`, non remboursé sauf décision du conseil (12.5). Une dépréciation de la NC fait perdre l'union deux fois à la référence : ses titres valent moins en euros, et sa dette TARGET pèse plus en NC pour la BCN_X qui la reçoit.
+
+**Après la sortie** :
+- `BcbU_X` est constant en NC (renouvelé à l'échéance), rémunéré au taux de X `r_X + s_X`, sauf vente décidée par le conseil (12.5). Les intérêts sont un revenu primaire versé par X à l'union ; le bénéfice de la banque centrale de l'union est reversé aux membres restants.
+- La BCN_X est le prêteur en dernier ressort de X : elle achète les titres nouveaux que ni les ménages, ni les banques, ni le reste du monde ne prennent (`BcbN_X`, en NC, partant de 0) ; son bénéfice est reversé au gouvernement de X. La prime de risque de §9.6 s'applique à X comme à un membre avec backstop.
+
+**Union** : `R` diminue de `R_X` ; la banque centrale de l'union porte `T2_X` en créance (ou dette) sur la BCN_X, en euros, et `BcbU_X` en NC. Identité de l'union (sans X) : `Σ_{i≠X} H_i = Σ_{i≠X} (Bcb_i + A_i) + xr · R + T2_X + BcbU_X / e_X − NWcb` (`NWcb` inclut désormais la perte de valeur de `BcbU_X`).
+
+### 12.4 Le change du pays sorti
+
+### Un seul prix à résoudre, deux taux à lire
+
+X échange avec deux partenaires qui ont chacun leur monnaie : l'union (euro) et le reste du monde (monnaie mondiale). Il y a donc deux taux de change pour X :
+- `e_X` : prix d'un euro en NC — **c'est le taux que X choisit de laisser flotter ou de fixer** ;
+- `e_X · xr` : prix d'une unité de monnaie mondiale en NC — **le taux croisé**, qui n'est pas choisi séparément. Il découle de `e_X` et du taux de l'union `xr` (prix de la monnaie mondiale en euros). Par arbitrage, il n'existe qu'un prix du dollar en NC : celui qu'on obtient en passant par l'euro.
+
+Conséquence : X ne contrôle que `e_X`. Si l'union se déprécie contre le monde (`xr` ↑), la NC se déprécie aussi contre le monde, du même pourcentage, à `e_X` donné. C'est la situation du Danemark ou de la Bulgarie aujourd'hui.
+
+### Régime flottant
+
+La BCN_X n'intervient pas : ses réserves `R_X` sont gelées. `e_X` est le prix qui équilibre la balance des paiements de X, chaque année, conjointement avec les PIB (comme `xr` en v1.3) :
+
+```
+CA'_X(e_X) + KA_X(e_X) = 0
+CA'_X = X_X − e_X·IMU_X − e_X·xr·IMR_X + r_w,−1·e_X·xr·Bf_X,−1 − (r_X,−1 + s_X,−1)·(Bw_X,−1 + BcbU_X,−1) − r_−1·e_X·T2_X
+KA_X  = ΔBw_X + ΔBcbU_X − e_X·xr·ΔBf_X + e_X·ΔT2_X          (ΔBcbU_X < 0 quand l'union vend ; ΔT2_X < 0 quand la BCN_X règle le TARGET)
+```
+
+Ce qui fait bouger `e_X` : ses déficits commerciaux (avec l'union et avec le monde), l'écart de son taux `r_X` avec ceux de l'union et du monde (flux de capitaux), les chocs de l'administrateur (12.5). Une baisse de `r_X` de 1 point fait sortir des capitaux et déprécie la NC ; ordre de grandeur cible : 5 à 8 % (calibrage du duel : ≈ 7 % par point).
+
+Si l'union flotte elle aussi, les deux prix `xr` et `e_X` sont résolus ensemble chaque année (boucle externe sur `xr`, boucle interne sur `e_X`, encadrement + sécante comme aujourd'hui).
+
+### Régime de parité (« parité en variante »)
+
+X fixe `e_X` contre l'euro — un currency board ou un système type mécanisme de change européen. La BCN_X défend la parité avec ses réserves `R_X` (la part reçue à la sortie) : elle achète ou vend de la NC pour que `e_X` ne bouge pas, et ses réserves absorbent le solde de la balance des paiements :
+
+```
+e_X donné (parité choisie par l'équipe)
+R_X = R_X,−1 + (CA'_X + KA_X) / (e_X · xr)
+```
+
+- **Parité de départ** : 1 (la conversion 1 pour 1), ou le dernier `e_X` si X passait du flottant à la parité.
+- **Dévaluation ou réévaluation** : décision de l'équipe (champ `peg` : variation de la parité en %, bornée ±20), effective l'année même.
+- **Alerte** : `R_X < 25 %` de sa part initiale, affichée au pays sorti.
+- **Épuisement** (`R_X ≤ 0` et déficit à la fin de N) : dévaluation forcée de 15 % en N+1, comme en duel, sans vote.
+- Le taux croisé contre le monde suit toujours l'union : `e_X · xr`.
+
+La parité garde l'ancrage (pas d'inflation importée venant de l'union) mais redonne une contrainte de réserves, sans les réserves communes. Le flottant supprime la contrainte de réserves mais fait varier les prix à l'importation.
+
+### Choix du régime
+
+Décision de l'équipe X chaque année, dans son formulaire (champ `fx: 'float'|'peg'`, défaut `float`, plus `peg` pour une variation de parité). Le passage flottant → parité fige le taux de l'année précédente ; parité → flottant libère `e_X` et gèle `R_X`.
+
+### Autres équations de X après la sortie
+
+Mêmes équations qu'un membre de v1.3/v2.0, avec :
+
+**Taux** : `r_X = r* + rate_X/100` (levier), plus la prime `s_X` de §9.6 sur la dette en NC. Le choc de taux de l'administrateur et le vote de la BCE ne touchent plus X.
+
+**Commerce** — même convention que pour le reste du monde aujourd'hui (prix en monnaie du producteur, effets prix avec un an de retard, élasticités inchangées) :
+```
+importations de X depuis j ∈ union :  volume IMU_Xj = (1 − sR)·μ·Y_X · s_Xj · (e_X,−1 · Prel_j,−1 / Prel_X,−1)^(−εU)                 coût en NC : e_X · IMU_Xj
+importations de j depuis X :          volume IMU_jX = (1 − sR)·μ·Y_j · s_jX · ((1 + tU)·Prel_X,−1 / (e_X,−1 · Prel_j,−1))^(−εU)    coût en euros : IMU_jX / e_X
+importations de X depuis le RdM :     IMR_X = sR·μ·Y_X · (e_X,−1·xr_−1 / (xr0·Prel_X,−1))^(−ε)                                    coût en NC : e_X·xr·IMR_X
+exportations de X vers le RdM :       XR_X = xR*_X · monde · (e_X·xr / (xr0·Prel_X,−1))^η
+```
+`tU` : tarif de représailles de l'union sur les importations venant de X (12.5), 0 par défaut ; recette versée aux gouvernements des membres importateurs.
+
+**Inflation** (thermomètre) : la transmission du change vaut désormais pour toutes les importations de X, au même degré par unité de part importée qu'aujourd'hui :
+```
+π_X = … + ω · 100·Δ(e_X·xr)/(e_X·xr)_−1 + ω·((1 − sR)/sR) · 100·Δe_X/e_X,−1
+```
+Transmission complète (validé) : avec sR = 0,5 (mesuré), une dépréciation de 10 % de la NC contre l'euro ajoute ≈ 3 points d'inflation l'année même (≈ 1,5 par les importations venant du reste du monde, ≈ 1,5 par celles venant de l'union). Elle est nulle en parité tenue contre l'euro (seul `xr` joue).
+
+**Portefeuilles** : ménages de X : `λF = λF0 + λf1·(r_w − r_X − s_X)` (anticipations statiques, comme ch. 12). Reste du monde : demande de titres de X, en NC, `Bw_X = e_X · xr · Bw$*_X · (1 + χw·(r_X − r_w) − χs·s_X) · (1 + flowsX/100)`, avec `flowsX` le choc administrateur propre à X (12.5).
+
+**Union** : ses échanges avec X deviennent extérieurs. Son compte courant inclut le solde avec X et les intérêts sur `T2_X` ; en fixe, `R` absorbe tout le solde extérieur de l'union (RdM et X) ; en flottant, `xr` le solde. Les agrégats de l'union (PIB, niveau des prix, alerte, mois d'importations) excluent X à partir de N+1.
+
+### 12.5 Ce qui rend la sortie difficile : administrateur et conseil
+
+Aucun coût automatique. Deux sources, au choix de l'administrateur et des autres équipes.
+
+### Chocs administrateur propres au pays sorti
+
+Nouvelles lignes de l'éditeur de chocs, actives dès qu'une sortie est annoncée, par année (y compris l'année d'annonce N), appliquées à X seulement :
+
+| Choc | Effet | Exemple |
+|---|---|---|
+| `exitConfidence` (%) | propension à consommer des ménages de X, `α1 × (1 + exitConfidence/100)` | −3 en N+1 |
+| `exitFlows` (%) | demande du reste du monde pour les titres de X (`flowsX`) : vente des titres redénominés | −20 en N+1 |
+| `exitRun` (points de richesse) | l'année d'annonce, les ménages de X sortent leurs dépôts vers les titres étrangers (`λF0_X + exitRun`) ; en change fixe, ce sont les réserves communes qui paient | 5 en N |
+
+Le choc de confiance générique existant continue de toucher toute l'union.
+
+### Conseil de représailles, automatique au début de N+1
+
+Un tour à part, comme le vote de crise de §7.6 : ouvert par la console au début de N+1, avant les décisions ; seuls les membres restants votent. **Les montants sont votés** : chaque membre choisit un niveau sur une échelle courte, et l'issue est la **médiane** des votes exprimés (absent = 0). La médiane est le seul niveau qu'aucune majorité ne préfère changer dans un sens ou dans l'autre ; avec un vote oui/non, elle revient à la majorité des votants, comme pour les autres votes du conseil.
+
+1. **Tarif sur les importations venant de X** : `tU` ∈ {0, 5, 10, 20} %, voté, sur les importations de tous les membres venant de X. Il renchérit les produits de X dans l'union (volume) et rapporte une recette aux importateurs, mais il renchérit aussi la consommation de l'union. Le tarif reste en place jusqu'à ce qu'un conseil ultérieur le change : l'administrateur peut rouvrir le conseil n'importe quelle année. Cette question câble l'option `allowTariff` aujourd'hui morte.
+2. **Règlement immédiat du solde TARGET** (oui/non, proposé seulement si `T2_X > 0`) : la BCN_X doit payer `T2_X` dans l'année, en réserves `R_X` d'abord ; ce qui manque la force à vendre de la NC contre des euros, donc à déprécier (flottant) ou à épuiser ses réserves (parité). Les réserves de l'union augmentent d'autant.
+3. **Vente des titres de X détenus par l'union** (validé) : la banque centrale de l'union vend dans l'année une part votée de `BcbU_X`, ∈ {0, 25, 50, 100} %. Deux effets, comme pour une attaque contre une monnaie :
+   - **sur le taux de X** : les titres vendus doivent trouver preneur dans X. Par défaut, ce sont les ménages et les banques de X, et le taux de X monte jusqu'à ce qu'ils les absorbent (mécanisme de marché « sans backstop » de §9.7, appliqué au seul montant vendu ; plafond 25 %). L'équipe X peut décider que sa BCN les rachète (champ `absorb` de son formulaire, oui/non) : le taux ne monte pas, mais la BCN crée la NC correspondante ;
+   - **sur le change de X** : l'union convertit la NC reçue en euros, ce qui est une sortie de capitaux pour X (`ΔBcbU_X < 0` dans `KA_X`) : la NC se déprécie (flottant) ou la BCN_X perd des réserves (parité).
+
+   Le dilemme pour X est donc entre un taux plus élevé (investissement, dette, prime) et une monnaie plus faible (inflation importée), mais il ne peut pas éviter le second. La vente se répète chaque année au taux voté tant qu'un conseil ne le change pas, jusqu'à épuisement des titres. Ordres de grandeur cibles pour la France (vente de 50 % ≈ 2,5 % du PIB de X en un an) : dépréciation 3 à 8 % en flottant, ou une perte de la moitié de `R_X` en parité ; sans rachat par la BCN, taux de X +1 à +3 points.
+
+Le conseil est un lieu de négociation : X peut prendre des engagements (§7.4) avant le vote, par exemple garder une parité ou rembourser le TARGET.
+
+### 12.6 Affichage et plateforme
+
+- **Page étudiants** : option « Leave the union at the end of this year » avec avertissement (irréversible) et confirmation ; après la sortie, levier « Policy rate », choix du régime (`fx`) et de la parité (`peg`), choix `absorb` quand l'union vend ses titres, plus de votes du conseil, panneau « Your currency » (`e_X`, taux croisé `e_X·xr`, variations, `T2_X`, titres détenus par l'union `BcbU_X`, réserves `R_X` et alerte en parité, tarif de l'union s'il y en a un). Pour les membres restants : carte de vote du conseil de représailles au début de N+1.
+- **Conseil / board** : bandeau « X announced its exit (effective year N+1) » à la publication de N ; résultat du conseil de représailles ; pays sortis grisés dans le panneau de l'union, avec leur change ; majorités sur les membres restants.
+- **Console** : le rejeu lit `euro: 'leave'` dans les décisions et construit `opts.exits = {X: N+1}` ; carte « Retaliation council · year N+1 » (Open / Close and announce / Reopen, comme la carte de crise) ; nouvelles lignes de chocs (12.5) ; la console enregistre `state.exits` et `state.retaliation[N]` à la publication.
+- **Décomposition** : la sortie, le régime et la parité sont des politiques de X : « own policy » pour X, « foreign » pour les autres ; les mesures de représailles sont des politiques des autres : « foreign » pour X.
+- **Page du modèle** : section dépliable « Leaving the union », équations ci-dessus et ordres de grandeur mesurés.
+- **Backend** (1.9 ou suivante) : `validateDecision` accepte `rate`, `fx`, `peg` et `absorb` pour un pays présent dans `state.exits` à partir de son année de sortie ; refuse les votes du conseil d'un pays sorti et un second `leave` ; nouveau tour `phase: 'retaliation'` (sur le modèle de `phase: 'crisis'`). Un collage de `Code.gs`.
+
+### 12.7 Moteur et tests
+
+- `params.exit` dans `simulateV11` : aucun pays sorti → chemin actuel inchangé ; v1.1–v2.0 et duel reproduits **au bit près** (tests de régression).
+- `dev/engine-test.js`, bloc EXIT : sortie à la référence sans choc → rien ne bouge (`e_X` = 1, `T2_X` = −`BcbU_X`) ; identités sur 20 graines × 40 ans : bilan de la BCN_X, identité de l'union avec `T2_X` et `BcbU_X`, somme des balances des paiements union + X + RdM = 0, richesse des ménages de X = actifs (en NC), en flottant et en parité ; ordres de grandeur imprimés : baisse de `r_X` d'un point, chocs `exitFlows` −20 et `exitConfidence` −3, tarif de 10 %, règlement du TARGET, vente de 50 % des titres avec et sans rachat par la BCN_X, dévaluation de 10 % en parité.
+- `dev/e2e-exit.js` : annonce en année 2, conseil de représailles et sortie effective en 3, levier `rate`, passage flottant → parité, votes à six, panneau de change, board.
+
+### 12.8 Décisions
+
+Tranché le 07/11 : part vendue et tarif votés par le conseil (médiane) ; plusieurs sorties possibles, irréversibles ; pas de réintégration ; transmission complète du change à toutes les importations du pays sorti.
+
+Reste à mesurer en codant : coût de calcul au-delà de deux sorties en flottant (un change de plus à résoudre par pays sorti) : à mesurer, sans doute acceptable jusqu'à trois.
+
+### 12.9 As implemented (07/11) — écarts et précisions
+
+- **Signe du TARGET** (corrigé après validation, signalé à Léo) : `T2_X = A_X + xr·R_X − H_X`, > 0 quand la BCN_X doit à l'union. À la référence il vaut −`BcbU_X` (−5,05 % du PIB) : l'union doit à X. La question « règlement immédiat » du conseil (proposée seulement si `T2_X > 0`) ne s'ouvre donc qu'après un choc qui gonfle les réserves de l'union avant la sortie (dévaluation de 30 % → T2 = +1,5 %). La créance nette pertinente est `BcbU_X + T2_X` (déficit cumulé de X au-delà de sa part) : 4,9 % du PIB après une fuite des dépôts de 3 pt de richesse pendant l'année d'annonce.
+- **Moteur** : `OPENMU.simulateExit(p, opts)`, appelé par `simulate` seulement si `p.capital` et qu'une politique contient `leave` (année d'annonce ; sortie l'année suivante). `simulateV11` n'est pas modifié : v1.1–v2.0 et duel au bit près. Sans sortie effective dans l'horizon, `simulateExit` reproduit l'union à 4·10⁻¹² (tolérance des racines). Entrées : politiques du pays sorti `rate` (points, ±2), `peg` (1 = parité), `pegChange` (%), `absorb` (1 = la BCN rachète) ; `opts.retaliation[t][X] = {tariff, sale, settle}` ; `shocks[t].exitShocks[X] = {confidence, flows, run}`. `params.forcedDevalExit` = 15.
+- **Change** : `E` par pays (1 pour les membres), taux croisé `E·xr` ; Gauss-Seidel sur les pays sortis flottants (encadrement + sécante en 1D), à l'intérieur de la racine en `xr` si l'union flotte. Deux sorties flottantes + union flottante, 8 ans, `report` complet : ≈ 1,3 s.
+- **Commerce** : poids intra `w_ij = s_ij·((P_j/E_j)·E_i/P_i·(1+tU))^(−εU)` (prix décalés d'un an, change décalé d'un an comme `xr`) ; valeur des importations de i depuis j : volume × `E_i/E_j` ; tarif de l'union : recette des membres importateurs (impôt sur la dépense : `C = (1−τc)·CE − tarif`), identités inchangées.
+- **Taux** : pour X, prêts, dépôts et titres au taux `r_X` (décalé d'un an comme `r`) ; la BCN ne perçoit pas la prime sur ses propres titres (elle est le backstop) ; le choc de confiance général et le choc `flows` de l'union ne touchent plus X (ses chocs propres le font).
+- **Vente** : la part vendue de `BcbU_X` doit être absorbée par les ménages et les banques de X au-dessus de leur portefeuille au taux de marché (le taux de X monte, plafond 25 %) sauf `absorb` (la BCN l'achète) ; dans les deux cas la conversion en euros est une sortie de capitaux de X.
+- **Fuite des dépôts** (`run`) : déplacement **durable** de `λF0` (cumulé depuis l'annonce ; une valeur négative rapatrie), sinon le rapatriement automatique de l'année de sortie faisait apprécier la NC de 40 %.
+- **Décomposition** : sortie, régime, parité, taux, rachat et chocs propres à X = « own policy » de X ; représailles = « foreign » pour X (elles ne sont passées qu'aux runs complets de `report`).
+- **Agrégats** : la ligne UNION porte sur les membres restants (PIB comparé à la référence des seuls membres) et ajoute `exited`, `members`, `announced`, `exitInfo`, `retaliation` ; la ligne du pays sorti ajoute `fx, dfx, fxWorld, peg, forced, rate, rEff, tariff, sold, settled, T2, BcbU` (% du PIB) et `RXshare`, `RXalert`.
+- **Plateforme** : `MS.exitAllowed(state)` (v1.3/v2.0, `sim.exit`), `state.exits` enregistré par la console à la publication, `state.retaliation[N][X] = {status, settleOpen, outcome:{tariff, sale, settle}, votes, playing}` ; `MS.retaliationIn(state, X, y)` (dernier conseil clos ≤ y ; règlement l'année du vote seulement) ; `MS.tallyRetaliation` (médiane basse, absents = 0). Backend 1.9 : tour `phase: 'retaliation'` (un vote par cible), refus des décisions pendant un conseil, refus des votes (taux, crise, représailles) d'un pays sorti, `rate/fx/pegChange/absorb` acceptés seulement pour un pays sorti.
+- **Ordres de grandeur** (France, v1.3, années 2–5, imprimés par `engine-test`) : taux −1 pt en flottant → NC +10,9 %, π +2,6 pt, PIB −2,3 % puis +1,4 % ; relance +5 en flottant → NC +2 → +11 %, π +0,8 → +1,0 ; en parité → réserves 90, 78, 64, 47, 29 % de la part ; dévaluation de 10 % en parité → π +2,4 pt ; RdM −20 % → NC +20 %, π +4,7 ; confiance −3 % → PIB −1,3 % ; fuite des dépôts de 1 pt pendant l'annonce → réserves communes 88 % de R0 ; tarif 10 % → PIB −1,9 %, réserves de l'union en hausse ; vente de la moitié des titres → NC +12 % (taux +0,2 pt ; avec rachat : NC +14 %, taux inchangé).
+
