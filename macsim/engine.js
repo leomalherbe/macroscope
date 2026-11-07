@@ -87,10 +87,10 @@ var OPENMU = (function () {
       pistar: 2, kappa: 0.3, rho: 0.6, omega: 0.15,
       /* v1.3: capital flows and market pressure */
       rw: 0.03,         // rest-of-the-world bill rate at the reference (= r*)
-      bwShare: 0.30,    // RoW holdings of union bills at the reference, share of union GDP (= households' foreign bills: primary income balanced)
-      chiW: 6,          // RoW demand for union bills: +chiW per unit of (r − r_w)
+      bwShare: 0.30,    // RoW holdings of union bills at the reference, share of union GDP (= households' foreign bills: primary income balanced); 0.15 from v1.3 on (see below)
+      chiW: 6,          // RoW demand for union bills: +chiW per unit of (r − r_w); 3 from v1.3 on (see below)
       chiS: 10,         // RoW demand for union bills: −chiS per unit of the union-average spread
-      lambdaF1: 1.3,    // households' foreign-bills share: +lambdaF1 per unit of (r_w − r − spread)
+      lambdaF1: 1.3,    // households' foreign-bills share: +lambdaF1 per unit of (r_w − r − spread); 0.7 from v1.3 on (see below)
       phi: 0.05,        // spread (rate units) per unit of debt ratio above dstar: s = 1 pt at d = dstar + 0.20
       dstar: 1.10,      // debt ratio (B/Y) above which the spread starts
       psi: 50,          // flight to quality: RoW allocation weight ∝ size · exp(−psi · spread)
@@ -114,6 +114,9 @@ var OPENMU = (function () {
     };
     if (!useFirms) { p.alpha2 = 0.185; p.lambda0 = 0.70; }
     if (usePrices) { p.reserveMonths = 1.5; }
+    /* v1.3+: with capital flows, 1.5 months (1.9 % of GDP) against cross-holdings of 30 % of GDP made a rate cut empty the
+       reserves in a year and a devaluation refill them to 300 % by portfolio repatriation: back to 3 months, cross-holdings halved */
+    if (useCapital) { p.reserveMonths = 3; p.bwShare = 0.15; p.chiW = 3; p.lambdaF1 = 0.7; }   /* re-tuned: +0.5 pt on the rate → floating xr −3.7 % */
     return p;
   }
   /* parameters of a game version: 'v1.1' (class 6: no price channel, 3 months of reserves), 'v1.2' (prices in trade), 'v1.3' (capital flows) */
@@ -777,7 +780,7 @@ var OPENMU = (function () {
     p.duel = true;
     p.sR = 1;                 // every import comes from the partner
     p.ewMult = 0;             // no rest of the world: the two players are the world
-    p.lambdaF1 = (params && params.lambdaF1) || 0.6;   // both sides' portfolios react: halved so that +1 pt on the policy rate moves e by ~6 %
+    p.lambdaF1 = (params && params.lambdaF1) || 0.25;  // both sides' portfolios react: tuned so that +1 pt on the policy rate moves e by ~7 %
     p.countries = [{ id: 'A', name: 'Country A', size: 100 }, { id: 'B', name: 'Country B', size: 100 }];
     if (params && params.sizeA) p.countries[0].size = params.sizeA;
     if (params && params.sizeB) p.countries[1].size = params.sizeB;
