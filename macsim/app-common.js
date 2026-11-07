@@ -281,6 +281,47 @@ var UI = (function () {
   }
   var R_SERIES = { id: 'R', label: 'R (total)', color: '#1b2437', dash: true };
   function trajWeights(w) { var d = MS.defaultState().weights; return Object.assign({}, d, w || {}); }
+  /* The race: cumulative R of every country, year by year (who overtakes whom). series: [{key, name, rows: [{year, R}]}].
+     Colors follow the country (fixed order of MS.COUNTRIES), never the rank; each line ends with the country's name (the palette
+     is below 3:1 contrast for three slots, so identity never rests on color alone); a native tooltip on every point. */
+  var RACE_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6'];
+  function raceColor(key) { var i = -1; MS.COUNTRIES.forEach(function (c, k) { if (c.id === key) i = k; }); return RACE_COLORS[(i >= 0 ? i : 0) % RACE_COLORS.length]; }
+  function rRaceSvg(series, opts) {
+    opts = opts || {};
+    var W = 1100, H = opts.height || 340, padL = 56, padR = 150, padT = 16, padB = 34;
+    var years = {}; series.forEach(function (s0) { s0.rows.forEach(function (r) { years[r.year] = 1; }); });
+    var yl = Object.keys(years).map(Number).sort(function (a, b) { return a - b; });
+    if (!yl.length) return '';
+    var lines = series.map(function (s0) {
+      var cum = 0, pts = [];
+      yl.forEach(function (y) { var r = s0.rows.filter(function (x) { return Number(x.year) === y; })[0]; if (r && r.R !== null && r.R !== undefined && r.R !== '') { cum += Number(r.R); pts.push({ year: y, R: Number(r.R), cum: cum }); } });
+      return { key: s0.key, name: s0.name, color: raceColor(s0.key), pts: pts };
+    }).filter(function (l) { return l.pts.length; });
+    var vals = [0]; lines.forEach(function (l) { l.pts.forEach(function (p) { vals.push(p.cum); }); });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals); if (hi - lo < 0.2) { hi += 0.1; lo -= 0.1; }
+    var pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+    var x0 = yl[0], x1 = yl[yl.length - 1];
+    function X(y) { return padL + (x1 === x0 ? (W - padL - padR) / 2 : (y - x0) / (x1 - x0) * (W - padL - padR)); }
+    function Y(v) { return padT + (hi - v) / (hi - lo) * (H - padT - padB); }
+    /* ticks: about five round values */
+    var step = Math.pow(10, Math.floor(Math.log(hi - lo) / Math.LN10)); if ((hi - lo) / step < 3) step /= 2; if ((hi - lo) / step > 7) step *= 2;
+    var g = '';
+    for (var t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) g += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + Y(t).toFixed(1) + '" y2="' + Y(t).toFixed(1) + '" stroke="#e6e2d6" stroke-width="1"/><text x="' + (padL - 8) + '" y="' + (Y(t) + 4).toFixed(1) + '" text-anchor="end" font-size="13" fill="#5b6475">' + esc(MS.fmt(t, Math.abs(step) < 0.1 ? 2 : 1, true)) + '</text>';
+    g += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + Y(0).toFixed(1) + '" y2="' + Y(0).toFixed(1) + '" stroke="#8a8f99" stroke-width="1.2"/>';
+    yl.forEach(function (y) { g += '<text x="' + X(y).toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="13" fill="#5b6475">Year ' + y + '</text>'; });
+    var marks = '';
+    lines.forEach(function (l) {
+      if (l.pts.length > 1) marks += '<polyline fill="none" stroke="' + l.color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="' + l.pts.map(function (p) { return X(p.year).toFixed(1) + ',' + Y(p.cum).toFixed(1); }).join(' ') + '"/>';
+      l.pts.forEach(function (p) { marks += '<circle cx="' + X(p.year).toFixed(1) + '" cy="' + Y(p.cum).toFixed(1) + '" r="5" fill="' + l.color + '" stroke="#ffffff" stroke-width="2"><title>' + esc(l.name) + ' · year ' + p.year + ': R of the year ' + MS.fmt(p.R, 3, true) + ', cumulative ' + MS.fmt(p.cum, 3, true) + '</title></circle>'; });
+    });
+    /* direct labels at the line ends, nudged apart (at least 16 px) */
+    var ends = lines.map(function (l) { var p = l.pts[l.pts.length - 1]; return { l: l, y: Y(p.cum), x: X(p.year), v: p.cum }; }).sort(function (a, b) { return a.y - b.y; });
+    for (var k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 16) ends[k].y = ends[k - 1].y + 16;
+    var over = ends.length ? ends[ends.length - 1].y - (H - padB) : 0; if (over > 0) ends.forEach(function (e) { e.y -= over; });
+    ends.forEach(function (e) { marks += '<line x1="' + (e.x + 7) + '" x2="' + (e.x + 16) + '" y1="' + Y(e.v).toFixed(1) + '" y2="' + e.y.toFixed(1) + '" stroke="' + e.l.color + '" stroke-width="1.5"/><text x="' + (e.x + 20) + '" y="' + (e.y + 4.5).toFixed(1) + '" font-size="14" font-weight="600" fill="#1b2437">' + esc(e.l.name) + ' <tspan font-weight="400" fill="#5b6475">' + esc(MS.fmt(e.v, 2, true)) + '</tspan></text>'; });
+    var legend = '<div class="racelegend">' + lines.map(function (l) { return '<span><i style="background:' + l.color + '"></i>' + esc(l.name) + '</span>'; }).join('') + '</div>';
+    return legend + '<svg class="race" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cumulative R of every country, year by year">' + g + marks + '</svg>';
+  }
   function trajectorySvg(rows, opts) {
     opts = opts || {};
     var W = 640, H = opts.height || 240, padL = 44, padR = 20, padT = opts.title ? 30 : 14;
@@ -383,5 +424,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();
