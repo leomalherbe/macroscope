@@ -199,3 +199,20 @@ body.board{font-size:17px}
 .trajcap{font-size:.78rem;color:var(--muted);margin:.4em 0 0}
 .trajlegend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.82rem;margin:8px 0 0}
 .trajlegend i{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
+/* fact sheet: key indicators of a country (desk and board) */
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:4px 0}
+.fact{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--card);min-width:0}
+.fact .lab{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.fact .val{font-family:var(--mono);font-size:1.2rem;color:var(--ink);margin-top:2px;white-space:nowrap}
+.fact .val .u{font-family:inherit;font-size:.72rem;color:var(--muted);margin-left:3px}
+.fact .d{font-size:.72rem;margin-top:2px;color:var(--muted)}
+.fact .d.up{color:var(--green)} .fact .d.down{color:var(--red)}
+.facts.mini{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.facts.mini .fact{padding:6px 8px}
+.facts.mini .fact .val{font-size:1rem;white-space:normal}
+.facts.mini .fact .val .u{display:block;margin-left:0}
+.facts.mini .fact .note{display:none}
+.factgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:12px}
+.factgrid .country h3{margin:0 0 6px}
+@media (max-width:560px){.facts.mini{grid-template-columns:repeat(2,minmax(0,1fr))}.factgrid{grid-template-columns:1fr}}
+

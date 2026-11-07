@@ -159,6 +159,7 @@ const TEXT = 'We announce our decisions for the year and explain them to the cou
   must(u2.exited[0] === 'FRA' && u2.members.length === 6 && u2.retaliation.FRA.tariff === 10, 'union row of year 2: six members, measures against France stored');
   await fra.reload(); await fra.waitForSelector('#app');
   const fa = await fra.textContent('#app');
+  must(/Key indicators · France/.test(fa) && / per €/.test(fa) && /floating ·/.test(fa), 'France′s fact sheet: exchange rate in its currency per euro, floating');
   must(/Your currency/.test(fa) && /Price of one euro in your currency/.test(fa) && /TARGET balance/.test(fa) && /Union tariff on your exports/.test(fa), 'France′s page: currency panel (price of the euro, TARGET, union tariff)');
   await fra.screenshot({ path: OUT + '/x-s4-currency.png', fullPage: true });
   await deu.reload(); await deu.waitForSelector('#app');
