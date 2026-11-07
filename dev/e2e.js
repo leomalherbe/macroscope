@@ -36,7 +36,7 @@ console.log('engine:', realEngine ? 'macsim/engine.js (real)' : 'dev/engine-stub
   await admin.click('button:has-text("+ New class")');
   await admin.waitForSelector('#statusGrid');
   must(await admin.textContent('#classbar select') === 'M1 Finance A', 'class created through the console');
-  must(/backend v1\.8/.test(await admin.textContent('#footTime')), 'backend reports v1.8');
+  must(/backend v1\.9/.test(await admin.textContent('#footTime')), 'backend reports v1.9');
   /* a class created from the console plays model v1.2; this scenario was written for v1.1, so switch it back through Parameters */
   const ov0 = await api({ action: 'admin.overview', key: 'TESTKEY', classId: JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id });
   must(ov0.state.sim && ov0.state.sim.model === 'v1.2', 'a new class is created with model v1.2');
