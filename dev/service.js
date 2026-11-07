@@ -12,7 +12,7 @@
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.8';
+  var VERSION = '1.9';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -39,7 +39,7 @@ var MSService = (function () {
   }
   function decisionsOf(st, classId) {
     return latestBy(st.readRows('decisions').filter(function (r) { return r.classId === classId; }),
-      function (r) { return r.phase + '|' + r.round + '|' + r.groupId; })
+      function (r) { return r.phase + '|' + r.round + '|' + r.groupId + (r.phase === 'retaliation' ? '|' + (((typeof r.payload === 'string' ? parseJSON(r.payload, {}) : r.payload) || {}).target || '') : ''); })   /* §12: one retaliation vote per target */
       .map(function (r) { return Object.assign({}, r, { payload: typeof r.payload === 'string' ? parseJSON(r.payload, null) : r.payload }); });
   }
   function resultsOf(st, classId) {
@@ -92,9 +92,15 @@ var MSService = (function () {
   function closedRoundDecisions(state, decisions) {
     if (!state.showDecisionsWhenClosed) return [];
     var cur = Number(state.round), out = {};
-    var crisisOut = {};
+    var crisisOut = {}, retalOut = {};
     decisions.forEach(function (d) {
       var rd = Number(d.round);
+      if (d.phase === 'retaliation') {
+        /* §12: votes of a retaliation council, revealed once it is closed */
+        var tg = d.payload ? d.payload.target : null, rc = MS.retaliationOf(state, rd, tg);
+        if (rc && rc.status !== 'open') (retalOut[rd] = retalOut[rd] || []).push({ groupId: d.groupId, country: d.country, target: tg, tariff: d.payload.tariff, sale: d.payload.sale, settle: !!d.payload.settle, ts: d.ts });
+        return;
+      }
       if (d.phase === 'crisis') {
         var c = MS.crisisOf(state, rd);
         if (c && c.status !== 'open') (crisisOut[rd] = crisisOut[rd] || []).push({ groupId: d.groupId, country: d.country, crisis: d.payload ? d.payload.crisis : null, ts: d.ts });
@@ -105,8 +111,8 @@ var MSService = (function () {
       if (!over) return;
       (out[rd] = out[rd] || []).push({ groupId: d.groupId, country: d.country, payload: d.payload, ts: d.ts });
     });
-    var rounds = {}; Object.keys(out).forEach(function (k) { rounds[k] = 1; }); Object.keys(crisisOut).forEach(function (k) { rounds[k] = 1; });
-    return Object.keys(rounds).map(Number).sort(function (a, b) { return a - b; }).map(function (rd) { return { round: rd, decisions: out[rd] || [], crisisVotes: crisisOut[rd] || [] }; });
+    var rounds = {}; Object.keys(out).forEach(function (k) { rounds[k] = 1; }); Object.keys(crisisOut).forEach(function (k) { rounds[k] = 1; }); Object.keys(retalOut).forEach(function (k) { rounds[k] = 1; });
+    return Object.keys(rounds).map(Number).sort(function (a, b) { return a - b; }).map(function (rd) { return { round: rd, decisions: out[rd] || [], crisisVotes: crisisOut[rd] || [], retaliationVotes: retalOut[rd] || [] }; });
   }
   function warmupPlans(state, decisions) {
     if (!state.revealWarmup) return [];
@@ -161,6 +167,7 @@ var MSService = (function () {
       myResults: myResults,
       union: union,
       crisisVotesIn: decisions.filter(function (d) { return d.phase === 'crisis' && Number(d.round) === Number(state.round); }).length,
+      retaliationVotesIn: decisions.filter(function (d) { return d.phase === 'retaliation' && Number(d.round) === Number(state.round); }).length,
       myComments: comments.filter(function (c) { return c.groupId === g.groupId; }),
       gameResults: gameResults,
       warmupAll: warmupAll,
@@ -179,11 +186,25 @@ var MSService = (function () {
     var now = st.now();
     var phase = p.phase, round = Number(p.round);
     var cr = MS.crisisOf(state, state.round);
+    var openRetal = state.phase === 'game' ? MS.openRetaliation(state, state.round) : null;
+    if (phase === 'retaliation') {
+      /* §12: the council on retaliation against a country that has left the union, a round of its own */
+      if (state.phase !== 'game' || round !== Number(state.round)) return fail('The round has changed (now: ' + state.phase + ' / round ' + state.round + '). Reload the page.');
+      if (!g.country) return fail('No country is assigned to your group yet. Ask the administrator.');
+      var rv = MS.validateRetaliationVote(state, g.country, p.payload || {});
+      if (!rv.ok) return { ok: false, error: 'Your vote was not accepted.', errors: rv.errors };
+      var rrow = { ts: iso(now), classId: g.classId, phase: 'retaliation', round: round, groupId: g.groupId, country: g.country,
+        payload: JSON.stringify(rv.clean), text: '', used: rv.used.join(', ') };
+      st.appendRow('decisions', rrow);
+      log(st, 'submit', g.classId, g.name, 'retaliation r' + round + ' ' + rv.used.join(','));
+      return { ok: true, ts: rrow.ts, used: rv.used };
+    }
     if (phase === 'crisis') {
       /* the reserves-crisis vote: a round of its own, opened and closed by the administrator */
       if (state.phase !== 'game' || round !== Number(state.round)) return fail('The round has changed (now: ' + state.phase + ' / round ' + state.round + '). Reload the page.');
       if (!cr || cr.status !== 'open') return fail('The crisis vote is not open.');
       if (!g.country) return fail('No country is assigned to your group yet. Ask the administrator.');
+      if (MS.isOutIn(state, g.country, round)) return fail('A country that has left the union does not vote at the council.');
       var cv = MS.validateCrisisVote(state, p.payload || {});
       if (!cv.ok) return { ok: false, error: 'Your vote was not accepted.', errors: cv.errors };
       var crow = { ts: iso(now), classId: g.classId, phase: 'crisis', round: round, groupId: g.groupId, country: g.country,
@@ -194,6 +215,7 @@ var MSService = (function () {
     }
     if (phase !== state.phase || round !== Number(state.round)) return fail('The round has changed (now: ' + state.phase + ' / round ' + state.round + '). Reload the page.');
     if (cr && cr.status === 'open') return fail('The crisis vote is in progress; decisions open afterwards.');
+    if (openRetal) return fail('The council on retaliation is in session; decisions open afterwards.');
     if (!roundOpen(state, now)) return fail('Submissions are closed for this round.');
     var country = phase === 'warmup' ? state.warmup.country : g.country;
     if (!country) return fail('No country is assigned to your group yet. Ask the administrator.');
@@ -268,6 +290,7 @@ var MSService = (function () {
       state: state, roundOpen: roundOpen(state, now), groups: groups,
       submitted: submitted,
       crisisVotesIn: decisions.filter(function (d) { return d.phase === 'crisis' && Number(d.round) === Number(state.round); }).length,
+      retaliationVotesIn: decisions.filter(function (d) { return d.phase === 'retaliation' && Number(d.round) === Number(state.round); }).length,
       gameResults: state.publishLeaderboard ? results.filter(function (r) { return r.phase === 'game' && !isUnionKey(r.key); }) : [],
       warmupAll: state.revealWarmup ? results.filter(function (r) { return r.phase === 'warmup' && !isUnionKey(r.key); }) : [],
       union: results.filter(function (r) { return r.phase === state.phase && (state.phase === 'game' ? (r.key === 'UNION' || String(r.key).indexOf('DUEL:') === 0) : isUnionKey(r.key)); }),
