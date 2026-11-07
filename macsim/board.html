@@ -7,10 +7,10 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-<script src="config.js"></script>
-<script src="core.js"></script>
-<script src="app-common.js"></script>
+<link rel="stylesheet" href="style.css?v=2026110702">
+<script src="config.js?v=2026110702"></script>
+<script src="core.js?v=2026110702"></script>
+<script src="app-common.js?v=2026110702"></script>
 </head>
 <body class="board">
 
@@ -43,8 +43,13 @@
       var r = await MSApi.call('board', { classId: classId });
       if (!r.ok) { app.innerHTML = '<div class="card alert">' + esc(r.error) + '</div>'; return; }
       data = r; offset = Date.parse(r.now) - Date.now();
-      render(); $('#footTime').textContent = 'Updated ' + UI.fmtTime(r.now);
-    } catch (e) { $('#footTime').textContent = 'Connection lost… retrying'; }
+    } catch (e) { $('#footTime').textContent = 'Connection lost… retrying'; return; }
+    try { render(); $('#footTime').textContent = 'Updated ' + UI.fmtTime(data.now); }
+    catch (e2) {
+      /* a display error is not a lost connection: say what broke (an outdated cached script is the usual cause after an update) */
+      if (window.console) console.error(e2);
+      $('#footTime').textContent = 'Display error: ' + (e2 && e2.message ? e2.message : e2) + ' — reload the page (Ctrl+Shift+R)';
+    }
   }
   function phaseLabel(st) { return st.phase === 'warmup' ? 'Warm-up · ' + MS.countryName(st.warmup.country) + ' · ' + st.warmup.years + '-year plan' : 'Year ' + st.round + ' of ' + st.years; }
   function groupName(id) { var g = (data.groups || []).filter(function (x) { return x.groupId === id; })[0]; return g ? g.name : id; }

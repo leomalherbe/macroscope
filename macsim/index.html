@@ -7,10 +7,10 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-<script src="config.js"></script>
-<script src="core.js"></script>
-<script src="app-common.js"></script>
+<link rel="stylesheet" href="style.css?v=2026110702">
+<script src="config.js?v=2026110702"></script>
+<script src="core.js?v=2026110702"></script>
+<script src="app-common.js?v=2026110702"></script>
 </head>
 <body>
 
@@ -70,10 +70,14 @@
       if (!r.ok) { if (/PIN/i.test(r.error || '')) { UI.store('macsim.pin', null); pin = ''; renderLogin(r.error); } else UI.toast(r.error || 'Error'); return; }
       data = r;
       offset = Date.parse(r.now) - Date.now();
-      render();
-      $('#footTime').textContent = 'Updated ' + UI.fmtTime(r.now);
     } catch (e) {
       if (!quiet) { app.innerHTML = ''; app.appendChild(el('div', { class: 'card alert' }, [el('b', {}, ['Cannot reach the server. ']), String(e.message || e), ' ', el('button', { class: 'btn sm', onclick: function () { load(); } }, ['Retry'])])); }
+      return;
+    }
+    try { render(); $('#footTime').textContent = 'Updated ' + UI.fmtTime(data.now); }
+    catch (e2) {
+      if (window.console) console.error(e2);
+      app.insertBefore(el('div', { class: 'card alert' }, [el('b', {}, ['Display error: ']), String(e2 && e2.message ? e2.message : e2), ' — reload the page (Ctrl+Shift+R); if it persists, tell the administrator.']), app.firstChild);
     }
   }
 
