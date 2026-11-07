@@ -102,7 +102,9 @@
     app.innerHTML = '';
     if (st.communique) app.appendChild(el('div', { class: 'communique', style: 'margin-bottom:18px;font-size:1.15rem' }, [el('div', { class: 'kicker' }, ['Administrator’s communiqué']), st.communique]));
 
-    var left = el('div'), right = el('div'), reveals = [], factCard = null;
+    /* layout: the union (or the duels) and the submissions side by side at the top; every other card full width below,
+       in this order: council, ranking, everyone's decisions, year in detail, key indicators, the objective year by year, reveals */
+    var topLeft = null, reveals = [], factCard = null, rankCard = null, decCard = null, detCard = null, trajCard = null, councilCard = null, warmCard = null;
     /* submissions */
     var subCard = el('div', { class: 'card' }); subCard.appendChild(el('h2', {}, ['Submissions']));
     var grid = el('div', { class: 'status-grid' });
@@ -111,7 +113,7 @@
       grid.appendChild(el('div', { class: 'g ' + (inn ? 'in' : 'missing') }, [el('b', {}, [st.phase === 'game' && g.country ? MS.countryName(g.country) : g.name]), el('span', { class: 'small' }, [st.phase === 'game' && g.country ? g.name + ' · ' : '', inn ? 'submitted ✓' : 'waiting…'])]));
     });
     subCard.appendChild(grid);
-    right.appendChild(subCard);
+    var subTop = subCard;
     if (st.phase === 'game' && MS.isDuel(st)) {
       /* duel: one panel per pair (exchange rate, both reserves, climate, R of both) */
       var pairs = {};
@@ -133,8 +135,8 @@
       });
       pc.appendChild(pg);
       if (!Object.keys(pairs).length) pc.appendChild(el('p', { class: 'muted' }, ['No pair yet.']));
-      left.appendChild(pc);
-    } else if (st.phase === 'game') { var uc = unionCard(data.union || [], 'The monetary union'); if (uc) left.appendChild(uc); }
+      topLeft = pc;
+    } else if (st.phase === 'game') { var uc = unionCard(data.union || [], 'The monetary union'); if (uc) topLeft = uc; }
 
     if (st.phase === 'game') {
       /* ranking */
@@ -167,7 +169,7 @@
         var hd = '<div class="tablewrap"><table><thead><tr><th>Country</th>' + MS.indicatorsFor(st).map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R</th>' + (hasComp ? '<th class="num">Price level<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% vs union</span></th>' : '') + (hasSpread ? '<th class="num">Risk premium<br><span style="font-weight:400;text-transform:none;letter-spacing:0">pt</span></th>' : '') + (hasE ? '<th class="num">Emissions<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% vs reference</span></th>' : '') + '</tr></thead><tbody>';
         lb.forEach(function (r) { var e = r.years[latestYear]; if (!e) return; var cp = e.detail && e.detail.extra ? e.detail.extra.compet : undefined; hd += '<tr><td><b>' + esc(MS.countryName(r.key)) + '</b></td>' + MS.indicatorsFor(st).map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(e[i.id])) + '">' + esc(MS.fmt(e[i.id], 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(e.R) + '"><b>' + esc(MS.fmt(e.R, 3, true)) + '</b></td>' + (hasComp ? '<td class="num ' + (cp === undefined ? '' : UI.signedClass(-cp)) + '">' + esc(cp === undefined ? '—' : MS.fmt(cp, 2, true)) + '</td>' : '') + (hasSpread ? '<td class="num ' + (e.detail && e.detail.extra && e.detail.extra.spread > 0 ? 'neg' : '') + '">' + esc(e.detail && e.detail.extra && e.detail.extra.spread !== undefined ? MS.fmt(e.detail.extra.spread, 2) : '—') + '</td>' : '') + (hasE ? '<td class="num ' + (e.detail && e.detail.extra && e.detail.extra.E !== undefined ? UI.signedClass(-e.detail.extra.E) : '') + '">' + esc(e.detail && e.detail.extra && e.detail.extra.E !== undefined ? MS.fmt(e.detail.extra.E, 0, true) : '—') + '</td>' : '') + '</tr>'; });
         det.appendChild(el('div', { html: hd + '</tbody></table></div>' }));
-        left.appendChild(c); left.appendChild(det);
+        rankCard = c; detCard = det;
         /* key indicators of every country, end of the latest year: full width, under the two columns */
         var fc = el('div', { class: 'card' }); fc.appendChild(el('h2', {}, ['Key indicators · end of year ' + latestYear]));
         function uxr(y) { var u = (data.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'UNION' && Number(r.year) === Number(y) && r.detail && r.detail.extra; })[0]; return u ? u.detail.extra.xr : null; }
@@ -186,19 +188,28 @@
           tg.appendChild(el('div', { html: UI.trajectorySvg(rows, { weights: st.weights, title: MS.countryName(r.key) + (gname ? ' · ' + gname : ''), height: 250, legend: false, fontScale: 1.6 }) }));
         });
         var tc = el('div', { class: 'card' }); tc.appendChild(el('h2', {}, ['The objective, year by year']));
+        /* the race: cumulative R of every country (union classes; duels have too many players for one chart) */
+        if (!MS.isDuel(st) && lb.length <= 8) {
+          var race = lb.slice().sort(function (a, b) { var ia = MS.COUNTRIES.map(function (x) { return x.id; }).indexOf(a.key), ib = MS.COUNTRIES.map(function (x) { return x.id; }).indexOf(b.key); return ia - ib; })
+            .map(function (r) { return { key: r.key, name: MS.countryName(r.key), rows: Object.keys(r.years).map(function (yy) { return r.years[yy]; }) }; });
+          tc.appendChild(el('h3', { style: 'margin-top:6px' }, ['The race · cumulative R']));
+          tc.appendChild(el('div', { html: UI.rRaceSvg(race) }));
+          tc.appendChild(el('p', { class: 'trajcap' }, ['Each line adds up a country’s yearly scores: the ranking is read at the right end; when two lines cross, one country overtakes the other. Hover a point for the score of that year.']));
+          tc.appendChild(el('h3', { style: 'margin-top:14px' }, ['What made each score']));
+        }
         tc.appendChild(tg);
         tc.appendChild(el('div', { html: UI.trajectoryLegendHtml(MS.isEcoModel(st)) }));
         tc.appendChild(el('p', { class: 'trajcap' }, ['Each bar stacks the contributions of the five dimensions to R for the year (weight × deviation; unemployment and inflation count negatively): above zero what helped, below zero what hurt. The dashed line is R itself.']));
-        left.appendChild(tc);
+        trajCard = tc;
       }
-      if (!lb.length || !st.publishLeaderboard) left.appendChild(c);
+      if (!lb.length || !st.publishLeaderboard) rankCard = c;
       /* council */
       if (st.councilOpen) {
         var cc = el('div', { class: 'card tint' }); cc.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Council of ministers · year ' + st.round]), el('span', { class: 'pill gold' }, ['in session'])]));
         var pl = (data.pledges || []).slice().sort(function (a, b) { return String(a.ts) < String(b.ts) ? -1 : 1; });
         if (!pl.length) cc.appendChild(el('p', { class: 'muted' }, ['No pledge on the table yet.']));
         pl.forEach(function (p) { cc.appendChild(el('div', { class: 'pledge', html: '<b>' + esc(MS.countryName(p.country)) + '</b> <span class="muted small">' + esc(UI.fmtTime(p.ts)) + '</span><br>' + esc(p.text) + '<div class="vals">' + UI.pledgeChipsHtml(p.payload) + '</div>' })); });
-        right.appendChild(cc);
+        councilCard = cc;
       }
       /* everyone's decisions once the round is over */
       var dl = (data.decisionsAll || []).slice().sort(function (a, b) { return b.round - a.round; })[0];
@@ -206,9 +217,9 @@
         var hd2 = '<div class="tablewrap"><table><thead><tr><th>Country</th><th>Decisions</th></tr></thead><tbody>';
         dl.decisions.slice().sort(function (a, b) { return MS.countryName(a.country).localeCompare(MS.countryName(b.country)); }).forEach(function (d) { hd2 += '<tr><td><b>' + esc(MS.countryName(d.country)) + '</b><br><span class="small muted">' + esc(groupName(d.groupId)) + '</span></td><td>' + UI.chipsHtml(d.payload.years[0]) + '</td></tr>'; });
         (data.groups || []).filter(function (g) { return g.country && !dl.decisions.some(function (d) { return d.groupId === g.groupId; }); }).forEach(function (g) { hd2 += '<tr><td><b>' + esc(MS.countryName(g.country)) + '</b><br><span class="small muted">' + esc(g.name) + '</span></td><td><span class="chip zero">no decision submitted</span></td></tr>'; });
-        right.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['Everyone’s decisions · year ' + dl.round]), el('div', { html: hd2 + '</tbody></table></div>' })]));
+        decCard = el('div', { class: 'card' }, [el('h2', {}, ['Everyone’s decisions · year ' + dl.round]), el('div', { html: hd2 + '</tbody></table></div>' })]);
       } else if (data.roundOpen) {
-        right.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['Decisions']), el('p', { class: 'muted' }, ['Each country’s decisions stay secret until the round is closed.'])]));
+        decCard = el('div', { class: 'card' }, [el('h2', {}, ['Decisions']), el('p', { class: 'muted' }, ['Each country’s decisions stay secret until the round is closed.'])]);
       }
       /* reveals */
       (data.reveals || []).slice().sort(function (a, b) { return b.round - a.round; }).forEach(function (rv) {
@@ -250,10 +261,11 @@
         wc.appendChild(el('p', { class: 'trajcap' }, ['Each bar stacks the contributions of the five dimensions to R for the year (weight × deviation; unemployment and inflation count negatively): above zero what helped, below zero what hurt. The dashed line is R itself.']));
         wc.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['Ranked by the cumulative R, the sum of the yearly scores over the plan (R weighs the year’s deviations from the reference path: GDP in %, the rest in points). Each group governed ' + MS.countryName(st.warmup.country) + ' alone, under the same shocks.']));
       }
-      left.appendChild(wc);
+      warmCard = wc;
     }
-    app.appendChild(el('div', { class: 'grid2' }, [left, right]));
-    if (factCard) app.appendChild(factCard);
+    if (topLeft) app.appendChild(el('div', { class: 'grid2' }, [topLeft, subTop]));
+    else app.appendChild(subTop);
+    [councilCard, warmCard, rankCard, decCard, detCard, factCard, trajCard].forEach(function (c) { if (c) app.appendChild(c); });
     reveals.forEach(function (c) { app.appendChild(c); });
   }
   function updateCountdown() {

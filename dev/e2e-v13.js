@@ -173,6 +173,9 @@ const KEY = 'TESTKEY';
   const bt = await board.textContent('#app');
   must(/Exchange-rate regime/.test(bt) && /Risk premium/.test(bt), 'board: regime line and risk-premium column');
   must(/Key indicators · end of year 3/.test(bt) && (await board.$$('table.facttable tbody tr')).length >= 2 && /the change since year 2/.test(bt), 'board: one fact sheet per country with the change since year 2');
+  const order = await board.evaluate(() => [...document.querySelectorAll('#app > .card > h2, #app > .card > .cardhead h2')].map(h => h.textContent));
+  must(await board.$('#app > .grid2 .union') && /Ranking/.test(order[0]) && /Everyone’s decisions/.test(order[1]) && order.some(t => /Key indicators/.test(t)) && /The objective, year by year/.test(order[order.length - 1]), 'board layout: union and submissions side by side, then full width: ranking, everyone′s decisions, …, the objective (' + order.join(' · ') + ')');
+  must((await board.$$('svg.race polyline')).length === 7 && /The race · cumulative R/.test(await board.textContent('#app')), 'board: the race chart (cumulative R, one line per country)');
   await board.screenshot({ path: OUT + '/v13-b1-board.png', fullPage: true });
 
   must(errors.length === 0, 'no page errors (' + errors.join(' | ') + ')');
