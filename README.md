@@ -1,6 +1,6 @@
 # OPEN-MU · Policy desk — interface de jeu pour la séance 6
 
-Trois pages statiques (dossier `macroscope/` du site GitHub Pages du cours ; les anciennes adresses `macsim/…` redirigent vers les nouvelles en gardant le PIN ou la classe), un petit « serveur » Google Apps Script adossé à une Google Sheet (décisions, résultats, engagements, commentaires), et **le moteur de simulation OPEN-MU** (`macroscope/engine.js`, modèle stock-flux d'une union monétaire à N pays, change fixe vis-à-vis du reste du monde) qui tourne dans le navigateur de la console : aucune saisie manuelle, aucun logiciel tiers.
+Trois pages statiques (dossier `macroscope/` du site GitHub Pages du cours), un petit « serveur » Google Apps Script adossé à une Google Sheet (décisions, résultats, engagements, commentaires), et **le moteur de simulation OPEN-MU** (`macroscope/engine.js`, modèle stock-flux d'une union monétaire à N pays, change fixe vis-à-vis du reste du monde) qui tourne dans le navigateur de la console : aucune saisie manuelle, aucun logiciel tiers.
 
 | Page | Pour qui | Rôle |
 |---|---|---|
