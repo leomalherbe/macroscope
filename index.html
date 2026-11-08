@@ -49,6 +49,21 @@ section.tint{background:#f4f1e8}
 .loop h3{display:flex;align-items:center;gap:10px}
 .loop h3 i{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(--gold-soft);color:var(--navy);font-size:.9rem;display:inline-flex;align-items:center;justify-content:center}
 .loop p{font-size:.95rem;margin:.6em 0 0}
+.score{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:40px;align-items:start;margin-top:48px}
+.score-text p{font-size:1rem}
+.score-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px}
+.formula{font-family:"Source Serif 4",Georgia,serif;font-size:clamp(1.05rem,2.1vw,1.45rem);color:var(--navy);border-left:4px solid var(--gold);padding:6px 0 6px 16px;margin:0 0 18px;line-height:1.5;overflow-x:auto;white-space:nowrap}
+.formula sub{font-size:.62em}
+.terms{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.terms li{border:1px solid var(--line);border-radius:10px;padding:10px 6px 9px;text-align:center;font-size:.8rem;line-height:1.3;color:var(--muted)}
+.terms b{display:inline-flex;width:20px;height:20px;border-radius:50%;color:#fff;align-items:center;justify-content:center;font-size:.85rem;margin-bottom:4px}
+.terms b.up{background:var(--green)}.terms b.down{background:var(--red)}
+.terms strong{display:block;font-family:"Source Serif 4",serif;color:var(--navy);font-size:.95rem;margin-bottom:2px}
+.terms span{display:block}
+.elections{margin-top:28px;background:var(--gold-soft);border-radius:14px;padding:22px 26px;max-width:880px}
+.elections h3{margin-bottom:.4em}
+.elections p{margin:0}
+@media (max-width:900px){.score{grid-template-columns:minmax(0,1fr);gap:24px}.terms{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .richer{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center;margin-top:22px;max-width:820px}
 .richer svg{flex:none}
 .richer p{margin:0;font-size:1rem}
@@ -83,6 +98,11 @@ table.v thead th{font-weight:600;color:var(--muted);font-size:.85rem;background:
 table.v td:first-child{width:19%}
 table.v td:first-child b{display:block;font-family:"Source Serif 4",serif;font-size:1.1rem;color:var(--navy)}
 table.v td:first-child span{display:block;font-size:.82rem;color:var(--muted)}
+.subhead{margin:44px 0 .3em;font-size:1.3rem}
+table.v.play{min-width:640px}
+table.v ul{margin:0;padding-left:1.05em}
+table.v li{margin:.2em 0}
+table.v small{font-size:.78rem;color:var(--muted);white-space:nowrap}
 table.v td:first-child em{display:block;font-style:normal;font-size:.8rem;color:var(--ink);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
 .extras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px;margin-top:36px;max-width:900px}
 .extras h3{font-size:1.1rem}
@@ -146,7 +166,7 @@ table.out tr.r td{font-weight:700;border-bottom:0}
 .vs{font-family:"Source Serif 4",serif;font-weight:700;font-size:1.3rem;color:var(--gold)}
 .shared{grid-column:1 / -1;text-align:center;font-size:.85rem;color:#aab2c5;border-top:1px dashed rgba(255,255,255,.25);padding-top:10px}
 
-@media (max-width:900px){.assess,.two,.try,.arcade-grid{grid-template-columns:1fr;gap:32px}}
+@media (max-width:900px){.assess,.two,.try,.arcade-grid{grid-template-columns:minmax(0,1fr);gap:32px}}
 footer{padding:36px 0 56px;font-size:.9rem;color:var(--muted)}
 footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px}
 footer p{margin:0}
@@ -187,11 +207,11 @@ footer p{margin:0}
     <div class="loop">
       <div>
         <h3><i>1</i>Shocks</h3>
-        <p>The administrator announces what hits the economy this year: a recession abroad, an oil shock, a change in the central bank's rate, and more as the model gets richer.</p>
+        <p>The administrator announces what hits the economy this year: a recession abroad, a loss of household confidence, and more as the model gets richer.</p>
       </div>
       <div>
         <h3><i>2</i>Levers</h3>
-        <p>Each team sets its government's policy: public spending, transfers, taxes. Together, the governments vote on common decisions. Every decision comes with a written justification.</p>
+        <p>Each team sets its government's policy for the year, and votes with the other governments on the decisions they share. Every decision comes with a written justification.</p>
       </div>
       <div>
         <h3><i>3</i>Simulation</h3>
@@ -202,6 +222,28 @@ footer p{margin:0}
         <p>Growth, unemployment, inflation, the public and external accounts, and a score. Each result is split between the team's own policy, the other governments and the shocks.</p>
       </div>
     </div>
+    <div class="score">
+      <div class="score-text">
+        <h3>One number to maximise</h3>
+        <p>Each year, every government is scored on five results, each measured as a gap from the reference path: the path the economy would have followed with no shock and no policy. Growth, the public balance and the trade balance count in its favour; unemployment and inflation against it.</p>
+        <p>The weights are set by the teacher, equal by default. The score of each year is added up, and the ranking goes to the highest total. Every result is also split between the team's own policy, the other governments and the shocks, so that nobody can blame the weather for their own decisions, or take credit for someone else's.</p>
+      </div>
+      <div class="score-box">
+        <p class="formula" aria-label="R for country i in year t equals a1 times the GDP gap, minus a2 times the unemployment gap, minus a3 times the inflation gap, plus a4 times the public balance gap, plus a5 times the trade balance gap"><i>R</i><sub><i>i,t</i></sub> = <i>a</i><sub>1</sub>ΔGDP<sub><i>i,t</i></sub> − <i>a</i><sub>2</sub>Δ<i>U</i><sub><i>i,t</i></sub> − <i>a</i><sub>3</sub>Δ<i>π</i><sub><i>i,t</i></sub> + <i>a</i><sub>4</sub>ΔPB<sub><i>i,t</i></sub> + <i>a</i><sub>5</sub>ΔTB<sub><i>i,t</i></sub></p>
+        <ul class="terms">
+          <li><b class="up" aria-label="counts in favour">+</b><span><strong>GDP</strong>volume, gap in %</span></li>
+          <li><b class="down" aria-label="counts against">−</b><span><strong>Unemployment</strong>rate, gap in points</span></li>
+          <li><b class="down" aria-label="counts against">−</b><span><strong>Inflation</strong>rate, gap in points</span></li>
+          <li><b class="up" aria-label="counts in favour">+</b><span><strong>Public balance</strong>gap in points of GDP</span></li>
+          <li><b class="up" aria-label="counts in favour">+</b><span><strong>Trade balance</strong>gap in points of GDP</span></li>
+        </ul>
+        <p class="small muted" style="margin:12px 0 0">In the climate version, emissions are a sixth term, with a weight of zero until voters decide otherwise.</p>
+      </div>
+    </div>
+    <aside class="elections">
+      <h3>Voters change their minds</h3>
+      <p>In the real world, the goals of economic policy are not given once and for all. An election can bring in a government that cares more about jobs than about the deficit, or one that puts the climate first. In Macroscope, the administrator can hold an election in any country, or across the whole union, from a given year: the weights of the score change, and a strategy that won yesterday may lose tomorrow.</p>
+    </aside>
     <div class="richer">
       <svg width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="26" width="10" height="12" rx="2" fill="#e6e2d6"/><rect x="18" y="18" width="10" height="20" rx="2" fill="#d6c79a"/><rect x="34" y="10" width="10" height="28" rx="2" fill="#c29d2c"/><rect x="50" y="2" width="10" height="36" rx="2" fill="#14213d"/></svg>
       <p>Then the next year begins, from where the last one left the economy. <strong>The richer the model chosen, the more there is to play with:</strong> more possible shocks, more levers, more channels through which a policy travels. The version is picked to fit the class.</p>
@@ -220,7 +262,7 @@ footer p{margin:0}
         <div class="n">1</div>
         <div class="body">
           <h3>Choose the model that fits the class</h3>
-          <p>The engine comes in versions of increasing richness. A first course in macroeconomics can play the plain union: demand, multipliers, an external constraint. A master's course in international finance can add relative prices, capital flows and exchange-rate regimes, or the climate. A class keeps its version from the first year to the last.</p>
+          <p>The engine comes in versions of increasing richness. A first course in macroeconomics can play the plain union: demand, multipliers, an external constraint. A master's course in international finance can add relative prices, capital flows and exchange-rate regimes. A course in ecological macroeconomics can play the climate version, where growth, emissions and damage are tied together. A class keeps its version from the first year to the last.</p>
         </div>
         <div class="made"><b>The teacher sets</b>the version, the number of years, the weights of the objective and the shocks of each year.</div>
       </li>
@@ -261,7 +303,7 @@ footer p{margin:0}
     <dl class="criteria">
       <div><dt>Diagnosis</dt><dd>Does the team read its situation correctly: the shock, the state of its public and external accounts, the constraints it faces?</dd></div>
       <div><dt>Expected effects</dt><dd>Does each decision come with a mechanism: the channel, the sign, a sense of size and timing, the side effects on the other objectives?</dd></div>
-      <div><dt>Coherence</dt><dd>Do the decisions follow the strategy from year to year? Were the pledges made at the council kept?</dd></div>
+      <div><dt>Coherence</dt><dd>Do the decisions follow the strategy from year to year, and does the strategy change for a reason when the situation changes?</dd></div>
       <div><dt>Hindsight</dt><dd>Does the analysis explain the gap between expected and actual results, using the decomposition, rather than blaming bad luck?</dd></div>
     </dl>
   </div>
@@ -271,57 +313,70 @@ footer p{margin:0}
   <div class="wrap">
     <div class="intro">
       <h2>The versions of the model</h2>
-      <p>The engine, OPEN-MU, is a stock-flow consistent model in the post-Keynesian tradition. Each version contains the previous one and adds a mechanism; read the table from the simplest to the richest and choose the row that matches what the class has learned.</p>
+      <p>The engine, OPEN-MU, is a stock-flow consistent model in the post-Keynesian tradition. It was built in steps: it starts from Godley and Lavoie's <em>Monetary Economics</em> (2007), and each version adds a mechanism, either taken from the literature or built for the game. Read the table from the simplest to the richest and choose the row that matches what the class has learned.</p>
     </div>
     <div class="tablewrap">
       <table class="v">
-        <thead><tr><th scope="col">Version</th><th scope="col">What it adds</th><th scope="col">What students learn</th><th scope="col">New in the game</th></tr></thead>
+        <thead><tr><th scope="col">Version</th><th scope="col">Taken from the literature</th><th scope="col">Built for Macroscope</th><th scope="col">What students learn</th></tr></thead>
         <tbody>
           <tr>
-            <td><b>The union</b><span>version 1.1</span><em>Godley &amp; Lavoie (2007), ch. 6</em></td>
-            <td>Seven open economies sharing a currency and a central bank, with a fixed exchange rate against the rest of the world and a common stock of foreign reserves. The open economy of chapter 6, extended to a union of seven, with firms that invest on bank credit and banks that lend what is asked.</td>
+            <td><b>The union</b><span>version 1.1</span></td>
+            <td>The open economy of Godley and Lavoie's chapter 6: a fixed exchange rate and a stock of foreign reserves. Investment financed by bank loans and amortisation funds, after their chapter 7.</td>
+            <td>The economy split into seven members sharing a currency, a central bank and a pool of reserves. Investment that responds to the interest rate rather than to an accelerator. An alert line on the reserves and a crisis vote. Optional tariffs.</td>
             <td>Multipliers and leakages through imports; why one country's stimulus is its partners' exports; twin deficits; the external constraint.</td>
-            <td>Four fiscal levers. Votes on the common rate and, when reserves run low, on austerity or devaluation.</td>
           </tr>
           <tr>
-            <td><b>Prices</b><span>version 1.2</span><em>Extension of the union</em></td>
-            <td>Relative price levels enter trade: a member whose prices rise faster than its partners' loses market share, year after year. Reserves run out twice as fast.</td>
+            <td><b>Prices</b><span>version 1.2</span></td>
+            <td class="muted">Nothing new.</td>
+            <td>Relative price levels in trade: a member whose prices rise faster than its partners' loses market share, year after year. Reserves that run out twice as fast.</td>
             <td>Competitiveness and inflation differentials inside a union; internal devaluation as the only adjustment left.</td>
-            <td>A competitiveness indicator; the consumption tax now moves competitiveness as well as demand.</td>
           </tr>
           <tr>
-            <td><b>Capital</b><span>version 1.3</span><em>Godley &amp; Lavoie (2007), ch. 12</em></td>
-            <td>Capital flows between the union and the world, a fixed or floating regime chosen year by year, a risk premium on high public debt, and a central bank that can act as a backstop. The portfolio choices and exchange-rate regimes of chapter 12, applied to the union.</td>
+            <td><b>Capital</b><span>version 1.3</span></td>
+            <td>Capital flows, portfolio choices, fixed and flexible exchange rates, after Godley and Lavoie's chapter 12.</td>
+            <td>A regime chosen year by year. A risk premium on public debt above 110 % of GDP. A central bank that may or may not stand behind its members' debt. A currency-crisis vote. Optionally, a member leaving the union, with its own currency, its debts to the union's central bank and the others' retaliation.</td>
             <td>Mundell–Fleming with stocks: rates, capital and the exchange rate; sudden stops; sovereign spreads and what a lender of last resort is for.</td>
-            <td>Shocks on capital flows, the world rate, the regime and the backstop. A currency-crisis vote: defend the peg or float.</td>
           </tr>
           <tr>
-            <td><b>Climate</b><span>version 2.0</span><em>After DEFINE, Dafermos, Nikolaidi &amp; Galanis (2017), simplified</em></td>
-            <td>Production emits, emissions accumulate in a world stock, and the damage raises structural unemployment and inflation. From the DEFINE model we keep emissions, a carbon stock and a damage function; materials, energy, green finance and the long time scale are left out or compressed to fit a game.</td>
+            <td><b>Climate</b><span>version 2.0</span></td>
+            <td>Inspired by DEFINE (Dafermos, Nikolaidi and Galanis, 2017), simplified: emissions, a carbon stock that accumulates, a damage function. Materials, energy and green finance are left out, and time is compressed to fit a game.</td>
+            <td>Damage that raises structural unemployment and inflation. A carbon tax, and green public investment that is largely imported and has diminishing returns. Emissions as an objective that voters can switch on.</td>
             <td>The climate as a global public good; free riding; the cost and timing of the transition.</td>
-            <td>A carbon tax and green public investment. Emissions as a sixth objective, which voters can switch on.</td>
           </tr>
         </tbody>
       </table>
     </div>
-    <div class="extras">
-      <div>
-        <h3>Option: leaving the union</h3>
-        <p>For versions 1.3 and 2.0. A member can announce its exit; it leaves the next year with its own currency and its own policy rate. The remaining members vote on their response: tariffs on its exports, the sale of its bonds, the settlement of what its central bank owes.</p>
-      </div>
-      <div>
-        <h3>Option: tariffs</h3>
-        <p>For every version. The members vote a common external tariff; the rest of the world can retaliate; a country that has left can tax the union's goods.</p>
-      </div>
+
+    <h3 class="subhead">What can be played, version by version</h3>
+    <p class="muted small" style="max-width:68ch">Each shock and each decision appears once, in the simplest version where it can be played; every richer version keeps it.</p>
+    <div class="tablewrap">
+      <table class="v play">
+        <thead><tr><th scope="col">Version</th><th scope="col">Shocks, set by the administrator</th><th scope="col">Decisions, taken by the teams</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>The union</b><span>version 1.1</span></td>
+            <td><ul><li>World demand for the union's exports</li><li>Household confidence</li><li>The share of spending that goes to imports</li><li>A devaluation against the rest of the world</li><li>A tariff of the rest of the world on the union's exports <small>with tariffs on</small></li></ul></td>
+            <td><ul><li>Public demand</li><li>Social benefits</li><li>Income tax rate</li><li>Consumption tax</li><li>Vote on the central bank's rate: cut, hold or hike</li><li>Vote when the reserves run low: austerity or devaluation</li><li>Vote on a common external tariff <small>with tariffs on</small></li></ul></td>
+          </tr>
+          <tr>
+            <td><b>Prices</b><span>version 1.2</span></td>
+            <td class="muted">No new shock.</td>
+            <td class="muted">No new decision: the same ones now also move relative prices.</td>
+          </tr>
+          <tr>
+            <td><b>Capital</b><span>version 1.3</span></td>
+            <td><ul><li>The exchange-rate regime, fixed or floating</li><li>Capital flows, up to a sudden stop</li><li>The world interest rate</li><li>The central bank's backstop, on or off</li></ul></td>
+            <td><ul><li>Vote in a currency crisis: defend the peg or float</li><li>Announce an exit from the union <small>with exit on</small></li><li>Once out: a national policy rate, a tariff on the union's goods</li><li>For the others: a response to the leaver, from tariffs to the sale of its bonds</li></ul></td>
+          </tr>
+          <tr>
+            <td><b>Climate</b><span>version 2.0</span></td>
+            <td><ul><li>World emissions</li><li>A climate disaster</li></ul></td>
+            <td><ul><li>Carbon tax</li><li>Green public investment</li></ul></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-    <div class="refs">
-      <h3>Sources</h3>
-      <ul>
-        <li>Godley, W. and Lavoie, M. (2007), <em>Monetary Economics: An Integrated Approach to Credit, Money, Income, Production and Wealth</em>, Palgrave Macmillan. Chapter 6: an open economy with a fixed exchange rate and reserves. Chapter 12: two open economies with capital flows, under fixed and flexible exchange rates.</li>
-        <li>Dafermos, Y., Nikolaidi, M. and Galanis, G. (2017), "A stock-flow-fund ecological macroeconomic model", <em>Ecological Economics</em>, 131, 191–207.</li>
-      </ul>
-      <p style="margin-top:.8em">Every equation, parameter and order of magnitude is set out, version by version, on the <a href="../macsim/model.html">model page</a>.</p>
-    </div>
+    <p class="small muted" style="margin-top:20px">Every equation, parameter and order of magnitude is set out, version by version, on the <a href="../macsim/model.html">model page</a>.</p>
   </div>
 </section>
 
@@ -343,9 +398,8 @@ footer p{margin:0}
         <select id="shock">
           <option value="none">No shock this year</option>
           <option value="world" selected>World recession: the rest of the world buys 6 % less</option>
-          <option value="oil">Oil shock: imports cost 10 % more for the same output</option>
+          <option value="imports">Imports rise: 10 % more of each euro spent goes abroad</option>
           <option value="confidence">Households lose confidence: they consume 3 % less of their income</option>
-          <option value="rate">The central bank raises its rate by 1 point</option>
         </select>
       </div></div>
 
@@ -378,7 +432,7 @@ footer p{margin:0}
       <h2>Also a game in its own right</h2>
       <p>Outside a course, Macroscope plays as a strategy game between governments. Teams play on a phone or a laptop with a PIN; the board is projected for the whole room.</p>
       <ul>
-        <li><strong>A council of ministers.</strong> Teams post pledges before deciding; once the round closes, the pledges are set against what each government actually did.</li>
+        <li><strong>A council of ministers.</strong> Teams post pledges before deciding. Nothing forces them to keep their word, and once the round closes everyone sees who did.</li>
         <li><strong>Common votes.</strong> The central bank's rate, the answer to a reserves crisis, and in richer versions the peg, the tariff or the response to a member that leaves.</li>
         <li><strong>Elections.</strong> The administrator can change what a country's voters care about, and so how its government is scored.</li>
         <li><strong>A ranking</strong> on the score summed over the years, shown on the board after each year.</li>
@@ -446,7 +500,7 @@ footer p{margin:0}
     { id: 'pubbal', label: 'Public balance', unit: 'pt of GDP', sign: 1 },
     { id: 'tradebal', label: 'Trade balance', unit: 'pt of GDP', sign: 1 }
   ];
-  var SHOCKS = { none: {}, world: { world: -6 }, oil: { imports: 10 }, confidence: { confidence: -3 }, rate: { rate: 1 } };
+  var SHOCKS = { none: {}, world: { world: -6 }, imports: { imports: 10 }, confidence: { confidence: -3 } };
   var LEV = [
     { id: 'pubdem', label: 'Public demand' },
     { id: 'benefits', label: 'Social benefits' },
