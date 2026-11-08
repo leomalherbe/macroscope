@@ -32,6 +32,11 @@ p{margin:0 0 .9em}
 .tagline{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:clamp(1.4rem,3vw,2.1rem);line-height:1.2;color:var(--gold);margin:22px 0 0;max-width:24em}
 .hero .lead{font-size:1.2rem;color:#d3d8e3;margin:26px 0 0;max-width:36em}
 .hero .lead + .lead{margin-top:14px}
+.facts{list-style:none;margin:30px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.facts li{border-top:2px solid var(--gold);padding-top:10px;font-size:.92rem;color:#c3c9d6;line-height:1.45}
+.facts b{display:block;color:#fff;font-size:1.02rem;margin-bottom:2px}
+.facts a{color:#fff}
+@media (max-width:700px){.facts{grid-template-columns:minmax(0,1fr)}}
 .hero-links{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:32px}
 .hero-links a{color:#fff;font-weight:600;text-decoration-color:var(--gold);text-decoration-thickness:2px}
 
@@ -186,11 +191,16 @@ footer p{margin:0}
 <header class="hero">
   <div class="wrap">
     <div class="hero-body">
-      <p class="kicker">A teaching game for macroeconomics</p>
+      <p class="kicker">A free, open-source teaching game for macroeconomics</p>
       <h1 class="wordmark"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="none" stroke="#c29d2c" stroke-width="2.4"/><path d="M6.5 13.5l3-3 2.5 2 3.5-4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 17l6 6" stroke="#c29d2c" stroke-width="2.6" stroke-linecap="round"/></svg>Macroscope</h1>
       <p class="tagline">Learn economic policy by governing an economy.</p>
       <p class="lead">Students run the government of a country in a monetary union. Each year they face a shock, choose their policy, and write down why: which effects they expect, through which channels. A model they have studied computes what actually happens.</p>
       <p class="lead">The game is the experiment. The learning is in the gap between what they expected and what they got, and in how well they explain it.</p>
+      <ul class="facts">
+        <li><b>Free</b>for any teacher, any class, any number of games</li>
+        <li><b>Open source</b>the code, the model and its equations are public, <a href="https://github.com/leomalherbe/internationalfinancialmacro">on GitHub</a></li>
+        <li><b>Nothing to install</b>it runs in a browser; your data stays in your own Google Sheet</li>
+      </ul>
       <div class="hero-links">
         <a href="#principle">How it works</a>
         <a href="#course">How a course uses it</a>
@@ -486,7 +496,7 @@ footer p{margin:0}
 
 <footer>
   <div class="wrap">
-    <p>Macroscope, by Léo Malherbe, KEDGE Business School.</p>
+    <p>Macroscope, by Léo Malherbe, KEDGE Business School. Free and open source.</p>
     <p>Source on <a href="https://github.com/leomalherbe/internationalfinancialmacro">GitHub</a></p>
   </div>
 </footer>
