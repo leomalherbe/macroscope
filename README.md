@@ -150,4 +150,3 @@ Plusieurs classes : **+ New class** ; chaque classe a ses groupes, son état et 
 - `dev/mock-server.js` : réplique locale du backend en mémoire (`node dev/mock-server.js` puis `http://localhost:8787/admin.html`, clé `TESTKEY`).
 - `dev/build.js` : régénère `macroscope/Code.gs` à partir de `macroscope/core.js` + `dev/service.js` + `dev/gas-adapter.js`.
 - `dev/e2e.js`, `dev/shot-student.js`, `dev/gas-fake-test.js` : scénarios de test (Playwright : warm-up, Run, partie, conseil, board, suppression de classe), test de l'adaptateur Sheets. `dev/engine-stub.js` : simulacre du moteur servi par le mock quand `macroscope/engine.js` est absent. `dev/engine-test.js` : tests du moteur (état stationnaire, identités comptables, multiplicateurs).
-- (Le lecteur des rapports PDF de MacSim 2 a été retiré.)
