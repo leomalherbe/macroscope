@@ -54,16 +54,16 @@ section.tint{background:#f4f1e8}
 .score-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px}
 .formula{font-family:"Source Serif 4",Georgia,serif;font-size:clamp(1.05rem,2.1vw,1.45rem);color:var(--navy);border-left:4px solid var(--gold);padding:6px 0 6px 16px;margin:0 0 18px;line-height:1.5;overflow-x:auto;white-space:nowrap}
 .formula sub{font-size:.62em}
-.terms{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-.terms li{border:1px solid var(--line);border-radius:10px;padding:10px 6px 9px;text-align:center;font-size:.8rem;line-height:1.3;color:var(--muted)}
+.terms{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px}
+.terms li{border:1px solid var(--line);border-radius:10px;padding:10px 4px 9px;text-align:center;font-size:.8rem;line-height:1.3;color:var(--muted)}
 .terms b{display:inline-flex;width:20px;height:20px;border-radius:50%;color:#fff;align-items:center;justify-content:center;font-size:.85rem;margin-bottom:4px}
 .terms b.up{background:var(--green)}.terms b.down{background:var(--red)}
-.terms strong{display:block;font-family:"Source Serif 4",serif;color:var(--navy);font-size:.95rem;margin-bottom:2px}
+.terms strong{display:block;font-family:"Source Serif 4",serif;color:var(--navy);font-size:.86rem;margin-bottom:2px}
 .terms span{display:block}
 .elections{margin-top:28px;background:var(--gold-soft);border-radius:14px;padding:22px 26px;max-width:880px}
 .elections h3{margin-bottom:.4em}
 .elections p{margin:0}
-@media (max-width:900px){.score{grid-template-columns:minmax(0,1fr);gap:24px}.terms{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){.score{grid-template-columns:minmax(0,1fr);gap:24px}}
 .richer{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center;margin-top:22px;max-width:820px}
 .richer svg{flex:none}
 .richer p{margin:0;font-size:1rem}
@@ -138,8 +138,9 @@ input[type=range]{width:100%;accent-color:var(--navy)}
 table.out{width:100%;border-collapse:collapse;font-size:.86rem;font-variant-numeric:tabular-nums}
 table.out th,table.out td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right}
 table.out th:first-child,table.out td:first-child{text-align:left}
-table.out thead th{white-space:nowrap;font-weight:500;color:var(--muted);font-size:.8rem}
+table.out thead th{font-weight:500;color:var(--muted);font-size:.8rem}
 table.out tr.r td{font-weight:700;border-bottom:0}
+table.out td.tot{font-weight:600}
 .pos{color:var(--green)}.neg{color:var(--red)}
 .verdict{font-size:.88rem;margin:10px 0 0;padding:9px 12px;border-radius:8px;background:var(--gold-soft)}
 .verdict p{margin:0 0 .3em}.verdict p:last-child{margin:0}
@@ -328,14 +329,14 @@ footer p{margin:0}
           <tr>
             <td><b>Prices</b><span>version 1.2</span></td>
             <td class="muted">Nothing new.</td>
-            <td>Relative price levels in trade: a member whose prices rise faster than its partners' loses market share, year after year. Reserves that run out twice as fast.</td>
+            <td>Relative price levels in trade: a member whose prices rise faster than its partners' loses market share, year after year.</td>
             <td>Competitiveness and inflation differentials inside a union; internal devaluation as the only adjustment left.</td>
           </tr>
           <tr>
             <td><b>Capital</b><span>version 1.3</span></td>
             <td>Capital flows, portfolio choices, fixed and flexible exchange rates, after Godley and Lavoie's chapter 12.</td>
             <td>A regime chosen year by year. A risk premium on public debt above 110 % of GDP. A central bank that may or may not stand behind its members' debt. A currency-crisis vote. Optionally, a member leaving the union, with its own currency, its debts to the union's central bank and the others' retaliation.</td>
-            <td>Mundell–Fleming with stocks: rates, capital and the exchange rate; sudden stops; sovereign spreads and what a lender of last resort is for.</td>
+            <td>How interest rates, capital flows and the exchange rate move together; what a peg costs and what floating changes; sudden stops; sovereign spreads and what a lender of last resort is for.</td>
           </tr>
           <tr>
             <td><b>Climate</b><span>version 2.0</span></td>
@@ -356,7 +357,7 @@ footer p{margin:0}
           <tr>
             <td><b>The union</b><span>version 1.1</span></td>
             <td><ul><li>World demand for the union's exports</li><li>Household confidence</li><li>The share of spending that goes to imports</li><li>A devaluation against the rest of the world</li><li>A tariff of the rest of the world on the union's exports <small>with tariffs on</small></li></ul></td>
-            <td><ul><li>Public demand</li><li>Social benefits</li><li>Income tax rate</li><li>Consumption tax</li><li>Vote on the central bank's rate: cut, hold or hike</li><li>Vote when the reserves run low: austerity or devaluation</li><li>Vote on a common external tariff <small>with tariffs on</small></li></ul></td>
+            <td><ul><li>Public demand</li><li>Social benefits</li><li>Income tax rate</li><li>Consumption tax</li><li>Vote on the central bank's rate: cut, hold or hike</li><li>Vote when the reserves run low, under the fixed rate: austerity or devaluation</li><li>Vote on a common external tariff <small>with tariffs on</small></li></ul></td>
           </tr>
           <tr>
             <td><b>Prices</b><span>version 1.2</span></td>
@@ -366,7 +367,7 @@ footer p{margin:0}
           <tr>
             <td><b>Capital</b><span>version 1.3</span></td>
             <td><ul><li>The exchange-rate regime, fixed or floating</li><li>Capital flows, up to a sudden stop</li><li>The world interest rate</li><li>The central bank's backstop, on or off</li></ul></td>
-            <td><ul><li>Vote in a currency crisis: defend the peg or float</li><li>Announce an exit from the union <small>with exit on</small></li><li>Once out: a national policy rate, a tariff on the union's goods</li><li>For the others: a response to the leaver, from tariffs to the sale of its bonds</li></ul></td>
+            <td><ul><li>Vote when the currency falls by more than 10 % in a year, under a floating rate: defend it with a rate hike, or let it fall</li><li>Announce an exit from the union <small>with exit on</small></li><li>Once out: a national policy rate, a tariff on the union's goods</li><li>For the others: a response to the leaver, from tariffs to the sale of its bonds</li></ul></td>
           </tr>
           <tr>
             <td><b>Climate</b><span>version 2.0</span></td>
@@ -376,7 +377,7 @@ footer p{margin:0}
         </tbody>
       </table>
     </div>
-    <p class="small muted" style="margin-top:20px">Every equation, parameter and order of magnitude is set out, version by version, on the <a href="../macsim/model.html">model page</a>.</p>
+    <p class="small muted" style="margin-top:20px">Every equation, parameter and order of magnitude is set out, version by version, on the <a href="model.html">model page</a>.</p>
   </div>
 </section>
 
@@ -384,13 +385,13 @@ footer p{margin:0}
   <div class="wrap try">
     <div>
       <h2>Try one year</h2>
-      <p>One country, three years, version 1.2 of the engine running in your browser. The other governments stay put, so what you see is your own policy against the shock.</p>
+      <p>One country, one year, version 1.2 of the engine running in your browser. The other governments stay put, so the result splits cleanly between your policy and the shock.</p>
       <p>Make a forecast before you run. In the game, that forecast is the justification each team writes with its decisions, and the gap between the forecast and the result is what its analysis has to explain.</p>
     </div>
 
     <div class="lab" id="lab" aria-labelledby="lab-title">
       <div class="lab-head"><h3 id="lab-title">You govern France</h3><span>model 1.2</span></div>
-      <p class="lab-intro">Your policy is held for three years; the shock lasts one.</p>
+      <p class="lab-intro">One shock, one year, one policy to answer it.</p>
 
       <div class="stage"><div class="n">1</div><div>
         <h4>The shock <span>announced by the administrator</span></h4>
@@ -409,7 +410,7 @@ footer p{margin:0}
       </div></div>
 
       <div class="stage"><div class="n">3</div><div>
-        <h4>Your forecast for year 1 <span>before you run</span></h4>
+        <h4>Your forecast <span>before you run</span></h4>
         <div id="guesses"></div>
       </div></div>
 
@@ -419,7 +420,7 @@ footer p{margin:0}
       </div></div>
 
       <div class="stage"><div class="n">5</div><div>
-        <h4>Your results <span>deviation from the path without shock or policy</span></h4>
+        <h4>Your results <span>gap from the path with no shock and no policy</span></h4>
         <div id="results" aria-live="polite"><p class="empty">Set your policy, make a forecast, then run the model.</p></div>
       </div></div>
     </div>
@@ -433,7 +434,7 @@ footer p{margin:0}
       <p>Outside a course, Macroscope plays as a strategy game between governments. Teams play on a phone or a laptop with a PIN; the board is projected for the whole room.</p>
       <ul>
         <li><strong>A council of ministers.</strong> Teams post pledges before deciding. Nothing forces them to keep their word, and once the round closes everyone sees who did.</li>
-        <li><strong>Common votes.</strong> The central bank's rate, the answer to a reserves crisis, and in richer versions the peg, the tariff or the response to a member that leaves.</li>
+        <li><strong>Common votes.</strong> The central bank's rate, the answer to a reserves crisis, and in richer versions the defence of the currency, the tariff or the response to a member that leaves.</li>
         <li><strong>Elections.</strong> The administrator can change what a country's voters care about, and so how its government is scored.</li>
         <li><strong>A ranking</strong> on the score summed over the years, shown on the board after each year.</li>
       </ul>
@@ -442,8 +443,8 @@ footer p{margin:0}
       <h2>Running a session</h2>
       <ul>
         <li>Everything runs in a browser. The data lives in a Google Sheet, behind a small script; students install nothing.</li>
-        <li>A three-hour session covers the warm-up and five to eight years of play.</li>
-        <li>The <a href="https://github.com/leomalherbe/internationalfinancialmacro/blob/main/macsim/README.md">operating guide</a> explains how to set up your own copy and how to run a session.</li>
+        <li>A three-hour session leaves time to get to grips with the game, then to play five to ten years.</li>
+        <li>The <a href="https://github.com/leomalherbe/internationalfinancialmacro/blob/main/macroscope/README.md">operating guide</a> explains how to set up your own copy and how to run a session.</li>
         <li>To use it in a course, or to contribute: <a href="mailto:leo.malherbe@kedgebs.com">leo.malherbe@kedgebs.com</a>.</li>
       </ul>
     </div>
@@ -480,8 +481,8 @@ footer p{margin:0}
   </div>
 </footer>
 
-<script src="../macsim/core.js?v=2026110801"></script>
-<script src="../macsim/engine.js?v=2026110801"></script>
+<script src="core.js?v=2026110802"></script>
+<script src="engine.js?v=2026110802"></script>
 <script>
 (function () {
   'use strict';
@@ -489,7 +490,7 @@ footer p{margin:0}
     document.getElementById('lab').innerHTML = '<p class="empty">The live model could not be loaded.</p>';
     return;
   }
-  var COUNTRY = 'FRA', YEARS = 3;
+  var COUNTRY = 'FRA';
   var params = OPENMU.paramsFor('v1.2');
   var state = MS.defaultState(); state.sim.model = 'v1.2';
   var weights = state.weights;
@@ -542,29 +543,31 @@ footer p{margin:0}
   });
 
   function run() {
-    var Z = { world: 0, rate: 0, confidence: 0, imports: 0, deval: 0 };
-    var sh = [], p = [], t;
-    for (t = 0; t < YEARS; t++) { sh.push(t === 0 ? Object.assign({}, Z, SHOCKS[document.getElementById('shock').value]) : Object.assign({}, Z)); p.push(Object.assign({}, pol)); }
-    var policies = {}; policies[COUNTRY] = p;
-    var rep = OPENMU.report({ params: params, years: YEARS, policies: policies, shocks: sh });
-    var rows = rep.years.map(function (y) { var c = y.countries[COUNTRY], r = {}; IND.forEach(function (i) { r[i.id] = c[i.id]; }); r.R = MS.scoreR(r, weights); r.detail = c.detail; return r; });
-
-    var h = '<table class="out"><thead><tr><th></th>' + rows.map(function (r, i) { return '<th>Year ' + (i + 1) + '</th>'; }).join('') + '</tr></thead><tbody>';
-    IND.forEach(function (ind) {
-      h += '<tr><td>' + esc(ind.label) + ' <span class="muted">' + esc(ind.unit) + '</span></td>' + rows.map(function (r) { return '<td class="' + cls(ind.sign * r[ind.id]) + '">' + fmt(r[ind.id]) + '</td>'; }).join('') + '</tr>';
+    var shock = Object.assign({ world: 0, rate: 0, confidence: 0, imports: 0, deval: 0 }, SHOCKS[document.getElementById('shock').value]);
+    var policies = {}; policies[COUNTRY] = [Object.assign({}, pol)];
+    var rep = OPENMU.report({ params: params, years: 1, policies: policies, shocks: [shock] });
+    var c = rep.years[0].countries[COUNTRY], cols = { nat: {}, shock: {}, total: {} };
+    IND.forEach(function (i) {
+      var d = (c.detail && c.detail[i.id]) || {};
+      cols.nat[i.id] = d.nat || 0; cols.shock[i.id] = d.shock || 0; cols.total[i.id] = c[i.id];
     });
-    h += '<tr class="r"><td>Score of the year</td>' + rows.map(function (r) { return '<td class="' + cls(r.R) + '">' + fmt(r.R) + '</td>'; }).join('') + '</tr></tbody></table>';
+    ['nat', 'shock', 'total'].forEach(function (k) { cols[k].R = MS.scoreR(cols[k], weights); });
+    var order = [['nat', 'Your policy'], ['shock', 'The shock'], ['total', 'Total']];
 
-    var y1 = rows[0], notes = [];
+    var h = '<table class="out"><thead><tr><th></th>' + order.map(function (o) { return '<th>' + o[1] + '</th>'; }).join('') + '</tr></thead><tbody>';
+    IND.forEach(function (ind) {
+      h += '<tr><td>' + esc(ind.label) + ' <span class="muted">' + esc(ind.unit) + '</span></td>' + order.map(function (o) { var x = cols[o[0]][ind.id]; return '<td class="' + cls(ind.sign * x) + (o[0] === 'total' ? ' tot' : '') + '">' + fmt(x) + '</td>'; }).join('') + '</tr>';
+    });
+    h += '<tr class="r"><td>Score of the year</td>' + order.map(function (o) { var x = cols[o[0]].R; return '<td class="' + cls(x) + '">' + fmt(x) + '</td>'; }).join('') + '</tr></tbody></table>';
+
+    var notes = [];
     GUESS.forEach(function (g) {
       if (!guess[g.id]) return;
-      var actual = dir(y1[g.id], 0.05), ok = actual === guess[g.id];
+      var x = cols.total[g.id], actual = dir(x, 0.05), ok = actual === guess[g.id];
       var word = g.opts.filter(function (o) { return o[0] === actual; })[0][1].toLowerCase();
-      notes.push('<p>' + (ok ? 'Right' : 'Not quite') + ' on ' + esc(g.low) + ': it came out ' + esc(word) + ' (' + fmt(y1[g.id]) + ').</p>');
+      notes.push('<p>' + (ok ? 'Right' : 'Not quite') + ' on ' + esc(g.low) + ': it came out ' + esc(word) + ' (' + fmt(x) + ').</p>');
     });
-    var d = y1.detail && y1.detail.gdp;
-    if (d && (Math.abs(d.nat) > 0.005 || Math.abs(d.shock) > 0.005)) notes.push('<p>Of the change in GDP in year 1, your policy accounts for ' + fmt(d.nat) + ' and the shock for ' + fmt(d.shock) + '.</p>');
-    if (!notes.length) notes.push('<p>Nothing moved: no shock and no policy. Try a shock, then a policy to answer it.</p>');
+    if (Math.abs(cols.nat.gdp) < 0.005 && Math.abs(cols.shock.gdp) < 0.005) notes.push('<p>Nothing moved: no shock and no policy. Try a shock, then a policy to answer it.</p>');
     notes.push('<p class="muted">In the game, this is where the team writes why.</p>');
     document.getElementById('results').innerHTML = h + '<div class="verdict">' + notes.join('') + '</div>';
   }
