@@ -1,211 +1,735 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Macroscope: learn economic policy by governing an economy</title>
 <meta name="description" content="Macroscope is a teaching game for macroeconomics. Students govern a country in a monetary union, justify every decision by the effects they expect, and look back on what the model actually did. The model's complexity is chosen to fit the class.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+/* decide before first paint: JS on, and whether to play the loader (once per session, never with reduced motion) */
+(function(d){var h=d.documentElement;h.classList.remove('no-js');h.classList.add('js');
+var rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(rm){h.classList.add('rm')}h.classList.add('is-loading')})(document);
+</script>
 <style>
-:root{--ink:#1b2437;--muted:#5b6475;--bg:#fbfaf6;--card:#fff;--line:#e6e2d6;--gold:#c29d2c;--gold-soft:#f5ecd2;--navy:#14213d;--blue:#2f5d9e;--green:#2f7d4f;--red:#b23b3b}
+:root{
+  --bg:#ffffff;--bg2:#ffffff;--card:#ffffff;--ink:#122ddb;--text:#0f25b8;--muted:#5566cf;--line:rgba(18,45,219,.28);--line2:#122ddb;
+  --gold:#122ddb;--gold-soft:rgba(18,45,219,.08);--pink:rgba(110,130,240,.3);--green:#1f8a4c;--neg:#d8343f;--red:#122ddb;
+  --cream:#ffffff;--cream-ink:#122ddb;
+  --display:"Inter Tight","Helvetica Neue",Arial,sans-serif;--serif:"Inter Tight","Helvetica Neue",Arial,sans-serif;
+  --ease:cubic-bezier(.77,0,.18,1);--out:cubic-bezier(.16,1,.3,1)
+}
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:17px;line-height:1.6}
-a{color:var(--blue);text-underline-offset:2px}
-a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-h1,h2,h3{font-family:"Source Serif 4",Georgia,serif;color:var(--navy);margin:0;font-weight:700;letter-spacing:-.01em}
-h2{font-size:clamp(1.6rem,3vw,2.2rem);line-height:1.15;margin-bottom:.45em}
-h3{font-size:1.15rem;line-height:1.3;margin-bottom:.3em}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:17px;line-height:1.6;overflow-x:hidden}
+html.is-loading body{overflow:hidden}
+::selection{background:var(--gold);color:var(--cream-ink)}
+a{color:var(--gold);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+h1,h2,h3{margin:0;font-family:var(--display);font-weight:800;font-stretch:80%;letter-spacing:-.01em;line-height:1}
+h2{font-size:clamp(2.4rem,6.4vw,5.4rem);text-transform:uppercase;font-weight:900;font-stretch:72%;line-height:.92;margin-bottom:.35em}
+h3{font-size:1.35rem;line-height:1.15;margin-bottom:.35em;font-stretch:85%}
 p{margin:0 0 .9em}
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px}
 .muted{color:var(--muted)}
 .small{font-size:.92rem}
 .sr{position:absolute;left:-9999px}
+em.s,.serif{font-family:var(--serif);font-style:italic;font-weight:400}
+
+/* grain overlay for texture */
+body::after{content:"";position:fixed;inset:-50%;pointer-events:none;z-index:90;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 1s steps(6) infinite}
+@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}}
+
+/* ---------- loader ---------- */
+#loader{display:none}
+html.is-loading #loader,#loader.leaving{display:flex}
+#loader{position:fixed;inset:0;z-index:100;background:var(--gold);color:var(--cream-ink);flex-direction:column;justify-content:space-between;padding:28px 32px;transition:transform 1s var(--ease)}
+#loader.leaving{transform:translateY(-100%)}
+.ld-top{display:flex;justify-content:space-between;font-weight:600;font-size:.9rem;text-transform:uppercase;letter-spacing:.08em}
+.ld-mid{display:flex;align-items:center;gap:28px}
+.ld-mid svg{width:clamp(70px,12vw,140px);height:auto;flex:none}
+.ld-mid svg *{stroke-dasharray:120;stroke-dashoffset:120;animation:draw 1.4s var(--out) forwards}
+.ld-mid svg path:nth-child(2){animation-delay:.35s}.ld-mid svg path:nth-child(3){animation-delay:.6s}
+@keyframes draw{to{stroke-dashoffset:0}}
+.ld-step{font-family:var(--serif);font-style:italic;font-size:clamp(1.4rem,3vw,2.4rem);line-height:1.1;min-height:1.2em}
+.ld-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}
+.ld-count{font-family:var(--display);font-weight:900;font-stretch:65%;font-size:clamp(7rem,26vw,22rem);line-height:.78;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.ld-bar{flex:1;height:3px;background:rgba(18,21,28,.2);margin-bottom:1.4em;position:relative;overflow:hidden}
+.ld-bar i{position:absolute;inset:0;background:var(--cream-ink);transform-origin:left;transform:scaleX(0)}
+
+/* ---------- nav ---------- */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .4s,backdrop-filter .4s,transform .5s var(--out)}
+.nav.solid{background:rgba(11,13,18,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav.hide{transform:translateY(-100%)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:68px;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-family:var(--display);font-weight:900;font-stretch:75%;text-transform:uppercase;font-size:1.25rem;letter-spacing:.01em}
+.brand svg{width:26px;height:26px}
+.nav ul{display:flex;gap:28px;list-style:none;margin:0;padding:0}
+.nav ul a{color:var(--ink);text-decoration:none;font-size:.9rem;font-weight:500;position:relative}
+.nav ul a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1.5px;background:var(--gold);transform:scaleX(0);transform-origin:right;transition:transform .4s var(--out)}
+.nav ul a:hover::after{transform:scaleX(1);transform-origin:left}
+.pill{display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--cream-ink);font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px;font-size:.9rem;position:relative;overflow:hidden;isolation:isolate;border:0;cursor:pointer;font-family:inherit}
+.pill::before{content:"";position:absolute;inset:0;background:var(--cream);transform:translateY(101%);transition:transform .45s var(--out);z-index:-1;border-radius:inherit}
+.pill:hover::before{transform:translateY(0)}
+.pill .arr{transition:transform .35s var(--out)}
+.pill:hover .arr{transform:translateX(4px)}
+@media (max-width:860px){.nav ul{display:none}}
 
 /* ---------- hero ---------- */
-.hero{background:var(--navy);color:#e4e7ee;padding:64px 0 76px}
-.hero-body{max-width:820px}
-.kicker{margin:8px 0 18px;font-size:.95rem;font-weight:500;color:#aab2c5}
-.wordmark{display:flex;align-items:center;gap:.18em;color:#fff;font-size:clamp(3.6rem,11vw,7.5rem);line-height:.95;letter-spacing:-.035em;margin:0}
-.wordmark svg{width:.78em;height:.78em;flex:none;margin-top:.06em}
-.tagline{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:clamp(1.4rem,3vw,2.1rem);line-height:1.2;color:var(--gold);margin:22px 0 0;max-width:24em}
-.hero .lead{font-size:1.2rem;color:#d3d8e3;margin:26px 0 0;max-width:36em}
-.hero .lead + .lead{margin-top:14px}
-.facts{list-style:none;margin:30px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.facts li{border-top:2px solid var(--gold);padding-top:10px;font-size:.92rem;color:#c3c9d6;line-height:1.45}
-.facts b{display:block;color:#fff;font-size:1.02rem;margin-bottom:2px}
-.facts a{color:#fff}
-@media (max-width:700px){.facts{grid-template-columns:minmax(0,1fr)}}
-.hero-links{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:32px}
-.hero-links a{color:#fff;font-weight:600;text-decoration-color:var(--gold);text-decoration-thickness:2px}
+.hero{position:relative;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;padding:120px 0 0;overflow:hidden}
+.hero-chart{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.9}
+.hero-chart .grid line{stroke:var(--line);stroke-width:1}
+.hero-chart .ref{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:6 8;fill:none;opacity:.6}
+.hero-chart .act{stroke:var(--gold);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.hero-chart .area{fill:url(#ga);opacity:.5}
+.hero-chart text{fill:var(--muted);font:500 13px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase}
+.hero-chart .dot{fill:var(--gold)}
+.hero-chart .pulse{fill:none;stroke:var(--gold);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:pulse 2.2s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.6);opacity:1}100%{transform:scale(3);opacity:0}}
+.hero .wrap{position:relative;width:100%}
+.kicker{display:inline-flex;align-items:center;gap:10px;font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);border:1px solid var(--line2);border-radius:999px;padding:6px 14px 6px 10px;margin:0 0 22px;background:rgba(11,13,18,.5);backdrop-filter:blur(6px)}
+.kicker i{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 0 rgba(232,185,49,.6);animation:ping 2s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(232,185,49,.6)}70%{box-shadow:0 0 0 10px rgba(232,185,49,0)}100%{box-shadow:0 0 0 0 rgba(232,185,49,0)}}
+.wordmark{font-family:var(--display);font-weight:900;font-stretch:62%;text-transform:uppercase;font-size:clamp(4.2rem,17.2vw,16.5rem);line-height:.8;letter-spacing:-.02em;color:var(--ink);margin:0 0 0 -.04em;white-space:nowrap}
+.wordmark .ch{display:inline-block;will-change:transform}
+.wordmark .o{color:var(--gold)}
+.hero-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:48px;margin-top:34px;align-items:start}
+.tagline{font-family:var(--serif);font-style:italic;font-size:clamp(1.9rem,3.6vw,3.1rem);line-height:1.02;color:var(--gold);margin:0}
+.lead{font-size:1.08rem;color:var(--text);margin:0 0 12px;max-width:40em}
+.lead b{color:var(--ink);font-weight:600}
+.facts{list-style:none;margin:40px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line2)}
+.facts li{padding:18px 20px 22px 0;font-size:.92rem;color:var(--muted);line-height:1.45}
+.facts li + li{padding-left:20px;border-left:1px solid var(--line)}
+.facts b{display:block;color:var(--ink);font-family:var(--display);font-weight:900;font-stretch:72%;text-transform:uppercase;font-size:1.7rem;line-height:1;margin-bottom:8px}
+.facts a{color:var(--ink)}
+.marquee{position:relative;border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);overflow:hidden;background:var(--bg);margin-top:0}
+.marquee-track{display:flex;width:max-content;animation:marq 38s linear infinite}
+.marquee:hover .marquee-track{animation-play-state:paused}
+.marquee span{font-family:var(--display);font-weight:900;font-stretch:70%;text-transform:uppercase;font-size:clamp(1.6rem,3.4vw,2.8rem);padding:14px 0;white-space:nowrap;display:flex;align-items:center}
+.marquee span::after{content:"✳";color:var(--gold);margin:0 .6em;font-size:.7em}
+.marquee span:nth-child(even){font-family:var(--serif);font-style:italic;font-weight:400;text-transform:none;color:var(--gold)}
+@keyframes marq{to{transform:translateX(-50%)}}
+@media (max-width:860px){.hero-row{grid-template-columns:1fr;gap:20px}.facts{grid-template-columns:1fr}.facts li + li{padding-left:0;border-left:0;border-top:1px solid var(--line)}}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.stat{padding:44px 24px;border-right:1px solid var(--line)}
+.stat:last-child{border-right:0}
+.stat b{display:block;font-family:var(--display);font-weight:900;font-stretch:62%;font-size:clamp(4rem,9vw,8rem);line-height:.85;color:var(--ink);font-variant-numeric:tabular-nums}
+.stat b sup{font-size:.4em;color:var(--gold);vertical-align:top;margin-left:4px}
+.stat span{display:block;margin-top:10px;color:var(--muted);font-size:.92rem}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat:nth-child(2){border-right:0}.stat:nth-child(-n+2){border-bottom:1px solid var(--line)}}
 
 /* ---------- sections ---------- */
-section{padding:72px 0;border-bottom:1px solid var(--line)}
-section.tint{background:#f4f1e8}
-.intro{max-width:68ch;margin-bottom:36px}
-.intro p{color:var(--muted);font-size:1.05rem}
+section{padding:120px 0;border-bottom:1px solid var(--line);position:relative}
+section.tint{background:var(--bg2)}
+section.light{background:var(--cream);color:var(--cream-ink);--line:rgba(18,21,28,.14);--muted:#5c6170}
+section.light h2,section.light h3{color:var(--cream-ink)}
+section.light a{color:#122ddb}
+.label{display:flex;align-items:center;gap:12px;font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:22px}
+.label b{color:var(--gold);font-weight:700}
+section.light .label b{color:#122ddb}
+.label::after{content:"";flex:0 0 60px;height:1px;background:currentColor;opacity:.5}
+.intro{max-width:none;margin-bottom:56px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:48px;align-items:end}
+.intro p{color:var(--muted);font-size:1.05rem;margin:0 0 .4em}
+@media (max-width:900px){.intro{grid-template-columns:1fr;gap:12px}}
+/* word masks for split headings */
+.w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.06em;margin-bottom:-.06em}
+.w > span{display:inline-block}
 
 /* the loop */
-.loop{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden}
-.loop > div{padding:24px 22px;position:relative}
-.loop > div + div{border-left:1px solid var(--line)}
-.loop > div + div::before{content:"";position:absolute;left:-7px;top:32px;width:12px;height:12px;background:var(--card);border-top:1px solid var(--line);border-right:1px solid var(--line);transform:rotate(45deg)}
-.loop h3{display:flex;align-items:center;gap:10px}
-.loop h3 i{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(--gold-soft);color:var(--navy);font-size:.9rem;display:inline-flex;align-items:center;justify-content:center}
-.loop p{font-size:.95rem;margin:.6em 0 0}
-.score{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:40px;align-items:start;margin-top:48px}
-.score-text p{font-size:1rem}
-.score-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px}
-.formula{font-family:"Source Serif 4",Georgia,serif;font-size:clamp(1.05rem,2.1vw,1.45rem);color:var(--navy);border-left:4px solid var(--gold);padding:6px 0 6px 16px;margin:0 0 18px;line-height:1.5;overflow-x:auto;white-space:nowrap}
+.loop{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.loop > div{position:relative;padding:28px 24px 30px;border:1px solid var(--line2);border-radius:20px;background:var(--card);overflow:hidden;isolation:isolate;transition:color .45s var(--out),transform .45s var(--out),border-color .45s}
+.loop > div::before{content:"";position:absolute;inset:0;background:var(--gold);z-index:-1;transform:translateY(101%);transition:transform .55s var(--out)}
+.loop > div:hover{color:var(--cream-ink);transform:translateY(-6px);border-color:var(--gold)}
+.loop > div:hover::before{transform:translateY(0)}
+.loop > div:hover h3,.loop > div:hover h3 i{color:var(--cream-ink)}
+.loop h3{display:flex;flex-direction:column;gap:18px;font-size:1.7rem;text-transform:uppercase;font-weight:900;font-stretch:70%}
+.loop h3 i{font-style:normal;font-family:var(--display);font-weight:900;font-stretch:62%;font-size:4.6rem;line-height:.8;color:var(--gold);transition:color .45s}
+.loop p{font-size:.95rem;margin:.6em 0 0;opacity:.85}
+.score{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:48px;align-items:start;margin-top:80px}
+.score-text p{font-size:1rem;color:var(--text)}
+.score-text h3{font-size:2.2rem;text-transform:uppercase;font-weight:900;font-stretch:70%}
+.score-box{background:var(--card);border:1px solid var(--line2);border-radius:20px;padding:28px 26px 22px}
+.formula{font-family:var(--serif);font-size:clamp(1.25rem,2.4vw,1.8rem);color:var(--ink);border-left:3px solid var(--gold);padding:6px 0 6px 18px;margin:0 0 22px;line-height:1.5;overflow-x:auto;white-space:nowrap}
 .formula sub{font-size:.62em}
-.terms{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px}
-.terms li{border:1px solid var(--line);border-radius:10px;padding:10px 4px 9px;text-align:center;font-size:.8rem;line-height:1.3;color:var(--muted)}
-.terms b{display:inline-flex;width:20px;height:20px;border-radius:50%;color:#fff;align-items:center;justify-content:center;font-size:.85rem;margin-bottom:4px}
+.terms{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
+.terms li{border:1px solid var(--line);border-radius:14px;padding:14px 6px 12px;text-align:center;font-size:.8rem;line-height:1.3;color:var(--muted);transition:transform .35s var(--out),border-color .35s}
+.terms li:hover{transform:translateY(-4px);border-color:var(--gold)}
+.terms b{display:inline-flex;width:22px;height:22px;border-radius:50%;color:var(--cream-ink);align-items:center;justify-content:center;font-size:.9rem;margin-bottom:6px}
 .terms b.up{background:var(--green)}.terms b.down{background:var(--red)}
-.terms strong{display:block;font-family:"Source Serif 4",serif;color:var(--navy);font-size:.86rem;margin-bottom:2px}
+.terms strong{display:block;font-family:var(--display);font-stretch:80%;font-weight:800;color:var(--ink);font-size:.95rem;margin-bottom:2px}
 .terms span{display:block}
-.elections{margin-top:28px;background:var(--gold-soft);border-radius:14px;padding:22px 26px;max-width:880px}
-.elections h3{margin-bottom:.4em}
-.elections p{margin:0}
-@media (max-width:900px){.score{grid-template-columns:minmax(0,1fr);gap:24px}}
-.richer{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center;margin-top:22px;max-width:820px}
-.richer svg{flex:none}
-.richer p{margin:0;font-size:1rem}
-@media (max-width:900px){.loop{grid-template-columns:1fr}.loop > div + div{border-left:0;border-top:1px solid var(--line)}.loop > div + div::before{left:30px;top:-7px;transform:rotate(-45deg)}}
+.elections{margin-top:40px;border:1px solid var(--gold);border-radius:20px;padding:30px 32px;display:grid;grid-template-columns:minmax(0,.6fr) minmax(0,1.4fr);gap:32px;background:linear-gradient(135deg,var(--gold-soft),transparent 60%)}
+.elections h3{font-size:2rem;text-transform:uppercase;font-weight:900;font-stretch:70%;color:var(--gold);margin:0}
+.elections p{margin:0;color:var(--text)}
+.richer{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:center;margin-top:40px;max-width:860px}
+.richer svg rect{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);transition:transform .9s var(--out)}
+.richer.in svg rect{transform:scaleY(1)}
+.richer.in svg rect:nth-child(2){transition-delay:.1s}.richer.in svg rect:nth-child(3){transition-delay:.2s}.richer.in svg rect:nth-child(4){transition-delay:.3s}
+.richer p{margin:0;font-size:1rem;color:var(--text)}
+.richer strong{color:var(--ink)}
+@media (max-width:900px){.score{grid-template-columns:1fr;gap:28px}.loop{grid-template-columns:repeat(2,minmax(0,1fr))}.elections{grid-template-columns:1fr;gap:12px}}
+@media (max-width:560px){.loop{grid-template-columns:1fr}}
 
-/* the four steps of a course: a real sequence, drawn on a rail */
+/* the course: a rail that fills as you scroll */
 .course{list-style:none;margin:0;padding:0;position:relative}
-.course::before{content:"";position:absolute;left:19px;top:8px;bottom:8px;width:2px;background:var(--line)}
-.course li{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,.8fr);gap:0 28px;padding:0 0 34px}
+.course::before,.course::after{content:"";position:absolute;left:27px;top:10px;bottom:10px;width:2px;background:var(--line)}
+.course::after{background:var(--cream-ink);transform-origin:top;transform:scaleY(var(--p,0))}
+.course li{position:relative;display:grid;grid-template-columns:56px minmax(0,1fr) minmax(0,.75fr);gap:0 36px;padding:0 0 56px}
 .course li:last-child{padding-bottom:0}
-.course .n{width:40px;height:40px;border-radius:50%;background:var(--navy);color:#fff;font-family:"Source Serif 4",serif;font-weight:700;font-size:1.1rem;display:flex;align-items:center;justify-content:center;position:relative}
-.course h3{font-size:1.3rem;margin-top:5px}
-.course .body p{margin-bottom:.6em}
-.course .made{font-size:.9rem;border-left:3px solid var(--gold);padding:4px 0 4px 14px;margin-top:8px}
-.course .made b{display:block;font-weight:600;color:var(--navy)}
-@media (max-width:860px){.course li{grid-template-columns:40px minmax(0,1fr);gap:0 18px}.course .made{grid-column:2}}
+.course .n{width:56px;height:56px;border-radius:50%;background:var(--cream);border:2px solid var(--cream-ink);color:var(--cream-ink);font-family:var(--display);font-weight:900;font-stretch:70%;font-size:1.5rem;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;transition:background .4s,color .4s}
+.course li.on .n{background:var(--cream-ink);color:var(--gold)}
+.course h3{font-size:clamp(1.6rem,2.6vw,2.2rem);margin-top:8px;text-transform:uppercase;font-weight:900;font-stretch:70%}
+.course .body p{margin-bottom:.6em;color:var(--text)}
+.course .made{font-size:.92rem;border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-top:8px;background:rgba(255,255,255,.55);color:var(--text)}
+.course .made b{display:block;font-weight:700;color:var(--cream-ink);text-transform:uppercase;font-size:.78rem;letter-spacing:.1em;margin-bottom:4px}
+@media (max-width:860px){.course li{grid-template-columns:56px minmax(0,1fr);gap:0 18px}.course .made{grid-column:2}}
 
 /* assessment */
-.assess{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:48px;align-items:start}
-.assess blockquote{margin:0;font-family:"Source Serif 4",serif;font-size:clamp(1.35rem,2.4vw,1.75rem);line-height:1.3;color:var(--navy)}
-.criteria{margin:0;display:grid;gap:18px}
-.criteria div{border-top:1px solid var(--line);padding-top:14px}
-.criteria dt{font-weight:600;color:var(--navy)}
-.criteria dd{margin:4px 0 0;color:var(--muted);font-size:.95rem}
+.assess{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px;align-items:start}
+.assess blockquote{margin:0;font-family:var(--serif);font-size:clamp(2rem,4vw,3.4rem);line-height:1.04;color:var(--ink)}
+.assess blockquote em{color:var(--gold);font-style:italic}
+.criteria{margin:0;display:grid;gap:0;counter-reset:c}
+.criteria div{border-top:1px solid var(--line2);padding:22px 0;display:grid;grid-template-columns:52px minmax(0,1fr);counter-increment:c;transition:padding .4s var(--out)}
+.criteria div::before{content:"0" counter(c);font-family:var(--display);font-weight:900;font-stretch:70%;color:var(--gold);font-size:1.1rem;grid-row:span 2}
+.criteria div:hover{padding-left:10px}
+.criteria dt{font-family:var(--display);font-weight:900;font-stretch:72%;text-transform:uppercase;font-size:1.6rem;line-height:1}
+.criteria dd{margin:6px 0 0;color:var(--muted);font-size:.95rem}
+@media (max-width:900px){.assess{grid-template-columns:1fr;gap:32px}}
 
 /* versions */
-.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line2);border-radius:20px;background:var(--card)}
 table.v{width:100%;border-collapse:collapse;font-size:.93rem;min-width:780px}
-table.v th,table.v td{text-align:left;vertical-align:top;padding:16px 18px;border-bottom:1px solid var(--line)}
+table.v th,table.v td{text-align:left;vertical-align:top;padding:20px;border-bottom:1px solid var(--line)}
+table.v tbody tr{transition:background .3s}
+table.v tbody tr:hover{background:rgba(232,185,49,.06)}
 table.v tr:last-child td{border-bottom:0}
-table.v thead th{font-weight:600;color:var(--muted);font-size:.85rem;background:#faf8f2}
+table.v thead th{font-weight:600;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;background:rgba(255,255,255,.02)}
+table.v td{color:var(--text)}
 table.v td:first-child{width:19%}
-table.v td:first-child b{display:block;font-family:"Source Serif 4",serif;font-size:1.1rem;color:var(--navy)}
-table.v td:first-child span{display:block;font-size:.82rem;color:var(--muted)}
-.eqlink{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:18px}
+table.v td:first-child b{display:block;font-family:var(--display);font-weight:900;font-stretch:70%;text-transform:uppercase;font-size:1.6rem;line-height:1;color:var(--ink)}
+table.v td:first-child span{display:inline-block;margin-top:8px;font-size:.75rem;color:var(--gold);border:1px solid var(--gold);border-radius:999px;padding:1px 9px}
+.eqlink{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:22px}
 .eqlink span{font-size:.9rem;color:var(--muted)}
-.btn-eq{display:inline-block;background:var(--navy);color:#fff;font-weight:600;text-decoration:none;border-radius:999px;padding:10px 20px}
-.btn-eq:hover{background:#22345e}
-table.v a.eq{display:inline-block;margin-top:8px;font-size:.82rem;font-weight:600}
-.subhead{margin:44px 0 .3em;font-size:1.3rem}
+table.v a.eq{display:block;margin-top:12px;font-size:.82rem;font-weight:600}
+.subhead{margin:72px 0 .3em;font-size:clamp(1.8rem,3vw,2.6rem);text-transform:uppercase;font-weight:900;font-stretch:70%}
 table.v.play{min-width:640px}
 table.v ul{margin:0;padding-left:1.05em}
-table.v li{margin:.2em 0}
-table.v small{font-size:.78rem;color:var(--muted);white-space:nowrap}
-table.v td:first-child em{display:block;font-style:normal;font-size:.8rem;color:var(--ink);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
-.extras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px;margin-top:36px;max-width:900px}
-.extras h3{font-size:1.1rem}
-.extras p{font-size:.93rem;color:var(--muted);margin:0}
+table.v li{margin:.25em 0}
+table.v li::marker{color:var(--gold)}
+table.v small{font-size:.72rem;color:var(--muted);white-space:nowrap;border:1px dashed var(--line2);border-radius:6px;padding:0 5px;margin-left:4px}
 .refs{margin-top:36px;font-size:.88rem;color:var(--muted);max-width:80ch}
-.refs h3{font-family:Inter,sans-serif;font-size:.95rem;font-weight:600;color:var(--ink)}
-.refs ul{margin:.3em 0 0;padding-left:1.1em}
-.refs li{margin:.3em 0}
-@media (max-width:860px){.extras{grid-template-columns:1fr;gap:22px}}
 
-/* ---------- the live year ---------- */
-.try{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:48px;align-items:start}
-.lab{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:22px 22px 18px;box-shadow:0 10px 30px rgba(20,33,61,.08)}
+/* ---------- the live demo ---------- */
+.try{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:64px;align-items:start}
+.try > div:first-child{position:sticky;top:110px}
+.try p{color:var(--text)}
+.lab{background:var(--cream);color:var(--cream-ink);border-radius:24px;padding:28px 28px 22px;box-shadow:0 40px 80px -30px rgba(0,0,0,.7),0 0 0 1px rgba(232,185,49,.25);--line:rgba(18,21,28,.12);--muted:#5c6170;position:relative}
+.lab::before{content:"LIVE";position:absolute;top:-12px;right:26px;background:var(--red);color:#fff;font-weight:800;font-size:.72rem;letter-spacing:.14em;padding:4px 10px;border-radius:999px;animation:live 1.6s ease-in-out infinite}
+@keyframes live{50%{opacity:.55}}
 .lab-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
-.lab-head h3{font-size:1.2rem;margin:0}
+.lab-head h3{font-size:1.9rem;margin:0;text-transform:uppercase;font-weight:900;font-stretch:70%;color:var(--cream-ink)}
 .lab-head span{font-size:.8rem;color:var(--muted)}
-.lab-intro{font-size:.88rem;color:var(--muted);margin:0 0 12px}
-.stage{display:grid;grid-template-columns:28px minmax(0,1fr);gap:0 12px;padding:12px 0;border-top:1px solid var(--line)}
-.stage .n{width:26px;height:26px;border-radius:50%;background:var(--gold-soft);color:var(--navy);font-family:"Source Serif 4",serif;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center}
-.stage h4{font-size:.95rem;font-weight:600;margin:2px 0 8px;color:var(--navy)}
+.lab-intro{font-size:.9rem;color:var(--muted);margin:0 0 14px}
+.stage{display:grid;grid-template-columns:32px minmax(0,1fr);gap:0 14px;padding:14px 0;border-top:1px solid var(--line)}
+.stage .n{width:30px;height:30px;border-radius:50%;background:var(--cream-ink);color:var(--gold);font-family:var(--display);font-weight:900;font-stretch:75%;font-size:1rem;display:flex;align-items:center;justify-content:center}
+.stage h4{font-size:.95rem;font-weight:700;margin:3px 0 10px;color:var(--cream-ink)}
 .stage h4 span{font-weight:400;color:var(--muted)}
-select{font:inherit;font-size:.92rem;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
-.lever{display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 3.4em;gap:10px;align-items:center;font-size:.88rem;margin:2px 0}
-.lever output{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
-input[type=range]{width:100%;accent-color:var(--navy)}
-.guess{display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr);gap:10px;align-items:center;font-size:.88rem;margin:4px 0}
-.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.seg button{flex:1;font:inherit;font-size:.82rem;padding:6px 4px;border:0;background:#fff;color:var(--ink);cursor:pointer}
+select{font:inherit;font-size:.92rem;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--cream-ink)}
+.lever{display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 3.4em;gap:12px;align-items:center;font-size:.88rem;margin:4px 0}
+.lever output{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-family:var(--display);font-stretch:80%;font-size:1.05rem}
+input[type=range]{width:100%;accent-color:var(--cream-ink);cursor:pointer}
+.guess{display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr);gap:12px;align-items:center;font-size:.88rem;margin:5px 0}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.seg button{flex:1;font:inherit;font-size:.82rem;padding:7px 4px;border:0;background:transparent;color:var(--cream-ink);cursor:pointer;transition:background .25s,color .25s}
+.seg button:hover{background:rgba(232,185,49,.25)}
 .seg button + button{border-left:1px solid var(--line)}
-.seg button[aria-pressed=true]{background:var(--navy);color:#fff}
-.run{font:inherit;font-weight:600;background:var(--gold);color:var(--navy);border:0;border-radius:999px;padding:10px 22px;cursor:pointer}
-.run:hover{filter:brightness(1.05)}
-table.out{width:100%;border-collapse:collapse;font-size:.86rem;font-variant-numeric:tabular-nums}
-table.out th,table.out td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right}
+.seg button[aria-pressed=true]{background:var(--cream-ink);color:var(--gold)}
+.run{font:inherit;font-weight:800;background:var(--cream-ink);color:var(--gold);border:0;border-radius:999px;padding:13px 26px;cursor:pointer;position:relative;overflow:hidden;isolation:isolate;text-transform:uppercase;letter-spacing:.06em;font-size:.88rem}
+.run::before{content:"";position:absolute;inset:0;background:var(--gold);transform:scaleX(0);transform-origin:left;transition:transform .45s var(--out);z-index:-1}
+.run:hover{color:var(--cream-ink)}
+.run:hover::before{transform:scaleX(1)}
+.run.busy{pointer-events:none}
+.run.busy::before{transform:scaleX(1);transition:transform .6s linear}
+table.out{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+table.out th,table.out td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right}
 table.out th:first-child,table.out td:first-child{text-align:left}
-table.out thead th{font-weight:500;color:var(--muted);font-size:.8rem}
-table.out tr.r td{font-weight:700;border-bottom:0}
-table.out .tot{font-weight:700;border-left:1px solid var(--line);padding-left:10px}
-table.out thead th.tot{color:var(--navy)}
-.pos{color:var(--green)}.neg{color:var(--red)}
-.verdict{font-size:.88rem;margin:10px 0 0;padding:9px 12px;border-radius:8px;background:var(--gold-soft)}
+table.out thead th{font-weight:600;color:var(--muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.06em}
+table.out tbody tr{animation:rowin .5s var(--out) both}
+table.out tbody tr:nth-child(2){animation-delay:.05s}table.out tbody tr:nth-child(3){animation-delay:.1s}table.out tbody tr:nth-child(4){animation-delay:.15s}table.out tbody tr:nth-child(5){animation-delay:.2s}table.out tbody tr:nth-child(6){animation-delay:.28s}
+@keyframes rowin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+table.out tr.r td{font-weight:800;border-bottom:0;font-size:1rem}
+table.out .tot{font-weight:800;border-left:1px solid var(--line);padding-left:10px}
+table.out thead th.tot{color:var(--cream-ink)}
+.lab .pos{color:#1f8a4c}.lab .neg{color:#c4372b}
+.verdict{font-size:.88rem;margin:14px 0 0;padding:12px 14px;border-radius:12px;background:var(--cream-ink);color:var(--cream);animation:rowin .6s .35s var(--out) both}
+.verdict .muted{color:rgba(255,255,255,.75)}
 .verdict p{margin:0 0 .3em}.verdict p:last-child{margin:0}
 .empty{font-size:.88rem;color:var(--muted);margin:0}
+@media (max-width:900px){.try{grid-template-columns:1fr;gap:32px}.try > div:first-child{position:static}}
 
 /* game + practical */
-.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:48px}
-.two ul{padding-left:1.1em;margin:.4em 0 0}
-.two li{margin:.45em 0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:64px}
+.two h2{font-size:clamp(2.2rem,4.6vw,3.8rem)}
+.two ul{padding:0;margin:.8em 0 0;list-style:none}
+.two li{margin:0;padding:16px 0;border-top:1px solid var(--line);color:var(--text)}
+.two li strong{color:var(--ink)}
+@media (max-width:900px){.two{grid-template-columns:1fr;gap:40px}}
 
 /* arcade */
-.arcade{background:var(--navy);color:#d3d8e3;border-bottom:0;padding:64px 0;overflow:hidden}
-.arcade-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:48px;align-items:center}
-.arcade h2{color:#fff}
-.arcade .tag{display:inline-block;font-size:.85rem;font-weight:600;color:var(--navy);background:var(--gold);border-radius:999px;padding:3px 12px;margin-bottom:16px}
-.arcade p{font-size:1.05rem}
-.arcade ul{padding-left:1.1em;margin:.6em 0 0}
-.arcade li{margin:.35em 0}
-.versus{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:14px}
-.side{border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:18px 16px;text-align:center}
-.side b{display:block;font-family:"Source Serif 4",serif;font-size:1.6rem;color:#fff}
-.side span{display:block;font-size:.85rem;color:#aab2c5;margin-top:4px}
-.side.a{border-color:var(--gold)}
-.vs{font-family:"Source Serif 4",serif;font-weight:700;font-size:1.3rem;color:var(--gold)}
-.shared{grid-column:1 / -1;text-align:center;font-size:.85rem;color:#aab2c5;border-top:1px dashed rgba(255,255,255,.25);padding-top:10px}
+.arcade{background:var(--gold);color:var(--cream-ink);border-bottom:0;padding:120px 0;overflow:hidden}
+.arcade-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:64px;align-items:center}
+.arcade h2{color:var(--cream-ink);font-size:clamp(3rem,8vw,7rem)}
+.arcade .tag{display:inline-block;font-size:.8rem;font-weight:800;color:var(--gold);background:var(--cream-ink);border-radius:999px;padding:5px 14px;margin-bottom:22px;text-transform:uppercase;letter-spacing:.12em}
+.arcade p{font-size:1.1rem}
+.arcade ul{padding:0;margin:1em 0 0;list-style:none}
+.arcade li{padding:10px 0;border-top:1px solid rgba(18,21,28,.2);font-weight:500}
+.versus{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:16px}
+.side{border:2px solid var(--cream-ink);border-radius:24px;padding:30px 16px;text-align:center;background:rgba(255,255,255,.18)}
+.side b{display:block;font-family:var(--display);font-weight:900;font-stretch:62%;font-size:clamp(5rem,10vw,8rem);line-height:.85;color:var(--cream-ink)}
+.side span{display:block;font-size:.85rem;margin-top:10px}
+.side.a{background:var(--cream-ink);color:var(--cream)}
+.side.a b{color:var(--gold)}
+.side.a{animation:bobA 3.2s ease-in-out infinite}.side.b{animation:bobB 3.2s ease-in-out infinite}
+@keyframes bobA{50%{transform:translateY(-10px) rotate(-2deg)}}
+@keyframes bobB{50%{transform:translateY(10px) rotate(2deg)}}
+.vs{font-family:var(--serif);font-style:italic;font-size:3rem;color:var(--cream-ink)}
+.shared{grid-column:1 / -1;text-align:center;font-size:.88rem;border-top:2px dashed rgba(18,21,28,.35);padding-top:14px;margin-top:6px}
+@media (max-width:900px){.arcade-grid{grid-template-columns:1fr;gap:40px}}
 
-@media (max-width:900px){.assess,.two,.try,.arcade-grid{grid-template-columns:minmax(0,1fr);gap:32px}}
-footer{padding:36px 0 56px;font-size:.9rem;color:var(--muted)}
-footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px}
+footer{padding:80px 0 48px;font-size:.9rem;color:var(--muted);overflow:hidden}
+.foot-big{font-family:var(--display);font-weight:900;font-stretch:62%;text-transform:uppercase;font-size:clamp(4rem,17vw,16rem);line-height:.8;color:transparent;-webkit-text-stroke:1.5px var(--line2);margin:0 0 40px;white-space:nowrap;transition:color .6s}
+.foot-big:hover{color:var(--gold);-webkit-text-stroke-color:var(--gold)}
+footer .row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px}
 footer p{margin:0}
-@media (max-width:560px){body{font-size:16px}section{padding:52px 0}.lever,.guess{grid-template-columns:minmax(0,1fr) 3.2em}.lever span,.guess span,.guess .seg{grid-column:1 / -1}.lab{padding:18px 16px 14px}}
-@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+/* ---------- custom cursor (fine pointers only) ---------- */
+.cursor{position:fixed;top:0;left:0;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:95;mix-blend-mode:difference;transition:width .3s var(--out),height .3s var(--out),margin .3s var(--out),opacity .3s;opacity:0}
+.cursor.big{width:54px;height:54px;margin:-27px 0 0 -27px}
+@media (hover:none),(pointer:coarse){.cursor{display:none}}
+
+/* ---------- reveal on scroll (only when JS is on and motion is allowed) ---------- */
+html.js:not(.rm) [data-reveal]{opacity:0;transform:translateY(40px);transition:opacity 1s var(--out),transform 1s var(--out);transition-delay:var(--d,0s)}
+html.js:not(.rm) [data-reveal].in{opacity:1;transform:none}
+html.js:not(.rm) .split .w > span{transform:translateY(105%);transition:transform 1s var(--out);transition-delay:var(--d,0s)}
+html.js:not(.rm) .split.in .w > span{transform:none}
+html.js:not(.rm) .wordmark .ch{transform:translateY(110%)}
+html.js:not(.rm) .wordmark{overflow:hidden;padding-top:.04em}
+html.js:not(.rm) .hero .wordmark.go .ch{transform:none;transition:transform 1.1s var(--out);transition-delay:calc(var(--i) * .05s)}
+html.js:not(.rm) .hero-chart .act,html.js:not(.rm) .hero-chart .ref{stroke-dasharray:var(--len);stroke-dashoffset:var(--len)}
+html.js:not(.rm) .hero-chart.go .act{stroke-dashoffset:0;transition:stroke-dashoffset 2.6s cubic-bezier(.45,0,.2,1) .2s}
+html.js:not(.rm) .hero-chart.go .ref{stroke-dashoffset:0;transition:stroke-dashoffset 2s ease .1s}
+html.js:not(.rm) .hero-chart .area,html.js:not(.rm) .hero-chart .lbl{opacity:0;transition:opacity 1.2s ease 2s}
+html.js:not(.rm) .hero-chart.go .area{opacity:.5}
+html.js:not(.rm) .hero-chart.go .lbl{opacity:1}
+
+@media (max-width:560px){body{font-size:16px}section{padding:80px 0}.lever,.guess{grid-template-columns:minmax(0,1fr) 3.2em}.lever span,.guess span,.guess .seg{grid-column:1 / -1}.lab{padding:22px 18px 16px}.wrap{padding:0 18px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}body::after{display:none}.marquee-track{transform:none}}
+/* ===== art direction: white page, everything in red, bold grotesk, thin rules, pink brush stroke ===== */
+body{border-top:5px solid var(--red);color:var(--text)}
+body::after{display:none}
+::selection{background:var(--red);color:#fff}
+h1,h2,h3,.wordmark,.facts b,.marquee span,.stat b,.loop h3,.loop h3 i,.score-text h3,.elections h3,.course h3,.course .n,.criteria dt,.criteria div::before,table.v td:first-child b,.subhead,.lab-head h3,.stage .n,.side b,.foot-big,.ld-count,.brand,.lever output{text-transform:none;font-stretch:normal;letter-spacing:-.04em}
+h2{font-weight:700;font-size:clamp(2.6rem,6.4vw,5.6rem);line-height:.95}
+h3{font-weight:700}
+.tagline,.ld-step,.assess blockquote,.vs,.formula,.marquee span:nth-child(even),em.s,.serif{font-style:normal}
+.label{color:var(--ink)}
+.label b{color:var(--ink)}
+.label::after{background:var(--ink);opacity:1;height:1.5px}
+
+/* loader: solid red, white type */
+#loader{background:var(--red);color:#fff}
+.ld-count{font-weight:800;letter-spacing:-.06em}
+.ld-bar{background:rgba(255,255,255,.3)}.ld-bar i{background:#fff}
+.ld-step{font-weight:500;letter-spacing:-.02em}
+
+/* nav */
+.nav{top:5px}
+.nav.solid{background:rgba(255,255,255,.92);border-bottom:1.5px solid var(--red)}
+.brand{font-weight:800;color:var(--ink);font-size:1.3rem}
+.nav ul a{color:var(--ink)}
+.pill{background:var(--red);color:#fff;border-radius:0;box-shadow:inset 0 0 0 1.5px var(--red)}
+.pill::before{background:#fff;border-radius:0}
+.pill:hover{color:var(--red)}
+
+/* hero */
+.hero-chart .grid line{stroke:rgba(18,45,219,.14)}
+.hero-chart .ref{stroke:var(--red);opacity:.55;stroke-width:1.5}
+.hero-chart .act{stroke:var(--pink);stroke-width:90}
+.hero-chart .area{display:none}
+.hero-chart text{fill:var(--red)}
+.hero-chart .dot{fill:var(--red)}
+.hero-chart .pulse{stroke:var(--red)}
+.kicker{color:var(--ink);border:1.5px solid var(--red);border-radius:0;background:rgba(255,255,255,.75);text-transform:none;letter-spacing:0;font-size:.92rem}
+.kicker i{background:var(--red);animation:none}
+.wordmark{font-weight:800;text-transform:lowercase;letter-spacing:-.065em;font-size:clamp(4rem,16vw,15.5rem);line-height:.86;border-bottom:1.5px solid var(--red);padding-bottom:.08em;display:inline-block}
+.wordmark .o{color:var(--ink)}
+.tagline{font-weight:700;color:var(--ink);letter-spacing:-.03em;font-size:clamp(1.8rem,3.4vw,3rem)}
+.lead{color:var(--text)}
+.lead b{color:var(--ink);font-weight:700}
+.facts{border-top:1.5px solid var(--red)}
+.facts li{color:var(--text)}
+.facts li + li{border-left:1.5px solid var(--red)}
+.facts b{font-weight:700;color:var(--ink);font-size:1.6rem}
+.facts a{color:var(--ink)}
+.marquee{border-top:1.5px solid var(--red);border-bottom:1.5px solid var(--red);background:#fff}
+.marquee span{font-weight:700;color:var(--ink)}
+.marquee span:nth-child(even){font-weight:400;color:var(--ink)}
+.marquee span::after{content:"●";font-size:.35em;margin:0 1.2em;color:var(--red)}
+
+/* stats */
+.stats{border-bottom:1.5px solid var(--red)}
+.stat{border-right:1.5px solid var(--red)}
+.stat b{font-weight:800;color:var(--ink);letter-spacing:-.06em}
+.stat b sup{color:var(--ink)}
+.stat span{color:var(--text)}
+@media (max-width:760px){.stat:nth-child(-n+2){border-bottom:1.5px solid var(--red)}}
+
+/* sections: white, separated by red rules */
+section{border-bottom:1.5px solid var(--red)}
+section.tint,section.light{background:#fff;color:var(--text)}
+section.light h2,section.light h3{color:var(--ink)}
+section.light a,a{color:var(--ink)}
+section.light .label b{color:var(--ink)}
+
+/* loop cards: red outline, red fill on hover */
+.loop{gap:0;border-top:1.5px solid var(--red);border-bottom:1.5px solid var(--red)}
+.loop > div{border:0;border-radius:0;background:#fff}
+.loop > div + div{border-left:1.5px solid var(--red)}
+.loop > div::before{background:var(--red)}
+.loop > div:hover{color:#fff;transform:none}
+.loop > div:hover h3,.loop > div:hover h3 i{color:#fff}
+.loop h3{font-size:2rem;font-weight:700}
+.loop h3 i{font-weight:800;color:var(--ink);font-size:5rem}
+@media (max-width:900px){.loop > div:nth-child(3){border-left:0}.loop > div:nth-child(n+3){border-top:1.5px solid var(--red)}}
+@media (max-width:560px){.loop > div + div{border-left:0;border-top:1.5px solid var(--red)}}
+.score-text h3,.elections h3{font-weight:700;font-size:2.4rem}
+.score-box{border:1.5px solid var(--red);border-radius:0}
+.formula{color:var(--ink);border-left:3px solid var(--red)}
+.terms li{border:1.5px solid var(--line);border-radius:0;color:var(--text)}
+.terms li:hover{border-color:var(--red)}
+.terms strong{color:var(--ink);font-weight:700}
+.terms b{color:#fff}
+.terms b.down{background:var(--red)}
+.elections{border:1.5px solid var(--red);border-radius:0;background:var(--gold-soft)}
+.elections h3{color:var(--ink)}
+.richer strong{color:var(--ink)}
+
+/* course rail */
+.course::before{background:var(--line)}
+.course::after{background:var(--red)}
+.course .n{background:#fff;border:1.5px solid var(--red);color:var(--ink);font-weight:700}
+.course li.on .n{background:var(--red);color:#fff}
+.course h3{font-weight:700}
+.course .made{border:1.5px solid var(--line);border-radius:0;background:#fff;color:var(--text)}
+.course .made b{color:var(--ink)}
+
+/* assessment */
+.assess blockquote{color:var(--ink);font-weight:700;letter-spacing:-.035em;line-height:1}
+.assess blockquote em{color:var(--ink);font-weight:400;font-style:normal}
+.criteria div{border-top:1.5px solid var(--red)}
+.criteria dt{font-weight:700;color:var(--ink)}
+.criteria div::before{color:var(--ink);font-weight:500}
+.criteria dd{color:var(--text)}
+
+/* tables */
+.tablewrap{border:0;border-top:1.5px solid var(--red);border-bottom:1.5px solid var(--red);border-radius:0;background:#fff}
+table.v td{color:var(--text)}
+table.v thead th{color:var(--ink);background:#fff;border-bottom:1.5px solid var(--red)}
+table.v tbody tr:hover{background:var(--gold-soft)}
+table.v td:first-child b{font-weight:700;color:var(--ink)}
+table.v td:first-child span{color:var(--ink);border:1.5px solid var(--red);border-radius:0}
+table.v li::marker{color:var(--red)}
+table.v small{border:1px dashed var(--red);color:var(--ink)}
+.subhead{font-weight:700}
+
+/* demo */
+.lab{background:#fff;color:var(--text);border-radius:0;box-shadow:none;border:1.5px solid var(--red)}
+.lab::before{border-radius:0;background:var(--red)}
+.lab-head h3{color:var(--ink);font-weight:700}
+.stage .n{background:var(--red);color:#fff;border-radius:0}
+.stage h4{color:var(--ink)}
+select,.seg{border:1.5px solid var(--line);border-radius:0;color:var(--ink)}
+.seg button{color:var(--ink)}
+.seg button:hover{background:var(--gold-soft)}
+.seg button[aria-pressed=true]{background:var(--red);color:#fff}
+input[type=range]{accent-color:var(--red)}
+.run{background:var(--red);color:#fff;border-radius:0;box-shadow:inset 0 0 0 1.5px var(--red)}
+.run::before{background:#fff}
+.run:hover{color:var(--red)}
+.lab .neg{color:var(--red)}
+table.out thead th{color:var(--muted)}
+table.out thead th.tot{color:var(--ink)}
+.verdict{background:var(--red);color:#fff;border-radius:0}
+
+/* game + practical */
+.two li{border-top:1.5px solid var(--line)}
+.two li strong{color:var(--ink)}
+
+/* arcade: full red block */
+.arcade{background:var(--red);color:#fff}
+.arcade h2{color:#fff;font-weight:700}
+.arcade .tag{background:#fff;color:var(--red);border-radius:0;text-transform:none;letter-spacing:0;font-size:.9rem}
+.arcade li{border-top:1.5px solid rgba(255,255,255,.4)}
+.arcade a{color:#fff}
+.side{border:1.5px solid #fff;border-radius:0;background:transparent;color:#fff}
+.side b{color:#fff;font-weight:800}
+.side.a{background:#fff;color:var(--red)}
+.side.a b{color:var(--red)}
+.vs{color:#fff;font-weight:500}
+.shared{border-top:1.5px dashed rgba(255,255,255,.6)}
+
+/* footer */
+footer{color:var(--text)}
+.foot-big{font-weight:800;-webkit-text-stroke:1.5px var(--red);letter-spacing:-.065em;text-transform:lowercase}
+.foot-big:hover{color:var(--red)}
+
+.cursor{background:var(--red);mix-blend-mode:normal}
+.cursor.big{background:var(--pink)}
+
+.stat b span{display:inline;margin:0;font-size:inherit;color:inherit}
+.wordmark{font-size:min(14vw,12.4rem)}
+html{overflow-x:clip}
+@media (prefers-reduced-motion:reduce){.ld-mid svg *{stroke-dasharray:none;stroke-dashoffset:0}}
+.hero{height:100svh;min-height:640px;padding-bottom:9vh;justify-content:center;padding-top:110px}
+.stats3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stats3 .stat{padding:56px 32px 60px}
+.stats3 .stat:first-child{padding-left:max(24px,calc((100vw - 1200px)/2 + 24px))}
+.stats3 .stat b{font-size:clamp(3.4rem,6.6vw,6.4rem);line-height:.9}
+.stats3 .stat span{font-size:1rem;max-width:30em}
+.stats3 .stat a{color:var(--ink)}
+@media (max-width:760px){.stats3{grid-template-columns:1fr}.stats3 .stat{border-right:0;border-bottom:1.5px solid var(--red);padding:40px 24px}.stats3 .stat:first-child{padding-left:24px}}
+/* score box: everything inside, prettier equation */
+.score-box{padding:24px 22px 20px;overflow:hidden}
+.formula{font-family:"STIX Two Text","Cambria Math","Times New Roman","Liberation Serif",serif;font-style:normal;white-space:normal;overflow:visible;
+  display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:.15em .32em;
+  font-size:clamp(1.05rem,1.5vw,1.32rem);line-height:1.6;color:var(--ink);background:var(--gold-soft);border:0;border-left:3px solid var(--red);padding:18px 16px;margin:0 0 18px;letter-spacing:0}
+.formula .t{white-space:nowrap}
+.formula .lhs{font-size:1.18em;font-weight:600}
+.formula i{font-style:italic}
+.formula .w{font-style:italic;color:var(--muted);margin-right:.06em}
+.formula sub{font-size:.58em;vertical-align:-.35em;line-height:0}
+.formula sub.it{font-style:italic;color:var(--muted);margin-left:.04em}
+.formula .op{font-family:Inter,sans-serif;font-weight:600;font-size:.9em;display:inline-flex;align-items:center;justify-content:center;width:1.35em;height:1.35em;border-radius:50%;align-self:center}
+.formula .op.eq{color:var(--ink);width:auto;margin:0 .1em}
+.formula .op.p{background:var(--green);color:#fff;font-size:.75em}
+.formula .op.m{background:var(--red);color:#fff;font-size:.75em}
+.terms{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.terms li{padding:12px 4px 10px;font-size:.72rem;min-width:0}
+.terms strong{font-size:.8rem;letter-spacing:-.02em;overflow-wrap:anywhere;hyphens:auto}
+@media (max-width:560px){.terms{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.stats3{border-top:1.5px solid var(--red)}
+.stats3 .stat{border-right:1.5px solid var(--red)}
+.stats3 .stat:last-child{border-right:0}
+/* classic display equation (LaTeX-like) */
+.formula{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:0;position:relative;
+  background:none;border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-left:0;
+  padding:22px 44px;margin:0 0 20px;font-size:clamp(1.1rem,1.55vw,1.38rem);color:var(--ink)}
+.formula .lhs{font-size:1em;font-weight:400}
+.formula .w,.formula sub.it{color:inherit}
+.formula .op,.formula .op.p,.formula .op.m,.formula .op.eq{background:none;color:inherit;width:auto;height:auto;border-radius:0;
+  font-family:inherit;font-weight:400;font-size:1em;margin:0 .45em;align-self:baseline}
+.formula .eqn{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:.8em;color:var(--muted);font-style:normal}
+.formula{flex-wrap:nowrap;white-space:nowrap;padding:22px 40px 22px 12px;font-size:clamp(1rem,1.38vw,1.26rem)}
+.formula .op,.formula .op.p,.formula .op.m,.formula .op.eq{margin:0 .3em}
+.formula .w sub{font-style:normal}
+.stats3 .stat{display:flex;flex-direction:column}
+.stats3 .stat span{margin-top:auto;padding-top:28px}
+/* course section inverted: red background, white type */
+section#course{background:var(--red);color:#fff;--ink:#fff;--text:rgba(255,255,255,.92);--muted:rgba(255,255,255,.85);--line:rgba(255,255,255,.4);border-bottom-color:var(--red)}
+#course h2,#course h3,#course .label,#course .label b{color:#fff}
+#course .label::after{background:#fff}
+#course .intro p{color:rgba(255,255,255,.88)}
+#course a{color:#fff}
+#course .course::before{background:rgba(255,255,255,.3)}
+#course .course::after{background:#fff}
+#course .course .n{background:var(--red);border:1.5px solid #fff;color:#fff}
+#course .course li.on .n{background:#fff;color:var(--red)}
+#course .course .body p{color:rgba(255,255,255,.92)}
+#course .course .made{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.55);color:#fff}
+#course .course .made b{color:#fff}
+#course ::selection{background:#fff;color:var(--red)}
+.course .made{align-self:start}
+/* criteria hover: no layout shift; a thick rule sweeps across the top and the number fills */
+.criteria div,.criteria div:hover{padding-left:0}
+.criteria div{position:relative}
+.criteria div::after{content:"";position:absolute;left:0;right:0;top:-1.5px;height:4px;background:var(--red);transform:scaleX(0);transform-origin:left;transition:transform .6s var(--out)}
+.criteria div:hover::after{transform:scaleX(1)}
+.criteria div::before{align-self:start;justify-self:start;padding:2px 6px;line-height:1.2;transition:background .3s,color .3s}
+.criteria div:hover::before{background:var(--red);color:#fff}
+.session{padding:120px 0 0;border-bottom:0}
+.session h2{margin-bottom:56px}
+.ses-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1.5px solid var(--red)}
+.ses{padding:44px 32px 52px;display:flex;flex-direction:column;border-right:1.5px solid var(--red)}
+.ses:first-child{padding-left:max(24px,calc((100vw - 1200px)/2 + 24px))}
+.ses:last-child{border-right:0}
+.ses b{font-family:var(--display);font-weight:800;letter-spacing:-.05em;font-size:clamp(3rem,5.6vw,5.4rem);line-height:.9;color:var(--ink)}
+.ses p{margin:26px 0 0;max-width:28em;color:var(--text)}
+.ses .pill{align-self:flex-start;margin-top:22px}
+.ses-contact{display:block;background:var(--red);color:#fff;text-decoration:none;padding:56px 0 60px;position:relative;overflow:hidden;isolation:isolate}
+.ses-contact::before{content:"";position:absolute;inset:0;background:#fff;transform:translateY(101%);transition:transform .6s var(--out);z-index:-1}
+.ses-contact .wrap{display:flex;flex-direction:column;gap:14px}
+.ses-contact .k{font-size:.85rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+.ses-contact .mail{font-family:var(--display);font-weight:800;letter-spacing:-.045em;font-size:clamp(2rem,5.4vw,5rem);line-height:1;transition:color .4s}
+.ses-contact .arr{display:inline-block;transition:transform .4s var(--out)}
+.ses-contact:hover::before{transform:translateY(0)}
+.ses-contact:hover{color:var(--red)}
+.ses-contact:hover .arr{transform:translateX(12px)}
+@media (max-width:860px){.ses-row{grid-template-columns:1fr}.ses{border-right:0;border-bottom:1.5px solid var(--red);padding:36px 24px}.ses:first-child{padding-left:24px}}
+.session h2{margin-bottom:48px}
+.tl{margin-bottom:28px}
+.tl-head{display:flex;justify-content:space-between;margin-bottom:10px}
+.tl-k{font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.tl-bar{display:grid;grid-template-columns:1fr 2fr;border:1.5px solid var(--red)}
+.seg{padding:22px 24px 26px;position:relative}
+.seg b{display:block;font-family:var(--display);font-weight:800;letter-spacing:-.045em;font-size:clamp(2rem,3.6vw,3.2rem);line-height:.95;color:var(--ink)}
+.seg span{display:block;margin-top:6px;font-size:.95rem}
+.seg.seg-a{background:var(--gold-soft);border-right:1.5px solid var(--red)}
+.seg.seg-b{background:var(--red);color:#fff;padding-bottom:58px}
+.seg.seg-b b,.seg.seg-b > span{color:#fff}
+.ticks{position:absolute;left:24px;right:24px;bottom:14px;display:flex;justify-content:space-between}
+.ticks i{width:28px;height:28px;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:.72rem;font-weight:700;background:#fff;color:var(--red)}
+.ticks i.opt{background:transparent;color:#fff;border-style:dashed}
+.ticks i span{margin:0;font-size:.72rem;color:inherit}
+.ses-cards{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;margin-bottom:96px}
+.card{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center;border:1.5px solid var(--red);padding:26px;text-decoration:none;color:var(--text);transition:background .4s,color .4s}
+.card h3{font-size:1.7rem;font-weight:700;margin:0 0 8px;color:var(--ink)}
+.card p{margin:0;font-size:.95rem}
+.win{width:150px;border:1.5px solid var(--red);background:#fff}
+.win .bar{display:flex;gap:4px;align-items:center;padding:6px;border-bottom:1.5px solid var(--red)}
+.win .bar i{width:6px;height:6px;border-radius:50%;background:var(--red)}
+.win .bar span{flex:1;height:6px;margin-left:6px;background:var(--gold-soft)}
+.win .sheet{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:7px}
+.win .sheet em{height:9px;background:var(--gold-soft)}
+.win .sheet em:nth-child(-n+4){background:var(--red)}
+.win .sheet em:nth-child(7),.win .sheet em:nth-child(14),.win .sheet em:nth-child(21){background:rgba(18,45,219,.45)}
+.doc{width:74px;height:94px;border:1.5px solid var(--red);padding:12px 10px;display:flex;flex-direction:column;gap:7px;background:#fff;position:relative}
+.doc i{height:4px;background:var(--gold-soft)}.doc i:first-child{background:var(--red);width:70%}
+.guide .arr{display:inline-block;transition:transform .4s var(--out)}
+.guide:hover{background:var(--red);color:#fff}
+.guide:hover h3{color:#fff}
+.guide:hover .arr{transform:translateX(8px)}
+@media (max-width:860px){.tl-bar{grid-template-columns:1fr}.seg.seg-a{border-right:0;border-bottom:1.5px solid var(--red)}.ses-cards{grid-template-columns:1fr}.ticks i{width:22px;height:22px}}
+.seg{display:flex;flex-direction:column;align-items:flex-start}
+.seg .ticks i span{display:inline;margin:0;color:inherit;font-size:.72rem}
+.seg .ticks i{color:var(--red)}.seg .ticks i.opt{color:#fff}
+.ticks-k{position:absolute;right:24px;top:24px;font-size:.75rem;opacity:.85}
+.lvl{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
+.opt{font-size:.68rem;border:1px dashed var(--red);padding:0 4px;margin-left:4px;white-space:nowrap;color:var(--ink)}
+.new{font-size:.62rem;font-weight:800;letter-spacing:.08em;background:var(--red);color:#fff;padding:1px 5px;margin-left:6px;vertical-align:middle}
+.mxwrap{margin-top:36px;overflow-x:auto}
+.mx{min-width:820px}
+details.prov{margin-top:28px;border:1.5px solid var(--red)}
+details.prov summary{list-style:none;cursor:pointer;padding:16px 20px;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;gap:16px}
+details.prov summary::-webkit-details-marker{display:none}
+details.prov summary i{font-style:normal;transition:transform .3s}
+details.prov[open] summary i{transform:rotate(45deg)}
+details.prov[open] summary{border-bottom:1.5px solid var(--red)}
+details.prov .tablewrap{border:0}
+
+.mx{width:100%;border-collapse:collapse;font-size:.9rem}
+.mx th,.mx td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+.mx thead th{border-bottom:1.5px solid var(--red);vertical-align:bottom;width:17%}
+.mx thead th:first-child{width:32%}
+.mx thead b{display:block;font-size:2rem;font-weight:800;letter-spacing:-.045em;line-height:.95;color:var(--ink);margin:6px 0 10px}
+.mx thead .lv-tag{display:inline-block;border:1.5px solid var(--red);font-size:.72rem;padding:0 7px;font-weight:500}
+.mx thead .for{display:block;font-size:.8rem;font-weight:600;background:var(--gold-soft);padding:6px 8px;margin-top:10px;color:var(--ink);text-transform:none;letter-spacing:0}
+.mx tr.grp td{background:var(--red);color:#fff;font-weight:700;font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;padding:9px 14px;border:0}
+.mx tr.learn td{font-size:.82rem;color:var(--text);background:#fff}
+.mx td.c{text-align:center;vertical-align:middle}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--red)}
+.dot.o{background:transparent;border:1.5px solid var(--line)}
+.mx td.c.n{background:var(--gold-soft)}
+.mx tbody tr:hover td:not(.grp){background:rgba(18,45,219,.05)}
+.legend{display:flex;gap:22px;font-size:.82rem;margin-top:14px;color:var(--ink);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+
+/* 2 hero spacing */
+.hero-row{margin-top:76px}
+/* 4 demo verdict legible */
+.lab .verdict,.lab .verdict p,.lab .verdict b{color:#fff}
+.lab .verdict .muted{color:rgba(255,255,255,.78)}
+/* signs keep red/green meaning */
+.terms b.down,.lab .neg{background-color:transparent}
+.terms b.down{background:var(--neg)}
+.lab .neg{color:var(--neg)}
+.guide-hero{display:grid;grid-template-columns:auto 1fr auto;gap:40px;align-items:center;background:var(--red);color:#fff;text-decoration:none;padding:44px 48px;margin-bottom:40px;position:relative;overflow:hidden;isolation:isolate}
+.guide-hero::before{content:"";position:absolute;inset:0;background:#0b1a9e;transform:scaleX(0);transform-origin:left;transition:transform .7s var(--out);z-index:-1}
+.guide-hero:hover::before{transform:scaleX(1)}
+.gdoc{width:110px;height:140px;background:#fff;padding:18px 14px;display:flex;flex-direction:column;gap:9px;transform:rotate(-4deg);box-shadow:10px 10px 0 rgba(255,255,255,.25);transition:transform .5s var(--out)}
+.guide-hero:hover .gdoc{transform:rotate(0) translateY(-4px)}
+.gdoc i{height:5px;background:rgba(18,45,219,.18)}.gdoc i:first-child{background:var(--red);width:65%;height:7px}
+.gk{display:block;font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.85;margin-bottom:10px}
+.gtxt b{display:block;font-family:var(--display);font-weight:800;letter-spacing:-.05em;font-size:clamp(2.6rem,5.6vw,5.2rem);line-height:.92}
+.gtxt p{margin:14px 0 0;font-size:1.1rem;color:rgba(255,255,255,.9)}
+.garr{font-size:clamp(3rem,6vw,5.5rem);line-height:1;transition:transform .5s var(--out)}
+.guide-hero:hover .garr{transform:translateX(14px)}
+.ses-cards{grid-template-columns:1fr}
+.tl .seg b{font-size:clamp(1.6rem,2.6vw,2.3rem)}
+@media (max-width:760px){.guide-hero{grid-template-columns:1fr;padding:32px 24px;gap:22px}.gdoc{width:80px;height:100px}.garr{display:none}}
+.session{padding-bottom:120px;border-bottom:1.5px solid var(--red)}
+.guide-hero{margin-bottom:0}
+.contact-sec{padding:0;border-bottom:1.5px solid var(--red)}
+.contact-sec .ses-contact{background:#fff;color:var(--ink);padding:90px 0 96px}
+.contact-sec .ses-contact::before{background:var(--red)}
+.contact-sec .ses-contact:hover{color:#fff}
+/* demo guess buttons: undo the old timeline .seg styles */
+.guess .seg{display:flex;flex-direction:row;align-items:stretch;padding:0;position:static;background:#fff}
+.guess .seg button{flex:1}
 </style>
 </head>
 <body>
 
-<header class="hero">
+<div id="loader" aria-hidden="true">
+  <div class="ld-top"><span>Macroscope</span><span>OPEN-MU · v2.0</span></div>
+  <div class="ld-mid">
+    <svg viewBox="0 0 26 26"><circle cx="11" cy="11" r="8" fill="none" stroke="#ffffff" stroke-width="2.4"/><path d="M6.5 13.5l3-3 2.5 2 3.5-4" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 17l6 6" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/></svg>
+    <p class="ld-step" id="ld-step">Calibrating the model…</p>
+  </div>
+  <div class="ld-bottom">
+    <div class="ld-count"><span id="ld-n">0</span></div>
+    <div class="ld-bar"><i id="ld-bar"></i></div>
+  </div>
+</div>
+
+<div class="cursor" id="cursor" aria-hidden="true"></div>
+
+<nav class="nav" id="nav" aria-label="Main">
   <div class="wrap">
-    <div class="hero-body">
-      <p class="kicker">A free and open teaching game for macroeconomics</p>
-      <h1 class="wordmark"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="none" stroke="#c29d2c" stroke-width="2.4"/><path d="M6.5 13.5l3-3 2.5 2 3.5-4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 17l6 6" stroke="#c29d2c" stroke-width="2.6" stroke-linecap="round"/></svg>Macroscope</h1>
+    <a class="brand" href="#top"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="none" stroke="#122ddb" stroke-width="2.4"/><path d="M6.5 13.5l3-3 2.5 2 3.5-4" fill="none" stroke="#122ddb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 17l6 6" stroke="#122ddb" stroke-width="2.6" stroke-linecap="round"/></svg>Macroscope</a>
+    <ul>
+      <li><a href="#principle">How it works</a></li>
+      <li><a href="#course">How a course uses it</a></li>
+      <li><a href="#versions">The versions</a></li>
+      <li><a href="mailto:leo.malherbe@kedgebs.com">Contact</a></li>
+    </ul>
+    <a class="pill" href="#try">Try the demo <span class="arr">→</span></a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <svg class="hero-chart" id="hero-chart" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#122ddb" stop-opacity=".35"/><stop offset="1" stop-color="#122ddb" stop-opacity="0"/></linearGradient></defs>
+    <g class="grid"><line x1="0" y1="180" x2="1440" y2="180"/><line x1="0" y1="330" x2="1440" y2="330"/><line x1="0" y1="480" x2="1440" y2="480"/><line x1="240" y1="0" x2="240" y2="900"/><line x1="600" y1="0" x2="600" y2="900"/><line x1="960" y1="0" x2="960" y2="900"/><line x1="1320" y1="0" x2="1320" y2="900"/></g>
+    <path class="ref" d="M0 330 L1440 250"/>
+    <path class="area" d="M0 340 C120 330 240 320 360 318 S520 300 600 300 C640 300 660 420 720 440 S820 420 880 380 S1040 300 1120 280 S1320 240 1440 220 L1440 900 L0 900 Z"/>
+    <path class="act" d="M0 340 C120 330 240 320 360 318 S520 300 600 300 C640 300 660 420 720 440 S820 420 880 380 S1040 300 1120 280 S1320 240 1440 220"/>
+    
+  </svg>
+  <div class="wrap">
+    <p class="kicker"><i></i>A free and open teaching game for macroeconomics</p>
+    <h1 class="wordmark" id="wordmark" aria-label="Macroscope">Macroscope</h1>
+    <div class="hero-row">
       <p class="tagline">Learn economic policy by governing an economy.</p>
-      <p class="lead">Students run the government of a country in a monetary union. Each year they face a shock, choose their policy, and write down why: which effects they expect, through which channels. A model they have studied computes what actually happens.</p>
-      <p class="lead">The game is the experiment. The learning is in the gap between what they expected and what they got, and in how well they explain it.</p>
-      <ul class="facts">
-        <li><b>Free</b>for any teacher, any class, any number of games</li>
-        <li><b>Open</b>the code, the model and its equations are <a href="https://github.com/leomalherbe/internationalfinancialmacro">on GitHub</a>, free to reuse and adapt for non-commercial use, with credit</li>
-        <li><b>Nothing to install</b>it runs in a browser; your data stays in your own Google Sheet</li>
-      </ul>
-      <div class="hero-links">
-        <a href="#principle">How it works</a>
-        <a href="#course">How a course uses it</a>
-        <a href="#versions">The versions of the model</a>
-        <a href="#try">A mini demo</a>
+      <div>
+        <p class="lead">Students run the government of a country in a monetary union. Each year they face a shock, choose their policy, and write down why: which effects they expect, through which channels. A model they have studied computes what actually happens.</p>
+        <p class="lead"><b>The game is the experiment.</b> The learning is in the gap between what they expected and what they got, and in how well they explain it.</p>
       </div>
     </div>
   </div>
@@ -213,38 +737,45 @@ footer p{margin:0}
 
 <main>
 
+<div class="stats stats3" aria-label="Macroscope at a glance">
+  <div class="stat" data-reveal><b>Free</b><span>for any teacher, any class, any number of games</span></div>
+  <div class="stat" data-reveal style="--d:.08s"><b>Open</b><span>the code, the model and its equations are <a href="https://github.com/leomalherbe/internationalfinancialmacro">on GitHub</a>, free to reuse and adapt for non-commercial use</span></div>
+  <div class="stat" data-reveal style="--d:.16s"><b>Instant</b><span>nothing to install: it runs in a browser; your data stays in your own Google Sheet</span></div>
+</div>
+
 <section id="principle">
   <div class="wrap">
+    <div class="label"><b>01</b> How it works</div>
     <div class="intro">
-      <h2>One year of play, in four steps</h2>
-      <p>Every version of the game runs the same loop. The administrator, usually the teacher, decides what happens to the world. The teams decide what their government does. The model decides the rest.</p>
+      <h2 class="split">One year of play, in four steps</h2>
+      <p data-reveal>Every version of the game runs the same loop. The administrator, usually the teacher, decides what happens to the world. The teams decide what their government does. The model decides the rest.</p>
     </div>
     <div class="loop">
-      <div>
-        <h3><i>1</i>Shocks</h3>
+      <div data-reveal>
+        <h3><i>01</i>Shocks</h3>
         <p>The administrator announces what hits the economy this year: a recession abroad, a loss of household confidence, and more as the model gets richer.</p>
       </div>
-      <div>
-        <h3><i>2</i>Levers</h3>
+      <div data-reveal style="--d:.08s">
+        <h3><i>02</i>Levers</h3>
         <p>Each team sets its government's policy for the year, and votes with the other governments on the decisions they share. Every decision comes with a written justification.</p>
       </div>
-      <div>
-        <h3><i>3</i>Simulation</h3>
+      <div data-reveal style="--d:.16s">
+        <h3><i>03</i>Simulation</h3>
         <p>A stock-flow consistent model of the union computes the year: every flow comes from one sector and goes to another, every stock is the sum of its flows. Every equation is published.</p>
       </div>
-      <div>
-        <h3><i>4</i>Results</h3>
+      <div data-reveal style="--d:.24s">
+        <h3><i>04</i>Results</h3>
         <p>Growth, unemployment, inflation, the public and external accounts, and a score. Each result is split between the team's own policy, the other governments and the shocks.</p>
       </div>
     </div>
     <div class="score">
-      <div class="score-text">
+      <div class="score-text" data-reveal>
         <h3>One number to maximise</h3>
         <p>Each year, every government is scored on five results, each measured as a gap from the reference path: the path the economy would have followed with no shock and no policy. Growth, the public balance and the trade balance count in its favour; unemployment and inflation against it.</p>
         <p>The weights are set by the teacher, equal by default. The score of each year is added up, and the ranking goes to the highest total. Every result is also split between the team's own policy, the other governments and the shocks, so that nobody can blame the weather for their own decisions, or take credit for someone else's.</p>
       </div>
-      <div class="score-box">
-        <p class="formula" aria-label="R for country i in year t equals a1 times the GDP gap, minus a2 times the unemployment gap, minus a3 times the inflation gap, plus a4 times the public balance gap, plus a5 times the trade balance gap"><i>R</i><sub><i>i,t</i></sub> = <i>a</i><sub>1</sub>ΔGDP<sub><i>i,t</i></sub> − <i>a</i><sub>2</sub>Δ<i>U</i><sub><i>i,t</i></sub> − <i>a</i><sub>3</sub>Δ<i>π</i><sub><i>i,t</i></sub> + <i>a</i><sub>4</sub>ΔPB<sub><i>i,t</i></sub> + <i>a</i><sub>5</sub>ΔTB<sub><i>i,t</i></sub></p>
+      <div class="score-box" data-reveal style="--d:.1s">
+        <p class="formula" role="math" aria-label="R for country i in year t equals a1 times the GDP gap, minus a2 times the unemployment gap, minus a3 times the inflation gap, plus a4 times the public balance gap, plus a5 times the trade balance gap"><span class="t lhs"><i>R</i><sub class="it">i,t</sub></span><span class="op eq">=</span><span class="t"><span class="w">a<sub>1</sub></span>ΔGDP<sub class="it">i,t</sub></span><span class="op m">−</span><span class="t"><span class="w">a<sub>2</sub></span>Δ<i>U</i><sub class="it">i,t</sub></span><span class="op m">−</span><span class="t"><span class="w">a<sub>3</sub></span>Δ<i>π</i><sub class="it">i,t</sub></span><span class="op p">+</span><span class="t"><span class="w">a<sub>4</sub></span>ΔPB<sub class="it">i,t</sub></span><span class="op p">+</span><span class="t"><span class="w">a<sub>5</sub></span>ΔTB<sub class="it">i,t</sub></span><span class="eqn">(1)</span></p>
         <ul class="terms">
           <li><b class="up" aria-label="counts in favour">+</b><span><strong>GDP</strong>volume, gap in %</span></li>
           <li><b class="down" aria-label="counts against">−</b><span><strong>Unemployment</strong>rate, gap in points</span></li>
@@ -252,28 +783,29 @@ footer p{margin:0}
           <li><b class="up" aria-label="counts in favour">+</b><span><strong>Public balance</strong>gap in points of GDP</span></li>
           <li><b class="up" aria-label="counts in favour">+</b><span><strong>Trade balance</strong>gap in points of GDP</span></li>
         </ul>
-        <p class="small muted" style="margin:12px 0 0">In the climate version, emissions are a sixth term, with a weight of zero until voters decide otherwise.</p>
+        <p class="small muted" style="margin:14px 0 0">In the climate version, emissions are a sixth term, with a weight of zero until voters decide otherwise.</p>
       </div>
     </div>
-    <aside class="elections">
+    <aside class="elections" data-reveal>
       <h3>Voters change their minds</h3>
       <p>In the real world, the goals of economic policy are not given once and for all. An election can bring in a government that cares more about jobs than about the deficit, or one that puts the climate first. In Macroscope, the administrator can hold an election in any country, or across the whole union, from a given year: the weights of the score change, and a strategy that won yesterday may lose tomorrow.</p>
     </aside>
-    <div class="richer">
-      <svg width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="26" width="10" height="12" rx="2" fill="#e6e2d6"/><rect x="18" y="18" width="10" height="20" rx="2" fill="#d6c79a"/><rect x="34" y="10" width="10" height="28" rx="2" fill="#c29d2c"/><rect x="50" y="2" width="10" height="36" rx="2" fill="#14213d"/></svg>
+    <div class="richer" data-reveal>
+      <svg width="80" height="50" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="26" width="10" height="12" rx="2" fill="rgba(18,45,219,.18)"/><rect x="18" y="18" width="10" height="20" rx="2" fill="rgba(18,45,219,.4)"/><rect x="34" y="10" width="10" height="28" rx="2" fill="rgba(18,45,219,.7)"/><rect x="50" y="2" width="10" height="36" rx="2" fill="#122ddb"/></svg>
       <p>Then the next year begins, from where the last one left the economy. <strong>The richer the model chosen, the more there is to play with:</strong> more possible shocks, more levers, more channels through which a policy travels. The version is picked to fit the class.</p>
     </div>
   </div>
 </section>
 
-<section id="course" class="tint">
+<section id="course" class="light">
   <div class="wrap">
+    <div class="label"><b>02</b> In the classroom</div>
     <div class="intro">
-      <h2>A course first, then a game</h2>
-      <p>Macroscope can be played for its own sake, but it was built for teaching. The model under the game is chosen to fit the students, its mechanisms are taught before anyone plays, and the game is assessed on the quality of the reasoning, not only on the score.</p>
+      <h2 class="split">A course first, then a game</h2>
+      <p data-reveal>Macroscope can be played for its own sake, but it was built for teaching. The model under the game is chosen to fit the students, its mechanisms are taught before anyone plays, and the game is assessed on the quality of the reasoning, not only on the score.</p>
     </div>
-    <ol class="course">
-      <li>
+    <ol class="course" id="course-rail">
+      <li data-reveal>
         <div class="n">1</div>
         <div class="body">
           <h3>Choose the model that fits the class</h3>
@@ -281,7 +813,7 @@ footer p{margin:0}
         </div>
         <div class="made"><b>The teacher sets</b>the version, the number of years, the weights of the objective and the shocks of each year.</div>
       </li>
-      <li>
+      <li data-reveal>
         <div class="n">2</div>
         <div class="body">
           <h3>Teach the mechanisms it contains</h3>
@@ -289,7 +821,7 @@ footer p{margin:0}
         </div>
         <div class="made"><b>Students learn</b>the accounting, the behaviours and the transmission channels of their version.</div>
       </li>
-      <li>
+      <li data-reveal>
         <div class="n">3</div>
         <div class="body">
           <h3>Play, and justify every decision</h3>
@@ -297,7 +829,7 @@ footer p{margin:0}
         </div>
         <div class="made"><b>Students write</b>a strategy before the warm-up, then a justification with each year's decisions. The teacher sets the minimum length.</div>
       </li>
-      <li>
+      <li data-reveal>
         <div class="n">4</div>
         <div class="body">
           <h3>Look back, and assess</h3>
@@ -311,100 +843,75 @@ footer p{margin:0}
 
 <section>
   <div class="wrap assess">
-    <div>
-      <blockquote>The score says how the economy did. The written work says whether the team understood why.</blockquote>
-      <p class="muted" style="margin-top:18px">A team can lose on the score and earn the better grade, if it saw the shock coming, chose a coherent policy, and explains exactly what went against it. The criteria below are a starting point, not a fixed grid.</p>
+    <div data-reveal>
+      <div class="label"><b>03</b> Assessment</div>
+      <blockquote>The score says how the economy did. <em>The written work says whether the team understood why.</em></blockquote>
+      <p class="muted" style="margin-top:24px">A team can lose on the score and earn the better grade, if it saw the shock coming, chose a coherent policy, and explains exactly what went against it. The criteria below are a starting point, not a fixed grid.</p>
     </div>
     <dl class="criteria">
-      <div><dt>Diagnosis</dt><dd>Does the team read its situation correctly: the shock, the state of its public and external accounts, the constraints it faces?</dd></div>
-      <div><dt>Expected effects</dt><dd>Does each decision come with a mechanism: the channel, the sign, a sense of size and timing, the side effects on the other objectives?</dd></div>
-      <div><dt>Coherence</dt><dd>Do the decisions follow the strategy from year to year, and does the strategy change for a reason when the situation changes?</dd></div>
-      <div><dt>Hindsight</dt><dd>Does the analysis explain the gap between expected and actual results, using the decomposition, rather than blaming bad luck?</dd></div>
+      <div data-reveal><dt>Diagnosis</dt><dd>Does the team read its situation correctly: the shock, the state of its public and external accounts, the constraints it faces?</dd></div>
+      <div data-reveal style="--d:.08s"><dt>Expected effects</dt><dd>Does each decision come with a mechanism: the channel, the sign, a sense of size and timing, the side effects on the other objectives?</dd></div>
+      <div data-reveal style="--d:.16s"><dt>Coherence</dt><dd>Do the decisions follow the strategy from year to year, and does the strategy change for a reason when the situation changes?</dd></div>
+      <div data-reveal style="--d:.24s"><dt>Hindsight</dt><dd>Does the analysis explain the gap between expected and actual results, using the decomposition, rather than blaming bad luck?</dd></div>
     </dl>
   </div>
 </section>
 
 <section id="versions" class="tint">
   <div class="wrap">
+    <div class="label"><b>04</b> Under the hood</div>
     <div class="intro">
-      <h2>The versions of the model</h2>
-      <p>The engine, OPEN-MU, is a stock-flow consistent model in the post-Keynesian tradition. It was built in steps: it starts from Godley and Lavoie's <em>Monetary Economics</em> (2007), and each version adds a mechanism, either taken from the literature or built for the game. Read the table from the simplest to the richest and choose the row that matches what the class has learned.</p>
-      <p class="eqlink"><a class="btn-eq" href="model.html">Read the full equations of the model</a><span>notation, equations, parameters and orders of magnitude, version by version</span></p>
+      <h2 class="split">The versions of the model</h2>
+      <div data-reveal>
+        <p>The engine, OPEN-MU, is a stock-flow consistent model in the post-Keynesian tradition. It was built in steps: it starts from Godley and Lavoie's <em>Monetary Economics</em> (2007), and each version adds a mechanism, either taken from the literature or built for the game. Read the table from the simplest to the richest and choose the column that matches what the class has learned.</p>
+      </div>
     </div>
-    <div class="tablewrap">
+    <p class="eqlink" data-reveal><a class="pill" href="model.html">Read the full equations of the model <span class="arr">→</span></a><span>notation, equations, parameters and orders of magnitude, version by version</span></p>
+<div class="mxwrap" data-reveal><table class="mx"><thead><tr><th><span class="lvl">Read left to right: each version keeps everything before it</span></th><th><span class="lv-tag">version 1.1</span><b>The union</b><span class="for">First course in macroeconomics</span></th><th><span class="lv-tag">version 1.2</span><b>Prices</b><span class="for">Bachelor's in international macroeconomics</span></th><th><span class="lv-tag">version 1.3</span><b>Capital</b><span class="for">Master's in international financial macroeconomics</span></th><th><span class="lv-tag">version 2.0</span><b>Climate</b><span class="for">Ecological macroeconomics</span></th></tr></thead><tbody><tr class="learn"><td><b>What students learn</b></td><td>Multipliers and leakages through imports; twin deficits; the external constraint.</td><td>Competitiveness and inflation differentials; internal devaluation.</td><td>Interest rates, capital flows and the exchange rate; pegs, sudden stops, spreads.</td><td>The climate as a global public good; free riding; the transition.</td></tr><tr class="grp"><td colspan="5">Shocks, set by the administrator</td></tr><tr><td>World demand for the union's exports</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Household confidence</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>The share of spending that goes to imports</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>A devaluation against the rest of the world</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>A tariff of the rest of the world on the union's exports<span class="opt">tariffs on</span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>The exchange-rate regime, fixed or floating</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Capital flows, up to a sudden stop</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>The world interest rate</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>The central bank's backstop, on or off</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>World emissions</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td></tr><tr><td>A climate disaster</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td></tr><tr class="grp"><td colspan="5">Decisions, taken by the teams</td></tr><tr><td>Public demand</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Social benefits</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Income tax rate</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Consumption tax</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Vote on the central bank's rate: cut, hold or hike</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Vote when the reserves run low: austerity or devaluation</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Vote on a common external tariff<span class="opt">tariffs on</span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Relative prices: the same decisions now also move them</td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Vote when the currency falls by more than 10 %: defend it or let it fall</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Announce an exit from the union<span class="opt">exit on</span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Once out: a national policy rate, a tariff on the union's goods<span class="opt">exit on</span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>For the others: a response to the leaver<span class="opt">exit on</span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Carbon tax</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td></tr><tr><td>Green public investment</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td></tr></tbody></table><div class="legend"><span><i class="dot"></i>available</span><span><span class="new" style="margin:0">NEW</span>first version where it appears</span><span><i class="dot o"></i>not yet</span><span><span class="opt" style="margin:0">tariffs on</span>optional switch</span></div><details class="prov"><summary><span>Where each mechanism comes from: the literature and what was built for Macroscope</span><i>+</i></summary><div class="tablewrap">
       <table class="v">
         <thead><tr><th scope="col">Version</th><th scope="col">Taken from the literature</th><th scope="col">Built for Macroscope</th><th scope="col">What students learn</th></tr></thead>
         <tbody>
           <tr>
-            <td><b>The union</b><span>version 1.1</span><a class="eq" href="model.html#households">Equations</a></td>
+            <td><b>The union</b><span>version 1.1</span><a class="eq" href="model.html#households">Equations →</a></td>
             <td>The open economy of Godley and Lavoie's chapter 6: a fixed exchange rate and a stock of foreign reserves. Investment financed by bank loans and amortisation funds, after their chapter 7.</td>
             <td>The economy split into two to seven members, one per team, sharing a currency, a central bank and a pool of reserves. Investment that responds to the interest rate rather than to an accelerator. An alert line on the reserves and a crisis vote. Optional tariffs.</td>
             <td>Multipliers and leakages through imports; why one country's stimulus is its partners' exports; twin deficits; the external constraint.</td>
           </tr>
           <tr>
-            <td><b>Prices</b><span>version 1.2</span><a class="eq" href="model.html#trade">Equations</a></td>
+            <td><b>Prices</b><span>version 1.2</span><a class="eq" href="model.html#trade">Equations →</a></td>
             <td class="muted">Nothing new.</td>
             <td>Relative price levels in trade: a member whose prices rise faster than its partners' loses market share, year after year.</td>
             <td>Competitiveness and inflation differentials inside a union; internal devaluation as the only adjustment left.</td>
           </tr>
           <tr>
-            <td><b>Capital</b><span>version 1.3</span><a class="eq" href="model.html#capital">Equations</a></td>
+            <td><b>Capital</b><span>version 1.3</span><a class="eq" href="model.html#capital">Equations →</a></td>
             <td>Capital flows, portfolio choices, fixed and flexible exchange rates, after Godley and Lavoie's chapter 12.</td>
             <td>A regime chosen year by year. A risk premium on public debt above 110 % of GDP. A central bank that may or may not stand behind its members' debt. A currency-crisis vote. Optionally, a member leaving the union, with its own currency, its debts to the union's central bank and the others' retaliation.</td>
             <td>How interest rates, capital flows and the exchange rate move together; what a peg costs and what floating changes; sudden stops; sovereign spreads and what a lender of last resort is for.</td>
           </tr>
           <tr>
-            <td><b>Climate</b><span>version 2.0</span><a class="eq" href="model.html#eco">Equations</a></td>
+            <td><b>Climate</b><span>version 2.0</span><a class="eq" href="model.html#eco">Equations →</a></td>
             <td>Inspired by DEFINE (Dafermos, Nikolaidi and Galanis, 2017), simplified: emissions, a carbon stock that accumulates, a damage function. Materials, energy and green finance are left out, and time is compressed to fit a game.</td>
             <td>Damage that raises structural unemployment and inflation. A carbon tax, and green public investment that is largely imported and has diminishing returns. Emissions as an objective that voters can switch on.</td>
             <td>The climate as a global public good; free riding; the cost and timing of the transition.</td>
           </tr>
         </tbody>
       </table>
-    </div>
-
-    <h3 class="subhead">What can be played, version by version</h3>
-    <p class="muted small" style="max-width:68ch">Each shock and each decision appears once, in the simplest version where it can be played; every richer version keeps it.</p>
-    <div class="tablewrap">
-      <table class="v play">
-        <thead><tr><th scope="col">Version</th><th scope="col">Shocks, set by the administrator</th><th scope="col">Decisions, taken by the teams</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><b>The union</b><span>version 1.1</span></td>
-            <td><ul><li>World demand for the union's exports</li><li>Household confidence</li><li>The share of spending that goes to imports</li><li>A devaluation against the rest of the world</li><li>A tariff of the rest of the world on the union's exports <small>with tariffs on</small></li></ul></td>
-            <td><ul><li>Public demand</li><li>Social benefits</li><li>Income tax rate</li><li>Consumption tax</li><li>Vote on the central bank's rate: cut, hold or hike</li><li>Vote when the reserves run low, under the fixed rate: austerity or devaluation</li><li>Vote on a common external tariff <small>with tariffs on</small></li></ul></td>
-          </tr>
-          <tr>
-            <td><b>Prices</b><span>version 1.2</span></td>
-            <td class="muted">No new shock.</td>
-            <td class="muted">No new decision: the same ones now also move relative prices.</td>
-          </tr>
-          <tr>
-            <td><b>Capital</b><span>version 1.3</span></td>
-            <td><ul><li>The exchange-rate regime, fixed or floating</li><li>Capital flows, up to a sudden stop</li><li>The world interest rate</li><li>The central bank's backstop, on or off</li></ul></td>
-            <td><ul><li>Vote when the currency falls by more than 10 % in a year, under a floating rate: defend it with a rate hike, or let it fall</li><li>Announce an exit from the union <small>with exit on</small></li><li>Once out: a national policy rate, a tariff on the union's goods</li><li>For the others: a response to the leaver, from tariffs to the sale of its bonds</li></ul></td>
-          </tr>
-          <tr>
-            <td><b>Climate</b><span>version 2.0</span></td>
-            <td><ul><li>World emissions</li><li>A climate disaster</li></ul></td>
-            <td><ul><li>Carbon tax</li><li>Green public investment</li></ul></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="small muted" style="margin-top:20px">Every equation, parameter and order of magnitude is set out, version by version, on the <a href="model.html">model page</a>.</p>
+    </div></details></div>
+<p class="small muted" style="margin-top:24px">Every equation, parameter and order of magnitude is set out, version by version, on the <a href="model.html">model page</a>.</p>
   </div>
 </section>
 
 <section id="try">
   <div class="wrap try">
     <div>
-      <h2>A mini demo of the engine</h2>
-      <p>This is not the game. There are no other teams, no council, no votes and no second year: just version 1.2 of the engine, running in your browser, for one country and one shock. It gives a taste of the reasoning the game asks for.</p>
-      <p>Before you run, say what the shock will do, then what your policy will do. In the game, that reasoning is the justification each team writes with its decisions, and the gap between what it expected and what happened is what its analysis has to explain.</p>
+      <div class="label"><b>05</b> Try it</div>
+      <h2 class="split">A mini demo of the engine</h2>
+      <p data-reveal>This is not the game. There are no other teams, no council, no votes and no second year: just version 1.2 of the engine, running in your browser, for one country and one shock. It gives a taste of the reasoning the game asks for.</p>
+      <p data-reveal>Before you run, say what the shock will do, then what your policy will do. In the game, that reasoning is the justification each team writes with its decisions, and the gap between what it expected and what happened is what its analysis has to explain.</p>
     </div>
 
-    <div class="lab" id="lab" aria-labelledby="lab-title">
+    <div class="lab" id="lab" aria-labelledby="lab-title" data-reveal>
       <div class="lab-head"><h3 id="lab-title">Mini demo</h3><span>one country, one year, model 1.2</span></div>
       <p class="lab-intro">You set France’s policy; the other members of the union stay put.</p>
 
@@ -447,27 +954,18 @@ footer p{margin:0}
   </div>
 </section>
 
-<section class="tint">
-  <div class="wrap two">
-    <div>
-      <h2>Also a game in its own right</h2>
-      <p>Outside a course, Macroscope plays as a strategy game between governments. The union has two to seven members, one per team, so the game fits the number of players. Teams play on a phone or a laptop with a PIN; the board is projected for the whole room.</p>
-      <ul>
-        <li><strong>A council of ministers.</strong> Teams post pledges before deciding. Nothing forces them to keep their word, and once the round closes everyone sees who did.</li>
-        <li><strong>Common votes.</strong> The central bank's rate, the answer to a reserves crisis, and in richer versions the defence of the currency, the tariff or the response to a member that leaves.</li>
-        <li><strong>Elections.</strong> The administrator can change what a country's voters care about, and so how its government is scored.</li>
-        <li><strong>A ranking</strong> on the score summed over the years, shown on the board after each year.</li>
-      </ul>
-    </div>
-    <div>
-      <h2>Running a session</h2>
-      <ul>
-        <li>Everything runs in a browser. The data lives in a Google Sheet, behind a small script; students install nothing.</li>
-        <li>A three-hour session leaves time to get to grips with the game, then to play five to ten years.</li>
-        <li>The <a href="https://github.com/leomalherbe/internationalfinancialmacro/blob/main/macroscope/README.md">operating guide</a> explains how to set up your own copy and how to run a session.</li>
-        <li>To use it in a course, or to contribute: <a href="mailto:leo.malherbe@kedgebs.com">leo.malherbe@kedgebs.com</a>.</li>
-      </ul>
-    </div>
+<section class="session" id="session">
+  <div class="wrap">
+    <div class="label"><b>06</b> In practice</div>
+    <h2 class="split">Running a session</h2>
+  </div>
+  <div class="wrap">
+
+    <a class="guide-hero" href="https://github.com/leomalherbe/internationalfinancialmacro/blob/main/macroscope/README.md" data-reveal>
+      <div class="gdoc" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="gtxt"><span class="gk">Start here</span><b>The operating guide</b><p>How to set up your own copy and how to run a session.</p></div>
+      <span class="garr" aria-hidden="true">→</span>
+    </a>
   </div>
 </section>
 
@@ -475,34 +973,42 @@ footer p{margin:0}
   <div class="wrap arcade-grid">
     <div>
       <span class="tag">Arcade mode</span>
-      <h2 id="arcade-title">Settle it in a duel.</h2>
-      <p>No union, no council, no one to hide behind. Two players, two identical countries, each with its own currency and its own central bank, sharing one atmosphere.</p>
-      <ul>
+      <h2 id="arcade-title" class="split">Settle it in a duel.</h2>
+      <p data-reveal>No union, no council, no one to hide behind. Two players, two identical countries, each with its own currency and its own central bank, sharing one atmosphere.</p>
+      <ul data-reveal>
         <li>Your fiscal levers, your policy rate, your carbon tax.</li>
         <li>A shock lands on one side and the symmetry breaks.</li>
         <li>Pairs play side by side, a year a minute.</li>
       </ul>
     </div>
-    <div class="versus" aria-hidden="true">
+    <div class="versus" aria-hidden="true" data-reveal>
       <div class="side a"><b>A</b><span>own currency<br>own rate</span></div>
       <div class="vs">vs</div>
-      <div class="side"><b>B</b><span>own currency<br>own rate</span></div>
+      <div class="side b"><b>B</b><span>own currency<br>own rate</span></div>
       <div class="shared">one exchange rate between them, one shared climate</div>
     </div>
   </div>
 </section>
 
+<section class="contact-sec">
+  <a class="ses-contact" href="mailto:leo.malherbe@kedgebs.com" data-reveal>
+    <span class="wrap"><span class="k">To use it in a course, or to contribute</span><span class="mail">leo.malherbe@kedgebs.com <span class="arr">→</span></span></span>
+  </a>
+</section>
 </main>
 
 <footer>
   <div class="wrap">
-    <p>Macroscope, by Léo Malherbe, KEDGE Business School. Free to use, licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.</p>
-    <p>Source on <a href="https://github.com/leomalherbe/internationalfinancialmacro">GitHub</a></p>
+    <p class="foot-big" aria-hidden="true">Macroscope</p>
+    <div class="row">
+      <p>Macroscope, by Léo Malherbe, KEDGE Business School. Free to use, licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.</p>
+      <p>Source on <a href="https://github.com/leomalherbe/internationalfinancialmacro">GitHub</a></p>
+    </div>
   </div>
 </footer>
 
-<script src="core.js?v=2026110802"></script>
-<script src="engine.js?v=2026110802"></script>
+<script src="core.js?v=2026110803"></script>
+<script src="engine.js?v=2026110803"></script>
 <script>
 (function () {
   'use strict';
@@ -599,6 +1105,146 @@ footer p{margin:0}
     document.getElementById('results').innerHTML = h + '<div class="verdict">' + notes.join('') + '</div>';
   }
   document.getElementById('run').addEventListener('click', run);
+})();
+</script>
+<script>
+/* =====================================================================
+   Motion layer: loader, hero intro, scroll reveals, counters, rail, cursor.
+   Independent of the model scripts above; safe to remove as a block.
+   ===================================================================== */
+(function () {
+  'use strict';
+  var html = document.documentElement;
+  var reduce = html.classList.contains('rm');
+
+  /* split the wordmark into letters and section headings into words */
+  var wm = document.getElementById('wordmark');
+  if (wm && !reduce) {
+    var t = wm.textContent; wm.textContent = '';
+    t.split('').forEach(function (c, i) {
+      var s = document.createElement('span'); s.className = 'ch'; s.style.setProperty('--i', i); s.textContent = c;
+      s.setAttribute('aria-hidden', 'true'); wm.appendChild(s);
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.split'), function (el) {
+    if (reduce) return;
+    var words = el.textContent.trim().split(/\s+/); el.setAttribute('aria-label', el.textContent.trim()); el.textContent = '';
+    words.forEach(function (w, i) {
+      var o = document.createElement('span'); o.className = 'w'; o.setAttribute('aria-hidden', 'true');
+      var n = document.createElement('span'); n.textContent = w; n.style.setProperty('--d', (i * 0.06) + 's');
+      o.appendChild(n); el.appendChild(o); el.appendChild(document.createTextNode(' '));
+    });
+  });
+
+  /* hero chart: measure path lengths for the draw-on effect */
+  var chart = document.getElementById('hero-chart');
+  if (chart) Array.prototype.forEach.call(chart.querySelectorAll('.act,.ref'), function (p) { p.style.setProperty('--len', Math.ceil(p.getTotalLength()) + 1); });
+
+  /* marquee: duplicate content so the loop is seamless */
+  var mq = document.getElementById('marquee');
+  if (mq) mq.innerHTML += mq.innerHTML;
+
+  function startHero() {
+    requestAnimationFrame(function () {
+      if (wm) wm.classList.add('go');
+      if (chart) chart.classList.add('go');
+    });
+  }
+
+  /* loader: count to 100 while the fonts load, then slide away */
+  var loader = document.getElementById('loader');
+  if (html.classList.contains('is-loading') && loader) {
+    var nEl = document.getElementById('ld-n'), bar = document.getElementById('ld-bar'), step = document.getElementById('ld-step');
+    var steps = ['Calibrating the model…', 'Balancing the accounts…', 'Announcing the shocks…', 'Your economy is ready.'];
+    var DUR = 2000, t0 = null, fontsReady = false, shown = -1;
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () { fontsReady = true; });
+    setTimeout(function () { fontsReady = true; }, 3500);
+    var tick = function (ts) {
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / DUR);
+      if (!fontsReady) p = Math.min(p, 0.92);
+      var e = 1 - Math.pow(1 - p, 3), v = Math.round(e * 100);
+      nEl.textContent = v; bar.style.transform = 'scaleX(' + e + ')';
+      var si = Math.min(steps.length - 1, Math.floor(e * steps.length));
+      if (si !== shown) { shown = si; step.textContent = steps[si]; }
+      if (p < 1) return requestAnimationFrame(tick);
+      setTimeout(function () {
+        loader.classList.add('leaving'); html.classList.remove('is-loading');
+        setTimeout(startHero, 350);
+        setTimeout(function () { loader.remove(); }, 1200);
+      }, 250);
+    };
+    requestAnimationFrame(tick);
+  } else {
+    startHero();
+  }
+
+  /* scroll reveals */
+  var targets = document.querySelectorAll('[data-reveal],.split,.richer');
+  if (reduce || !('IntersectionObserver' in window)) {
+    Array.prototype.forEach.call(targets, function (el) { el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+    Array.prototype.forEach.call(targets, function (el) { io.observe(el); });
+  }
+
+  /* counters */
+  var counters = document.querySelectorAll('[data-count]');
+  function runCount(el) {
+    var to = Number(el.getAttribute('data-count')), pre = el.getAttribute('data-prefix') || '', t0 = null;
+    if (reduce) { el.textContent = pre + to; return; }
+    var f = function (ts) { if (t0 === null) t0 = ts; var p = Math.min(1, (ts - t0) / 1400), e = 1 - Math.pow(1 - p, 4);
+      el.textContent = pre + Math.round(e * to); if (p < 1) requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+  }
+  if ('IntersectionObserver' in window) {
+    var co = new IntersectionObserver(function (entries) { entries.forEach(function (en) { if (en.isIntersecting) { runCount(en.target); co.unobserve(en.target); } }); }, { threshold: 0.6 });
+    Array.prototype.forEach.call(counters, function (el) { el.textContent = (el.getAttribute('data-prefix') || '') + '0'; co.observe(el); });
+  }
+
+  /* nav: solid after the hero top, hidden when scrolling down, back when scrolling up; course rail fill */
+  var nav = document.getElementById('nav'), rail = document.getElementById('course-rail'), lastY = 0, ticking = false;
+  var steps2 = rail ? rail.querySelectorAll('li') : [];
+  function onScroll() {
+    var y = window.scrollY;
+    nav.classList.toggle('solid', y > 40);
+    nav.classList.toggle('hide', y > 500 && y > lastY + 4);
+    if (y < lastY - 4 || y < 500) nav.classList.remove('hide');
+    lastY = y;
+    if (rail) {
+      var r = rail.getBoundingClientRect(), mid = window.innerHeight * 0.6;
+      var p = Math.max(0, Math.min(1, (mid - r.top) / r.height));
+      rail.style.setProperty('--p', p.toFixed(3));
+      Array.prototype.forEach.call(steps2, function (li) { li.classList.toggle('on', li.getBoundingClientRect().top < mid); });
+    }
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  onScroll();
+
+  /* run button: a short "computing" beat before the results appear */
+  var runBtn = document.getElementById('run');
+  if (runBtn && !reduce) {
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest || e.target.closest('#run') !== runBtn) return;
+      if (runBtn.dataset.ok) { delete runBtn.dataset.ok; return; }
+      e.stopImmediatePropagation();
+      runBtn.classList.add('busy'); var label = runBtn.textContent; runBtn.textContent = 'Simulating…';
+      setTimeout(function () { runBtn.classList.remove('busy'); runBtn.textContent = label; runBtn.dataset.ok = '1'; runBtn.click(); }, 650);
+    }, true);
+  }
+
+  /* custom cursor on fine pointers */
+  var cur = document.getElementById('cursor');
+  if (cur && !reduce && window.matchMedia('(pointer:fine)').matches) {
+    var mx = -100, my = -100, cx = -100, cy = -100;
+    window.addEventListener('mousemove', function (e) { mx = e.clientX; my = e.clientY; cur.style.opacity = 1; }, { passive: true });
+    document.addEventListener('mouseleave', function () { cur.style.opacity = 0; });
+    document.addEventListener('mouseover', function (e) { cur.classList.toggle('big', !!(e.target.closest && e.target.closest('a,button,select,input,.loop > div'))); });
+    (function loop() { cx += (mx - cx) * 0.2; cy += (my - cy) * 0.2; cur.style.transform = 'translate(' + cx + 'px,' + cy + 'px)'; requestAnimationFrame(loop); })();
+  }
 })();
 </script>
 </body>
