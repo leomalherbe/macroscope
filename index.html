@@ -140,7 +140,8 @@ table.out th,table.out td{padding:5px 6px;border-bottom:1px solid var(--line);te
 table.out th:first-child,table.out td:first-child{text-align:left}
 table.out thead th{font-weight:500;color:var(--muted);font-size:.8rem}
 table.out tr.r td{font-weight:700;border-bottom:0}
-table.out td.tot{font-weight:600}
+table.out .tot{font-weight:700;border-left:1px solid var(--line);padding-left:10px}
+table.out thead th.tot{color:var(--navy)}
 .pos{color:var(--green)}.neg{color:var(--red)}
 .verdict{font-size:.88rem;margin:10px 0 0;padding:9px 12px;border-radius:8px;background:var(--gold-soft)}
 .verdict p{margin:0 0 .3em}.verdict p:last-child{margin:0}
@@ -386,7 +387,7 @@ footer p{margin:0}
     <div>
       <h2>Try one year</h2>
       <p>One country, one year, version 1.2 of the engine running in your browser. The other governments stay put, so the result splits cleanly between your policy and the shock.</p>
-      <p>Make a forecast before you run. In the game, that forecast is the justification each team writes with its decisions, and the gap between the forecast and the result is what its analysis has to explain.</p>
+      <p>Before you run, say what the shock will do, then what your policy will do. In the game, that reasoning is the justification each team writes with its decisions, and the gap between what it expected and what happened is what its analysis has to explain.</p>
     </div>
 
     <div class="lab" id="lab" aria-labelledby="lab-title">
@@ -405,23 +406,28 @@ footer p{margin:0}
       </div></div>
 
       <div class="stage"><div class="n">2</div><div>
+        <h4>Diagnosis <span>what will the shock do on its own?</span></h4>
+        <div id="g-shock"></div>
+      </div></div>
+
+      <div class="stage"><div class="n">3</div><div>
         <h4>Your policy <span>change from the reference, in %</span></h4>
         <div id="levers"></div>
       </div></div>
 
-      <div class="stage"><div class="n">3</div><div>
-        <h4>Your forecast <span>before you run</span></h4>
-        <div id="guesses"></div>
+      <div class="stage"><div class="n">4</div><div>
+        <h4>Expected effects <span>what will your policy do on its own?</span></h4>
+        <div id="g-nat"></div>
       </div></div>
 
-      <div class="stage"><div class="n">4</div><div>
+      <div class="stage"><div class="n">5</div><div>
         <h4>The simulation</h4>
         <button class="run" id="run" type="button">Run the model</button>
       </div></div>
 
-      <div class="stage"><div class="n">5</div><div>
+      <div class="stage"><div class="n">6</div><div>
         <h4>Your results <span>gap from the path with no shock and no policy</span></h4>
-        <div id="results" aria-live="polite"><p class="empty">Set your policy, make a forecast, then run the model.</p></div>
+        <div id="results" aria-live="polite"><p class="empty">Make your diagnosis, set your policy and its expected effects, then run the model.</p></div>
       </div></div>
     </div>
   </div>
@@ -529,18 +535,21 @@ footer p{margin:0}
     inp.addEventListener('input', function () { pol[l.id] = Number(inp.value); out.textContent = pol[l.id] > 0 ? '+' + pol[l.id] : (pol[l.id] < 0 ? '−' + Math.abs(pol[l.id]) : '0'); });
   });
 
-  var gv = document.getElementById('guesses');
-  GUESS.forEach(function (g) {
-    var row = document.createElement('div'); row.className = 'guess';
-    row.innerHTML = '<span id="g-' + g.id + '">' + esc(g.label) + '</span><div class="seg" role="group" aria-labelledby="g-' + g.id + '">' + g.opts.map(function (o) { return '<button type="button" data-g="' + g.id + '" data-v="' + o[0] + '" aria-pressed="false">' + esc(o[1]) + '</button>'; }).join('') + '</div>';
-    gv.appendChild(row);
-  });
-  gv.addEventListener('click', function (e) {
-    var b = e.target.closest ? e.target.closest('button[data-g]') : null; if (!b) return;
-    var id = b.getAttribute('data-g'), v = b.getAttribute('data-v');
-    guess[id] = guess[id] === v ? null : v;
-    Array.prototype.forEach.call(gv.querySelectorAll('button[data-g="' + id + '"]'), function (x) { x.setAttribute('aria-pressed', String(x.getAttribute('data-v') === guess[id])); });
-  });
+  function makeGuess(key) {
+    var box = document.getElementById('g-' + key);
+    GUESS.forEach(function (g) {
+      var k = key + ':' + g.id, row = document.createElement('div'); row.className = 'guess';
+      row.innerHTML = '<span id="gl-' + key + '-' + g.id + '">' + esc(g.label) + '</span><div class="seg" role="group" aria-labelledby="gl-' + key + '-' + g.id + '">' + g.opts.map(function (o) { return '<button type="button" data-g="' + k + '" data-v="' + o[0] + '" aria-pressed="false">' + esc(o[1]) + '</button>'; }).join('') + '</div>';
+      box.appendChild(row);
+    });
+    box.addEventListener('click', function (e) {
+      var bt = e.target.closest ? e.target.closest('button[data-g]') : null; if (!bt) return;
+      var k = bt.getAttribute('data-g'), v = bt.getAttribute('data-v');
+      guess[k] = guess[k] === v ? null : v;
+      Array.prototype.forEach.call(box.querySelectorAll('button[data-g="' + k + '"]'), function (x) { x.setAttribute('aria-pressed', String(x.getAttribute('data-v') === guess[k])); });
+    });
+  }
+  makeGuess('shock'); makeGuess('nat');
 
   function run() {
     var shock = Object.assign({ world: 0, rate: 0, confidence: 0, imports: 0, deval: 0 }, SHOCKS[document.getElementById('shock').value]);
@@ -552,20 +561,24 @@ footer p{margin:0}
       cols.nat[i.id] = d.nat || 0; cols.shock[i.id] = d.shock || 0; cols.total[i.id] = c[i.id];
     });
     ['nat', 'shock', 'total'].forEach(function (k) { cols[k].R = MS.scoreR(cols[k], weights); });
-    var order = [['nat', 'Your policy'], ['shock', 'The shock'], ['total', 'Total']];
+    var order = [['shock', 'The shock'], ['nat', 'Your policy'], ['total', 'Total']];
 
-    var h = '<table class="out"><thead><tr><th></th>' + order.map(function (o) { return '<th>' + o[1] + '</th>'; }).join('') + '</tr></thead><tbody>';
+    var h = '<table class="out"><thead><tr><th></th>' + order.map(function (o) { return '<th' + (o[0] === 'total' ? ' class="tot"' : '') + '>' + o[1] + '</th>'; }).join('') + '</tr></thead><tbody>';
     IND.forEach(function (ind) {
       h += '<tr><td>' + esc(ind.label) + ' <span class="muted">' + esc(ind.unit) + '</span></td>' + order.map(function (o) { var x = cols[o[0]][ind.id]; return '<td class="' + cls(ind.sign * x) + (o[0] === 'total' ? ' tot' : '') + '">' + fmt(x) + '</td>'; }).join('') + '</tr>';
     });
-    h += '<tr class="r"><td>Score of the year</td>' + order.map(function (o) { var x = cols[o[0]].R; return '<td class="' + cls(x) + '">' + fmt(x) + '</td>'; }).join('') + '</tr></tbody></table>';
+    h += '<tr class="r"><td>Score of the year</td>' + order.map(function (o) { var x = cols[o[0]].R; return '<td class="' + cls(x) + (o[0] === 'total' ? ' tot' : '') + '">' + fmt(x) + '</td>'; }).join('') + '</tr></tbody></table>';
 
     var notes = [];
-    GUESS.forEach(function (g) {
-      if (!guess[g.id]) return;
-      var x = cols.total[g.id], actual = dir(x, 0.05), ok = actual === guess[g.id];
-      var word = g.opts.filter(function (o) { return o[0] === actual; })[0][1].toLowerCase();
-      notes.push('<p>' + (ok ? 'Right' : 'Not quite') + ' on ' + esc(g.low) + ': it came out ' + esc(word) + ' (' + fmt(x) + ').</p>');
+    [['shock', 'Diagnosis'], ['nat', 'Expected effects']].forEach(function (part) {
+      var bits = [];
+      GUESS.forEach(function (g) {
+        var v = guess[part[0] + ':' + g.id]; if (!v) return;
+        var x = cols[part[0]][g.id], actual = dir(x, 0.05);
+        var word = g.opts.filter(function (o) { return o[0] === actual; })[0][1].toLowerCase();
+        bits.push((actual === v ? 'right' : 'not quite') + ' on ' + esc(g.low) + ' (' + esc(word) + ', ' + fmt(x) + ')');
+      });
+      if (bits.length) notes.push('<p><b>' + part[1] + ':</b> ' + bits.join('; ') + '.</p>');
     });
     if (Math.abs(cols.nat.gdp) < 0.005 && Math.abs(cols.shock.gdp) < 0.005) notes.push('<p>Nothing moved: no shock and no policy. Try a shock, then a policy to answer it.</p>');
     notes.push('<p class="muted">In the game, this is where the team writes why.</p>');
