@@ -24,12 +24,12 @@ p{margin:0 0 .9em}
 .sr{position:absolute;left:-9999px}
 
 /* ---------- hero ---------- */
-.hero{background:var(--navy);color:#e4e7ee;padding:44px 0 72px}
-.brand{font-family:"Source Serif 4",serif;font-weight:700;font-size:1.15rem;color:#fff;display:flex;align-items:center;gap:10px}
-.brand svg{flex:none}
-.brand small{font-family:Inter,sans-serif;font-weight:500;font-size:.85rem;color:#aab2c5}
-.hero-body{max-width:760px;margin-top:56px}
-.hero h1{color:#fff;font-size:clamp(2.4rem,5.4vw,4rem);line-height:1.03;letter-spacing:-.02em}
+.hero{background:var(--navy);color:#e4e7ee;padding:64px 0 76px}
+.hero-body{max-width:820px}
+.kicker{margin:8px 0 18px;font-size:.95rem;font-weight:500;color:#aab2c5}
+.wordmark{display:flex;align-items:center;gap:.18em;color:#fff;font-size:clamp(3.6rem,11vw,7.5rem);line-height:.95;letter-spacing:-.035em;margin:0}
+.wordmark svg{width:.78em;height:.78em;flex:none;margin-top:.06em}
+.tagline{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:clamp(1.4rem,3vw,2.1rem);line-height:1.2;color:var(--gold);margin:22px 0 0;max-width:24em}
 .hero .lead{font-size:1.2rem;color:#d3d8e3;margin:26px 0 0;max-width:36em}
 .hero .lead + .lead{margin-top:14px}
 .hero-links{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:32px}
@@ -180,12 +180,10 @@ footer p{margin:0}
 
 <header class="hero">
   <div class="wrap">
-    <div class="brand">
-      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="none" stroke="#c29d2c" stroke-width="2.4"/><path d="M6.5 13.5l3-3 2.5 2 3.5-4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 17l6 6" stroke="#c29d2c" stroke-width="2.6" stroke-linecap="round"/></svg>
-      Macroscope <small>a teaching game for macroeconomics</small>
-    </div>
     <div class="hero-body">
-      <h1>Learn economic policy by governing an economy.</h1>
+      <p class="kicker">A teaching game for macroeconomics</p>
+      <h1 class="wordmark"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="none" stroke="#c29d2c" stroke-width="2.4"/><path d="M6.5 13.5l3-3 2.5 2 3.5-4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 17l6 6" stroke="#c29d2c" stroke-width="2.6" stroke-linecap="round"/></svg>Macroscope</h1>
+      <p class="tagline">Learn economic policy by governing an economy.</p>
       <p class="lead">Students run the government of a country in a monetary union. Each year they face a shock, choose their policy, and write down why: which effects they expect, through which channels. A model they have studied computes what actually happens.</p>
       <p class="lead">The game is the experiment. The learning is in the gap between what they expected and what they got, and in how well they explain it.</p>
       <div class="hero-links">
