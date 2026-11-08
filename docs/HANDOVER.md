@@ -4,23 +4,23 @@ Document de reprise : tout ce qu'il faut savoir pour continuer le travail sans l
 
 ## 1. Ce que c'est
 
-**Macroscope** est un jeu pédagogique multijoueur de politique économique dans une union monétaire (7 pays : DEU, FRA, ITA, ESP, NLD, BEL, AUT), joué par équipes avec un administrateur. Il tourne sur **OPEN-MU**, un modèle stock-flux cohérent (SFC) dérivé de Godley & Lavoie (2007), ch. 6 (économie ouverte, change fixe, réserves) et ch. 12 (flux de capitaux), avec des extensions (firmes et banques horizontalistes, prix dans les échanges, prime de risque, bloc climatique). Les équations sont publiées sur la page du modèle (`macsim/model.html`). Le jeu a remplacé MacSim 2 le 3/11/2026 après des plantages en séance ; **ne pas mentionner MacSim** dans les supports publics (décision de Léo).
+**Macroscope** est un jeu pédagogique multijoueur de politique économique dans une union monétaire (7 pays : DEU, FRA, ITA, ESP, NLD, BEL, AUT), joué par équipes avec un administrateur. Il tourne sur **OPEN-MU**, un modèle stock-flux cohérent (SFC) dérivé de Godley & Lavoie (2007), ch. 6 (économie ouverte, change fixe, réserves) et ch. 12 (flux de capitaux), avec des extensions (firmes et banques horizontalistes, prix dans les échanges, prime de risque, bloc climatique). Les équations sont publiées sur la page du modèle (`macroscope/model.html`). Le jeu a remplacé MacSim 2 le 3/11/2026 après des plantages en séance ; **ne pas mentionner MacSim** dans les supports publics (décision de Léo).
 
-Site : https://leomalherbe.github.io/internationalfinancialmacro/ (cours *International Financial Macroeconomics*, séances 1–7) · page du jeu : `/macroscope/` · desk : `/macsim/` (dossier conservé pour les liens déjà distribués) · dépôt : https://github.com/leomalherbe/internationalfinancialmacro
+Site : https://leomalherbe.github.io/internationalfinancialmacro/ (cours *International Financial Macroeconomics*, séances 1–7) · page du jeu : `/macroscope/` · desk : `/macroscope/desk.html` (dossier conservé pour les liens déjà distribués) · dépôt : https://github.com/leomalherbe/internationalfinancialmacro
 
 ## 2. Architecture
 
 | Pièce | Où | Rôle |
 |---|---|---|
-| `macsim/index.html` | site | page des équipes (PIN) : décisions, votes, résultats, conseil |
-| `macsim/admin.html` | site | console de l'administrateur : classes, groupes, tours, chocs, élections, Run, publication, exports |
-| `macsim/board.html?class=…` | site | tableau de bord à projeter |
-| `macsim/model.html` | site | équations, notation, paramètres, chocs, règles, ordres de grandeur (blocs v1.3 et v2.0 dépliables) |
+| `macroscope/desk.html` | site | page des équipes (PIN) : décisions, votes, résultats, conseil |
+| `macroscope/admin.html` | site | console de l'administrateur : classes, groupes, tours, chocs, élections, Run, publication, exports |
+| `macroscope/board.html?class=…` | site | tableau de bord à projeter |
+| `macroscope/model.html` | site | équations, notation, paramètres, chocs, règles, ordres de grandeur (blocs v1.3 et v2.0 dépliables) |
 | `macroscope/index.html`, `demo.html` | site | page de présentation et partie de démonstration (moteur dans le navigateur) |
-| `macsim/engine.js` | site | **le moteur OPEN-MU** (ES5, global `OPENMU`, aussi `module.exports`) ; tourne dans la console et sous Node |
-| `macsim/core.js` | site + backend | règles communes : pays, leviers, indicateurs, état par défaut, validation des décisions, R, classement, élections |
-| `macsim/app-common.js`, `style.css`, `config.js` | site | helpers d'UI, styles, URL du backend (`API_URL`) |
-| `macsim/Code.gs` | Apps Script | backend = `core.js` + `dev/service.js` + `dev/gas-adapter.js`, assemblé par `dev/build.js` |
+| `macroscope/engine.js` | site | **le moteur OPEN-MU** (ES5, global `OPENMU`, aussi `module.exports`) ; tourne dans la console et sous Node |
+| `macroscope/core.js` | site + backend | règles communes : pays, leviers, indicateurs, état par défaut, validation des décisions, R, classement, élections |
+| `macroscope/app-common.js`, `style.css`, `config.js` | site | helpers d'UI, styles, URL du backend (`API_URL`) |
+| `macroscope/Code.gs` | Apps Script | backend = `core.js` + `dev/service.js` + `dev/gas-adapter.js`, assemblé par `dev/build.js` |
 | Google Sheet de Léo | Google | stockage : onglets Config / Groups / Decisions / Results / Pledges / Comments / Log (append-only, dernière ligne gagne) |
 
 Flux d'un tour : l'administrateur ouvre les soumissions → les équipes soumettent (décisions + votes) → Close → **Run year N** (la console rejoue les années 1..N avec décisions, chocs, votes, élections enregistrés ; le backend ne calcule rien) → aperçu → Save and publish all → les pages se rafraîchissent.
@@ -43,34 +43,34 @@ Calibration du 7/11 (PR #29, validée par Léo) : pour v1.3+/duel, réserves à 
 
 ## 4. Backend : versions et redéploiement
 
-Le pied de page de la console affiche « backend vX.Y ». Toute modification de `core.js`, `dev/service.js` ou `dev/gas-adapter.js` change `Code.gs` ; un **changement de comportement** exige : Google Sheet → Extensions → Apps Script → remplacer tout `Code.gs` → enregistrer → **Déployer → Gérer les déploiements → ✎ → Nouvelle version → Déployer** (l'URL ne change pas). Un simple re-bundle (core.js modifié pour les pages seulement) ne l'exige pas, mais ne nuit pas. Dernière version : **1.10** (`macsim/Code.gs`) : droits de douane (§13) ; 1.9 : sortie de l'union (§12). Migration de feuille automatique (colonne `emis`).
+Le pied de page de la console affiche « backend vX.Y ». Toute modification de `core.js`, `dev/service.js` ou `dev/gas-adapter.js` change `Code.gs` ; un **changement de comportement** exige : Google Sheet → Extensions → Apps Script → remplacer tout `Code.gs` → enregistrer → **Déployer → Gérer les déploiements → ✎ → Nouvelle version → Déployer** (l'URL ne change pas). Un simple re-bundle (core.js modifié pour les pages seulement) ne l'exige pas, mais ne nuit pas. Dernière version : **1.10** (`macroscope/Code.gs`) : droits de douane (§13) ; 1.9 : sortie de l'union (§12). Migration de feuille automatique (colonne `emis`).
 
 ## 5. Outils de développement (`dev/` à la racine du dépôt, depuis la PR #29)
 
-- `node dev/build.js` — assemble `macsim/Code.gs`.
+- `node dev/build.js` — assemble `macroscope/Code.gs`.
 - `node dev/engine-test.js` — moteur : stationnarité (60 ans), identités SFC (20 graines × 40 ans), régressions bit-à-bit entre versions, propriétés (érosion d'une relance, courbe en J, votes, climat, duel), **imprime les ordres de grandeur** utilisés dans les slides et la page du modèle. Doit finir par `ENGINE OK`.
 - `node dev/gas-fake-test.js` — backend contre un faux SpreadsheetApp. `GAS adapter OK`.
-- `PORT=8794 node dev/mock-server.js &` puis `E2E_PORT=8794 node dev/e2e.js <dir>` (union v1.1, scénario complet), `e2e-v13.js`, `e2e-v20.js`, `e2e-duel.js`, `e2e-exit.js` — Playwright sur les vraies pages ; clé admin `TESTKEY`. Doivent finir par `ALL GOOD`. Playwright doit correspondre au Chromium installé (dans l'environnement du 7/11 : `cd dev && npm i playwright@1.63.0` pour `/opt/pw-browsers/chromium-1243`).
+- `PORT=8794 node dev/mock-server.js &` puis `E2E_PORT=8794 node dev/e2e.js <dir>` (union v1.1, scénario complet), `e2e-v13.js`, `e2e-v20.js`, `e2e-duel.js`, `e2e-exit.js`, `e2e-redirects.js` (anciennes adresses `macsim/`) — Playwright sur les vraies pages ; clé admin `TESTKEY`. Doivent finir par `ALL GOOD`. Playwright doit correspondre au Chromium installé (dans l'environnement du 7/11 : `cd dev && npm i playwright@1.63.0` pour `/opt/pw-browsers/chromium-1243`).
 - `node dev/shot-deck.js <deck.html> <dir>` — rend un deck reveal.js et signale les débordements (`OVERFLOW`).
 - Dépendances : Node ≥ 18, Playwright (préinstallé dans l'environnement d'origine ; sinon `npm i playwright` + `npx playwright install chromium`), `cd dev && npm install` (reveal.js, chart.js, katex, pdfjs pour le rendu hors ligne).
 
 Discipline : toute modification du moteur passe par les trois niveaux de tests ; les versions antérieures doivent rester identiques au bit près (tests de régression) ; une classe en cours ne doit jamais changer de comportement.
 
-**Cache des pages** : chaque page charge `style.css`, `config.js`, `core.js`, `app-common.js` et `engine.js` avec un suffixe `?v=AAAAMMJJnn` (macsim/*.html et macroscope/demo.html). **À incrémenter à chaque modification de ces fichiers** (`sed -i 's/?v=OLD/?v=NEW/g' macsim/*.html macroscope/demo.html`), sinon un navigateur peut associer une page neuve à un script ancien en cache — symptôme vu le 7/11 : board « Connection lost… retrying ». Une erreur d'affichage est désormais signalée comme telle (« Display error: … ») et non comme une perte de connexion.
+**Cache des pages** : chaque page charge `style.css`, `config.js`, `core.js`, `app-common.js` et `engine.js` avec un suffixe `?v=AAAAMMJJnn` (macroscope/*.html et macroscope/demo.html). **À incrémenter à chaque modification de ces fichiers** (`sed -i 's/?v=OLD/?v=NEW/g' macroscope/*.html macroscope/demo.html`), sinon un navigateur peut associer une page neuve à un script ancien en cache — symptôme vu le 7/11 : board « Connection lost… retrying ». Une erreur d'affichage est désormais signalée comme telle (« Display error: … ») et non comme une perte de connexion.
 
 ## 6. Documents
 
 - `docs/openmu-spec.md` — spécification complète, section par version (§1–§11), avec les écarts « as implemented ». À lire avant de toucher au moteur.
-- `macsim/README.md` — guide d'exploitation en français (installation, déroulé d'une séance, chocs, votes, élections, dépannage, versions du backend).
+- `macroscope/README.md` — guide d'exploitation en français (installation, déroulé d'une séance, chocs, votes, élections, dépannage, versions du backend).
 - Slides : `seance6.html` (jeu, v1.1, **figée**, séance passée), `seance7.html` (v1.2 → v1.3, chiffres du moteur). Modèle de deck : reveal.js 5.1, règles éditoriales de Léo : anglais, pas de colonne d'unités, pas de références en bas de diapo, pas de table d'exemple, encadrés de notation, pas de débordement.
 - Projet Claude « International Financial Macroeconomics » : copies `claude/openmu-spec.md`, `claude/seance6.html`, `claude/seance7.html`, `claude/coordination.md`.
 
 ## 7. Conventions
 
-- Pages en ES5 (pas de fonctions fléchées ni de template strings dans `macsim/*.html|js`) ; styles : palette du cours (`--navy #14213d`, `--gold #c29d2c`…), Inter + Source Serif 4.
+- Pages en ES5 (pas de fonctions fléchées ni de template strings dans `macroscope/*.html|js`) ; styles : palette du cours (`--navy #14213d`, `--gold #c29d2c`…), Inter + Source Serif 4.
 - Supports en anglais ; échanges avec Léo en français.
 - Git : une branche par sujet, PR vers `main`, description courte avec « redeploy needed » quand c'est le cas ; Léo fusionne lui-même. Commits signés `Claude <noreply@anthropic.com>` avec les lignes d'attribution.
-- Le dossier `macsim/` garde son nom (liens distribués) ; « Macroscope » est le nom du jeu, « OPEN-MU » celui du moteur.
+- Depuis le 8/11 le jeu vit dans `macroscope/` (desk = `desk.html`, à côté de la page de présentation `index.html`) ; `macsim/` ne contient plus que des pages de redirection qui gardent `?pin=` / `?class=` et l'ancre, pour les liens et fiches PIN déjà distribués (test : `dev/e2e-redirects.js`). Les clés de stockage du navigateur (`macsim.pin`, `macsim.adminKey`…) et `window.MACSIM_CONFIG` gardent leur nom : les renommer effacerait ce que les navigateurs ont mémorisé. « Macroscope » est le nom du jeu, « OPEN-MU » celui du moteur.
 
 ## 8. En suspens / idées
 

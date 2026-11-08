@@ -18,7 +18,7 @@ async function api(params) { const r = await fetch(BASE + '/api', { method: 'POS
   const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
   page.on('pageerror', e => console.log('PAGE ERROR', e.message));
   page.on('console', m => { if (m.type() === 'error') console.log('CONSOLE', m.text()); });
-  await page.goto(BASE + '/index.html?api=' + encodeURIComponent(BASE + '/api'));
+  await page.goto(BASE + '/desk.html?api=' + encodeURIComponent(BASE + '/api'));
   await page.waitForSelector('input[placeholder="4-digit PIN"]');
   await page.screenshot({ path: OUT + '/s0-login.png' });
   await page.fill('input[placeholder="4-digit PIN"]', pins[1]);

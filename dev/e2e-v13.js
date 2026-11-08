@@ -81,7 +81,7 @@ const KEY = 'TESTKEY';
   /* student page */
   const stu = await ctx.newPage();
   stu.on('pageerror', e => errors.push('student: ' + e.message));
-  await stu.goto(BASE + '/index.html?api=' + encodeURIComponent(API) + '&pin=' + pins.FRA);
+  await stu.goto(BASE + '/desk.html?api=' + encodeURIComponent(API) + '&pin=' + pins.FRA);
   await stu.waitForSelector('#app');
   const st1 = await stu.textContent('#app');
   must(/floating/.test(st1) && /Change of the exchange rate over the year/.test(st1) && /foreign bills held by households/.test(st1) && /risk premium on public debt/.test(st1), 'student page: regime line, exchange-rate change, foreign bills and spread in the ratios line');

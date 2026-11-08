@@ -1,6 +1,6 @@
-/* Exercises macsim/Code.gs against a fake SpreadsheetApp (no Google needed). */
+/* Exercises macroscope/Code.gs against a fake SpreadsheetApp (no Google needed). */
 const fs = require('fs');
-const src = fs.readFileSync(__dirname + '/../macsim/Code.gs', 'utf8');
+const src = fs.readFileSync(__dirname + '/../macroscope/Code.gs', 'utf8');
 const sheets = {};
 function mkSheet(name) {
   return {
@@ -98,7 +98,7 @@ r = call({ action: 'state', pin }); must(!r.ok, 'old PIN no longer works');
 r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'other class untouched');
 /* §12: leaving the union, the exited country's decisions, the retaliation council (backend 1.9) */
 {
-  const MS = require('../macsim/core.js');
+  const MS = require('../macroscope/core.js');
   let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
   r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
   const [pF, pD, pI] = r2.groups.map(g => g.pin);

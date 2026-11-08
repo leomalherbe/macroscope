@@ -57,7 +57,7 @@ const TEXT = 'We announce our decisions for the year and explain them to the cou
   const fra = await ctx.newPage();
   fra.on('pageerror', e => errors.push('france: ' + e.message));
   fra.on('dialog', d => d.accept());
-  await fra.goto(BASE + '/index.html?api=' + encodeURIComponent(API) + '&pin=' + pins.FRA);
+  await fra.goto(BASE + '/desk.html?api=' + encodeURIComponent(API) + '&pin=' + pins.FRA);
   await fra.waitForSelector('#exitSel');
   must(/Leave the monetary union/.test(await fra.textContent('#form')), 'France′s form offers to leave the union');
   await fra.selectOption('#exitSel', 'leave');
@@ -105,7 +105,7 @@ const TEXT = 'We announce our decisions for the year and explain them to the cou
   must((await api({ action: 'admin.overview', key: KEY, classId: cid })).state.retaliation['2'].FRA.status === 'open', 'council on retaliation open');
   const deu = await ctx.newPage();
   deu.on('pageerror', e => errors.push('germany: ' + e.message));
-  await deu.goto(BASE + '/index.html?api=' + encodeURIComponent(API) + '&pin=' + pins.DEU);
+  await deu.goto(BASE + '/desk.html?api=' + encodeURIComponent(API) + '&pin=' + pins.DEU);
   await deu.waitForSelector('#retalBtn');
   must(/Council on retaliation against France/.test(await deu.textContent('#form')) && (await deu.$$('#form input[name="R_tariff"]')).length === 4, 'Germany′s page: the council card (tariff 0/5/10/20, sale 0/25/50/100)');
   await deu.click('#form input[name="R_tariff"][value="10"]');

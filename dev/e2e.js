@@ -2,11 +2,11 @@
    class + groups → warm-up submissions → shocks → Run all plans → publish → student sees 3 years + union panel
    → game: council, submissions + votes, close, Run year 1 (rate vote) → publish → year 2 (replay, reserves alert)
    → year 3 crisis vote (austerity then devaluation) → year 4 forced devaluation → board → delete class.
-   The engine is macsim/engine.js when present, else dev/engine-stub.js (served by the mock at /engine.js). */
+   The engine is macroscope/engine.js when present, else dev/engine-stub.js (served by the mock at /engine.js). */
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-const MS = require('../macsim/core.js');
+const MS = require('../macroscope/core.js');
 const BASE = 'http://localhost:' + (process.env.E2E_PORT || 8787);
 const API = BASE + '/api';
 const OUT = process.argv[2] || '/tmp/shots';
@@ -14,8 +14,8 @@ fs.mkdirSync(OUT, { recursive: true });
 async function api(params) { const r = await fetch(API, { method: 'POST', body: JSON.stringify(params) }); return r.json(); }
 const runClick = async (pg) => { await pg.click('#runBtn'); await pg.waitForSelector('#runBtn:not([disabled])'); };
 function must(cond, msg) { if (!cond) { throw new Error('ASSERTION FAILED: ' + msg); } console.log('ok -', msg); }
-const realEngine = fs.existsSync(path.join(__dirname, '..', 'macsim', 'engine.js'));
-console.log('engine:', realEngine ? 'macsim/engine.js (real)' : 'dev/engine-stub.js (stub)');
+const realEngine = fs.existsSync(path.join(__dirname, '..', 'macroscope', 'engine.js'));
+console.log('engine:', realEngine ? 'macroscope/engine.js (real)' : 'dev/engine-stub.js (stub)');
 
 (async () => {
   await api({ action: '__reset' });
@@ -113,7 +113,7 @@ console.log('engine:', realEngine ? 'macsim/engine.js (real)' : 'dev/engine-stub
   /* ---- student page in the warm-up ---- */
   const stu = await ctx.newPage();
   stu.on('pageerror', e => errors.push('student: ' + e.message));
-  await stu.goto(BASE + '/index.html?api=' + encodeURIComponent(API) + '&pin=' + pins['Group 1']);
+  await stu.goto(BASE + '/desk.html?api=' + encodeURIComponent(API) + '&pin=' + pins['Group 1']);
   await stu.waitForSelector('#commentText');
   const stuTxt = await stu.textContent('#app');
   must(stuTxt.includes('of which your own policy') && stuTxt.includes('Foreign reserves'), 'student page shows breakdown lines and the union panel');
@@ -183,7 +183,7 @@ console.log('engine:', realEngine ? 'macsim/engine.js (real)' : 'dev/engine-stub
   must(plF.payload.votes.rate === 'cut' && plF.payload.votes.crisis === undefined && plI.payload.votes.rate === 'hike' && plI.payload.year.levers.pubdem === 0, 'announced votes kept by the backend (invalid crisis value dropped), numbers optional');
   const sub = (name, levers, text, votes, round) => api({ action: 'submit', pin: pins[name], phase: 'game', round: round || 1, payload: { years: [{ levers, tariffs: {}, euro: 'none', tfp: 0 }], text: text.padEnd(120, ' .').trim(), votes: votes || {} } });
   /* student form: the votes card (no crisis question yet) */
-  await stu.goto(BASE + '/index.html?api=' + encodeURIComponent(API) + '&pin=' + pins[byCountry.FRA]);
+  await stu.goto(BASE + '/desk.html?api=' + encodeURIComponent(API) + '&pin=' + pins[byCountry.FRA]);
   await stu.waitForSelector('#submitBtn');
   await stu.click('#council summary'); await stu.waitForTimeout(200);
   must((await stu.$('#PL_vote_rate')) !== null && !(await stu.$('#PL_vote_crisis')), 'pledge form offers an announced rate vote (no crisis announcement yet)');
@@ -440,7 +440,7 @@ console.log('engine:', realEngine ? 'macsim/engine.js (real)' : 'dev/engine-stub
   must(boardTxt2.includes('Vote on the central bank’s rate') && boardTxt2.includes('Reserves crisis · vote'), 'board shows the tallies of the last published year');
 
   /* ---- student page in year 4 ---- */
-  await stu.goto(BASE + '/index.html?api=' + encodeURIComponent(API) + '&pin=' + pins[byCountry.FRA]);
+  await stu.goto(BASE + '/desk.html?api=' + encodeURIComponent(API) + '&pin=' + pins[byCountry.FRA]);
   await stu.waitForSelector('#submitBtn');
   const stu3 = await stu.textContent('#app');
   must(stu3.includes('Pledges vs decisions · year 1') && stu3.includes('Foreign reserves') && stu3.includes('public debt'), 'student sees the reveal table, the union panel and the ratios line');

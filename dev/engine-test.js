@@ -1,7 +1,7 @@
 /* OPEN-MU engine tests — node dev/engine-test.js (exit 1 on failure)
    The generic suite runs twice: firms:false (v1.0 behaviour, bit-for-bit) and firms:true (v1.1, the default).
    Then the v1.1-specific checks (regression, rate channel, reversibility, boundedness, multipliers vs v1.0). */
-const OPENMU = require('../macsim/engine.js');
+const OPENMU = require('../macroscope/engine.js');
 let failed = 0;
 function must(cond, msg) { console.log((cond ? 'ok   - ' : 'FAIL - ') + msg); if (!cond) failed++; }
 const f = (v, d) => (v >= 0 ? '+' : '') + v.toFixed(d === undefined ? 3 : d);
