@@ -574,3 +574,13 @@ Activation par classe : `sim.tariffs` (Control → Parameters → « tariffs »)
 ### 13.4 Plateforme
 `MS.tariffsOn(state)`, `MS.CET_LEVELS`, levier `tariffU` (`exitOnly`) ; backend **1.10** : `votes.cet` validé (0/5/10/20, ignoré si `sim.tariffs` est inactif, retiré pour un pays sorti), `tariffU` refusé hors d'un pays sorti ou hors `sim.tariffs`, borné à 20 %. Console : rejeu (médiane), ligne d'aperçu « Common external tariff: … → N % », ligne de choc « Rest of the world: tariff on union exports ». Pages : question « The common external tariff » dans le bloc des votes, ligne dans le panneau de l'union (`votes.cet`, `worldTariff`), levier et ligne « Your tariff on goods from the union » pour le pays sorti ; recette en `detail.extra.tariffRev` (% du PIB).
 
+
+
+## 14. Union size — 2 to 7 members (Léo, 08/11)
+
+- **Rule.** The members of a class's union are the countries assigned to its groups. Each **Save groups** in the Groups tab (union classes) records them in `sim.members` (2 to 7 different countries, in the fixed order DEU, FRA, ITA, ESP, NLD, BEL, AUT); a country with no group is not in the union. Fewer than two countries: the groups are saved, the union keeps its previous members. The warm-up country moves to the first member if it is not one.
+- **Lock.** Once a game year has been run and saved (draft or published), the union is fixed: Save groups refuses a new country or a member without its group; names, PINs and member names can still change. A class without `sim.members` (every class created before 8 Nov 2026) plays the seven, and keeps allowing passive members (a country with no group).
+- **Engine.** Unchanged: `params.countries` = the members (the console filters `paramsFor(model)`); the reference state, trade shares (gravity on the members' sizes), reserves (months of the members' RoW imports) and the RoW holdings scale with the union. Stationarity and identities hold for every size (engine-test, 24 random unions of 2–7 members, v1.1–v2.0, with exits).
+- **Magnitudes** (engine-test): France public demand +10, year 1 (v1.3): seven: France GDP +2.39 %, partners +0.14 %, reserves % 97 94 89 | DEU FRA ITA ESP: France GDP +2.40 %, partners +0.18 %, reserves % 97 92 87 | FRA ITA ESP: France GDP +2.42 %, partners +0.35 %, reserves % 95 88 79. A smaller union spreads a member's policy over fewer partners and a smaller common stock of reserves: the interdependence is easier to see.
+- **No backend change** (`sim` merges unknown keys); `MS.membersOf(state)` in core.js (re-bundled into Code.gs, no redeploy needed). Tests: `dev/e2e-members.js`.
+

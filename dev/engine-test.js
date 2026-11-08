@@ -666,5 +666,39 @@ console.log('\n===== TARIFFS (spec section 13) =====');
   console.log('tariffs — exited Italy, tariff 10 % on the union: ITA GDP ' + [1, 2, 3].map(t => f(I(a1, t).gdp - I(a0, t).gdp, 2)).join(' ') + ' | ITA PB ' + [1, 2, 3].map(t => f(I(a1, t).pubbal - I(a0, t).pubbal, 2)).join(' ') + ' | ITA currency ' + [1, 2, 3].map(t => f(100 * (I(a1, t).detail.extra.fx / I(a0, t).detail.extra.fx - 1), 1)).join(' ') + ' % | DEU GDP ' + [1, 2, 3].map(t => f(a1.years[t].countries.DEU.gdp - a0.years[t].countries.DEU.gdp, 2)).join(' '));
 }
 
+/* ===================== UNION SIZE (spec section 14): 2 to 7 members ===================== */
+console.log('\n===== UNION SIZE (spec section 14) =====');
+{
+  const ALL = OPENMU.defaultParams().countries.map(c => c.id);
+  const sub = (v, ids) => { const p = OPENMU.paramsFor(v); p.countries = p.countries.filter(c => ids.indexOf(c.id) >= 0); return p; };
+  /* stationarity and identities for every size, random members */
+  let maxId = 0, maxSec = 0, maxStat = 0, fails = 0;
+  for (let seed = 1; seed <= 24; seed++) {
+    const rnd = rng(seed * 91), n = 2 + (seed % 6), v = ['v1.1', 'v1.2', 'v1.3', 'v2.0'][seed % 4];
+    const ids = ALL.slice().sort(() => rnd() - 0.5).slice(0, n);
+    const p = sub(v, ids);
+    try {
+      const st = OPENMU.simulate({ params: Object.assign({}, p, { ci0: 0 }), years: 20 });
+      st.years.forEach(y => ids.forEach(id => { maxStat = Math.max(maxStat, Math.abs(y.countries[id].Y / st.ref.countries[id].Y - 1)); }));
+      const inp = randomInputs(rnd, 10, 1, v === 'v1.3' || v === 'v2.0', v === 'v2.0');
+      const pol = {}; ids.forEach(id => { pol[id] = inp.policies[id]; });
+      if ((v === 'v1.3' || v === 'v2.0') && n >= 3 && seed % 2) { pol[ids[n - 1]][1].leave = 1; for (let t = 2; t < 10; t++) pol[ids[n - 1]][t].rate = (rnd() - 0.5) * 3; }
+      const r = OPENMU.simulate({ params: p, years: 10, policies: pol, shocks: inp.shocks });
+      maxId = Math.max(maxId, r.checks.maxIdentityError); r.years.forEach(y => { maxSec = Math.max(maxSec, y.union.sectorError); });
+    } catch (e) { fails++; console.log('  seed ' + seed + ' (' + n + ' members): ' + e.message); }
+  }
+  must(fails === 0 && maxStat < 1e-9 && maxId < 1e-9 && maxSec < 1e-9, 'union of 2 to 7 members (random members, v1.1–v2.0, exits in v1.3+): stationary (max ' + maxStat.toExponential(1) + '), identities hold (max ' + maxId.toExponential(2) + ' / ' + maxSec.toExponential(2) + '), 24 seeds');
+  /* magnitudes: France +10 % public demand, year 1, in unions of 7, 4 and 3 members (v1.3, fixed) */
+  const unions = [['seven', ALL], ['DEU FRA ITA ESP', ['DEU', 'FRA', 'ITA', 'ESP']], ['FRA ITA ESP', ['FRA', 'ITA', 'ESP']]];
+  const out = unions.map(([name, ids]) => {
+    const r = OPENMU.report({ params: sub('v1.3', ids), years: 3, policies: { FRA: [{ pubdem: 10 }, { pubdem: 10 }, { pubdem: 10 }] } });
+    const others = ids.filter(id => id !== 'FRA');
+    const sp = others.reduce((a, id) => a + r.years[0].countries[id].gdp * r.ref.countries[id].Y, 0) / others.reduce((a, id) => a + r.ref.countries[id].Y, 0);
+    return { name, gdp: r.years[0].countries.FRA.gdp, spill: sp, res: r.years.map(y => (100 * y.union.Rshare).toFixed(0)).join(' ') };
+  });
+  must(out[2].spill > out[0].spill && out[2].gdp > out[0].gdp - 0.2, 'smaller union: more spillover to the partners (' + out.map(o => o.name + ' ' + f(o.spill, 2)).join(' · ') + ' % of GDP)');
+  console.log('union size — France public demand +10, year 1 (v1.3): ' + out.map(o => o.name + ': France GDP ' + f(o.gdp, 2) + ' %, partners ' + f(o.spill, 2) + ' %, reserves % ' + o.res).join(' | '));
+}
+
 console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' : '\nENGINE OK');
 process.exit(failed ? 1 : 0);

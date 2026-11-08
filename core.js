@@ -75,6 +75,14 @@ var MS = (function () {
   var ROW = { id: 'ROW', name: 'Rest of the world', euro: false };
   var UNION = { id: 'UNION', name: 'Monetary union' };
   var DEFAULT_GAME_COUNTRIES = ['DEU', 'FRA', 'ITA', 'ESP', 'NLD', 'BEL', 'AUT'];
+  /* §14: the members of a class's union — the countries assigned to its groups, recorded by the console in sim.members when the
+     groups are saved before the first game run (2 to 7 countries, in the fixed order of COUNTRIES). A class without the key plays
+     the seven (every class created before 8 Nov 2026). */
+  function membersOf(state) {
+    var list = state && state.sim && Array.isArray(state.sim.members) ? state.sim.members : null;
+    var ok = list ? COUNTRIES.filter(function (c) { return list.indexOf(c.id) >= 0; }) : [];
+    return ok.length >= 2 ? ok : COUNTRIES.slice();
+  }
 
   /* ---------- Objective function: five indicators, deviations from the reference run ---------- */
   var INDICATORS = [
@@ -516,6 +524,7 @@ var MS = (function () {
   return {
     LEVERS: LEVERS, TARIFF: TARIFF, EURO: EURO, TFP: TFP, CATS: CATS,
     COUNTRIES: COUNTRIES, ROW: ROW, UNION: UNION, DEFAULT_GAME_COUNTRIES: DEFAULT_GAME_COUNTRIES, INDICATORS: INDICATORS, indicatorsFor: indicatorsFor,
+    membersOf: membersOf,
     countryById: countryById, countryName: countryName, leverById: leverById,
     defaultState: defaultState, mergeState: mergeState,
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,

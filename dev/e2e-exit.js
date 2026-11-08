@@ -39,6 +39,7 @@ const TEXT = 'We announce our decisions for the year and explain them to the cou
   await admin.click('#tabs button:has-text("Groups")');
   await admin.click('button:has-text("Add 7 default groups")');
   await admin.click('button:has-text("Save groups")');
+  await admin.waitForSelector('.toast.show:has-text("Groups saved")');
   await admin.waitForFunction(() => document.querySelectorAll('#view tbody tr').length === 7);
   const pins = {}; (await api({ action: '__dump' })).dump.groups.forEach(g => { pins[g.country] = g.pin; });
   await admin.click('#tabs button:has-text("Control")');

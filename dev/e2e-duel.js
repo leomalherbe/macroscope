@@ -45,6 +45,7 @@ const KEY = 'TESTKEY';
   await admin.fill('#view input[type=number]', '2');
   await admin.click('button:has-text("Add N pairs")');
   await admin.click('button:has-text("Save groups")');
+  await admin.waitForSelector('.toast.show:has-text("Groups saved")');
   await admin.waitForFunction(() => document.querySelectorAll('#view tbody tr').length === 4 && [...document.querySelectorAll('#view tbody tr input.mono')].every(i => /^\d{4}$/.test(i.value)));
   const groups = (await api({ action: '__dump' })).dump.groups;
   const pins = {}; groups.forEach(g => { pins[g.country] = g.pin; });
