@@ -1,15 +1,16 @@
 /* Local mock of the Apps Script backend: same service logic, in-memory storage.
-   Usage: node dev/mock-server.js [port]   → serves ../macsim as static files and the API at /api */
+   Usage: node dev/mock-server.js [port]   → serves the site (repo root, with macroscope/ as the fallback for bare page names) and the API at /api */
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
-const MS = require('../macsim/core.js');
+const MS = require('../macroscope/core.js');
 global.MS = MS;
 const MSService = require('./service.js');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8787);
-const ROOT = path.join(__dirname, '..', 'macsim');
+const SITE = path.join(__dirname, '..');                 // the repository = the GitHub Pages site
+const ROOT = path.join(SITE, 'macroscope');                // bare names (/desk.html, /admin.html, /engine.js…) are the game's pages
 
 function memoryStorage() {
   const config = {};
@@ -84,8 +85,11 @@ http.createServer((req, res) => {
     file = path.normalize(path.join(vroot, file.slice('/vendor/'.length)));
     if (!file.startsWith(vroot)) return send(res, 403, 'forbidden', 'text/plain');
   } else {
-    file = path.normalize(path.join(ROOT, file));
-    if (!file.startsWith(ROOT)) return send(res, 403, 'forbidden', 'text/plain');
+    /* /macsim/… and /macroscope/… are served from the site as on GitHub Pages; anything else from macroscope/ */
+    const base = /^\/(macsim|macroscope)\//.test(file) ? SITE : ROOT;
+    file = path.normalize(path.join(base, file));
+    if (!file.startsWith(base)) return send(res, 403, 'forbidden', 'text/plain');
+    if (file.endsWith(path.sep)) file = path.join(file, 'index.html');
   }
   fs.readFile(file, (err, data) => {
     if (err) return send(res, 404, 'not found', 'text/plain');

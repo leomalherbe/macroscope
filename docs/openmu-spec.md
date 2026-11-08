@@ -2,7 +2,7 @@
 
 Game engine replacing MacSim 2 in the policy desk. Runs in the browser (admin console) and in Node (tests). Decided with Léo on 3 Nov 2026: option 1 (chapter-6 OPEN/REG logic extended to N countries in a monetary union, rest of the world exogenous), **fixed exchange rate with reserves**, devaluation decreed by the administrator near the alert threshold, two "thermometer" equations (unemployment, inflation) outside the dynamics, no sandbox, no tariffs in v1.
 
-Working name: **OPEN-MU**. Interface name stays "Policy desk". Site folder stays `macsim/` (links already distributed).
+Working name: **OPEN-MU**. Interface name stays "Policy desk". Site folder: `macroscope/` since 8 Nov 2026 (`macsim/` keeps forwarding pages for the links already distributed).
 
 ## 1. Economy
 
@@ -72,7 +72,7 @@ R0 = 3 months of the union's RoW imports: R0 = 0.25 · Σ_i IMR*_i ; attributed 
 ```
 Test: with no levers and no shocks, the simulation reproduces the reference state for 60 years to 1e-9 (relative); all identities hold each year; multiplier of `pubdem` +10 % (= G +2 pt of GDP) gives GDP ≈ +2.5 % in year 1 for a mid-size country (order of magnitude of MacSim), trade balance ≈ −0.8 pt, public balance ≈ −1.3 pt; devaluation of 10 % worsens CA in year 1 and improves it from year 2 (J-curve).
 
-## 4. Engine API (`macsim/engine.js`, global `OPENMU`, also `module.exports`)
+## 4. Engine API (`macroscope/engine.js`, global `OPENMU`, also `module.exports`)
 
 ```js
 OPENMU.VERSION                     // '1.0'

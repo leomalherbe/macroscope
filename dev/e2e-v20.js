@@ -4,7 +4,7 @@
    union row carries D → bounds and model checks on the backend. Mock server: PORT env (default 8787). */
 const { chromium } = require('playwright');
 const fs = require('fs');
-const MS = require('../macsim/core.js');
+const MS = require('../macroscope/core.js');
 const BASE = 'http://localhost:' + (process.env.E2E_PORT || 8787);
 const API = BASE + '/api';
 const OUT = process.argv[2] || '/tmp/shots-v20';
@@ -61,7 +61,7 @@ const KEY = 'TESTKEY';
   /* student: the form has six levers, the eco ones bounded 0–10 */
   const stu = await ctx.newPage();
   stu.on('pageerror', e => errors.push('student: ' + e.message));
-  await stu.goto(BASE + '/index.html?api=' + encodeURIComponent(API) + '&pin=' + pins.FRA);
+  await stu.goto(BASE + '/desk.html?api=' + encodeURIComponent(API) + '&pin=' + pins.FRA);
   await stu.waitForSelector('#submitBtn');
   const leverNames = await stu.evaluate(() => [...document.querySelectorAll('#form input[name$="_0"]')].map(i => i.name));
   must(leverNames.indexOf('L_ctax_0') >= 0 && leverNames.indexOf('L_green_0') >= 0 && (await stu.getAttribute('#form input[name="L_ctax_0"]', 'min')) === '0' && (await stu.getAttribute('#form input[name="L_green_0"]', 'max')) === '10', 'student form shows the carbon tax and green investment, bounded 0–10');

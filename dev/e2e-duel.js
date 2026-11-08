@@ -5,7 +5,7 @@
    ranking with four players → backend guards (rate bound, rate refused on a union class). Mock server: PORT env (default 8787). */
 const { chromium } = require('playwright');
 const fs = require('fs');
-const MS = require('../macsim/core.js');
+const MS = require('../macroscope/core.js');
 const BASE = 'http://localhost:' + (process.env.E2E_PORT || 8787);
 const API = BASE + '/api';
 const OUT = process.argv[2] || '/tmp/shots-duel';
@@ -63,7 +63,7 @@ const KEY = 'TESTKEY';
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'open' } });
   const stu = await ctx.newPage();
   stu.on('pageerror', e => errors.push('student: ' + e.message));
-  await stu.goto(BASE + '/index.html?api=' + encodeURIComponent(API) + '&pin=' + pins['p1:A']);
+  await stu.goto(BASE + '/desk.html?api=' + encodeURIComponent(API) + '&pin=' + pins['p1:A']);
   await stu.waitForSelector('#submitBtn');
   const leverNames = await stu.evaluate(() => [...document.querySelectorAll('#form input[name$="_0"]')].map(i => i.name));
   must(leverNames.length === 7 && leverNames.indexOf('L_rate_0') >= 0 && (await stu.getAttribute('#form input[name="L_rate_0"]', 'max')) === '2' && !(await stu.$('#form input[name="V_rate"]')), 'student form: seven levers incl. the policy rate (±2), no votes');

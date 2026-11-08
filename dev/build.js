@@ -1,9 +1,9 @@
-/* Builds macsim/Code.gs = core.js + service.js + gas-adapter.js */
+/* Builds macroscope/Code.gs = core.js + service.js + gas-adapter.js */
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');
 const parts = [
-  ['macsim/core.js', 'SHARED CORE (identical to macsim/core.js on the site)'],
+  ['macroscope/core.js', 'SHARED CORE (identical to macroscope/core.js on the site)'],
   ['dev/service.js', 'BACKEND SERVICE'],
   ['dev/gas-adapter.js', 'GOOGLE SHEETS ADAPTER + WEB ENTRY POINTS']
 ];
@@ -20,5 +20,5 @@ for (const [file, title] of parts) {
   src = src.replace(/\nif \(typeof module !== 'undefined' && module\.exports\) module\.exports = \w+;\n?/g, '\n');
   out += `\n/* ===================== ${title} ===================== */\n` + src;
 }
-fs.writeFileSync(path.join(root, 'macsim/Code.gs'), out);
+fs.writeFileSync(path.join(root, 'macroscope/Code.gs'), out);
 console.log('Code.gs written:', out.length, 'chars');

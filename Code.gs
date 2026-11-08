@@ -6,7 +6,7 @@
    (Execute as: Me · Who has access: Anyone) and copy the /exec URL.
    ===================================================================== */
 
-/* ===================== SHARED CORE (identical to macsim/core.js on the site) ===================== */
+/* ===================== SHARED CORE (identical to macroscope/core.js on the site) ===================== */
 /* =====================================================================
    OPEN-MU policy desk — shared core
    Runs unchanged in the browser (global MS), in Node (module.exports)
