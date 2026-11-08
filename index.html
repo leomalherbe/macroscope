@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#1b2437;--muted:#5b6475;--bg:#fbfaf6;--card:#fff;--line:#e6e2d6;--gold:#c29d2c;--gold-soft:#f5ecd2;--navy:#14213d;--navy-2:#1f3058;--blue:#2f5d9e;--green:#2f7d4f;--red:#b23b3b}
+:root{--ink:#1b2437;--muted:#5b6475;--bg:#fbfaf6;--card:#fff;--line:#e6e2d6;--gold:#c29d2c;--gold-soft:#f5ecd2;--navy:#14213d;--blue:#2f5d9e;--green:#2f7d4f;--red:#b23b3b}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:17px;line-height:1.6}
@@ -19,32 +19,91 @@ h2{font-size:clamp(1.6rem,3vw,2.2rem);line-height:1.15;margin-bottom:.45em}
 h3{font-size:1.15rem;line-height:1.3;margin-bottom:.3em}
 p{margin:0 0 .9em}
 .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-.prose{max-width:68ch}
 .muted{color:var(--muted)}
 .small{font-size:.92rem}
+.sr{position:absolute;left:-9999px}
 
 /* ---------- hero ---------- */
-.hero{background:var(--navy);color:#e4e7ee;padding:44px 0 56px}
-.brand{font-family:"Source Serif 4",serif;font-weight:700;font-size:1.15rem;color:#fff;letter-spacing:.01em;display:flex;align-items:center;gap:10px}
+.hero{background:var(--navy);color:#e4e7ee;padding:44px 0 72px}
+.brand{font-family:"Source Serif 4",serif;font-weight:700;font-size:1.15rem;color:#fff;display:flex;align-items:center;gap:10px}
 .brand svg{flex:none}
 .brand small{font-family:Inter,sans-serif;font-weight:500;font-size:.85rem;color:#aab2c5}
-.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:start;margin-top:40px}
-.hero h1{color:#fff;font-size:clamp(2.2rem,4.6vw,3.4rem);line-height:1.04;letter-spacing:-.02em}
-.hero .lead{font-size:1.15rem;color:#d3d8e3;margin:22px 0 0;max-width:34em}
+.hero-body{max-width:760px;margin-top:56px}
+.hero h1{color:#fff;font-size:clamp(2.4rem,5.4vw,4rem);line-height:1.03;letter-spacing:-.02em}
+.hero .lead{font-size:1.2rem;color:#d3d8e3;margin:26px 0 0;max-width:36em}
 .hero .lead + .lead{margin-top:14px}
-.hero-links{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:28px}
+.hero-links{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:32px}
 .hero-links a{color:#fff;font-weight:600;text-decoration-color:var(--gold);text-decoration-thickness:2px}
 
+/* ---------- sections ---------- */
+section{padding:72px 0;border-bottom:1px solid var(--line)}
+section.tint{background:#f4f1e8}
+.intro{max-width:68ch;margin-bottom:36px}
+.intro p{color:var(--muted);font-size:1.05rem}
+
+/* the loop */
+.loop{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden}
+.loop > div{padding:24px 22px;position:relative}
+.loop > div + div{border-left:1px solid var(--line)}
+.loop > div + div::before{content:"";position:absolute;left:-7px;top:32px;width:12px;height:12px;background:var(--card);border-top:1px solid var(--line);border-right:1px solid var(--line);transform:rotate(45deg)}
+.loop h3{display:flex;align-items:center;gap:10px}
+.loop h3 i{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(--gold-soft);color:var(--navy);font-size:.9rem;display:inline-flex;align-items:center;justify-content:center}
+.loop p{font-size:.95rem;margin:.6em 0 0}
+.richer{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center;margin-top:22px;max-width:820px}
+.richer svg{flex:none}
+.richer p{margin:0;font-size:1rem}
+@media (max-width:900px){.loop{grid-template-columns:1fr}.loop > div + div{border-left:0;border-top:1px solid var(--line)}.loop > div + div::before{left:30px;top:-7px;transform:rotate(-45deg)}}
+
+/* the four steps of a course: a real sequence, drawn on a rail */
+.course{list-style:none;margin:0;padding:0;position:relative}
+.course::before{content:"";position:absolute;left:19px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.course li{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,.8fr);gap:0 28px;padding:0 0 34px}
+.course li:last-child{padding-bottom:0}
+.course .n{width:40px;height:40px;border-radius:50%;background:var(--navy);color:#fff;font-family:"Source Serif 4",serif;font-weight:700;font-size:1.1rem;display:flex;align-items:center;justify-content:center;position:relative}
+.course h3{font-size:1.3rem;margin-top:5px}
+.course .body p{margin-bottom:.6em}
+.course .made{font-size:.9rem;border-left:3px solid var(--gold);padding:4px 0 4px 14px;margin-top:8px}
+.course .made b{display:block;font-weight:600;color:var(--navy)}
+@media (max-width:860px){.course li{grid-template-columns:40px minmax(0,1fr);gap:0 18px}.course .made{grid-column:2}}
+
+/* assessment */
+.assess{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:48px;align-items:start}
+.assess blockquote{margin:0;font-family:"Source Serif 4",serif;font-size:clamp(1.35rem,2.4vw,1.75rem);line-height:1.3;color:var(--navy)}
+.criteria{margin:0;display:grid;gap:18px}
+.criteria div{border-top:1px solid var(--line);padding-top:14px}
+.criteria dt{font-weight:600;color:var(--navy)}
+.criteria dd{margin:4px 0 0;color:var(--muted);font-size:.95rem}
+
+/* versions */
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+table.v{width:100%;border-collapse:collapse;font-size:.93rem;min-width:780px}
+table.v th,table.v td{text-align:left;vertical-align:top;padding:16px 18px;border-bottom:1px solid var(--line)}
+table.v tr:last-child td{border-bottom:0}
+table.v thead th{font-weight:600;color:var(--muted);font-size:.85rem;background:#faf8f2}
+table.v td:first-child{width:19%}
+table.v td:first-child b{display:block;font-family:"Source Serif 4",serif;font-size:1.1rem;color:var(--navy)}
+table.v td:first-child span{display:block;font-size:.82rem;color:var(--muted)}
+table.v td:first-child em{display:block;font-style:normal;font-size:.8rem;color:var(--ink);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.extras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px;margin-top:36px;max-width:900px}
+.extras h3{font-size:1.1rem}
+.extras p{font-size:.93rem;color:var(--muted);margin:0}
+.refs{margin-top:36px;font-size:.88rem;color:var(--muted);max-width:80ch}
+.refs h3{font-family:Inter,sans-serif;font-size:.95rem;font-weight:600;color:var(--ink)}
+.refs ul{margin:.3em 0 0;padding-left:1.1em}
+.refs li{margin:.3em 0}
+@media (max-width:860px){.extras{grid-template-columns:1fr;gap:22px}}
+
 /* ---------- the live year ---------- */
-.lab{background:var(--card);color:var(--ink);border-radius:16px;padding:22px 22px 18px;box-shadow:0 18px 50px rgba(0,0,0,.28)}
+.try{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:48px;align-items:start}
+.lab{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:22px 22px 18px;box-shadow:0 10px 30px rgba(20,33,61,.08)}
 .lab-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
-.lab-head h2{font-size:1.25rem;margin:0}
+.lab-head h3{font-size:1.2rem;margin:0}
 .lab-head span{font-size:.8rem;color:var(--muted)}
 .lab-intro{font-size:.88rem;color:var(--muted);margin:0 0 12px}
 .stage{display:grid;grid-template-columns:28px minmax(0,1fr);gap:0 12px;padding:12px 0;border-top:1px solid var(--line)}
 .stage .n{width:26px;height:26px;border-radius:50%;background:var(--gold-soft);color:var(--navy);font-family:"Source Serif 4",serif;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center}
-.stage h3{font-family:Inter,sans-serif;font-size:.95rem;font-weight:600;margin:2px 0 8px}
-.stage h3 span{font-weight:400;color:var(--muted)}
+.stage h4{font-size:.95rem;font-weight:600;margin:2px 0 8px;color:var(--navy)}
+.stage h4 span{font-weight:400;color:var(--muted)}
 select{font:inherit;font-size:.92rem;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
 .lever{display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 3.4em;gap:10px;align-items:center;font-size:.88rem;margin:2px 0}
 .lever output{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
@@ -66,69 +125,32 @@ table.out tr.r td{font-weight:700;border-bottom:0}
 .verdict p{margin:0 0 .3em}.verdict p:last-child{margin:0}
 .empty{font-size:.88rem;color:var(--muted);margin:0}
 
-/* ---------- sections ---------- */
-section{padding:72px 0;border-bottom:1px solid var(--line)}
-section.tint{background:#f4f1e8}
-.intro{max-width:68ch;margin-bottom:36px}
-.intro p{color:var(--muted);font-size:1.05rem}
-
-/* the four steps of a course: a real sequence, drawn on a rail */
-.course{list-style:none;margin:0;padding:0;position:relative}
-.course::before{content:"";position:absolute;left:19px;top:8px;bottom:8px;width:2px;background:var(--line)}
-.course li{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,.8fr);gap:0 28px;padding:0 0 34px}
-.course li:last-child{padding-bottom:0}
-.course .n{width:40px;height:40px;border-radius:50%;background:var(--navy);color:#fff;font-family:"Source Serif 4",serif;font-weight:700;font-size:1.1rem;display:flex;align-items:center;justify-content:center;position:relative}
-.course h3{font-size:1.3rem;margin-top:5px}
-.course .body p{margin-bottom:.6em}
-.course .made{font-size:.9rem;border-left:3px solid var(--gold);padding:4px 0 4px 14px;margin-top:8px;color:var(--ink)}
-.course .made b{display:block;font-weight:600;color:var(--navy)}
-@media (max-width:860px){.course li{grid-template-columns:40px minmax(0,1fr);gap:0 18px}.course .made{grid-column:2}}
-
-/* assessment */
-.assess{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:48px;align-items:start}
-.assess blockquote{margin:0;font-family:"Source Serif 4",serif;font-size:clamp(1.35rem,2.4vw,1.75rem);line-height:1.3;color:var(--navy)}
-.criteria{margin:0;display:grid;gap:18px}
-.criteria div{border-top:1px solid var(--line);padding-top:14px}
-.criteria dt{font-weight:600;color:var(--navy)}
-.criteria dd{margin:4px 0 0;color:var(--muted);font-size:.95rem}
-
-/* the loop */
-.loop{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden}
-.loop > div{padding:22px 20px;position:relative}
-.loop > div + div{border-left:1px solid var(--line)}
-.loop > div + div::before{content:"";position:absolute;left:-7px;top:30px;width:12px;height:12px;background:var(--card);border-top:1px solid var(--line);border-right:1px solid var(--line);transform:rotate(45deg)}
-.loop h3{display:flex;align-items:center;gap:10px}
-.loop h3 i{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(--gold-soft);color:var(--navy);font-size:.9rem;display:inline-flex;align-items:center;justify-content:center}
-.loop ul{margin:.4em 0 0;padding-left:1.1em;font-size:.92rem}
-.loop li{margin:.25em 0}
-.loop p{font-size:.92rem;color:var(--muted);margin:.5em 0 0}
-.again{font-size:.92rem;color:var(--muted);margin-top:14px}
-@media (max-width:900px){.loop{grid-template-columns:1fr}.loop > div + div{border-left:0;border-top:1px solid var(--line)}.loop > div + div::before{left:30px;top:-7px;transform:rotate(-45deg)}}
-
-/* versions */
-.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:var(--card)}
-table.v{width:100%;border-collapse:collapse;font-size:.93rem;min-width:760px}
-table.v th,table.v td{text-align:left;vertical-align:top;padding:16px 18px;border-bottom:1px solid var(--line)}
-table.v tr:last-child td{border-bottom:0}
-table.v thead th{font-weight:600;color:var(--muted);font-size:.85rem;background:#faf8f2}
-table.v td:first-child{width:17%}
-table.v td:first-child b{display:block;font-family:"Source Serif 4",serif;font-size:1.1rem;color:var(--navy)}
-table.v td:first-child span{font-size:.82rem;color:var(--muted)}
-.extras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px;margin-top:36px}
-.extras h3{font-size:1.1rem}
-.extras p{font-size:.93rem;color:var(--muted);margin:0}
-@media (max-width:860px){.extras{grid-template-columns:1fr;gap:22px}}
-
 /* game + practical */
 .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:48px}
 .two ul{padding-left:1.1em;margin:.4em 0 0}
 .two li{margin:.45em 0}
-@media (max-width:900px){.hero-grid,.assess,.two{grid-template-columns:1fr;gap:32px}}
 
+/* arcade */
+.arcade{background:var(--navy);color:#d3d8e3;border-bottom:0;padding:64px 0;overflow:hidden}
+.arcade-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:48px;align-items:center}
+.arcade h2{color:#fff}
+.arcade .tag{display:inline-block;font-size:.85rem;font-weight:600;color:var(--navy);background:var(--gold);border-radius:999px;padding:3px 12px;margin-bottom:16px}
+.arcade p{font-size:1.05rem}
+.arcade ul{padding-left:1.1em;margin:.6em 0 0}
+.arcade li{margin:.35em 0}
+.versus{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:14px}
+.side{border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:18px 16px;text-align:center}
+.side b{display:block;font-family:"Source Serif 4",serif;font-size:1.6rem;color:#fff}
+.side span{display:block;font-size:.85rem;color:#aab2c5;margin-top:4px}
+.side.a{border-color:var(--gold)}
+.vs{font-family:"Source Serif 4",serif;font-weight:700;font-size:1.3rem;color:var(--gold)}
+.shared{grid-column:1 / -1;text-align:center;font-size:.85rem;color:#aab2c5;border-top:1px dashed rgba(255,255,255,.25);padding-top:10px}
+
+@media (max-width:900px){.assess,.two,.try,.arcade-grid{grid-template-columns:1fr;gap:32px}}
 footer{padding:36px 0 56px;font-size:.9rem;color:var(--muted)}
 footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px}
 footer p{margin:0}
-@media (max-width:560px){body{font-size:16px}section{padding:52px 0}.lever,.guess{grid-template-columns:minmax(0,1fr) 3.2em;}.lever span,.guess span{grid-column:1 / -1}.guess .seg{grid-column:1 / -1}.lab{padding:18px 16px 14px}}
+@media (max-width:560px){body{font-size:16px}section{padding:52px 0}.lever,.guess{grid-template-columns:minmax(0,1fr) 3.2em}.lever span,.guess span,.guess .seg{grid-column:1 / -1}.lab{padding:18px 16px 14px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
 </head>
@@ -140,53 +162,15 @@ footer p{margin:0}
       <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="none" stroke="#c29d2c" stroke-width="2.4"/><path d="M6.5 13.5l3-3 2.5 2 3.5-4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 17l6 6" stroke="#c29d2c" stroke-width="2.6" stroke-linecap="round"/></svg>
       Macroscope <small>a teaching game for macroeconomics</small>
     </div>
-    <div class="hero-grid">
-      <div>
-        <h1>Learn economic policy by governing an economy.</h1>
-        <p class="lead">Students run the government of a country. Each year they face a shock, choose their policy, and write down why: which effects they expect, through which channels. A model they have studied computes what actually happens.</p>
-        <p class="lead">The game is the experiment. The learning is in the gap between what they expected and what they got, and in how well they explain it.</p>
-        <div class="hero-links">
-          <a href="#course">How a course uses it</a>
-          <a href="#versions">The versions of the model</a>
-          <a href="../macsim/model.html">Read the model</a>
-        </div>
-      </div>
-
-      <div class="lab" id="lab" aria-labelledby="lab-title">
-        <div class="lab-head"><h2 id="lab-title">Play one year</h2><span>model 1.2, live in your browser</span></div>
-        <p class="lab-intro">You govern France in a union of seven. The other governments do nothing. Your policy is held for three years.</p>
-
-        <div class="stage"><div class="n">1</div><div>
-          <h3>The shock <span>announced by the administrator</span></h3>
-          <label for="shock" class="sr" style="position:absolute;left:-9999px">Shock of the year</label>
-          <select id="shock">
-            <option value="none">No shock this year</option>
-            <option value="world" selected>World recession: the rest of the world buys 6 % less</option>
-            <option value="oil">Oil shock: imports cost 10 % more for the same output</option>
-            <option value="confidence">Households lose confidence: they consume 3 % less of their income</option>
-            <option value="rate">The central bank raises its rate by 1 point</option>
-          </select>
-        </div></div>
-
-        <div class="stage"><div class="n">2</div><div>
-          <h3>Your policy <span>change from the reference, in %</span></h3>
-          <div id="levers"></div>
-        </div></div>
-
-        <div class="stage"><div class="n">3</div><div>
-          <h3>Your forecast for year 1 <span>before you run</span></h3>
-          <div id="guesses"></div>
-        </div></div>
-
-        <div class="stage"><div class="n">4</div><div>
-          <h3>The simulation</h3>
-          <button class="run" id="run" type="button">Run the model</button>
-        </div></div>
-
-        <div class="stage"><div class="n">5</div><div>
-          <h3>Your results <span>deviation from the path without shock or policy</span></h3>
-          <div id="results" aria-live="polite"><p class="empty">Set your policy, make a forecast, then run the model.</p></div>
-        </div></div>
+    <div class="hero-body">
+      <h1>Learn economic policy by governing an economy.</h1>
+      <p class="lead">Students run the government of a country in a monetary union. Each year they face a shock, choose their policy, and write down why: which effects they expect, through which channels. A model they have studied computes what actually happens.</p>
+      <p class="lead">The game is the experiment. The learning is in the gap between what they expected and what they got, and in how well they explain it.</p>
+      <div class="hero-links">
+        <a href="#principle">How it works</a>
+        <a href="#course">How a course uses it</a>
+        <a href="#versions">The versions of the model</a>
+        <a href="#try">Try one year</a>
       </div>
     </div>
   </div>
@@ -194,7 +178,38 @@ footer p{margin:0}
 
 <main>
 
-<section id="course">
+<section id="principle">
+  <div class="wrap">
+    <div class="intro">
+      <h2>One year of play, in four steps</h2>
+      <p>Every version of the game runs the same loop. The administrator, usually the teacher, decides what happens to the world. The teams decide what their government does. The model decides the rest.</p>
+    </div>
+    <div class="loop">
+      <div>
+        <h3><i>1</i>Shocks</h3>
+        <p>The administrator announces what hits the economy this year: a recession abroad, an oil shock, a change in the central bank's rate, and more as the model gets richer.</p>
+      </div>
+      <div>
+        <h3><i>2</i>Levers</h3>
+        <p>Each team sets its government's policy: public spending, transfers, taxes. Together, the governments vote on common decisions. Every decision comes with a written justification.</p>
+      </div>
+      <div>
+        <h3><i>3</i>Simulation</h3>
+        <p>A stock-flow consistent model of the union computes the year: every flow comes from one sector and goes to another, every stock is the sum of its flows. Every equation is published.</p>
+      </div>
+      <div>
+        <h3><i>4</i>Results</h3>
+        <p>Growth, unemployment, inflation, the public and external accounts, and a score. Each result is split between the team's own policy, the other governments and the shocks.</p>
+      </div>
+    </div>
+    <div class="richer">
+      <svg width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="26" width="10" height="12" rx="2" fill="#e6e2d6"/><rect x="18" y="18" width="10" height="20" rx="2" fill="#d6c79a"/><rect x="34" y="10" width="10" height="28" rx="2" fill="#c29d2c"/><rect x="50" y="2" width="10" height="36" rx="2" fill="#14213d"/></svg>
+      <p>Then the next year begins, from where the last one left the economy. <strong>The richer the model chosen, the more there is to play with:</strong> more possible shocks, more levers, more channels through which a policy travels. The version is picked to fit the class.</p>
+    </div>
+  </div>
+</section>
+
+<section id="course" class="tint">
   <div class="wrap">
     <div class="intro">
       <h2>A course first, then a game</h2>
@@ -237,7 +252,7 @@ footer p{margin:0}
   </div>
 </section>
 
-<section class="tint">
+<section>
   <div class="wrap assess">
     <div>
       <blockquote>The score says how the economy did. The written work says whether the team understood why.</blockquote>
@@ -252,90 +267,37 @@ footer p{margin:0}
   </div>
 </section>
 
-<section id="principle">
-  <div class="wrap">
-    <div class="intro">
-      <h2>One year of play, in four steps</h2>
-      <p>Every version runs the same loop. The administrator, usually the teacher, decides what happens to the world. The teams decide what their government does. The model decides the rest.</p>
-    </div>
-    <div class="loop">
-      <div>
-        <h3><i>1</i>Shocks</h3>
-        <p>Announced each year by the administrator.</p>
-        <ul>
-          <li>World demand</li>
-          <li>The central bank's rate</li>
-          <li>Household confidence</li>
-          <li>An oil shock</li>
-          <li>A devaluation</li>
-          <li>In richer versions: a sudden stop of capital, the world rate, the exchange-rate regime, a climate disaster</li>
-        </ul>
-      </div>
-      <div>
-        <h3><i>2</i>Levers</h3>
-        <p>Set by each team, with a written justification.</p>
-        <ul>
-          <li>Public demand</li>
-          <li>Social benefits</li>
-          <li>Income tax</li>
-          <li>Consumption tax (VAT)</li>
-          <li>Depending on the version: carbon tax, green investment, a policy rate, tariffs</li>
-          <li>Votes at the council: the common rate, the answer to a crisis</li>
-        </ul>
-      </div>
-      <div>
-        <h3><i>3</i>Simulation</h3>
-        <p>A stock-flow consistent model of the union, in the tradition of Godley and Lavoie: households, firms, banks, governments, a common central bank and the rest of the world. Every flow comes from one sector and goes to another; every stock is the sum of its flows. Nothing is a black box.</p>
-      </div>
-      <div>
-        <h3><i>4</i>Results</h3>
-        <p>For each country, as deviations from the path without policy or shocks:</p>
-        <ul>
-          <li>GDP</li>
-          <li>Unemployment</li>
-          <li>Inflation</li>
-          <li>Public balance</li>
-          <li>Trade balance</li>
-          <li>Emissions, in the climate version</li>
-        </ul>
-        <p>A score, and each result split between the team's policy, the other governments and the shocks.</p>
-      </div>
-    </div>
-    <p class="again">Then the next year begins, from where the last one left the economy.</p>
-  </div>
-</section>
-
 <section id="versions" class="tint">
   <div class="wrap">
     <div class="intro">
       <h2>The versions of the model</h2>
-      <p>Each version contains the previous one and adds a mechanism. The table reads from the simplest to the richest: choose the row that matches what the class has learned.</p>
+      <p>The engine, OPEN-MU, is a stock-flow consistent model in the post-Keynesian tradition. Each version contains the previous one and adds a mechanism; read the table from the simplest to the richest and choose the row that matches what the class has learned.</p>
     </div>
     <div class="tablewrap">
       <table class="v">
         <thead><tr><th scope="col">Version</th><th scope="col">What it adds</th><th scope="col">What students learn</th><th scope="col">New in the game</th></tr></thead>
         <tbody>
           <tr>
-            <td><b>The union</b><span>version 1.1</span></td>
-            <td>Seven open economies sharing a currency and a central bank, with a fixed exchange rate against the rest of the world and a common stock of foreign reserves. Firms invest on bank credit.</td>
+            <td><b>The union</b><span>version 1.1</span><em>Godley &amp; Lavoie (2007), ch. 6</em></td>
+            <td>Seven open economies sharing a currency and a central bank, with a fixed exchange rate against the rest of the world and a common stock of foreign reserves. The open economy of chapter 6, extended to a union of seven, with firms that invest on bank credit and banks that lend what is asked.</td>
             <td>Multipliers and leakages through imports; why one country's stimulus is its partners' exports; twin deficits; the external constraint.</td>
-            <td>The four fiscal levers. Votes on the common rate and, when reserves run low, on austerity or devaluation.</td>
+            <td>Four fiscal levers. Votes on the common rate and, when reserves run low, on austerity or devaluation.</td>
           </tr>
           <tr>
-            <td><b>Prices</b><span>version 1.2</span></td>
+            <td><b>Prices</b><span>version 1.2</span><em>Extension of the union</em></td>
             <td>Relative price levels enter trade: a member whose prices rise faster than its partners' loses market share, year after year. Reserves run out twice as fast.</td>
             <td>Competitiveness and inflation differentials inside a union; internal devaluation as the only adjustment left.</td>
-            <td>A competitiveness indicator; VAT now moves competitiveness as well as demand.</td>
+            <td>A competitiveness indicator; the consumption tax now moves competitiveness as well as demand.</td>
           </tr>
           <tr>
-            <td><b>Capital</b><span>version 1.3</span></td>
-            <td>Capital flows between the union and the world, a fixed or floating regime chosen year by year, a risk premium on high public debt, and a central bank that can act as a backstop.</td>
+            <td><b>Capital</b><span>version 1.3</span><em>Godley &amp; Lavoie (2007), ch. 12</em></td>
+            <td>Capital flows between the union and the world, a fixed or floating regime chosen year by year, a risk premium on high public debt, and a central bank that can act as a backstop. The portfolio choices and exchange-rate regimes of chapter 12, applied to the union.</td>
             <td>Mundell–Fleming with stocks: rates, capital and the exchange rate; sudden stops; sovereign spreads and what a lender of last resort is for.</td>
             <td>Shocks on capital flows, the world rate, the regime and the backstop. A currency-crisis vote: defend the peg or float.</td>
           </tr>
           <tr>
-            <td><b>Climate</b><span>version 2.0</span></td>
-            <td>Production emits, emissions accumulate in a world stock, and the damage raises structural unemployment and inflation.</td>
+            <td><b>Climate</b><span>version 2.0</span><em>After DEFINE, Dafermos, Nikolaidi &amp; Galanis (2017), simplified</em></td>
+            <td>Production emits, emissions accumulate in a world stock, and the damage raises structural unemployment and inflation. From the DEFINE model we keep emissions, a carbon stock and a damage function; materials, energy, green finance and the long time scale are left out or compressed to fit a game.</td>
             <td>The climate as a global public good; free riding; the cost and timing of the transition.</td>
             <td>A carbon tax and green public investment. Emissions as a sixth objective, which voters can switch on.</td>
           </tr>
@@ -344,22 +306,73 @@ footer p{margin:0}
     </div>
     <div class="extras">
       <div>
-        <h3>Leaving the union</h3>
-        <p>An option for versions 1.3 and 2.0. A member can announce its exit; it leaves the next year with its own currency and its own policy rate. The remaining members vote on their response: tariffs on its exports, the sale of its bonds, the settlement of what its central bank owes.</p>
+        <h3>Option: leaving the union</h3>
+        <p>For versions 1.3 and 2.0. A member can announce its exit; it leaves the next year with its own currency and its own policy rate. The remaining members vote on their response: tariffs on its exports, the sale of its bonds, the settlement of what its central bank owes.</p>
       </div>
       <div>
-        <h3>Tariffs</h3>
-        <p>An option for every version of the union. The members vote a common external tariff; the rest of the world can retaliate; a country that has left can tax the union's goods.</p>
+        <h3>Option: tariffs</h3>
+        <p>For every version. The members vote a common external tariff; the rest of the world can retaliate; a country that has left can tax the union's goods.</p>
       </div>
-      <div>
-        <h3>The duel</h3>
-        <p>A separate, faster mode. Two identical countries, each with its own currency and policy rate, sharing one climate. Pairs play side by side, with shocks that break the symmetry.</p>
-      </div>
+    </div>
+    <div class="refs">
+      <h3>Sources</h3>
+      <ul>
+        <li>Godley, W. and Lavoie, M. (2007), <em>Monetary Economics: An Integrated Approach to Credit, Money, Income, Production and Wealth</em>, Palgrave Macmillan. Chapter 6: an open economy with a fixed exchange rate and reserves. Chapter 12: two open economies with capital flows, under fixed and flexible exchange rates.</li>
+        <li>Dafermos, Y., Nikolaidi, M. and Galanis, G. (2017), "A stock-flow-fund ecological macroeconomic model", <em>Ecological Economics</em>, 131, 191–207.</li>
+      </ul>
+      <p style="margin-top:.8em">Every equation, parameter and order of magnitude is set out, version by version, on the <a href="../macsim/model.html">model page</a>.</p>
     </div>
   </div>
 </section>
 
-<section>
+<section id="try">
+  <div class="wrap try">
+    <div>
+      <h2>Try one year</h2>
+      <p>One country, three years, version 1.2 of the engine running in your browser. The other governments stay put, so what you see is your own policy against the shock.</p>
+      <p>Make a forecast before you run. In the game, that forecast is the justification each team writes with its decisions, and the gap between the forecast and the result is what its analysis has to explain.</p>
+    </div>
+
+    <div class="lab" id="lab" aria-labelledby="lab-title">
+      <div class="lab-head"><h3 id="lab-title">You govern France</h3><span>model 1.2</span></div>
+      <p class="lab-intro">Your policy is held for three years; the shock lasts one.</p>
+
+      <div class="stage"><div class="n">1</div><div>
+        <h4>The shock <span>announced by the administrator</span></h4>
+        <label for="shock" class="sr">Shock of the year</label>
+        <select id="shock">
+          <option value="none">No shock this year</option>
+          <option value="world" selected>World recession: the rest of the world buys 6 % less</option>
+          <option value="oil">Oil shock: imports cost 10 % more for the same output</option>
+          <option value="confidence">Households lose confidence: they consume 3 % less of their income</option>
+          <option value="rate">The central bank raises its rate by 1 point</option>
+        </select>
+      </div></div>
+
+      <div class="stage"><div class="n">2</div><div>
+        <h4>Your policy <span>change from the reference, in %</span></h4>
+        <div id="levers"></div>
+      </div></div>
+
+      <div class="stage"><div class="n">3</div><div>
+        <h4>Your forecast for year 1 <span>before you run</span></h4>
+        <div id="guesses"></div>
+      </div></div>
+
+      <div class="stage"><div class="n">4</div><div>
+        <h4>The simulation</h4>
+        <button class="run" id="run" type="button">Run the model</button>
+      </div></div>
+
+      <div class="stage"><div class="n">5</div><div>
+        <h4>Your results <span>deviation from the path without shock or policy</span></h4>
+        <div id="results" aria-live="polite"><p class="empty">Set your policy, make a forecast, then run the model.</p></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section class="tint">
   <div class="wrap two">
     <div>
       <h2>Also a game in its own right</h2>
@@ -376,11 +389,30 @@ footer p{margin:0}
       <ul>
         <li>Everything runs in a browser. The data lives in a Google Sheet, behind a small script; students install nothing.</li>
         <li>A three-hour session covers the warm-up and five to eight years of play.</li>
-        <li>Macroscope is class 6 of the master's course <a href="../">International Financial Macroeconomics</a> at KEDGE Business School, after classes on inflation, interest rates, fiscal policy, the balance of payments and the stock-flow model itself. The slides are online.</li>
-        <li>The <a href="../macsim/model.html">model page</a> sets out every equation, parameter and order of magnitude, version by version. The <a href="https://github.com/leomalherbe/internationalfinancialmacro/blob/main/macsim/README.md">operating guide</a> explains how to set up your own copy.</li>
+        <li>The <a href="https://github.com/leomalherbe/internationalfinancialmacro/blob/main/macsim/README.md">operating guide</a> explains how to set up your own copy and how to run a session.</li>
         <li>To use it in a course, or to contribute: <a href="mailto:leo.malherbe@kedgebs.com">leo.malherbe@kedgebs.com</a>.</li>
       </ul>
-      <p class="small muted" style="margin-top:18px">The model builds on Godley and Lavoie, <em>Monetary Economics</em> (2007), chapters 6 and 12, and for the climate block on Dafermos, Nikolaidi and Galanis (2017), <em>Ecological Economics</em> 131.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arcade" aria-labelledby="arcade-title">
+  <div class="wrap arcade-grid">
+    <div>
+      <span class="tag">Arcade mode</span>
+      <h2 id="arcade-title">Settle it in a duel.</h2>
+      <p>No union, no council, no one to hide behind. Two players, two identical countries, each with its own currency and its own central bank, sharing one atmosphere.</p>
+      <ul>
+        <li>Your fiscal levers, your policy rate, your carbon tax.</li>
+        <li>A shock lands on one side and the symmetry breaks.</li>
+        <li>Pairs play side by side, a year a minute.</li>
+      </ul>
+    </div>
+    <div class="versus" aria-hidden="true">
+      <div class="side a"><b>A</b><span>own currency<br>own rate</span></div>
+      <div class="vs">vs</div>
+      <div class="side"><b>B</b><span>own currency<br>own rate</span></div>
+      <div class="shared">one exchange rate between them, one shared climate</div>
     </div>
   </div>
 </section>
@@ -389,8 +421,8 @@ footer p{margin:0}
 
 <footer>
   <div class="wrap">
-    <p>Macroscope, by Léo Malherbe, KEDGE Business School. Source on <a href="https://github.com/leomalherbe/internationalfinancialmacro">GitHub</a>.</p>
-    <p><a href="../">Course home</a></p>
+    <p>Macroscope, by Léo Malherbe, KEDGE Business School.</p>
+    <p>Source on <a href="https://github.com/leomalherbe/internationalfinancialmacro">GitHub</a></p>
   </div>
 </footer>
 
@@ -400,7 +432,7 @@ footer p{margin:0}
 (function () {
   'use strict';
   if (typeof OPENMU === 'undefined' || typeof MS === 'undefined') {
-    document.getElementById('lab').innerHTML = '<p class="empty">The live model could not be loaded. The <a href="demo.html">played game</a> shows a full run.</p>';
+    document.getElementById('lab').innerHTML = '<p class="empty">The live model could not be loaded.</p>';
     return;
   }
   var COUNTRY = 'FRA', YEARS = 3;
@@ -428,22 +460,20 @@ footer p{margin:0}
   var pol = {}, guess = {};
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function fmt(x, d) { var v = Math.abs(x) < 0.005 ? 0 : x; return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d === undefined ? 2 : d); }
+  function fmt(x) { var v = Math.abs(x) < 0.005 ? 0 : x; return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(2); }
   function cls(x) { return Math.abs(x) < 0.005 ? '' : (x > 0 ? 'pos' : 'neg'); }
   function dir(x, tol) { return x > tol ? 'up' : (x < -tol ? 'down' : 'flat'); }
 
-  /* levers */
   var lv = document.getElementById('levers');
   LEV.forEach(function (l) {
     pol[l.id] = 0;
     var row = document.createElement('div'); row.className = 'lever';
-    row.innerHTML = '<span><label for="l-' + l.id + '">' + esc(l.label) + '</label></span><input type="range" id="l-' + l.id + '" min="-10" max="10" step="1" value="0"><output for="l-' + l.id + '" id="o-' + l.id + '">0</output>';
+    row.innerHTML = '<span><label for="l-' + l.id + '">' + esc(l.label) + '</label></span><input type="range" id="l-' + l.id + '" min="-10" max="10" step="1" value="0"><output for="l-' + l.id + '">0</output>';
     lv.appendChild(row);
     var inp = row.querySelector('input'), out = row.querySelector('output');
     inp.addEventListener('input', function () { pol[l.id] = Number(inp.value); out.textContent = pol[l.id] > 0 ? '+' + pol[l.id] : (pol[l.id] < 0 ? '−' + Math.abs(pol[l.id]) : '0'); });
   });
 
-  /* forecast */
   var gv = document.getElementById('guesses');
   GUESS.forEach(function (g) {
     var row = document.createElement('div'); row.className = 'guess';
@@ -457,7 +487,6 @@ footer p{margin:0}
     Array.prototype.forEach.call(gv.querySelectorAll('button[data-g="' + id + '"]'), function (x) { x.setAttribute('aria-pressed', String(x.getAttribute('data-v') === guess[id])); });
   });
 
-  /* run */
   function run() {
     var Z = { world: 0, rate: 0, confidence: 0, imports: 0, deval: 0 };
     var sh = [], p = [], t;
@@ -472,7 +501,6 @@ footer p{margin:0}
     });
     h += '<tr class="r"><td>Score of the year</td>' + rows.map(function (r) { return '<td class="' + cls(r.R) + '">' + fmt(r.R) + '</td>'; }).join('') + '</tr></tbody></table>';
 
-    /* forecast vs outcome, and where year 1 came from */
     var y1 = rows[0], notes = [];
     GUESS.forEach(function (g) {
       if (!guess[g.id]) return;
@@ -483,7 +511,7 @@ footer p{margin:0}
     var d = y1.detail && y1.detail.gdp;
     if (d && (Math.abs(d.nat) > 0.005 || Math.abs(d.shock) > 0.005)) notes.push('<p>Of the change in GDP in year 1, your policy accounts for ' + fmt(d.nat) + ' and the shock for ' + fmt(d.shock) + '.</p>');
     if (!notes.length) notes.push('<p>Nothing moved: no shock and no policy. Try a shock, then a policy to answer it.</p>');
-    notes.push('<p class="muted">In class, this is where the team writes why.</p>');
+    notes.push('<p class="muted">In the game, this is where the team writes why.</p>');
     document.getElementById('results').innerHTML = h + '<div class="verdict">' + notes.join('') + '</div>';
   }
   document.getElementById('run').addEventListener('click', run);
