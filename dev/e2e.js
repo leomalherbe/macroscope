@@ -52,6 +52,7 @@ console.log('engine:', realEngine ? 'macroscope/engine.js (real)' : 'dev/engine-
   await admin.click('#tabs button:has-text("Groups")');
   await admin.click('button:has-text("Add 7 default groups")');
   await admin.click('button:has-text("Save groups")');
+  await admin.waitForSelector('.toast.show:has-text("Groups saved")');
   await admin.waitForFunction(() => document.querySelectorAll('#view tbody tr').length === 7 && [...document.querySelectorAll('#view tbody tr input.mono')].every(i => /^\d{4}$/.test(i.value)));
   await admin.screenshot({ path: OUT + '/a1-groups.png', fullPage: true });
   const dump = await api({ action: '__dump' });

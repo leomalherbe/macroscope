@@ -7,11 +7,11 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110802">
-<script src="config.js?v=2026110802"></script>
-<script src="core.js?v=2026110802"></script>
-<script src="app-common.js?v=2026110802"></script>
-<script src="engine.js?v=2026110802"></script>
+<link rel="stylesheet" href="style.css?v=2026110803">
+<script src="config.js?v=2026110803"></script>
+<script src="core.js?v=2026110803"></script>
+<script src="app-common.js?v=2026110803"></script>
+<script src="engine.js?v=2026110803"></script>
 </head>
 <body>
 
@@ -139,7 +139,7 @@
   async function createClass() {
     var name = prompt('Name of the class (e.g. "M1 Finance – group A")');
     if (!name) return;
-    var kind = prompt('Kind of class: "union" (seven members, one currency, warm-up then game) or "duel" (arcade: pairs of two countries with their own currencies, played in parallel, no warm-up)', 'union');
+    var kind = prompt('Kind of class: "union" (up to seven members — the countries of its groups —, one currency, warm-up then game) or "duel" (arcade: pairs of two countries with their own currencies, played in parallel, no warm-up)', 'union');
     if (kind === null) return;
     kind = /^d/i.test(String(kind).trim()) ? 'duel' : 'union';
     var r = await MSApi.call('admin.class.create', { key: key, name: name });
@@ -434,7 +434,7 @@
     var pb = numField('Bound on levers (± %, relative variation)', s.bounds.lever, 0.5), pt = numField('Bound on tariffs (± points, absolute)', s.bounds.tariff, 0.5), pp = numField('Bound on TFP shock (± %)', s.bounds.tfp, 0.5), pr = numField('Duel: bound on the policy rate (± points)', s.bounds.rate || 2, 0.25);
     box.appendChild(el('h3', {}, ['Bounds'])); box.appendChild(el('div', { class: 'params' }, isDuel() ? [pb.el, pr.el] : [pb.el, pt.el, pp.el]));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Warm-up']));
-    var wc = el('select'); MS.COUNTRIES.forEach(function (c) { wc.appendChild(el('option', { value: c.id }, [c.name])); }); wc.value = s.warmup.country;
+    var wc = el('select'); MS.membersOf(s).forEach(function (c) { wc.appendChild(el('option', { value: c.id }, [c.name])); }); wc.value = s.warmup.country;
     var wy = numField('Years in the plan (1–3)', s.warmup.years, 1), wm = numField('Max. instruments (0 = no limit)', s.warmup.maxNonZero, 1), wt = numField('Min. characters, strategy text', s.warmup.minText, 10);
     box.appendChild(el('div', { class: 'params' }, [el('div', {}, [el('label', { class: 'small' }, ['Country']), el('br'), wc]), wy.el, wm.el, wt.el]));
     var allowedBox = el('div', { class: 'checks', style: 'margin-top:8px' });
@@ -513,6 +513,12 @@
     }
     groupsSorted().forEach(addRow);
     c.appendChild(el('div', { class: 'tablewrap' }, [tbl]));
+    /* §14: the union of the class = the countries of its groups, fixed at Save before the first game run */
+    if (!isDuel()) {
+      var memNow = MS.membersOf(st()), locked = membersLocked();
+      c.appendChild(el('div', { class: 'note small', id: 'unionNote', html: '<b>The union of this class: ' + memNow.length + ' member' + (memNow.length > 1 ? 's' : '') + '</b> — ' + esc(memNow.map(function (x) { return x.name; }).join(', ')) + '. ' +
+        (locked ? 'Fixed since the first game year was run: you can still rename groups, change PINs or members, not the countries.' : 'Set by the countries of the groups each time you save them (2 to 7 different countries; a country with no group is not in the union). Fixed once year 1 of the game has been run.') }));
+    }
     var row = el('div', { class: 'btnrow' });
     row.appendChild(el('button', { class: 'btn ghost', onclick: function () { addRow({}); } }, ['+ Add a group']));
     if (isDuel()) {
@@ -524,8 +530,28 @@
       var groups = $$('tr', tb).map(function (tr) { return tr._get(); });
       var dup = {}; var bad = groups.some(function (g) { if (!g.pin) return false; if (dup[g.pin]) return true; dup[g.pin] = 1; return false; });
       if (bad) { UI.toast('Two groups share the same PIN.'); return; }
+      /* §14: the countries of the groups make the union (union classes); fresh state first (warm-up country, results run elsewhere) */
+      await refresh(true);
+      var newMem = null, msg = 'Groups saved';
+      if (!isDuel()) {
+        var cs = MS.COUNTRIES.filter(function (cc) { return groups.some(function (g) { return g.country === cc.id; }); }).map(function (cc) { return cc.id; });
+        var cur = MS.membersOf(st()).map(function (cc) { return cc.id; });
+        if (membersLocked()) {
+          var lost = cur.filter(function (id) { return cs.indexOf(id) < 0; }), added = cs.filter(function (id) { return cur.indexOf(id) < 0; });
+          var hadAll = cur.length === MS.COUNTRIES.length && !(st().sim && st().sim.members);   /* an old class plays the seven, with passive members allowed */
+          if (added.length || (lost.length && !hadAll)) { UI.toast('The union is fixed since year 1 was run: ' + (added.length ? MS.countryName(added[0]) + ' cannot join' : MS.countryName(lost[0]) + ' must keep its group') + '.', 6000); return; }
+        } else if (cs.length >= 2) {
+          if (cs.join() !== cur.join() || !(st().sim && st().sim.members)) newMem = cs;
+        } else msg = 'Groups saved — assign at least two different countries to make the union (it stays at ' + cur.length + ' members for now)';
+      }
       var r = await admin('admin.groups.set', { groups: groups });
-      if (r.ok) { UI.toast('Groups saved'); await refresh(); }
+      if (r.ok && newMem) {
+        var patch0 = { sim: { members: newMem } };
+        if (newMem.indexOf(st().warmup.country) < 0) patch0.warmup = { country: newMem[0] };   /* the warm-up country must belong to the union */
+        await admin('admin.state.set', { patch: patch0 });
+        msg = 'Groups saved — the union has ' + newMem.length + ' members';
+      }
+      if (r.ok) { UI.toast(msg, 4000); await refresh(); }
     } }, ['Save groups']));
     row.appendChild(el('button', { class: 'btn ghost', onclick: printSlips }, ['Print PIN slips']));
     c.appendChild(row);
@@ -758,13 +784,18 @@
   function isCapModel(s) { var m = modelOf(s); return m === 'v1.3' || m === 'v2.0'; }
   function engineParams() {
     var ov_ = st().sim || {};
-    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, model: 1, crisisDepr: 1, defendStep: 1, exit: 1, tariffs: 1 };   // console rules, not engine parameters
+    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, model: 1, crisisDepr: 1, defendStep: 1, exit: 1, tariffs: 1, members: 1 };   // console rules, not engine parameters
     if (isDuel()) { var o = { forcedDeval: gameRules().forcedDeval, rateMax: MS.num(st().bounds.rate) || 2 }; Object.keys(ov_).forEach(function (k) { if (k !== 'countries' && !rules[k]) o[k] = ov_[k]; }); return OPENMU.duelParams(o); }
     rules.forcedDeval = 1;
     var p = OPENMU.paramsFor ? OPENMU.paramsFor(modelOf()) : OPENMU.defaultParams();
     Object.keys(ov_).forEach(function (k) { if (k !== 'countries' && !rules[k]) p[k] = ov_[k]; });
+    /* §14: the union of this class (2 to 7 members, from its groups); the seven when the class has no list */
+    var mem = MS.membersOf(st()).map(function (c) { return c.id; });
+    if (mem.length < p.countries.length) p.countries = p.countries.filter(function (c) { return mem.indexOf(c.id) >= 0; });
     return p;
   }
+  /* §14: the size of the union is frozen once a game year has been run and saved (draft or published) */
+  function membersLocked() { return !isDuel() && (ov.results || []).some(function (r) { return r.phase === 'game'; }); }
   /* duel: the pair row saved with the results (key 'DUEL:p<k>') */
   function pairRow(pr, year, key) {
     var x = { e: pr.e, de: pr.de, regime: pr.regime, RA: pr.RA, RB: pr.RB, R0A: pr.R0A, R0B: pr.R0B, RshareA: pr.RshareA, RshareB: pr.RshareB, alertA: !!pr.alertA, alertB: !!pr.alertB, monthsA: pr.monthsA, monthsB: pr.monthsB,

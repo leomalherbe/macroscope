@@ -75,6 +75,10 @@ Spécification : `docs/openmu-spec.md` §12. Désactivée par défaut ; ne rien 
 
 Ordres de grandeur (France, v1.3, années 2 à 5 après une annonce en année 1) : baisse de 1 pt de son taux en flottant → dépréciation de 11 %, inflation +2,6 pt, PIB −2,3 % puis +1,4 % ; relance de +5 en parité → réserves 90, 78, 64, 47, 29 % de sa part ; tarif de l'union de 10 % → PIB −1,9 % ; vente de la moitié de ses titres par l'union → dépréciation de 12 %. Tests : bloc EXIT de `dev/engine-test.js`, `dev/e2e-exit.js`.
 
+### Nombre de pays dans l'union (de 2 à 7)
+
+Les membres de l'union sont les pays attribués aux groupes dans l'onglet **Groups** : à chaque **Save groups** (avant la partie), l'union devient l'ensemble de ces pays — de 2 à 7, un encadré « The union of this class: N members » le rappelle. Un pays sans groupe n'est pas dans l'union. Le pays du warm-up est ramené dans l'union s'il n'y est pas. **Dès que l'année 1 de la partie a été lancée (Run) et enregistrée, l'union est figée** : on peut encore renommer un groupe ou changer un PIN, plus ajouter ni retirer de pays. Les classes créées avant le 8/11 restent à 7. Ordre de grandeur : une relance de la France de +10 se diffuse deux fois plus à ses partenaires dans une union France–Italie–Espagne que dans l'union à 7.
+
 ### Droits de douane (backend v1.10 requis)
 
 Spécification : `docs/openmu-spec.md` §13. Désactivés par défaut ; activables en cours de partie (sans tarif, rien ne change).
