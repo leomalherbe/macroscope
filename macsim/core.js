@@ -18,12 +18,17 @@ var MS = (function () {
     { id: 'ctax',     n: 5, label: 'Carbon tax',                  hint: 'points; paid by firms on their emissions (1 pt ≈ 0.2 % of GDP of revenue); lifts prices the year it changes; cuts the carbon intensity by 4 % per point the next year', cat: 'eco', eco: true, unit: 'pt' },
     { id: 'green',    n: 6, label: 'Green public investment',     hint: 'units of 0.2 pt of GDP of public investment (demand, deficit); cuts the carbon intensity next year, with diminishing returns (5 units: −12.5 %, 10 units: −17 %). Green investment supports demand like public spending, but 60 % of it is imported equipment (about a third less effect on your GDP than public demand, and a worse trade balance) and its gain on your carbon intensity shrinks as you raise it.', cat: 'eco', eco: true, unit: '× 0.2 pt GDP' },
     /* duel (arcade mode): each player sets its own policy rate, in points around the reference, ±bounds.rate */
+    /* §13 (class switch sim.tariffs): a country out of the union taxes the goods it buys from the members, 0 to bounds.tariffU % */
+    { id: 'tariffU',  n: 8, label: 'Tariff on goods from the union', hint: 'a tax on everything your country buys from the members of the union, 0 to 20 %: your budget collects it, your households pay it, the union sells you less (and your currency appreciates, which gives part of it back)', cat: 'trade', exitOnly: true, unit: '%' },
     { id: 'rate',     n: 7, label: 'Policy rate',                hint: 'points above (+) or below (−) the reference rate of 3 %; acts on investment next year, on debt service and on capital flows (a higher rate pulls capital in and appreciates your currency)', cat: 'money', eco: true, duel: true, unit: 'pt' }
   ];
   /* the levers available to a class: the four demand/supply levers, plus the two ecological levers when the model is v2.0 */
   function isDuel(state) { return !!(state && state.kind === 'duel'); }
   function isEcoModel(state) { return isDuel(state) || !!(state && state.sim && String(state.sim.model) === 'v2.0'); }
-  function leversFor(state) { var eco = isEcoModel(state), duel = isDuel(state); return LEVERS.filter(function (l) { return (!l.eco || eco) && (!l.duel || duel); }); }
+  function leversFor(state) { var eco = isEcoModel(state), duel = isDuel(state); return LEVERS.filter(function (l) { return !l.exitOnly && (!l.eco || eco) && (!l.duel || duel); }); }
+  /* §13 tariffs: the common external tariff voted by the members and the tariff of a country out of the union (sim.tariffs) */
+  function tariffsOn(state) { return !isDuel(state) && !!(state && state.sim && state.sim.tariffs); }
+  var CET_LEVELS = [0, 5, 10, 20];
   /* §12 leaving the union: allowed in union classes playing model v1.3 or v2.0 when the administrator switches sim.exit on.
      state.exits = {country: N}: the country announced its exit in game year N−1 and is out from year N (recorded by the console
      at the publication of year N−1). */
@@ -34,7 +39,7 @@ var MS = (function () {
   /* the levers of a country in a given game year: an exited country gains its policy rate */
   function leversForCountry(state, country, year) {
     var list = leversFor(state);
-    if (!isDuel(state) && isOutIn(state, country, year)) list = list.concat(LEVERS.filter(function (l) { return l.id === 'rate'; }));
+    if (!isDuel(state) && isOutIn(state, country, year)) list = list.concat(LEVERS.filter(function (l) { return l.id === 'rate' || (l.id === 'tariffU' && tariffsOn(state)); }));
     return list;
   }
   /* exchange-rate decisions of an exited country (payload.years[0]): regime, parity change (peg), buy-back of the bills the union sells */
@@ -111,7 +116,7 @@ var MS = (function () {
       publishLeaderboard: true,   // students and board see the ranking
       showDecisionsWhenClosed: true, // once a round is closed, every group can see everyone's decisions for that round
       years: 5,                   // length of the real game
-      bounds: { lever: 10, tariff: 10, tfp: 10, rate: 2, eco: 10, peg: 20 },   // all relative variations, in %; eco: upper bound of the one-sided v2.0 levers
+      bounds: { lever: 10, tariff: 10, tfp: 10, rate: 2, eco: 10, peg: 20, tariffU: 20 },   // all relative variations, in %; eco: upper bound of the one-sided v2.0 levers
       warmup: {
         country: 'FRA',
         years: 3,
@@ -140,7 +145,7 @@ var MS = (function () {
          both replaced as whole objects by a patch, like `shocks` */
       exits: {},
       retaliation: {},
-      sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15, crisisDepr: 10, defendStep: 1, exit: false }
+      sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15, crisisDepr: 10, defendStep: 1, exit: false, tariffs: false }
     };
   }
 
@@ -340,6 +345,12 @@ var MS = (function () {
       var rawVotes = (payload && payload.votes) || {};
       if (rawVotes.rate !== undefined && VOTE_RATE.indexOf(rawVotes.rate) < 0) errors.push('Rate vote must be cut, hold or hike.');
       clean.votes = { rate: cleanVotes(rawVotes).rate };   /* the crisis vote is a round of its own (see crisisOf / validateCrisisVote) */
+      /* §13: the members' vote on the common external tariff (0, 5, 10 or 20 %) */
+      if (tariffsOn(st) && rawVotes.cet !== undefined && rawVotes.cet !== null && rawVotes.cet !== '') {
+        var cv0 = num(rawVotes.cet);
+        if (CET_LEVELS.indexOf(cv0) < 0) errors.push('Common external tariff vote: choose 0, 5, 10 or 20 %.');
+        else clean.votes.cet = cv0;
+      }
       if (isOutIn(st, countryId, st.round)) clean.votes = {};   /* §12: an exited country no longer votes at the council */
     }
     var crisisNow = !isWarm ? crisisOf(st, st.round) : null;
@@ -353,6 +364,14 @@ var MS = (function () {
       LEVERS.forEach(function (l) {
         var v = num(y.levers ? y.levers[l.id] : 0);
         if (isNaN(v)) { errors.push('Year ' + (yi + 1) + ': "' + l.label + '" is not a number.'); v = 0; }
+        if (l.exitOnly) {
+          /* §13: the tariff of a country out of the union, 0 to bounds.tariffU */
+          var outT = !isWarm && isOutIn(st, countryId, st.round) && tariffsOn(st);
+          if (v !== 0 && !outT) { errors.push('"' + l.label + '" belongs to a country that has left the union (tariffs switched on).'); v = 0; }
+          else if (v < -1e-9 || v > num(st.bounds.tariffU || 20) + 1e-9) errors.push('"' + l.label + '" must be between 0 and ' + num(st.bounds.tariffU || 20) + ' %.');
+          cy.levers[l.id] = round2(Math.max(0, v));
+          return;
+        }
         if (l.duel) {
           /* duel: policy rate in points, two-sided, ±bounds.rate */
           var outNow = !isWarm && isOutIn(st, countryId, st.round);
@@ -501,6 +520,7 @@ var MS = (function () {
     defaultState: defaultState, mergeState: mergeState,
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
     scoreR: scoreR, isDuel: isDuel, duelOf: duelOf, ELECTION_PRESETS: ELECTION_PRESETS, electionsUpTo: electionsUpTo, weightsInfo: weightsInfo, weightsFor: weightsFor, sameWeights: sameWeights, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision, isEcoModel: isEcoModel, leversFor: leversFor, crisisOf: crisisOf, validateCrisisVote: validateCrisisVote, tallyCrisis: tallyCrisis,
+    tariffsOn: tariffsOn, CET_LEVELS: CET_LEVELS,
     exitModelOk: exitModelOk, exitAllowed: exitAllowed, exitYearOf: exitYearOf, isOutIn: isOutIn, leversForCountry: leversForCountry, FX_REGIMES: FX_REGIMES,
     RETAL_TARIFF: RETAL_TARIFF, RETAL_SALE: RETAL_SALE, retaliationOf: retaliationOf, openRetaliation: openRetaliation, retaliationIn: retaliationIn, validateRetaliationVote: validateRetaliationVote, tallyRetaliation: tallyRetaliation,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,

@@ -628,5 +628,43 @@ console.log('\n===== EXIT (spec section 12) =====');
   }
 }
 
+/* ===================== TARIFFS (spec section 13) ===================== */
+console.log('\n===== TARIFFS (spec section 13) =====');
+{
+  const P3 = OPENMU.paramsFor('v1.3');
+  /* identities with a common external tariff, a RoW tariff and, in exit runs, the exited country's tariff */
+  let maxId = 0, maxSec = 0, fails = 0;
+  for (let seed = 1; seed <= 20; seed++) {
+    const rnd = rng(seed * 57), Y = 10, v = ['v1.1', 'v1.2', 'v1.3', 'v2.0'][seed % 4];
+    const inp = randomInputs(rnd, Y, 1, v === 'v1.3' || v === 'v2.0', v === 'v2.0');
+    inp.shocks.forEach(s => { s.cet = rnd() < 0.6 ? [0, 5, 10, 20][Math.floor(rnd() * 4)] : 0; s.worldTariff = rnd() < 0.3 ? rnd() * 20 : 0; });
+    let ret;
+    if ((v === 'v1.3' || v === 'v2.0') && seed % 2) {
+      inp.policies.ITA[1].leave = 1; for (let t = 2; t < Y; t++) { inp.policies.ITA[t].tariffU = rnd() * 20; inp.policies.ITA[t].peg = rnd() < 0.4 ? 1 : 0; }
+      ret = []; for (let t = 0; t < Y; t++) ret.push({ ITA: { tariff: rnd() < 0.5 ? 10 : 0 } });
+    }
+    try {
+      const r = OPENMU.simulate({ params: OPENMU.paramsFor(v), years: Y, policies: inp.policies, shocks: inp.shocks, retaliation: ret });
+      maxId = Math.max(maxId, r.checks.maxIdentityError); r.years.forEach(y => { maxSec = Math.max(maxSec, y.union.sectorError); });
+    } catch (e) { fails++; console.log('  seed ' + seed + ': ' + e.message); }
+  }
+  must(fails === 0 && maxId < 1e-9 && maxSec < 1e-9, 'tariffs: identities with a common external tariff, a RoW tariff and an exited country′s tariff (v1.1–v2.0, 20 seeds × 10 y; max ' + maxId.toExponential(2) + ' / ' + maxSec.toExponential(2) + ')');
+  /* magnitudes: common external tariff of 10 % (union, v1.3, fixed) */
+  const base = OPENMU.report({ params: P3, years: 4 });
+  const cet = OPENMU.report({ params: P3, years: 4, shocks: Array(4).fill({ cet: 10 }) });
+  const F = (r, t) => r.years[t].countries.FRA;
+  must(F(cet, 0).pubbal > 0.3 && F(cet, 0).detail.extra.tariffRev > 0.3 && cet.years[0].union.Rshare > base.years[0].union.Rshare && F(cet, 0).tradebal > 0.5 && F(cet, 0).gdp < 0, 'common external tariff 10 % (a tax on the members′ consumers): revenue ' + F(cet, 0).detail.extra.tariffRev.toFixed(2) + ' % of GDP (France), public balance ' + f(F(cet, 0).pubbal, 2) + ' pt, GDP ' + f(F(cet, 0).gdp, 2) + ' %, the union′s reserves ' + (100 * cet.years[0].union.Rshare).toFixed(0) + ' % of R0');
+  console.log('tariffs — CET 10 % for 4 y, France: GDP ' + cet.years.map((y, i) => f(F(cet, i).gdp, 2)).join(' ') + ' | PB ' + cet.years.map((y, i) => f(F(cet, i).pubbal, 2)).join(' ') + ' | TB ' + cet.years.map((y, i) => f(F(cet, i).tradebal, 2)).join(' ') + ' | reserves % ' + cet.years.map(y => (100 * y.union.Rshare).toFixed(0)).join(' '));
+  const both = OPENMU.report({ params: P3, years: 4, shocks: Array(4).fill({ cet: 10, worldTariff: 10 }) });
+  must(F(both, 0).gdp < F(cet, 0).gdp && F(both, 0).tradebal < F(cet, 0).tradebal, 'the rest of the world retaliates with 10 %: the gain in GDP and trade balance is wiped out (GDP ' + f(F(both, 0).gdp, 2) + ' %, TB ' + f(F(both, 0).tradebal, 2) + ' pt)');
+  console.log('tariffs — CET 10 % + RoW tariff 10 %, France: GDP ' + both.years.map((y, i) => f(F(both, i).gdp, 2)).join(' ') + ' | PB ' + both.years.map((y, i) => f(F(both, i).pubbal, 2)).join(' ') + ' | TB ' + both.years.map((y, i) => f(F(both, i).tradebal, 2)).join(' '));
+  /* an exited Italy taxes the union's goods */
+  const pol0 = { ITA: [{ leave: 1 }, {}, {}, {}] }, pol1 = { ITA: [{ leave: 1 }, { tariffU: 10 }, { tariffU: 10 }, { tariffU: 10 }] };
+  const a0 = OPENMU.report({ params: P3, years: 4, policies: pol0 }), a1 = OPENMU.report({ params: P3, years: 4, policies: pol1 });
+  const I = (r, t) => r.years[t].countries.ITA;
+  must(I(a1, 1).pubbal > I(a0, 1).pubbal && Math.abs(I(a1, 1).detail.extra.tariffU - 10) < 1e-9 && a1.years[1].countries.DEU.gdp < a0.years[1].countries.DEU.gdp && Math.abs(a1.years[1].countries.DEU.detail.gdp.nat) < 1e-9, 'exited Italy taxes the union′s goods at 10 %: its budget gains ' + f(I(a1, 1).pubbal - I(a0, 1).pubbal, 2) + ' pt, German GDP ' + f(a1.years[1].countries.DEU.gdp - a0.years[1].countries.DEU.gdp, 2) + ' % (counted as a foreign policy)');
+  console.log('tariffs — exited Italy, tariff 10 % on the union: ITA GDP ' + [1, 2, 3].map(t => f(I(a1, t).gdp - I(a0, t).gdp, 2)).join(' ') + ' | ITA PB ' + [1, 2, 3].map(t => f(I(a1, t).pubbal - I(a0, t).pubbal, 2)).join(' ') + ' | ITA currency ' + [1, 2, 3].map(t => f(100 * (I(a1, t).detail.extra.fx / I(a0, t).detail.extra.fx - 1), 1)).join(' ') + ' % | DEU GDP ' + [1, 2, 3].map(t => f(a1.years[t].countries.DEU.gdp - a0.years[t].countries.DEU.gdp, 2)).join(' '));
+}
+
 console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' : '\nENGINE OK');
 process.exit(failed ? 1 : 0);

@@ -36,7 +36,7 @@ const KEY = 'TESTKEY';
   const cid = JSON.parse(dump.dump.config.classes)[0].id;
   let ov = await api({ action: 'admin.overview', key: KEY, classId: cid });
   must(ov.state.kind === 'duel' && ov.state.phase === 'game' && ov.state.round === 1 && ov.state.sim.model === 'v2.0' && ov.state.sim.votes === false, 'a duel class starts at game year 1 on the v2.0 engine, votes off');
-  must(/backend v1\.9/.test(await admin.textContent('#footTime')), 'backend reports v1.9');
+  must(/backend v1\.10/.test(await admin.textContent('#footTime')), 'backend reports v1.10');
   must(/Duels · year 1/.test(await admin.textContent('#strip')) && !(await admin.$('button:has-text("back to warm-up")')) && !(await admin.$('button:has-text("Convene the council")')), 'Control: duel label, no warm-up, no council');
 
   /* groups: two pairs */

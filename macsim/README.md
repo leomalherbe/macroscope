@@ -23,7 +23,7 @@ Tout est en anglais côté étudiants (langue du cours).
 
 À tester avant la séance : ouvrir la page étudiants avec un PIN depuis votre téléphone, soumettre un plan, le voir en vert dans l'onglet **Run**, cliquer **Run all submitted plans** puis **Save and publish all**, et voir les résultats arriver sur le téléphone.
 
-> Après toute modification de `Code.gs` (nouvelle version de l'interface) : dans l'éditeur Apps Script, remplacer tout le contenu de `Code.gs` par le nouveau fichier, enregistrer, puis **Déployer → Gérer les déploiements → ✎ (modifier) → Version : « Nouvelle version » → Déployer**. L'URL ne change pas, rien à refaire côté site. Modifier les pages HTML ne demande rien de plus qu'un push. La console affiche la version du script dans son pied de page après connexion (**v1.9** = sortie de l'union (§12 : décision `leave`, leviers du pays sorti, tour « retaliation ») ; v1.8 = mode arcade « duels » (classes de type `duel`, levier « taux directeur », lignes de paire `DUEL:p<k>`) ; v1.7 = sixième dimension « émissions » (colonne `emis` ajoutée en fin d'onglet Results) ; v1.6 = leviers écologiques du modèle v2.0 ; v1.5 = tour de vote de crise séparé et plafond d'austérité contrôlé par le backend ; v1.4 = votes annoncés au conseil ; v1.3 = votes dans les décisions ; v1.2 = chocs et lignes « union », sans les votes) ; « Unknown action » ou des chocs qui ne s'enregistrent pas signalent un script pas encore republié.
+> Après toute modification de `Code.gs` (nouvelle version de l'interface) : dans l'éditeur Apps Script, remplacer tout le contenu de `Code.gs` par le nouveau fichier, enregistrer, puis **Déployer → Gérer les déploiements → ✎ (modifier) → Version : « Nouvelle version » → Déployer**. L'URL ne change pas, rien à refaire côté site. Modifier les pages HTML ne demande rien de plus qu'un push. La console affiche la version du script dans son pied de page après connexion (**v1.10** = droits de douane (§13 : vote du tarif extérieur commun, tarif d'un pays sorti) ; v1.9 = sortie de l'union (§12 : décision `leave`, leviers du pays sorti, tour « retaliation ») ; v1.8 = mode arcade « duels » (classes de type `duel`, levier « taux directeur », lignes de paire `DUEL:p<k>`) ; v1.7 = sixième dimension « émissions » (colonne `emis` ajoutée en fin d'onglet Results) ; v1.6 = leviers écologiques du modèle v2.0 ; v1.5 = tour de vote de crise séparé et plafond d'austérité contrôlé par le backend ; v1.4 = votes annoncés au conseil ; v1.3 = votes dans les décisions ; v1.2 = chocs et lignes « union », sans les votes) ; « Unknown action » ou des chocs qui ne s'enregistrent pas signalent un script pas encore republié.
 
 ---
 
@@ -74,6 +74,16 @@ Spécification : `docs/openmu-spec.md` §12. Désactivée par défaut ; ne rien 
 - **Aperçu du Run** : lignes « X announces its exit » et « X (out of the union): float/peg, … » ; le panneau de l'union, la page des équipes et le board listent les pays sortis et les mesures en vigueur. Les agrégats de l'union (PIB, réserves) portent sur les membres restants.
 
 Ordres de grandeur (France, v1.3, années 2 à 5 après une annonce en année 1) : baisse de 1 pt de son taux en flottant → dépréciation de 11 %, inflation +2,6 pt, PIB −2,3 % puis +1,4 % ; relance de +5 en parité → réserves 90, 78, 64, 47, 29 % de sa part ; tarif de l'union de 10 % → PIB −1,9 % ; vente de la moitié de ses titres par l'union → dépréciation de 12 %. Tests : bloc EXIT de `dev/engine-test.js`, `dev/e2e-exit.js`.
+
+### Droits de douane (backend v1.10 requis)
+
+Spécification : `docs/openmu-spec.md` §13. Désactivés par défaut ; activables en cours de partie (sans tarif, rien ne change).
+
+- **Activer** : *Control → Parameters* → cocher **tariffs** → *Save parameters*.
+- **Tarif extérieur commun** : chaque membre vote 0, 5, 10 ou 20 % avec ses décisions (bloc des votes, le niveau en vigueur est proposé par défaut) ; la médiane des votes exprimés s'applique à l'année ; sans vote, le niveau reste. Visible dans l'aperçu du Run, le panneau de l'union et le board.
+- **Riposte du reste du monde** : choc *Rest of the world: tariff on union exports* (%) dans l'éditeur de chocs, à poser quand le TEC monte.
+- **Pays sorti** : levier *Tariff on goods from the union* (0–20 %) dans son formulaire ; ligne dans son panneau « Your currency ».
+- Ordres de grandeur : TEC 10 % → recette ≈ 1,4 % du PIB, solde public +1,2 pt, solde commercial +1,1 pt, PIB −0,6 % (les ménages paient) ; avec une riposte de 10 % → PIB −2 %. L'Italie sortie à 10 % sur l'union → recette +1,6 pt de PIB, PIB +0,8 %, PIB allemand −0,6 %.
 
 ### Mode arcade : duels (classe de type `duel`, backend v1.8 requis)
 

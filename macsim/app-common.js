@@ -85,7 +85,7 @@ var UI = (function () {
   function yearChips(y, opts) {
     var chips = [];
     if (!y) return chips;
-    MS.LEVERS.forEach(function (l) { var v = MS.num(y.levers ? y.levers[l.id] : 0); if (v) chips.push({ label: (opts && opts.short ? l.id : l.label), value: v, unit: l.duel ? ' pt' : (l.eco ? (l.id === 'ctax' ? ' pt' : '') : '%') }); });
+    MS.LEVERS.forEach(function (l) { var v = MS.num(y.levers ? y.levers[l.id] : 0); if (v) chips.push({ label: (opts && opts.short ? l.id : l.label), value: v, unit: l.duel ? ' pt' : (l.eco ? (l.id === 'ctax' ? ' pt' : '') : '%'), lever: l.id }); });
     Object.keys(y.tariffs || {}).forEach(function (p) { var v = MS.num(y.tariffs[p]); if (v) chips.push({ label: 'Tariff on ' + MS.countryName(p), value: v, unit: ' pt' }); });
     if (y.euro === 'leave') chips.push({ label: 'Leaves the union', value: null });
     /* §12: exchange-rate decisions of a country that has left the union */
@@ -107,12 +107,16 @@ var UI = (function () {
   function voteChipsHtml(v, opts) {
     if (!v || !v.rate) return '';
     var h = '<span class="chip vote' + (v.rate === 'hold' ? ' zero' : '') + '">' + esc(VOTE_LABEL[v.rate] || v.rate) + '</span>';
+    if (v.cet !== undefined && v.cet !== null) h += '<span class="chip vote">External tariff: ' + esc(MS.fmt(v.cet, 0)) + ' %</span>';   /* §13 */
     if (opts && opts.crisis && v.crisis) h += '<span class="chip vote">' + esc(VOTE_LABEL[v.crisis] || v.crisis) + '</span>';
     return '<div class="chips">' + h + '</div>';
   }
   function voteLinesHtml(u) {
     var v = u && u.votes; if (!v) return '';
     var r = v.rate, h = '';
+    var ct = v.cet;   /* §13: the common external tariff */
+    if (ct) h += '<div class="urow"><span>Common external tariff (median of the votes)</span><span class="num wrap">' + MS.CET_LEVELS.map(function (l, i) { return esc(ct.levels[i]) + ' × ' + l + ' %'; }).join(' · ') + ' → <b>' + esc(MS.fmt(ct.level, 0)) + ' %</b>' + (ct.votes ? '' : ' (no vote: unchanged)') + '</span></div>';
+    if (u.worldTariff) h += '<div class="urow"><span>Rest of the world’s tariff on the union’s exports</span><span class="num neg">' + esc(MS.fmt(u.worldTariff, 0)) + ' %</span></div>';
     if (r) h += '<div class="urow"><span>Vote on the central bank’s rate</span><span class="num">' + esc(r.cut) + ' cut · ' + esc(r.hold) + ' hold · ' + esc(r.hike) + ' hike → ' + (r.outcome ? esc(MS.fmt(r.outcome, 2, true)) + ' pt' : 'unchanged') + ' · rate ' + esc(MS.fmt(r.level, 2)) + ' %</span></div>';
     var c = v.crisis || {};
     if (c.outcome === 'forced') h += '<div class="urow"><span>Reserves exhausted</span><span class="num neg">forced devaluation</span></div>';
@@ -209,6 +213,7 @@ var UI = (function () {
     h += '<div class="urow"><span>Your bills held by the union’s central bank</span><span class="num">' + esc(MS.fmt(x.BcbU, 1)) + ' % of GDP' + (x.sold ? ' <span class="neg">(' + esc(MS.fmt(x.sold, 1)) + ' % sold this year)</span>' : '') + '</span></div>';
     h += '<div class="urow"><span>TARGET balance (+: your central bank owes the union, in euros)</span><span class="num ' + (x.T2 > 0 ? 'neg' : '') + '">' + esc(MS.fmt(x.T2, 1, true)) + ' % of GDP' + (x.settled ? ' · settled this year' : '') + '</span></div>';
     if (x.tariff) h += '<div class="urow"><span>Union tariff on your exports</span><span class="num neg">' + esc(MS.fmt(x.tariff, 0)) + ' %</span></div>';
+    if (x.tariffU) h += '<div class="urow"><span>Your tariff on goods from the union</span><span class="num">' + esc(MS.fmt(x.tariffU, 0)) + ' %' + (x.tariffRev ? ' · revenue ' + esc(MS.fmt(x.tariffRev, 2)) + ' % of GDP' : '') + '</span></div>';
     return h + '</div>';
   }
   /* v1.3: regime / capital-flow lines of a union row (empty for v1.1 / v1.2 rows) */

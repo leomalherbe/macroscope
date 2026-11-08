@@ -34,7 +34,7 @@ const TEXT = 'We announce our decisions for the year and explain them to the cou
   await admin.waitForSelector('text=No class yet');
   await admin.click('button:has-text("+ New class")');
   await admin.waitForSelector('#statusGrid');
-  must(/backend v1\.9/.test(await admin.textContent('#footTime')), 'backend reports v1.9');
+  must(/backend v1\.10/.test(await admin.textContent('#footTime')), 'backend reports v1.10');
   const cid = JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id;
   await admin.click('#tabs button:has-text("Groups")');
   await admin.click('button:has-text("Add 7 default groups")');
@@ -193,6 +193,55 @@ const TEXT = 'We announce our decisions for the year and explain them to the cou
   sF = await api({ action: 'state', pin: pins.FRA });
   const x3 = sF.myResults.filter(r => r.phase === 'game' && r.year === 3)[0].detail.extra;
   must(x3.peg && Math.abs(x3.fx / x2.fx - 1.05) < 1e-3, 'France′s row of year 3: peg at the year-2 rate devalued by 5 % (' + x2.fx.toFixed(3) + ' → ' + x3.fx.toFixed(3) + ')');
+
+  /* year 4 (§13): tariffs switched on mid-game — common external tariff voted by the members, France taxes the union's goods,
+     the rest of the world answers */
+  const before = JSON.stringify((await api({ action: 'state', pin: pins.DEU })).myResults.map(r => [r.year, r.gdp, r.R]));
+  await admin.click('#tabs button:has-text("Control")');
+  await admin.click('summary:has-text("Parameters")');
+  await admin.check('#tariffsOn');
+  await admin.click('button:has-text("Save parameters")');
+  await admin.waitForTimeout(600);
+  must((await api({ action: 'admin.overview', key: KEY, classId: cid })).state.sim.tariffs === true, 'Parameters: tariffs switched on during the game');
+  await admin.click('button:has-text("Next year")');
+  await admin.waitForSelector('text=game · year 4');
+  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'open' } });
+  await deu.reload(); await deu.waitForSelector('#submitBtn');
+  must((await deu.$$('#form input[name="V_cet"]')).length === 4 && /The common external tariff/.test(await deu.textContent('#form')) && /now 0 %/.test(await deu.textContent('#form')), 'Germany′s form: the common external tariff vote (0/5/10/20, now 0 %)');
+  await deu.click('#form input[name="V_cet"][value="10"]');
+  await deu.click('#form input[name="V_rate"][value="hold"]');
+  await deu.fill('#decisionText', TEXT);
+  await deu.screenshot({ path: OUT + '/x-s5-cet-vote.png', fullPage: true });
+  await deu.click('#submitBtn'); await deu.waitForTimeout(800);
+  must((await sub('ITA', { levers: {} }, { rate: 'hold', cet: 20 }, 4)).ok && (await sub('ESP', { levers: {} }, { rate: 'hold', cet: 5 }, 4)).ok, 'Italy votes 20 %, Spain 5 %');
+  await fra.reload(); await fra.waitForSelector('#submitBtn');
+  must(!!(await fra.$('#form [name="L_tariffU_0"]')) && !(await fra.$('#form input[name="V_cet"]')), 'France′s form: its tariff on the union′s goods, no CET vote');
+  await fra.fill('#form [name="L_tariffU_0"]', '10');
+  await fra.fill('#decisionText', TEXT);
+  await fra.click('#submitBtn'); await fra.waitForTimeout(800);
+  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'closed' } });
+  await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(600);
+  await admin.click('#tabs button:has-text("Run")');
+  await admin.waitForSelector('#runBtn');
+  must(/Rest of the world: tariff on union exports/.test(await admin.textContent('#view')), 'shocks editor: the rest of the world′s tariff row');
+  await admin.fill('input[data-y="4"][data-f="worldTariff"]', '5');
+  await admin.click('button:has-text("Save shocks")'); await admin.waitForTimeout(500);
+  await runClick(admin);
+  await admin.waitForSelector('#runPreview table');
+  const y4 = await admin.textContent('#runPreview');
+  must(/Common external tariff: 0 × 0 % · 1 × 5 % · 1 × 10 % · 1 × 20 % \(3 vote\(s\)\) → 10 %/.test(y4) && /taxes the union’s exports at 5 %/.test(y4), 'year-4 preview: CET median 10 % of three votes, RoW tariff 5 %');
+  await admin.click('button:has-text("Save and publish all")');
+  await admin.waitForTimeout(900);
+  const s4 = await api({ action: 'state', pin: pins.DEU });
+  const u4 = s4.union.filter(r => r.phase === 'game' && r.year === 4)[0].detail.extra, d4 = s4.myResults.filter(r => r.year === 4)[0].detail.extra;
+  must(u4.cet === 10 && u4.worldTariff === 5 && u4.votes.cet.level === 10 && d4.tariffRev > 0, 'union row of year 4: CET 10 %, RoW tariff 5 %; Germany collects ' + d4.tariffRev.toFixed(2) + ' % of GDP');
+  must(JSON.stringify(s4.myResults.filter(r => r.year < 4).map(r => [r.year, r.gdp, r.R])) === before, 'switching tariffs on mid-game leaves the published years unchanged');
+  const f4 = (await api({ action: 'state', pin: pins.FRA })).myResults.filter(r => r.year === 4)[0].detail.extra;
+  must(Math.abs(f4.tariffU - 10) < 1e-6 && f4.tariffRev > 0, 'France′s row of year 4: its tariff 10 %, revenue ' + f4.tariffRev.toFixed(2) + ' % of GDP');
+  await deu.reload(); await deu.waitForSelector('#app');
+  must(/Common external tariff \(median of the votes\)/.test(await deu.textContent('#app')), 'Germany′s page: the CET line in the union panel');
+  await fra.reload(); await fra.waitForSelector('#app');
+  must(/Your tariff on goods from the union/.test(await fra.textContent('#app')), 'France′s currency panel: its tariff');
 
   must(errors.length === 0, 'no page errors (' + errors.join(' | ') + ')');
   await browser.close();

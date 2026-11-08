@@ -7,11 +7,11 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110702">
-<script src="config.js?v=2026110702"></script>
-<script src="core.js?v=2026110702"></script>
-<script src="app-common.js?v=2026110702"></script>
-<script src="engine.js?v=2026110702"></script>
+<link rel="stylesheet" href="style.css?v=2026110801">
+<script src="config.js?v=2026110801"></script>
+<script src="core.js?v=2026110801"></script>
+<script src="app-common.js?v=2026110801"></script>
+<script src="engine.js?v=2026110801"></script>
 </head>
 <body>
 
@@ -446,11 +446,11 @@
     box.appendChild(el('div', { class: 'small muted', style: 'margin-top:8px' }, ['Instruments allowed in the warm-up:'])); box.appendChild(allowedBox);
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Game']));
     var gy = numField('Number of years', s.years, 1), gm = numField('Max. instruments (0 = no limit)', s.game.maxNonZero, 1), gt = numField('Min. characters, justification', s.game.minText, 10);
-    var gTar = el('input', { type: 'checkbox' }); gTar.checked = s.game.allowTariff !== false;
+    var gTar = el('input', { type: 'checkbox', id: 'tariffsOn' }); gTar.checked = !!(s.sim && s.sim.tariffs);
     var gEu = el('input', { type: 'checkbox', id: 'exitAllowed' }); gEu.checked = !!(s.sim && s.sim.exit);
     var gTfp = el('input', { type: 'checkbox' }); gTfp.checked = !!s.game.allowTfp;
     box.appendChild(el('div', { class: 'params' }, [gy.el, gm.el, gt.el]));
-    box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', {}, [gTar, ' tariffs allowed']), el('label', { title: 'Spec §12: a member may announce its exit with its decisions; it leaves the union the next year (models v1.3 and v2.0 only; backend 1.9)' }, [gEu, ' leaving the union allowed (models v1.3 and v2.0)']), el('label', {}, [gTfp, ' TFP shock allowed'])]));
+    box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Spec §13: the members vote each year on a common external tariff on the rest of the world (0, 5, 10 or 20 %, median of the votes); a country out of the union may tax the goods of the union (0–20 %); shock « Rest of the world: tariff on union exports » in Run. Backend 1.10.' }, [gTar, ' tariffs (common external tariff voted by the members; tariff of a country out of the union)']), el('label', { title: 'Spec §12: a member may announce its exit with its decisions; it leaves the union the next year (models v1.3 and v2.0 only; backend 1.9)' }, [gEu, ' leaving the union allowed (models v1.3 and v2.0)']), el('label', {}, [gTfp, ' TFP shock allowed'])]));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Votes at the central bank (game)']));
     var simNow = Object.assign({}, MS.defaultState().sim, s.sim || {});
     var vOn = el('input', { type: 'checkbox' }); vOn.checked = simNow.votes !== false;
@@ -475,9 +475,9 @@
       var w = {}; Object.keys(wInputs).forEach(function (k) { w[k] = MS.num(wInputs[k].value); });
       patch({ bounds: { lever: MS.num(pb.input.value), tariff: MS.num(pt.input.value), tfp: MS.num(pp.input.value), eco: MS.num(st().bounds.eco) || 10, rate: MS.num(pr.input.value) || 2 },
         warmup: { country: wc.value, years: Math.max(1, Math.min(3, Math.round(MS.num(wy.input.value)) || 3)), allowed: allowed, maxNonZero: Math.round(MS.num(wm.input.value)), minText: Math.round(MS.num(wt.input.value)) },
-        game: { allowTariff: gTar.checked, allowEuro: false, allowTfp: gTfp.checked, maxNonZero: Math.round(MS.num(gm.input.value)), minText: Math.round(MS.num(gt.input.value)) },
+        game: { allowTariff: false, allowEuro: false, allowTfp: gTfp.checked, maxNonZero: Math.round(MS.num(gm.input.value)), minText: Math.round(MS.num(gt.input.value)) },
         years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w,
-        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15, crisisDepr: MS.num(vDepr.input.value) || 10, defendStep: MS.num(vDef.input.value) || 1, model: mSel.value, exit: gEu.checked && (mSel.value === 'v1.3' || mSel.value === 'v2.0') } }, (gEu.checked && !(mSel.value === 'v1.3' || mSel.value === 'v2.0')) ? 'Parameters saved — leaving the union needs model v1.3 or v2.0: left off' : 'Parameters saved');
+        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15, crisisDepr: MS.num(vDepr.input.value) || 10, defendStep: MS.num(vDef.input.value) || 1, model: mSel.value, exit: gEu.checked && (mSel.value === 'v1.3' || mSel.value === 'v2.0'), tariffs: gTar.checked && !isDuel() } }, (gEu.checked && !(mSel.value === 'v1.3' || mSel.value === 'v2.0')) ? 'Parameters saved — leaving the union needs model v1.3 or v2.0: left off' : 'Parameters saved');
     } }, ['Save parameters'])]));
     det.appendChild(box); c5.appendChild(det); v.appendChild(c5);
   }
@@ -721,6 +721,8 @@
     { id: 'confidence', label: 'Household confidence',    unit: '%',  hint: 'propensity to consume out of income' },
     { id: 'imports',    label: 'Import propensity',       unit: '%',  hint: 'e.g. an oil shock: more spent on imports for the same output' },
     { id: 'deval',      label: 'Devaluation',             unit: '%',  hint: 'jump of the exchange rate vs the rest of the world (+ = devaluation); fixed regime only' },
+    /* §13 (tariffs switched on): the rest of the world's tariff on the union's exports */
+    { id: 'worldTariff', label: 'Rest of the world: tariff on union exports', unit: '%', hint: 'a tariff the rest of the world puts on everything the members sell it (e.g. 10 in answer to a common external tariff): the union exports less; the revenue goes to the rest of the world. A country out of the union is not concerned', tariffs: true },
     /* v1.3 (capital flows): shown only when the class runs model v1.3 */
     { id: 'regime',     label: 'Exchange-rate regime',    unit: '',   hint: 'fixed: the reserves absorb the balance of payments (alert, crisis vote); float: the reserves are frozen and the exchange rate clears it (currency-crisis vote)', type: 'select', options: [['fixed', 'fixed'], ['float', 'floating']], v13: true },
     { id: 'flows',      label: 'Capital flows / sudden stop', unit: '%', hint: 'change of the rest of the world’s desired holdings of union bills (30 % of union GDP at the reference); −10 = flight to quality. Fixed: the reserves pay (−5 ≈ the whole stock); float: the currency depreciates (−30 ≈ +20 %). A persistent shock must be repeated every year', v13: true },
@@ -742,7 +744,7 @@
     { id: 'backstop',   label: 'Central-bank backstop',   unit: '',   hint: 'on: each central bank buys its government’s residual bills at the policy rate (the spread above 110 % of debt is paid on privately held bills only); off: an indebted country must place its bills on the market — its rate rises until households and banks absorb them, and the partner’s flight is not cushioned', type: 'check' },
     { id: 'disaster',   label: 'Climate disaster',        unit: '%',  hint: 'one-off extra damage this year for both countries (e.g. 3 = potential output −3 %)' }
   ];
-  function shockFields() { if (isDuel()) return DUEL_SHOCK_FIELDS; var m = modelOf(), v13 = m === 'v1.3' || m === 'v2.0', v20 = m === 'v2.0'; return SHOCK_FIELDS.filter(function (f) { return (!f.v13 || v13) && (!f.v20 || v20); }); }
+  function shockFields() { if (isDuel()) return DUEL_SHOCK_FIELDS; var m = modelOf(), v13 = m === 'v1.3' || m === 'v2.0', v20 = m === 'v2.0', tar = MS.tariffsOn(st()); return SHOCK_FIELDS.filter(function (f) { return (!f.v13 || v13) && (!f.v20 || v20) && (!f.tariffs || tar); }); }
   var runPreview = null;   // {phase, round, rows:[...], union:[...]} built by the last run
   function engineOk() { return typeof OPENMU !== 'undefined' && OPENMU && typeof OPENMU.report === 'function'; }
   function engineLine() {
@@ -756,7 +758,7 @@
   function isCapModel(s) { var m = modelOf(s); return m === 'v1.3' || m === 'v2.0'; }
   function engineParams() {
     var ov_ = st().sim || {};
-    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, model: 1, crisisDepr: 1, defendStep: 1 };   // console rules, not engine parameters
+    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, model: 1, crisisDepr: 1, defendStep: 1, exit: 1, tariffs: 1 };   // console rules, not engine parameters
     if (isDuel()) { var o = { forcedDeval: gameRules().forcedDeval, rateMax: MS.num(st().bounds.rate) || 2 }; Object.keys(ov_).forEach(function (k) { if (k !== 'countries' && !rules[k]) o[k] = ov_[k]; }); return OPENMU.duelParams(o); }
     rules.forcedDeval = 1;
     var p = OPENMU.paramsFor ? OPENMU.paramsFor(modelOf()) : OPENMU.defaultParams();
@@ -805,6 +807,7 @@
     var x = { CA: u.CA, R: u.R, R0: u.R0, xr: u.xr, alert: !!u.alert, months: u.months, gdp: u.gdp, rate: u.r };
     if (u.regime) { x.regime = u.regime; x.dxr = u.dxr; x.CAp = u.CAp; x.KA = u.KA; x.Bw = u.Bw; x.Bf = u.Bf; x.backstop = u.backstop !== false; x.pressured = u.pressured || []; x.sBar = u.sBar; x.rw = u.rw; }   // v1.3
     if (u.D !== undefined) { x.D = u.D; x.Sshare = u.Sshare; x.Erel = u.Erel; }   // v2.0: damage %, pollution stock vs start, union emissions vs reference %
+    if (u.cet) x.cet = u.cet; if (u.worldTariff) x.worldTariff = u.worldTariff;   // §13
     if (extra) Object.keys(extra).forEach(function (k) { x[k] = extra[k]; });
     return { key: key || 'UNION', year: year, gdp: '', unemp: '', infl: '', pubbal: '', tradebal: '', R: '', detail: { extra: roundDeep(x, 4) } };
   }
@@ -1057,6 +1060,7 @@
     });
     var shocks = [], tallies = {}, caps = {}, cum = 0, rStar = params.r * 100, half = playing.length / 2, warnings = [];
     var exAll = exitsUpTo(N), retal = retaliationList(N, exAll);   /* §12 */
+    var cetLevel = 0, tariffsOn = MS.tariffsOn(s);   /* §13 */
     for (var y = 1; y <= N; y++) {
       var alert = false, exhausted = false;
       var regimeY = adminShocks[y - 1].regime === 'float' ? 'float' : 'fixed';
@@ -1076,6 +1080,15 @@
       var rateShock = (adminShocks[y - 1].rate || 0) + cum;
       rateShock = Math.max(-rStar, Math.min(10 - rStar, rateShock));
       var shock = Object.assign({}, adminShocks[y - 1], { rate: rateShock });
+      /* §13: the common external tariff of year y — lower median of the votes cast by the members with their decisions; when nobody
+         votes, the level of the previous year stays */
+      var cetT = null;
+      if (tariffsOn) {
+        var cv = []; decisionsFor('game', y).forEach(function (d) { if (isOutY(d.country, y) || !d.payload || !d.payload.votes) return; var v = d.payload.votes.cet; if (v !== undefined && v !== null && MS.CET_LEVELS.indexOf(Number(v)) >= 0) cv.push(Number(v)); });
+        if (cv.length) { cv.sort(function (a, b) { return a - b; }); cetLevel = cv[Math.floor((cv.length - 1) / 2)]; }
+        shock.cet = cetLevel;
+        cetT = { votes: cv.length, levels: MS.CET_LEVELS.map(function (l) { return cv.filter(function (x) { return x === l; }).length; }), level: cetLevel };
+      }
       /* the reserves crisis is a round of its own, recorded in state.crisis[y] by the Control tab (spec §7.6) */
       var rec = MS.crisisOf(s, y);
       var crisis = { active: false, austerity: rec ? (rec.austerity || 0) : 0, devaluation: rec ? (rec.devaluation || 0) : 0, outcome: null, status: rec ? rec.status : null, needed: exhausted ? 'forced' : (alert ? 'vote' : null), kind: rec && rec.kind === 'currency' ? 'currency' : 'reserves' };
@@ -1096,6 +1109,7 @@
       } else if (crisis.needed) warnings.push('Year ' + y + ': the union ' + (exhausted ? 'had exhausted its reserves (forced devaluation due)' : 'was under alert (crisis vote due)') + ' but no crisis round was recorded in Control; the year was run without it.');
       shocks.push(shock);
       tallies[y] = { rate: votesOn ? { cut: t.rate.cut, hold: t.rate.hold, hike: t.rate.hike, outcome: delta, level: rStar + shock.rate } : null, crisis: crisis };
+      if (cetT) tallies[y].cet = cetT;
       caps[y] = capped;
     }
     return { policies: policies, shocks: shocks, tallies: tallies, caps: caps, warnings: warnings, retaliation: retal, exits: exAll };
@@ -1204,6 +1218,7 @@
       var lines = [];
       if (t.rate) lines.push('<b>Votes of year ' + runPreview.round + '</b> — rate: ' + t.rate.cut + ' cut · ' + t.rate.hold + ' hold · ' + t.rate.hike + ' hike → ' + (t.rate.outcome ? esc(MS.fmt(t.rate.outcome, 2, true)) + ' pt' : 'unchanged') + ' · effective rate ' + esc(MS.fmt(t.rate.level, 2)) + ' % (administrator shock ' + esc(MS.fmt(((st().shocks || {})[shockKey(runPreview.round, 'game')] || {}).rate || 0, 2, true)) + ' pt included).');
       else lines.push('<b>Votes disabled</b> (Control → Parameters).');
+      if (t.cet) lines.push('Common external tariff: ' + MS.CET_LEVELS.map(function (l, i) { return t.cet.levels[i] + ' × ' + l + ' %'; }).join(' · ') + ' (' + t.cet.votes + ' vote(s)) → <b>' + esc(MS.fmt(t.cet.level, 0)) + ' %</b>' + (t.cet.votes ? ' (median)' : ' (no vote: unchanged)') + (MS.num(sh.worldTariff) ? ' · the rest of the world taxes the union’s exports at ' + esc(MS.fmt(sh.worldTariff, 0)) + ' %' : '') + '.');
       if (cr.outcome === 'forced') lines.push('<span class="neg">Reserves exhausted at the end of year ' + (runPreview.round - 1) + ' with the current account still in deficit: forced devaluation of ' + esc(MS.fmt(gameRules().forcedDeval, 0)) + ' %.</span>');
       else if (cr.active && cr.kind === 'currency') lines.push('Currency crisis (depreciation over year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' defend · ' + cr.devaluation + ' let it float → <b>' + (cr.outcome === 'float' ? 'let it float' : 'defend: rate +' + esc(MS.fmt(gameRules().defendStep || 1, 1)) + ' pt this year') + '</b>.');
       else if (cr.active) lines.push('Reserves crisis (alert at the end of year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' austerity · ' + cr.devaluation + ' devaluation → <b>' + esc(cr.outcome) + '</b>' + (cr.outcome === 'devaluation' ? ' (' + esc(MS.fmt(gameRules().devalSize, 0)) + ' % devaluation applied)' : (runPreview.caps && runPreview.caps.length ? ' — public demand and benefits capped at ' + esc(MS.fmt(gameRules().austerityCap, 0)) + ' % for: ' + esc(runPreview.caps.map(MS.countryName).join(', ')) : ' — nobody above the cap')) + '.');

@@ -7,10 +7,10 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110702">
-<script src="config.js?v=2026110702"></script>
-<script src="core.js?v=2026110702"></script>
-<script src="app-common.js?v=2026110702"></script>
+<link rel="stylesheet" href="style.css?v=2026110801">
+<script src="config.js?v=2026110801"></script>
+<script src="core.js?v=2026110801"></script>
+<script src="app-common.js?v=2026110801"></script>
 </head>
 <body>
 
@@ -195,6 +195,7 @@
     if (!f.isWarm && votesConfig().on && !f.out) {
       var vr = $('#form input[name="V_rate"]:checked'), vc = $('#form input[name="V_crisis"]:checked');
       out.votes = { rate: vr ? vr.value : 'hold', crisis: vc ? vc.value : 'austerity' };
+      var vt = $('#form input[name="V_cet"]:checked'); if (vt) out.votes.cet = Number(vt.value);   /* §13 */
     }
     return out;
   }
@@ -228,6 +229,14 @@
     wrap.appendChild(q('V_rate', 'The central bank’s rate', 'One country, one vote. A majority of the countries moves the rate by ' + MS.fmt(vc.step, 2) + ' pt, permanently. It acts on investment next year and on every budget’s debt service at once.',
       [['cut', 'Cut −' + MS.fmt(vc.step, 2) + ' pt'], ['hold', 'Hold'], ['hike', 'Hike +' + MS.fmt(vc.step, 2) + ' pt']], prevV.rate));
 
+    /* §13: the common external tariff, voted each year; the default is the level in force */
+    if (MS.tariffsOn(data.state)) {
+      var lastU = (data.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'UNION' && r.detail && r.detail.extra; }).sort(function (a, b) { return b.year - a.year; })[0];
+      var cetNow = lastU && lastU.detail.extra.cet ? Number(lastU.detail.extra.cet) : 0;
+      var curCet = pv && pv.votes && pv.votes.cet !== undefined ? pv.votes.cet : cetNow;
+      wrap.appendChild(q('V_cet', 'The common external tariff', 'A tariff on everything the members buy from the rest of the world (now ' + MS.fmt(cetNow, 0) + ' %). The median of the members’ votes wins. It brings revenue to every budget and protects the union’s trade balance, but your households pay it — and the rest of the world may answer with a tariff on your exports.',
+        MS.CET_LEVELS.map(function (l) { return [String(l), l + ' %']; }), String(curCet)));
+    }
     var card = el('div');
     card.appendChild(el('h3', { style: 'margin:14px 0 2px' }, ['Votes at the central bank']));
     card.appendChild(el('p', { class: 'muted small', style: 'margin:0' }, ['Your votes travel with your decisions and stay secret while the round is open; they are revealed with everyone’s decisions once it is closed.']));
@@ -290,8 +299,8 @@
     thead.appendChild(hr); tbl.appendChild(thead);
     var tbody = el('tbody');
     f.levers.forEach(function (l) {
-      var tr = el('tr', {}, [el('td', { html: '<span class="n muted">' + l.n + '.</span> ' + esc(l.label) + '<span class="hint">' + esc(l.hint) + ' · <i>' + esc(f.out && l.duel ? 'Monetary policy' : MS.CATS[l.cat].replace(' policies', '')) + '</i></span>' }), el('td', { class: 'unit' }, [l.duel ? 'pt · ±' + (f.bounds.rate || 2) : l.eco ? (l.unit + ' · 0 to ' + (f.bounds.eco || 10)) : '% of ref.'])]);
-      for (var y2 = 0; y2 < f.nYears; y2++) { var ni = numInput('L_' + l.id + '_' + y2, pv && pv.years[y2] ? pv.years[y2].levers[l.id] : 0, l.duel ? (f.bounds.rate || 2) : l.eco ? (f.bounds.eco || 10) : f.bounds.lever); if (l.duel) { ni.step = 0.25; } else if (l.eco) { ni.min = 0; ni.step = 0.5; } if (cap !== null && (l.id === 'pubdem' || l.id === 'benefits')) { ni.max = cap; ni.title = 'austerity: at most ' + cap + ' %'; } tr.appendChild(el('td', { class: 'num' }, [ni])); }
+      var tr = el('tr', {}, [el('td', { html: '<span class="n muted">' + l.n + '.</span> ' + esc(l.label) + '<span class="hint">' + esc(l.hint) + ' · <i>' + esc(f.out && l.duel ? 'Monetary policy' : MS.CATS[l.cat].replace(' policies', '')) + '</i></span>' }), el('td', { class: 'unit' }, [l.exitOnly ? '% · 0 to ' + (f.bounds.tariffU || 20) : l.duel ? 'pt · ±' + (f.bounds.rate || 2) : l.eco ? (l.unit + ' · 0 to ' + (f.bounds.eco || 10)) : '% of ref.'])]);
+      for (var y2 = 0; y2 < f.nYears; y2++) { var ni = numInput('L_' + l.id + '_' + y2, pv && pv.years[y2] ? pv.years[y2].levers[l.id] : 0, l.exitOnly ? (f.bounds.tariffU || 20) : l.duel ? (f.bounds.rate || 2) : l.eco ? (f.bounds.eco || 10) : f.bounds.lever); if (l.exitOnly) { ni.min = 0; ni.step = 1; } else if (l.duel) { ni.step = 0.25; } else if (l.eco) { ni.min = 0; ni.step = 0.5; } if (cap !== null && (l.id === 'pubdem' || l.id === 'benefits')) { ni.max = cap; ni.title = 'austerity: at most ' + cap + ' %'; } tr.appendChild(el('td', { class: 'num' }, [ni])); }
       tbody.appendChild(tr);
     });
     tbl.appendChild(tbody);

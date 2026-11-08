@@ -6,7 +6,7 @@
 <title>Macroscope · The model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110702">
+<link rel="stylesheet" href="style.css?v=2026110801">
 <style>
 table.eq{width:100%;border-collapse:collapse;background:#faf8f1;border:1px solid var(--line);border-radius:10px;margin:8px 0;font-size:.86rem}
 table.eq td{padding:4px 10px;vertical-align:top;border-bottom:1px solid #efebe0}
@@ -238,6 +238,23 @@ details.ver[open]>summary h2::before{content:"▾ "}
       </table>
     </div>
     <div class="note"><strong>What it costs, what it buys</strong> (France, model v1.3, years 2–5 after an announcement in year 1). Its own rate: a cut of 1 pt depreciates the new currency by 11 %, adds 2.6 pt of inflation and costs 2.3 % of GDP the first year (the import bill rises before volumes react), then GDP is 1.4 % above the reference. A permanent stimulus of +5: in a float the currency slides (+2 % → +11 % over four years) and inflation stays 0.8–1.0 pt higher; in a peg the reserves drain (90, 78, 64, 47, 29 % of the share received). A devaluation of 10 % in a peg: inflation +2.4 pt, the reserves refill by revaluation.<br><br><strong>What the others can do.</strong> The administrator may hit the exiting country only: household confidence (−3 % → GDP −1.3 %), a sale of its bills by the rest of the world (−20 % for a year → currency −20 %, inflation +4.7 pt), a deposit run into foreign bills — the year of the announcement it is paid out of the union's <em>common</em> reserves (1 pt of wealth costs the union 12 % of its stock). The remaining members, in a <b>council on retaliation</b> held before the decisions of the exit year (and again whenever the administrator convenes it), vote the median level of a tariff on its exports (10 %: GDP −1.9 %, the union's reserves rise) and of a yearly sale of its bills held by their central bank (half of them: currency −12 %, bill rate +0.2 pt; buying them back spares the rate, not the currency), and, if its central bank owes the union, the immediate settlement of its TARGET balance.<br><br><strong>Who pays for the past.</strong> The union's net claim on the leaver — its bills kept plus the TARGET balance — equals the leaver's cumulative balance-of-payments deficit beyond its share of the union's: zero at the reference, 4.9 % of its GDP after a deposit run of 3 pt of wealth while still a member.</div>
+  </div>
+</details>
+
+<details class="card ver" id="tariffs">
+  <summary><h2>Tariffs <span class="pill">when the administrator switches them on</span></h2></summary>
+  <p class="small muted">A customs union has one external tariff: the members vote it each year, and a country that has left the union may tax the union's goods. All tariffs are 0 unless switched on.</p>
+  <div class="block">
+    <div>
+      <table class="eq">
+        <tr><td class="e">IMR_i·(1 + cet)<sup>−ε</sup></td><td class="c">a member's imports from the rest of the world under the common external tariff (this year's rate)</td></tr>
+        <tr><td class="e">cet·xr·IMR_i</td><td class="c">revenue of the importing government, paid by its households: C = (1 − τc)·CE − revenue</td></tr>
+        <tr><td class="e">cet = median of the votes</td><td class="c">each member votes 0, 5, 10 or 20 % with its decisions; no vote, no change</td></tr>
+        <tr><td class="e">XR_i·(1 + wt)<sup>−η</sup></td><td class="c">the rest of the world's tariff on the members' exports (administrator shock)</td></tr>
+        <tr><td class="e">(1 + tariffU)</td><td class="c">a country out of the union taxes what it buys from the members (0–20 %), like the union's retaliation tariff</td></tr>
+      </table>
+    </div>
+    <div class="note"><strong>A tax on your own consumers.</strong> A common external tariff of 10 % brings every member about 1.4 % of GDP of revenue and improves the trade balance (+1.1 pt) and the reserves, but GDP falls by 0.6 %: households pay the tariff, while imports from the rest of the world fall by only 7 %. If the rest of the world answers with 10 % on the union's exports, the trade gain is gone and GDP falls by 2 %. A country out of the union that taxes the union's goods at 10 % gains revenue (1.6 pt of GDP) and some GDP (+0.8 %), but its currency appreciates and gives part of it back; the union loses about 0.6 % of GDP.</div>
   </div>
 </details>
 

@@ -551,3 +551,26 @@ Reste à mesurer en codant : coût de calcul au-delà de deux sorties en flottan
 - **Plateforme** : `MS.exitAllowed(state)` (v1.3/v2.0, `sim.exit`), `state.exits` enregistré par la console à la publication, `state.retaliation[N][X] = {status, settleOpen, outcome:{tariff, sale, settle}, votes, playing}` ; `MS.retaliationIn(state, X, y)` (dernier conseil clos ≤ y ; règlement l'année du vote seulement) ; `MS.tallyRetaliation` (médiane basse, absents = 0). Backend 1.9 : tour `phase: 'retaliation'` (un vote par cible), refus des décisions pendant un conseil, refus des votes (taux, crise, représailles) d'un pays sorti, `rate/fx/pegChange/absorb` acceptés seulement pour un pays sorti.
 - **Ordres de grandeur** (France, v1.3, années 2–5, imprimés par `engine-test`) : taux −1 pt en flottant → NC +10,9 %, π +2,6 pt, PIB −2,3 % puis +1,4 % ; relance +5 en flottant → NC +2 → +11 %, π +0,8 → +1,0 ; en parité → réserves 90, 78, 64, 47, 29 % de la part ; dévaluation de 10 % en parité → π +2,4 pt ; RdM −20 % → NC +20 %, π +4,7 ; confiance −3 % → PIB −1,3 % ; fuite des dépôts de 1 pt pendant l'annonce → réserves communes 88 % de R0 ; tarif 10 % → PIB −1,9 %, réserves de l'union en hausse ; vente de la moitié des titres → NC +12 % (taux +0,2 pt ; avec rachat : NC +14 %, taux inchangé).
 
+
+
+## 13. Tariffs — droits de douane (07–08/11, Léo : options 1 et 2)
+
+Activation par classe : `sim.tariffs` (Control → Parameters → « tariffs »), union seulement (pas en duel). Remplace l'option morte héritée de MacSim (`game.allowTariff`, tarifs par partenaire jamais lus par le moteur), désormais toujours désactivée. Avec tous les tarifs à 0, le moteur est identique au bit près : l'activation en cours de partie ne change pas les années publiées (vérifié par `e2e-exit.js`).
+
+### 13.1 Tarif extérieur commun (TEC)
+- **Vote** : chaque année, avec ses décisions, chaque membre (pas un pays sorti) choisit 0, 5, 10 ou 20 % (`votes.cet`). Niveau de l'année = **médiane basse des votes exprimés** ; sans aucun vote, le niveau précédent reste. Le formulaire propose par défaut le niveau en vigueur. La console le calcule au rejeu et le passe au moteur comme choc de l'année `shocks[t].cet`.
+- **Moteur** : importations d'un membre venant du RdM `IMR_i × (1 + cet)^(−ε)` (l'année même) ; recette `cet·xr·IMR_i` au gouvernement importateur, payée par ses ménages (impôt sur la dépense : `C = (1−τc)·CE − recette`, `T += recette`). Pas de transmission à l'inflation (comme le tarif de représailles). Un pays sorti n'est pas concerné.
+- **Riposte du RdM** : choc administrateur `worldTariff` (%) : exportations des membres vers le RdM `× (1 + wt)^(−η)` ; la recette va au RdM (rien pour l'union).
+
+### 13.2 Tarif d'un pays sorti sur les produits de l'union
+- Levier `tariffU` (0–20 %, `bounds.tariffU`), proposé seulement à un pays sorti quand `sim.tariffs` est actif. Facteur `(1 + tariffU)` sur le prix relatif des importations du pays sorti venant des membres (même équation que le tarif de représailles de l'union, §12.5) ; recette en monnaie nationale pour son gouvernement, payée par ses ménages.
+
+### 13.3 Ordres de grandeur (v1.3, France ; imprimés par `engine-test`)
+- CET 10 % for 4 y, France: GDP -0.62 -0.58 -0.54 -0.50 | PB +1.17 +1.18 +1.20 +1.21 | TB +1.06 +1.10 +1.12 +1.15 | reserves % 128 157 187 218
+- CET 10 % + RoW tariff 10 %, France: GDP -2.03 -1.90 -1.77 -1.65 | PB +0.62 +0.67 +0.72 +0.76 | TB +0.27 +0.38 +0.47 +0.56
+- exited Italy, tariff 10 % on the union: ITA GDP +0.83 +0.53 +0.31 | ITA PB +1.61 +1.49 +1.39 | ITA currency -6.0 -11.5 -16.7 % | DEU GDP -0.57 -0.54 -0.52
+- Lecture : un TEC de 10 % est **récessif** pour l'union tant que la recette n'est pas dépensée (les ménages paient ≈ 1,4 % du PIB, les importations ne baissent que de 7 %), mais il améliore fortement le solde public, le solde commercial et les réserves (+28 % de R0 la première année en change fixe). Une riposte du RdM de 10 % annule le gain commercial et alourdit la récession. Le pays sorti qui taxe l'union gagne du PIB et des recettes, mais sa monnaie s'apprécie (−6 % puis −17 % sur trois ans), ce qui rend une partie du gain.
+
+### 13.4 Plateforme
+`MS.tariffsOn(state)`, `MS.CET_LEVELS`, levier `tariffU` (`exitOnly`) ; backend **1.10** : `votes.cet` validé (0/5/10/20, ignoré si `sim.tariffs` est inactif, retiré pour un pays sorti), `tariffU` refusé hors d'un pays sorti ou hors `sim.tariffs`, borné à 20 %. Console : rejeu (médiane), ligne d'aperçu « Common external tariff: … → N % », ligne de choc « Rest of the world: tariff on union exports ». Pages : question « The common external tariff » dans le bloc des votes, ligne dans le panneau de l'union (`votes.cet`, `worldTariff`), levier et ligne « Your tariff on goods from the union » pour le pays sorti ; recette en `detail.extra.tariffRev` (% du PIB).
+

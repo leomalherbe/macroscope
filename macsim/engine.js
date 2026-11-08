@@ -481,9 +481,15 @@ var OPENMU = (function () {
          w[i][j]: weight of partner j in i's intra-union imports = s_ij · (P_j,-1 / P_i,-1)^(−εU) (not renormalised:
          a dearer home market imports more from everybody). With prices off, P ≡ 1 and v1.1 is reproduced bit for bit. */
       var priceLagF = {}, w = {};
+      /* §13: common external tariff on the members' imports from the RoW (this year's rate, the volume reacts at once with ε;
+         revenue to each importing government, paid by its households) and the RoW's tariff on the union's exports (η). Both 0 by
+         default: the factors are then exactly 1 (bit for bit). */
+      var cetR = Math.max(0, shockAt(shocks, t, 'cet')) / 100, wtR = Math.max(0, shockAt(shocks, t, 'worldTariff')) / 100;
+      var cetF = cetR ? Math.pow(1 + cetR, -p.eps) : 1, wtF = wtR ? Math.pow(1 + wtR, -p.eta) : 1;
       ids.forEach(function (id) {
         var Pi = p.prices ? prev[id].Prel : 1;   // price level relative to the reference path (world prices grow at π*)
         priceLagF[id] = Math.pow(prevU.xr / (ref.union.xr0 * Pi), -p.eps);
+        if (cetR) priceLagF[id] *= cetF;
         w[id] = {};
         ids.forEach(function (j) { w[id][j] = s[id][j] * (p.prices ? Math.pow(prev[j].Prel / Pi, -p.epsU) : 1); });
       });
@@ -509,7 +515,7 @@ var OPENMU = (function () {
             TR: rc.TR * (1 + lever(policies, id, t, 'benefits') / 100),
             theta: rc.theta * (1 + lever(policies, id, t, 'inctax') / 100),
             tau: tau, tauc: tau / (1 + tau),
-            XR: rc.xR * worldF * xrF[id],
+            XR: wtR ? rc.xR * worldF * xrF[id] * wtF : rc.xR * worldF * xrF[id],
             I: rc.I * invF,
             AF: p.delta * rc.K,     // amortisation funds: straight-line charge on the reference capital (keeps L = K, no income artefact)
             Y: pv.Y
@@ -537,7 +543,7 @@ var OPENMU = (function () {
             var base = cap ? YF + r1 * (pv.Bh + pv.M) + extraInc[id] : YF + r1 * (pv.Bh + pv.M);
             var YD = (1 - c.theta) * base + c.TR;
             var CE = a1 * YD + p.alpha2 * pv.V;
-            var C = (1 - c.tauc) * CE;
+            var C = cetR ? (1 - c.tauc) * CE - cetR * xr * IMR : (1 - c.tauc) * CE;
             next[id] = C + c.G + c.I + X - IMV;
           });
           return next;
@@ -574,8 +580,9 @@ var OPENMU = (function () {
           var base = cap ? YF + r1 * (pv.Bh + pv.M) + extraInc[id] : YF + r1 * (pv.Bh + pv.M);
           var YD = (1 - c.theta) * base + c.TR;
           var CE = a1 * YD + p.alpha2 * pv.V;
-          var C = (1 - c.tauc) * CE;
-          var T = c.theta * base + c.tauc * CE + Tc;
+          var Tcet = cetR ? cetR * xr * IMR : 0;              // §13: common external tariff collected by this member
+          var C = cetR ? (1 - c.tauc) * CE - Tcet : (1 - c.tauc) * CE;
+          var T = cetR ? c.theta * base + c.tauc * CE + Tc + Tcet : c.theta * base + c.tauc * CE + Tc;
           var V = cap ? pv.V + YD - CE + capGain[id] : pv.V + YD - CE;
           /* v1.3: government interest of the year (lagged rates); the spread is not paid on the CB's holdings while the backstop was on */
           var govInt = cap ? r1 * pv.B + pv.s * (pv.B - (bsPrev ? pv.Bcb : 0)) : r1 * pv.B;
@@ -625,7 +632,7 @@ var OPENMU = (function () {
             I: c.I, K: K, L: L, M: M, Bb: Bb, A: A, AF: c.AF, YF: YF,
             Bf: Bf, Bw: Bw, spread: sEff, rEff: r + sEff, pressured: !!pressured[id], capGain: capGain[id],
             CAi: cap ? TB + rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw : TB,
-            E: eco ? ci[id] * Y : 0, ci: eco ? ci[id] : 0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0, GREEN: c.GREEN || 0, Tc: Tc, D: D };
+            E: eco ? ci[id] * Y : 0, ci: eco ? ci[id] : 0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0, GREEN: c.GREEN || 0, Tc: Tc, D: D, tariffRev: Tcet };
           if (eco) sumE += ci[id] * Y;
           sumH += H; sumBcbA += Bcb + A; CA += c.XR - xr * IMR; sumIMRv += xr * IMR; sumY += Y; sumTB += TB; sumPY += Prel * rc.Y;
           if (cap) {
@@ -645,7 +652,7 @@ var OPENMU = (function () {
         year.union = { Y: sumY, CA: CA, R: R, R0: ref.union.R0, xr: xr, r: r, alert: regime === 'fixed' && R < p.alertShare * ref.union.R0,
           months: sumIMRv > 0 ? 12 * R * xr / sumIMRv : Infinity, NWcb: NWcb, sumTB: sumTB, iterations: iter, P: Pu,
           regime: regime, CAp: CAp, primInc: primInc, KA: KA, Bw: sumBw, Bf: sumBf, rw: rw, backstop: backstop, sBar: sBar,
-          dxr: 100 * (xr - prevU.xr) / prevU.xr, unabsorbed: unabsorbed, excess: excess };
+          dxr: 100 * (xr - prevU.xr) / prevU.xr, unabsorbed: unabsorbed, excess: excess, cet: 100 * cetR, worldTariff: 100 * wtR };
         if (eco) {
           var Ew = ref.union.Ew0 * (1 + shockAt(shocks, t, 'worldEmissions') / 100);
           var S = prevU.S + sumE + Ew;
@@ -807,14 +814,19 @@ var OPENMU = (function () {
       });
       /* trade weights: last year's prices in a common currency; union tariff on imports from an exited country */
       var tar = {}; outs.forEach(function (id) { tar[id] = 1 + Math.max(0, rt(t, id, 'tariff')) / 100; });
+      /* §13: an exited country's tariff on goods from the members (its own lever, 0–20 %); the members' common external tariff on
+         the RoW and the RoW's tariff on the members' exports (shocks of the year, from the console's vote / the administrator) */
+      var tarX = {}; outs.forEach(function (id) { tarX[id] = 1 + Math.max(0, Math.min(20, pol(id, t, 'tariffU'))) / 100; });
+      function tf(i, j) { return (!isOut[i] && isOut[j]) ? tar[j] : ((isOut[i] && !isOut[j]) ? tarX[i] : 1); }
+      var cetR = Math.max(0, shockAt(shocks, t, 'cet')) / 100, wtR = Math.max(0, shockAt(shocks, t, 'worldTariff')) / 100;
       var priceLagF = {}, w = {};
       ids.forEach(function (id) {
         var Pi = prev[id].Prel, Ei = prev[id].E;
         priceLagF[id] = Math.pow(Ei * prevU.xr / (ref.union.xr0 * Pi), -p.eps);
+        if (cetR && !isOut[id]) priceLagF[id] *= Math.pow(1 + cetR, -p.eps);
         w[id] = {};
         ids.forEach(function (j) {
-          var tf = (!isOut[id] && isOut[j]) ? tar[j] : 1;
-          w[id][j] = s[id][j] * Math.pow((prev[j].Prel / prev[j].E) * Ei / Pi * tf, -p.epsU);
+          w[id][j] = s[id][j] * Math.pow((prev[j].Prel / prev[j].E) * Ei / Pi * tf(id, j), -p.epsU);
         });
       });
       var extraIM = {};
@@ -831,10 +843,11 @@ var OPENMU = (function () {
         var E = {};
         ids.forEach(function (id) { E[id] = !isOut[id] ? 1 : (pegged[id] ? Epeg[id] : Ef[id]); });
         function intraVal(id, Y) { var tot = 0; ids.forEach(function (j) { tot += w[id][j] * E[id] / E[j]; }); return (1 - p.sR) * imBase(id, Y) * tot; }
-        function tariffRev(id, Y) {   // a member's tariff revenue on its imports from exited countries (euros)
-          if (isOut[id]) return 0;
-          var tot = 0; outs.forEach(function (j) { tot += w[id][j] * (tar[j] - 1) / E[j]; });
-          return (1 - p.sR) * imBase(id, Y) * tot;
+        function tariffRev(id, Y) {   // tariff revenue of a country, in its own currency: on its partners' goods (union ↔ exited) and, for a member, the common external tariff
+          var tot = 0; ids.forEach(function (j) { var f = tf(id, j); if (f !== 1) tot += w[id][j] * (f - 1) * E[id] / E[j]; });
+          var rev = (1 - p.sR) * imBase(id, Y) * tot;
+          if (cetR && !isOut[id]) rev += cetR * xr * p.sR * imBase(id, Y) * priceLagF[id];
+          return rev;
         }
         var cur = {};
         ids.forEach(function (id) {
@@ -846,7 +859,7 @@ var OPENMU = (function () {
             TR: rc.TR * (1 + pol(id, t, 'benefits') / 100),
             theta: rc.theta * (1 + pol(id, t, 'inctax') / 100),
             tau: tau, tauc: tau / (1 + tau),
-            XR: rc.xR * worldF * Math.pow(E[id] * xr / (ref.union.xr0 * pv.Prel), p.eta),
+            XR: rc.xR * worldF * Math.pow(E[id] * xr / (ref.union.xr0 * pv.Prel), p.eta) * (wtR && !isOut[id] ? Math.pow(1 + wtR, -p.eta) : 1),
             I: rc.I * invF[id], AF: p.delta * rc.K, Y: pv.Y
           };
         });
@@ -992,7 +1005,7 @@ var OPENMU = (function () {
             CAi: out_ ? CApX : TB + rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw,
             E: eco ? ci[id] * Y : 0, ci: eco ? ci[id] : 0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0, GREEN: c.GREEN || 0, Tc: Tc, D: D,
             exited: out_, announced: !!announce[id], fx: out_ ? Ei : 1, dfx: out_ ? dE : 0, peg: !!pegged[id], forced: !!forced[id], tariffRev: Tt,
-            BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, sold: sold, settled: !!settle[id], tariff: out_ ? 100 * (tar[id] - 1) : 0, KAX: KAX };
+            BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, sold: sold, settled: !!settle[id], tariff: out_ ? 100 * (tar[id] - 1) : 0, tariffU: out_ ? 100 * (tarX[id] - 1) : 0, KAX: KAX };
           if (eco) U.E += ci[id] * Y;
           newPrev[id] = { Y: Y, V: V, Bh: pf.Bh, M: pf.M, H0: pf.H, B: B, Bcb: Bcb, A: pf.A, K: K, L: L, tau: c.tau, P: P, Prel: Prel, Bf: pf.Bf, Bw: Bw, Bb: pf.Bb, s: sEff,
             ci: eco ? ci[id] : p.ci0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0,
@@ -1018,7 +1031,7 @@ var OPENMU = (function () {
         year.union = { Y: U.Y, CA: U.CA, R: R, R0: ref.union.R0, xr: xr, r: r, alert: regime === 'fixed' && R < p.alertShare * ref.union.R0,
           months: U.IMRv > 0 ? 12 * R * xr / U.IMRv : Infinity, NWcb: NWcb, sumTB: U.TB, iterations: iter, P: Pu,
           regime: regime, CAp: CAp, primInc: U.prim, KA: U.KA, Bw: U.Bw, Bf: U.Bf, rw: rw, backstop: backstop, sBar: sBar,
-          dxr: 100 * (xr - prevU.xr) / prevU.xr, unabsorbed: U.unabs, excess: excess, members: mem.slice(), exited: outs.slice(), claimsX: U.claims };
+          dxr: 100 * (xr - prevU.xr) / prevU.xr, unabsorbed: U.unabs, excess: excess, members: mem.slice(), exited: outs.slice(), claimsX: U.claims, cet: 100 * cetR, worldTariff: 100 * wtR };
         if (eco) {
           var Ew = ref.union.Ew0 * (1 + shockAt(shocks, t, 'worldEmissions') / 100);
           var S = prevU.S + U.E + Ew;
@@ -1153,7 +1166,8 @@ var OPENMU = (function () {
         detail.extra = { gap: cy.gap, debt: 100 * cy.B / cy.Y, wealth: 100 * cy.V / cy.Y, u: cy.u, pi: cy.pi, P: cy.P,
           inv: rc.I ? 100 * (cy.I / rc.I - 1) : 0, loans: 100 * cy.L / cy.Y, deposits: 100 * cy.M / cy.Y };
         if (p.prices && cy.compet !== undefined) detail.extra.compet = cy.compet;   // price level vs the union's, %
-        if (cy.CAi !== undefined) detail.extra.ca = 100 * cy.CAi / cy.Y;          // the member's current account (trade + primary income), % of GDP — for the fact sheet
+        if (cy.CAi !== undefined) detail.extra.ca = 100 * cy.CAi / cy.Y;
+        if (cy.tariffRev) detail.extra.tariffRev = 100 * cy.tariffRev / cy.Y;   // §13: tariff revenue, % of GDP          // the member's current account (trade + primary income), % of GDP — for the fact sheet
         if (p.capital) { detail.extra.foreign = 100 * runAll.years[t].union.xr * cy.Bf / cy.Y; detail.extra.spread = 100 * cy.spread; detail.extra.pressured = !!cy.pressured; }   // v1.3: foreign bills % of GDP, spread in points
         if (p.eco) { detail.extra.E = p.ci0 > 0 ? 100 * (cy.E / (p.ci0 * rc.Y) - 1) : 0; detail.extra.ci = cy.ci / p.ci0; detail.extra.ctax = cy.ctax; detail.extra.green = cy.green; detail.extra.D = 100 * cy.D; }   // v2.0: emissions vs reference %, carbon intensity (share of reference), levers, damage %
         if (cy.exited !== undefined) {
@@ -1162,7 +1176,7 @@ var OPENMU = (function () {
           ex.exited = !!cy.exited; ex.announced = !!cy.announced;
           if (cy.exited) {
             ex.fx = cy.fx; ex.dfx = cy.dfx; ex.fxWorld = cy.fx * runAll.years[t].union.xr; ex.peg = cy.peg; ex.forced = cy.forced;
-            ex.rate = 100 * cy.r; ex.rEff = 100 * cy.rEff; ex.tariff = cy.tariff; ex.sold = 100 * cy.sold / cy.Y; ex.settled = cy.settled;
+            ex.rate = 100 * cy.r; ex.rEff = 100 * cy.rEff; ex.tariff = cy.tariff; ex.tariffU = cy.tariffU; ex.sold = 100 * cy.sold / cy.Y; ex.settled = cy.settled;
             ex.T2 = 100 * cy.T2 * cy.fx / cy.Y; ex.BcbU = 100 * cy.BcbU / cy.Y; ex.RXshare = cy.RX0 > 0 ? cy.RX / cy.RX0 : 0;
             ex.RXalert = cy.peg && cy.RX < p.alertShare * cy.RX0;
           }
@@ -1183,6 +1197,8 @@ var OPENMU = (function () {
         yr.union.backstop = u.backstop; yr.union.pressured = press; yr.union.sBar = 100 * u.sBar; yr.union.rw = u.rw; yr.union.unabsorbed = u.unabsorbed;
       }
       if (p.eco) { yr.union.Sshare = u.Sshare; yr.union.D = 100 * u.D; yr.union.Erel = u.Erel; yr.union.Ew = u.Ew; yr.union.Eu = u.Eu; }
+      if (u.cet) yr.union.cet = u.cet;
+      if (u.worldTariff) yr.union.worldTariff = u.worldTariff;
       if (u.exited) { yr.union.exited = u.exited; yr.union.members = u.members; yr.union.announced = ids.filter(function (id) { return runAll.years[t].countries[id].announced; }); }
       out.years.push(yr);
     }
