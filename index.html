@@ -795,8 +795,8 @@ details.prov .tablewrap{border:0}
     </div>
 
     <figure class="score-chart" data-reveal>
-      <figcaption><span class="lvl">An example: one team, three years</span><span class="muted small">Illustrative figures</span></figcaption>
-      <svg id="score-chart" viewBox="0 0 1200 520" role="img" aria-label="Stacked bars of the five results for years 1 to 3, with the total score line: minus 0.18, minus 0.18, then plus 0.09"></svg>
+      <figcaption><span class="lvl">An example: one team, three years</span><span class="muted small">Engine output, public demand +7 % for three years</span></figcaption>
+      <svg id="score-chart" viewBox="0 0 1200 520" role="img" aria-label="A stimulus held for three years: GDP and employment count in favour, inflation and the two balances against; the total score goes from plus 0.12 to plus 0.03, then minus 0.05"></svg>
     </figure>
     <aside class="elections" data-reveal>
       <h3>Voters change their minds</h3>
@@ -1261,11 +1261,11 @@ details.prov .tablewrap{border:0}
 </script>
 <script>(function(){
 const W=1200,H=520,L=110,R=1160,T=70,B=410;
-const C={gdp:'#0a1670',unemp:'#122ddb',infl:'#5a6cf0',pub:'#9ba7f7',trade:'#d3d9fc',line:'#d8343f',ink:'#122ddb'};
-const data=[
- {gdp:.10,unemp:.05,infl:-.03,pub:-.16,trade:-.14},
- {gdp:.10,unemp:.05,infl:-.03,pub:-.16,trade:-.14},
- {gdp:.24,unemp:.10,infl:-.07,pub:-.11,trade:-.07}];
+const C={gdp:'#122ddb',unemp:'#7f8ff2',infl:'#ff7a59',pub:'#ffc2ad',trade:'#cfd5ea',line:'#0a1670',ink:'#122ddb'};
+const data=[ /* engine v1.2, France, public demand +7 % held three years, weights 0.2: contributions to R */
+ {gdp:.34,unemp:.13,infl:-.10,pub:-.15,trade:-.10},
+ {gdp:.29,unemp:.12,infl:-.09,pub:-.17,trade:-.12},
+ {gdp:.26,unemp:.10,infl:-.08,pub:-.18,trade:-.15}];
 const order=['gdp','unemp','infl','pub','trade'];
 const names={gdp:'GDP',unemp:'Unemployment',infl:'Inflation',pub:'Public balance',trade:'Trade balance'};
 const y=v=>T+(0.5-v)/1.0*(B-T);
@@ -1296,7 +1296,7 @@ function draw(t){ // t in seconds
   s+=`<path d="${dpath}" fill="none" stroke="${C.line}" stroke-width="3.5" stroke-dasharray="11 8" stroke-linecap="round"/>`;
   let acc=0;pts.slice(1).forEach((p,i)=>{acc+=seg[i]; if(acc<=len*lt+0.5){const pp=ease((t-2.15-1.3*acc/len)/0.3);
    s+=`<circle cx="${p[0]}" cy="${p[1]}" r="${8*pp}" fill="#fff" stroke="${C.line}" stroke-width="3"/>`;
-   if(pp>0.5){const v=tot[i];s+=`<text x="${p[0]+16}" y="${p[1]+(v<0?24:-12)}" font-family="Inter Tight" font-weight="800" font-size="19" fill="${C.line}" opacity="${(pp-0.5)*2}">${v>0?'+':'−'}${Math.abs(v).toFixed(2)}</text>`}}});
+   if(pp>0.5){const v=tot[i];s+=`<text x="${p[0]+16}" y="${p[1]+(v<0?24:-12)}" font-family="Inter Tight" font-weight="800" font-size="19" fill="${C.line}" stroke="#fff" stroke-width="6" stroke-linejoin="round" paint-order="stroke" opacity="${(pp-0.5)*2}">${v>0?'+':'−'}${Math.abs(v).toFixed(2)}</text>`}}});
  }
  // legend
  let lx=L; const ly=H-36;
