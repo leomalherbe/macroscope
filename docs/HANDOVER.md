@@ -34,6 +34,7 @@ Flux d'un tour : l'administrateur ouvre les soumissions → les équipes soumett
 | v1.3 | flux de capitaux, régime de change fixe/flottant **par année** (éditeur de chocs), prime de risque (dette > 110 % PIB), chocs sudden stop / taux mondial / backstop, crise de change (vote defend / float) | — |
 | v2.0 | émissions, stock mondial, dommage (chômage structurel, inflation sur potentiel abaissé), leviers taxe carbone et investissement vert (60 % importé, rendements décroissants), 6ᵉ dimension « emissions » à poids 0 (activable par élection), ligne « of which the climate » | **1.6+** |
 | sortie (§12) | v1.3 et v2.0 avec `sim.exit` : un membre annonce sa sortie (`leave`), sort l'année suivante (monnaie propre flottante ou ancrée, taux directeur, BCN, TARGET), conseil de représailles (tarif, vente des titres, règlement du TARGET ; médiane), chocs administrateur propres ; `OPENMU.simulateExit`, appelé seulement si une sortie est annoncée | **1.9** |
+| tarifs (§13) | toutes versions de l'union avec `sim.tariffs` : tarif extérieur commun voté (médiane, 0/5/10/20 %), choc de riposte du RdM, tarif d'un pays sorti sur l'union (0–20 %) ; remplace l'option morte `allowTariff` | **1.10** |
 | duel | mode arcade : paires de pays identiques, deux monnaies, climat fermé, taux directeur comme levier, chocs asymétriques | **1.8** |
 
 Règles transverses : votes à la **majorité des votants** (PR #25) ; **élections** = changement des poids de R par pays ou pour l'union à partir d'une année (onglet Run, stockées dans `state.shocks['gN'].elections`) ; chocs du warm-up (`'1'…`) et de la partie (`'g1'…`) séparés ; R = score de l'année, classement sur le R cumulé.
@@ -42,7 +43,7 @@ Calibration du 7/11 (PR #29, validée par Léo) : pour v1.3+/duel, réserves à 
 
 ## 4. Backend : versions et redéploiement
 
-Le pied de page de la console affiche « backend vX.Y ». Toute modification de `core.js`, `dev/service.js` ou `dev/gas-adapter.js` change `Code.gs` ; un **changement de comportement** exige : Google Sheet → Extensions → Apps Script → remplacer tout `Code.gs` → enregistrer → **Déployer → Gérer les déploiements → ✎ → Nouvelle version → Déployer** (l'URL ne change pas). Un simple re-bundle (core.js modifié pour les pages seulement) ne l'exige pas, mais ne nuit pas. Dernière version : **1.9** (`macsim/Code.gs`) : sortie de l'union (§12). Migration de feuille automatique (colonne `emis`).
+Le pied de page de la console affiche « backend vX.Y ». Toute modification de `core.js`, `dev/service.js` ou `dev/gas-adapter.js` change `Code.gs` ; un **changement de comportement** exige : Google Sheet → Extensions → Apps Script → remplacer tout `Code.gs` → enregistrer → **Déployer → Gérer les déploiements → ✎ → Nouvelle version → Déployer** (l'URL ne change pas). Un simple re-bundle (core.js modifié pour les pages seulement) ne l'exige pas, mais ne nuit pas. Dernière version : **1.10** (`macsim/Code.gs`) : droits de douane (§13) ; 1.9 : sortie de l'union (§12). Migration de feuille automatique (colonne `emis`).
 
 ## 5. Outils de développement (`dev/` à la racine du dépôt, depuis la PR #29)
 
@@ -75,7 +76,6 @@ Discipline : toute modification du moteur passe par les trois niveaux de tests ;
 
 - Licence du dépôt et de la page (proposé : MIT code, CC-BY contenus) — non décidé.
 - Clés administrateur par classe pour des collègues (v1.9) ou guide « déployez votre copie » ; diffusion (note pédagogique, Zenodo).
-- Tarifs douaniers : option morte héritée de MacSim (`allowTariff`) — à câbler (vote de l'union sur le RdM / levier national en duel) ou à retirer.
 - Poids de R « équilibrés » (PIB 0,10 · chômage 0,25 · inflation 0,25 · solde public 0,15 · commerce 0,25) proposés, non tranchés.
 - Deck pour la séance « contrainte écologique » (v2.0) et pour le mode duel ; one-pager PDF pour les collègues.
 - Résultats : le « R hint » de l'onglet Results utilise les poids de classe (affichage seulement).

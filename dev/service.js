@@ -12,7 +12,7 @@
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.9';
+  var VERSION = '1.10';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;

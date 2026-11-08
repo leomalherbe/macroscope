@@ -102,7 +102,7 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
   r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
   const [pF, pD, pI] = r2.groups.map(g => g.pin);
-  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.9', 'backend reports v1.9');
+  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.10', 'backend reports v1.10');
   const dec = (pin, y, votes) => call({ action: 'submit', pin, phase: 'game', round: Number(call({ action: 'state', pin }).state.round), payload: { years: [y], text: 'x'.repeat(130), votes: votes || { rate: 'hold' } } });
   call({ action: 'admin.state.set', key, classId: cx, patch: { phase: 'game', round: 1, status: 'open', sim: { model: 'v1.2', exit: true } } });
   r2 = dec(pF, { levers: {}, euro: 'leave' }); must(!r2.ok && /not available/.test(r2.errors.join(' ')), 'leaving refused in a v1.2 class (no capital account)');
@@ -135,6 +135,16 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   r2 = call({ action: 'state', pin: pI }); must(r2.decisionsAll.some(x => x.round === 2 && x.retaliationVotes.length === 2), 'retaliation votes revealed once the council is closed');
   must(MS.retaliationIn(r2.state, 'FRA', 3).tariff === 10 && MS.retaliationIn(r2.state, 'FRA', 1).tariff === 0, 'measures in force from the council year on');
   r2 = call({ action: 'submit', pin: pF, phase: 'crisis', round: 2, payload: { crisis: 'devaluation' } }); must(!r2.ok && /does not vote/.test(r2.error), 'the exited country does not vote in a reserves crisis');
+  /* §13 tariffs (backend 1.10) */
+  call({ action: 'admin.state.set', key, classId: cx, patch: { crisis: { '2': {} }, status: 'open' } });
+  r2 = dec(pD, { levers: {} }, { rate: 'hold', cet: 10 }); must(r2.ok && !call({ action: 'state', pin: pD }).myDecisions.filter(d => d.round === 2 && d.phase === 'game')[0].payload.votes.cet, 'common external tariff vote ignored while tariffs are off');
+  r2 = dec(pF, { levers: { tariffU: 10 } }); must(!r2.ok && /Tariff on goods from the union/.test(r2.errors.join(' ')), 'exited country′s tariff refused while tariffs are off');
+  call({ action: 'admin.state.set', key, classId: cx, patch: { sim: { tariffs: true } } });
+  r2 = dec(pD, { levers: {} }, { rate: 'hold', cet: 7 }); must(!r2.ok && /0, 5, 10 or 20/.test(r2.errors.join(' ')), 'common external tariff vote outside the scale refused');
+  r2 = dec(pD, { levers: {} }, { rate: 'hold', cet: 10 }); must(r2.ok && call({ action: 'state', pin: pD }).myDecisions.filter(d => d.round === 2 && d.phase === 'game')[0].payload.votes.cet === 10, 'Germany votes a common external tariff of 10 %');
+  r2 = dec(pF, { levers: { tariffU: 10, rate: 0 } }, { cet: 20 }); must(r2.ok && !call({ action: 'state', pin: pF }).myDecisions.filter(d => d.round === 2 && d.phase === 'game')[0].payload.votes.cet, 'exited France sets a tariff of 10 % on the union′s goods; its CET vote is dropped');
+  r2 = dec(pF, { levers: { tariffU: 25 } }); must(!r2.ok && /between 0 and 20/.test(r2.errors.join(' ')), 'the exited country′s tariff is bounded at 20 %');
+  r2 = dec(pD, { levers: { tariffU: 5 } }); must(!r2.ok, 'a member cannot set the exited-country tariff');
   call({ action: 'admin.class.delete', key, classId: cx, name: 'Exit class' });
 }
 console.log('\nGAS adapter OK');
