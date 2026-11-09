@@ -103,6 +103,13 @@ async function leftovers(page) {
   await admin.click('button:has-text("Save and publish all")'); await admin.waitForTimeout(900);
 
   await desk.click('button:has-text("Actualiser")'); await desk.waitForTimeout(1500);
+  /* a key indicator, clicked: its chart under the tiles; clicked again: closed; kept across refreshes */
+  await desk.click('.fact[data-key="u"]'); await desk.waitForSelector('.factchart svg');
+  must((await desk.$$('.factchart circle.pt')).length === 1 && /Chômage/.test(await desk.textContent('.factchart svg')) && /référence/.test(await desk.textContent('.factchart svg')), 'key indicator clicked: its chart, in French, with the reference line');
+  await desk.click('button:has-text("Actualiser")'); await desk.waitForTimeout(1500);
+  must(!!(await desk.$('.factchart svg')) && !!(await desk.$('.fact.on[data-key="u"]')), 'the chart stays open across a refresh');
+  await desk.click('.fact[data-key="u"]'); await desk.waitForTimeout(200);
+  must(!(await desk.$('.factchart svg')), 'clicked again: closed');
   await desk.screenshot({ path: OUT + '/fr-2-results.png', fullPage: true });
   const txt = await desk.textContent('#app');
   must(/résultats à ce jour/.test(txt) && /Indicateurs clés/.test(txt) && /Classement/.test(txt), 'results, key indicators and ranking in French');

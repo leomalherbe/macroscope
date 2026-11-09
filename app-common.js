@@ -163,7 +163,7 @@ var UI = (function () {
     if (!row) return '';
     var its = factItems(row, prev, ctx);
     return '<div class="facts' + (its.length > 8 ? ' n5' : '') + '">' + its.map(function (it) {
-      return '<div class="fact"><div class="lab">' + esc(it.label) + '</div><div class="val">' + esc(MS.fmt(it.v, it.d, it.signed)) + '<span class="u">' + esc(it.unit) + '</span></div>' +
+      return '<div class="fact" data-key="' + esc(it.key) + '"><div class="lab">' + esc(it.label) + '</div><div class="val">' + esc(MS.fmt(it.v, it.d, it.signed)) + '<span class="u">' + esc(it.unit) + '</span></div>' +
         '<div>' + (factDeltaHtml(it, prev ? prev.year : null) || '<span class="d flat">&nbsp;</span>') + '</div>' + (it.note ? '<div class="d flat fnote' + (it.key === 'spread' && /pressure/.test(it.note) ? ' neg' : '') + '">' + esc(it.note) + '</div>' : '') + '</div>';
     }).join('') + '</div>';
   }

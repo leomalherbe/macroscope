@@ -331,7 +331,9 @@ MXL.add('fr', {"str":{"Macroscope · Policy desk":"Macroscope · Bureau des déc
 "No instrument is activated — a plan with all zeros is not a policy.":"Aucun instrument n’est activé — un plan tout à zéro n’est pas une politique.",
 "Refreshed":"Actualisé",
 "Error":"Erreur",
-"How it works?":"Comment ça marche ?"},"re":[["The model: equations (.+?) notation ↗",
+"How it works?":"Comment ça marche ?",
+"Show this indicator year by year":"Afficher cet indicateur année par année",
+"reference":"référence"},"re":[["The model: equations (.+?) notation ↗",
 "Le modèle : équations et notations (en anglais) ↗"],
 ["Macroscope · runs on OPEN-MU, a stock-flow consistent model of a monetary union after Godley (.+?) Lavoie ·",
 "Macroscope · fonctionne avec OPEN-MU, un modèle stock-flux cohérent d’union monétaire d’après Godley et Lavoie ·"],
@@ -686,4 +688,8 @@ MXL.add('fr', {"str":{"Macroscope · Policy desk":"Macroscope · Bureau des déc
 ["Your justification needs at least ([+−±-]?\\d+(?:[.,]\\d+)?) characters \\(([+−±-]?\\d+(?:[.,]\\d+)?) so far\\)\\.",
 "Votre justification doit compter au moins $1 caractères ($2 pour l’instant)."],
 ["y([+−±-]?\\d+(?:[.,]\\d+)?)",
-"a$1"]],"title":"Macroscope · Bureau des décisions"});
+"a$1"],
+["(.+?), year by year",
+"%1, année par année"],
+["Year ([+−±-]?\\d+(?:[.,]\\d+)?): (.+?) (.+?)",
+"Année $1 : $2 $3"]],"title":"Macroscope · Bureau des décisions"});
