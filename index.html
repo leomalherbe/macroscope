@@ -704,6 +704,14 @@ details.prov .tablewrap{border:0}
 .run::before{background:var(--coral-soft)}
 .run:hover{color:var(--ink)}
 .criteria div::after{background:var(--coral)}
+/* split headings: taller word masks so ascenders and descenders are not clipped */
+.w{padding:.14em .04em .16em 0;margin:-.14em -.04em -.16em 0}
+html.js:not(.rm) .split .w > span{transform:translateY(135%)}
+html.js:not(.rm) .split.in .w > span{transform:none}
+/* demo select: drawn chevron, inset like the text */
+#shock{-webkit-appearance:none;appearance:none;padding:10px 46px 10px 16px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23122ddb' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 16px center;cursor:pointer}
+/* « One year of play » cards: the number turns vivid coral on hover */
+.loop > div:hover h3 i{color:var(--coral)}
 </style>
 </head>
 <body>
