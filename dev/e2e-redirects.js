@@ -22,7 +22,7 @@ function must(cond, msg) { if (!cond) { throw new Error('ASSERTION FAILED: ' + m
   }
   /* the course page and the presentation page point to the new addresses */
   await page.goto(BASE + '/macroscope/index.html');
-  must(await page.$('a[href="model.html"]') && !(await page.$('a[href*="macsim"]')), 'presentation page: links to model.html, none to macsim');
+  must(await page.$('a[href$="/macroscope/model.html"], a[href^="https://leomalherbe.github.io/internationalfinancialmacro/macroscope/model.html"]') && !(await page.$('a[href*="macsim"]')), 'presentation page: links to the model page (absolute address, by Léo’s choice), none to macsim');
   const course = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');   /* the course page lives at the site root (not served by the mock) */
   must(/href="macroscope\/desk\.html"/.test(course) && !/macsim\//.test(course), 'course page: the game links go to macroscope/desk.html, none to macsim/');
   await page.goto(BASE + '/macroscope/model.html');

@@ -272,19 +272,19 @@ var UI = (function () {
      (positive contributions above zero, negative below), the total R as a dashed line. Inline SVG, no library.
      rows: result rows of one country/group sorted by year; opts: {weights, title, height, legend, fontScale} */
   var TRAJ_SERIES = [
-    { id: 'gdp', label: 'GDP', color: '#2f5d9e', sign: 1 },
-    { id: 'unemp', label: 'Unemployment', color: '#b23b3b', sign: -1 },
-    { id: 'infl', label: 'Inflation', color: '#c29d2c', sign: -1 },
-    { id: 'pubbal', label: 'Public balance', color: '#2f7d4f', sign: 1 },
-    { id: 'tradebal', label: 'Trade balance', color: '#7a4fa3', sign: 1 },
-    { id: 'emis', label: 'Emissions', color: '#3b8ea5', sign: -1, eco: true }   // sixth dimension (v2.0), drawn only when the rows carry it
+    { id: 'gdp', label: 'GDP', color: '#122ddb', sign: 1 },
+    { id: 'unemp', label: 'Unemployment', color: '#7f8ff2', sign: -1 },
+    { id: 'infl', label: 'Inflation', color: '#ff7a59', sign: -1 },
+    { id: 'pubbal', label: 'Public balance', color: '#ffc2ad', sign: 1 },
+    { id: 'tradebal', label: 'Trade balance', color: '#cfd5ea', sign: 1 },
+    { id: 'emis', label: 'Emissions', color: '#5aa58c', sign: -1, eco: true }   // sixth dimension (v2.0), drawn only when the rows carry it
   ];
   /* the series present in a set of rows: the five, plus emissions when any row has a value for it */
   function trajSeriesFor(rows) {
     var hasEmis = (rows || []).some(function (r) { return r && r.emis !== undefined && r.emis !== null && r.emis !== ''; });
     return TRAJ_SERIES.filter(function (s) { return !s.eco || hasEmis; });
   }
-  var R_SERIES = { id: 'R', label: 'R (total)', color: '#1b2437', dash: true };
+  var R_SERIES = { id: 'R', label: 'R (total)', color: '#0a1670', dash: true };
   function trajWeights(w) { var d = MS.defaultState().weights; return Object.assign({}, d, w || {}); }
   /* The race: cumulative R of every country, year by year (who overtakes whom). series: [{key, name, rows: [{year, R}]}].
      Colors follow the country (fixed order of MS.COUNTRIES), never the rank; each line ends with the country's name (the palette
@@ -311,9 +311,9 @@ var UI = (function () {
     /* ticks: about five round values */
     var step = Math.pow(10, Math.floor(Math.log(hi - lo) / Math.LN10)); if ((hi - lo) / step < 3) step /= 2; if ((hi - lo) / step > 7) step *= 2;
     var g = '';
-    for (var t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) g += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + Y(t).toFixed(1) + '" y2="' + Y(t).toFixed(1) + '" stroke="#e6e2d6" stroke-width="1"/><text x="' + (padL - 8) + '" y="' + (Y(t) + 4).toFixed(1) + '" text-anchor="end" font-size="13" fill="#5b6475">' + esc(MS.fmt(t, Math.abs(step) < 0.1 ? 2 : 1, true)) + '</text>';
-    g += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + Y(0).toFixed(1) + '" y2="' + Y(0).toFixed(1) + '" stroke="#8a8f99" stroke-width="1.2"/>';
-    yl.forEach(function (y) { g += '<text x="' + X(y).toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="13" fill="#5b6475">Year ' + y + '</text>'; });
+    for (var t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) g += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + Y(t).toFixed(1) + '" y2="' + Y(t).toFixed(1) + '" stroke="rgba(18,45,219,.14)" stroke-width="1"/><text x="' + (padL - 8) + '" y="' + (Y(t) + 4).toFixed(1) + '" text-anchor="end" font-size="13" fill="#5566cf">' + esc(MS.fmt(t, Math.abs(step) < 0.1 ? 2 : 1, true)) + '</text>';
+    g += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + Y(0).toFixed(1) + '" y2="' + Y(0).toFixed(1) + '" stroke="#5566cf" stroke-width="1.2"/>';
+    yl.forEach(function (y) { g += '<text x="' + X(y).toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="13" fill="#5566cf">Year ' + y + '</text>'; });
     var marks = '';
     lines.forEach(function (l) {
       if (l.pts.length > 1) marks += '<polyline fill="none" stroke="' + l.color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="' + l.pts.map(function (p) { return X(p.year).toFixed(1) + ',' + Y(p.cum).toFixed(1); }).join(' ') + '"/>';
@@ -323,7 +323,7 @@ var UI = (function () {
     var ends = lines.map(function (l) { var p = l.pts[l.pts.length - 1]; return { l: l, y: Y(p.cum), x: X(p.year), v: p.cum }; }).sort(function (a, b) { return a.y - b.y; });
     for (var k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 16) ends[k].y = ends[k - 1].y + 16;
     var over = ends.length ? ends[ends.length - 1].y - (H - padB) : 0; if (over > 0) ends.forEach(function (e) { e.y -= over; });
-    ends.forEach(function (e) { marks += '<line x1="' + (e.x + 7) + '" x2="' + (e.x + 16) + '" y1="' + Y(e.v).toFixed(1) + '" y2="' + e.y.toFixed(1) + '" stroke="' + e.l.color + '" stroke-width="1.5"/><text x="' + (e.x + 20) + '" y="' + (e.y + 4.5).toFixed(1) + '" font-size="14" font-weight="600" fill="#1b2437">' + esc(e.l.name) + ' <tspan font-weight="400" fill="#5b6475">' + esc(MS.fmt(e.v, 2, true)) + '</tspan></text>'; });
+    ends.forEach(function (e) { marks += '<line x1="' + (e.x + 7) + '" x2="' + (e.x + 16) + '" y1="' + Y(e.v).toFixed(1) + '" y2="' + e.y.toFixed(1) + '" stroke="' + e.l.color + '" stroke-width="1.5"/><text x="' + (e.x + 20) + '" y="' + (e.y + 4.5).toFixed(1) + '" font-size="14" font-weight="600" fill="#0a1670">' + esc(e.l.name) + ' <tspan font-weight="400" fill="#5566cf">' + esc(MS.fmt(e.v, 2, true)) + '</tspan></text>'; });
     var legend = '<div class="racelegend">' + lines.map(function (l) { return '<span><i style="background:' + l.color + '"></i>' + esc(l.name) + '</span>'; }).join('') + '</div>';
     return legend + '<svg class="race" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cumulative R of every country, year by year">' + g + marks + '</svg>';
   }
@@ -363,13 +363,13 @@ var UI = (function () {
     var fmtv = function (v) { var s = (Math.round(v * 1000) / 1000).toFixed(3); return v > 0 ? '+' + s : s; };
     var fmtTick = function (v) { var s = String(Math.round(v * 100) / 100); return v > 0 ? '+' + s : s; };
     var h = '<svg class="traj" viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="contributions to the objective">';
-    if (opts.title) h += '<text x="' + padL + '" y="' + Math.round(18 * fs) + '" font-size="' + f14 + '" font-weight="600" fill="#14213d">' + esc(opts.title) + '</text>';
+    if (opts.title) h += '<text x="' + padL + '" y="' + Math.round(18 * fs) + '" font-size="' + f14 + '" font-weight="600" fill="#122ddb">' + esc(opts.title) + '</text>';
     for (var t = -yMax; t <= yMax + 1e-9; t += step) {
       var yy = y(t), zero = Math.abs(t) < 1e-9;
-      h += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="' + (zero ? '#5b6475' : '#e6e2d6') + '" stroke-width="' + (zero ? 1.4 : 1) + '"/>';
-      h += '<text x="' + (padL - 6) + '" y="' + (yy + 4).toFixed(1) + '" font-size="' + f11 + '" text-anchor="end" fill="#5b6475">' + fmtTick(t) + '</text>';
+      h += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="' + (zero ? '#5566cf' : 'rgba(18,45,219,.14)') + '" stroke-width="' + (zero ? 1.4 : 1) + '"/>';
+      h += '<text x="' + (padL - 6) + '" y="' + (yy + 4).toFixed(1) + '" font-size="' + f11 + '" text-anchor="end" fill="#5566cf">' + fmtTick(t) + '</text>';
     }
-    for (var yr = 1; yr <= maxYear; yr++) h += '<text x="' + x(yr).toFixed(1) + '" y="' + (H - padB + 6 + f11) + '" font-size="' + f11 + '" text-anchor="middle" fill="#5b6475">year ' + yr + '</text>';
+    for (var yr = 1; yr <= maxYear; yr++) h += '<text x="' + x(yr).toFixed(1) + '" y="' + (H - padB + 6 + f11) + '" font-size="' + f11 + '" text-anchor="middle" fill="#5566cf">year ' + yr + '</text>';
     /* stacked bars */
     bars.forEach(function (b) {
       var cx = x(b.year), up = 0, down = 0;
@@ -382,14 +382,14 @@ var UI = (function () {
     });
     /* total R: dashed line from the reference (0) through the yearly totals, with markers */
     var pts = [[padL, y(0)]], marks = '';
-    bars.forEach(function (b) { var px = x(b.year), py = y(b.R); pts.push([px, py]); marks += '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="3.8" fill="#1b2437" stroke="#fff" stroke-width="1.2"><title>R · year ' + b.year + ': ' + fmtv(b.R) + '</title></circle>'; });
-    if (pts.length > 1) h += '<polyline fill="none" stroke="#1b2437" stroke-width="2.4" stroke-dasharray="6 4" stroke-linejoin="round" points="' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '"/>' + marks;
+    bars.forEach(function (b) { var px = x(b.year), py = y(b.R); pts.push([px, py]); marks += '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="3.8" fill="#0a1670" stroke="#fff" stroke-width="1.2"><title>R · year ' + b.year + ': ' + fmtv(b.R) + '</title></circle>'; });
+    if (pts.length > 1) h += '<polyline fill="none" stroke="#0a1670" stroke-width="2.4" stroke-dasharray="6 4" stroke-linejoin="round" points="' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '"/>' + marks;
     var lh = '', ly0 = H - padB + 34;
     legend.forEach(function (e) {
       var s = e.s, ly = ly0 + 16 * e.row;
       if (s.dash) lh += '<line x1="' + e.x + '" x2="' + (e.x + 14) + '" y1="' + (ly - 4) + '" y2="' + (ly - 4) + '" stroke="' + s.color + '" stroke-width="2.5" stroke-dasharray="5 3"/>';
       else lh += '<rect x="' + e.x + '" y="' + (ly - 10) + '" width="14" height="11" fill="' + s.color + '"/>';
-      lh += '<text x="' + (e.x + 18) + '" y="' + ly + '" font-size="11" fill="#1b2437">' + esc(s.label) + '</text>';
+      lh += '<text x="' + (e.x + 18) + '" y="' + ly + '" font-size="11" fill="#0a1670">' + esc(s.label) + '</text>';
     });
     h += lh + '</svg>';
     return h;
