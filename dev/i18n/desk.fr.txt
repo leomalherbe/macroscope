@@ -1064,3 +1064,13 @@ y#
 // beginners' guide
 How it works?
 => Comment ça marche ?
+
+// key indicators: the chart under the tiles
+Show this indicator year by year
+=> Afficher cet indicateur année par année
+reference
+=> référence
+@, year by year
+=> @, année par année
+Year #: & &
+=> Année # : & &

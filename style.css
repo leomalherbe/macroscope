@@ -254,6 +254,18 @@ body.board{font-size:17px}
 .grid2 > *{min-width:0}
 @media (max-width:560px){.union .num{white-space:normal;text-align:right;min-width:0}}
 .fact .d.fnote{white-space:normal}
+.fact[role="button"]{cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.fact[role="button"]:hover{border-color:var(--line-strong)}
+.fact[role="button"]:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.fact.on{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.factchart svg{width:100%;height:auto;max-height:240px;display:block;margin:10px 0 2px}
+.factchart .t{font-size:13px;font-weight:600;fill:var(--ink)}
+.factchart .ax{font-size:11px;fill:var(--muted)}
+.factchart .grid{stroke:var(--line);stroke-width:1}
+.factchart .ref{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 4}
+.factchart .ln{fill:none;stroke:var(--blue);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.factchart .pt{fill:var(--blue);stroke:var(--card);stroke-width:2}
+.factchart .lv{font-size:12px;font-weight:700;fill:var(--ink)}
 /* the race chart (board): cumulative R of every country */
 svg.race{width:100%;height:auto;display:block}
 .racelegend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:2px 0 6px;font-size:.85rem;color:var(--ink)}
