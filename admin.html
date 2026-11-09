@@ -7,16 +7,20 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110902">
-<script src="config.js?v=2026110902"></script>
-<script src="core.js?v=2026110902"></script>
-<script src="app-common.js?v=2026110902"></script>
-<script src="engine.js?v=2026110902"></script>
+<link rel="stylesheet" href="style.css?v=2026110903">
+<script src="i18n.js?v=2026110903"></script>
+<script src="i18n/fr-desk.js?v=2026110903"></script>
+<script src="i18n/fr-admin.js?v=2026110903"></script>
+<script src="config.js?v=2026110903"></script>
+<script src="core.js?v=2026110903"></script>
+<script src="app-common.js?v=2026110903"></script>
+<script src="engine.js?v=2026110903"></script>
 </head>
 <body>
 
 <div class="topbar">
   <div class="wrap">
+    <div class="lang lang-top" role="group" aria-label="Language"><button type="button" data-lang="en" lang="en" title="English">EN</button><button type="button" data-lang="fr" lang="fr" title="Français">FR</button></div>
     <div>
       <div class="kicker" id="courseLabel">Macroscope · the open-economy policy game</div>
       <h1>Macroscope · Administrator</h1>
@@ -33,6 +37,7 @@
 (function () {
   'use strict';
   var $ = UI.$, $$ = UI.$$, el = UI.el, esc = UI.esc;
+  MXL.apply(); MXL.watch(document.body);
   var cfg = window.MACSIM_CONFIG || {};
   $('#courseLabel').textContent = cfg.COURSE_LABEL || 'Macroscope';
   var app = $('#app');
@@ -459,7 +464,7 @@
     box.appendChild(el('div', { class: 'params' }, [vStep.el, vCap.el, vDev.el, vForced.el, vDepr.el, vDef.el]));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Model version']));
     var mSel = el('select', { id: 'modelSel' });
-    [['v1.1', 'v1.1 — class 6: no price channel, reserves 3 months of imports'], ['v1.2', 'v1.2 — price levels enter trade (one-year lag), reserves 1.5 months'], ['v1.3', 'v1.3 — v1.2 + capital flows, fixed or floating exchange rate (per year), risk premium on public debt, central-bank backstop'], ['v2.0', 'v2.0 — v1.3 + emissions, a global pollution stock and a damage function; carbon tax and green investment levers (backend v1.6 needed)']].forEach(function (o) { mSel.appendChild(el('option', { value: o[0] }, [o[1]])); });
+    [['v1.1', 'v1.1 — no price channel, reserves 3 months of imports'], ['v1.2', 'v1.2 — price levels enter trade (one-year lag), reserves 1.5 months'], ['v1.3', 'v1.3 — v1.2 + capital flows, fixed or floating exchange rate (per year), risk premium on public debt, central-bank backstop'], ['v2.0', 'v2.0 — v1.3 + emissions, a global pollution stock and a damage function; carbon tax and green investment levers (backend v1.6 needed)']].forEach(function (o) { mSel.appendChild(el('option', { value: o[0] }, [o[1]])); });
     mSel.value = modelOf(s);
     if (isDuel()) { mSel.value = 'v2.0'; mSel.disabled = true; }
     box.appendChild(el('div', { class: 'params' }, [el('div', {}, [el('label', { class: 'small' }, [isDuel() ? 'Duels run on the v2.0-based duel engine (two economies, two currencies, climate)' : 'Engine used by Run for this class (a game in progress should keep its version)']), el('br'), mSel])]));
@@ -630,7 +635,7 @@
     var thead = el('thead', {}, [el('tr', {}, [el('th', {}, ['Lever']), el('th', {}, ['Unit'])].concat(p.years.map(function (_, i) { return el('th', { class: 'num' }, [n > 1 ? 'Year ' + (i + 1) : 'Year ' + d.round]); })))]);
     tbl.appendChild(thead); tbl.appendChild(tb);
     card.appendChild(el('div', { class: 'tablewrap' }, [tbl]));
-    card.appendChild(el('details', { class: 'small', style: 'margin-top:8px' }, [el('summary', {}, [d.phase === 'warmup' ? 'Strategy statement' : 'Justification']), el('p', { style: 'white-space:pre-wrap;margin:6px 0 0' }, [p.text || ''])]));
+    card.appendChild(el('details', { class: 'small', style: 'margin-top:8px' }, [el('summary', {}, [d.phase === 'warmup' ? 'Strategy statement' : 'Justification']), el('p', { style: 'white-space:pre-wrap;margin:6px 0 0', translate: 'no' }, [p.text || ''])]));
     return card;
   }
 
@@ -779,7 +784,7 @@
     try { var d = OPENMU.describe ? OPENMU.describe(p) : null; if (d && d.version) ver = d.version; n = d && d.countries ? Object.keys(d.countries).length : (Array.isArray(p.countries) ? p.countries.length : 0); } catch (e) { n = Array.isArray(p.countries) ? p.countries.length : 0; }
     return 'engine OPEN-MU v' + ver + ' · model ' + modelOf() + (modelOf() === 'v2.0' ? ' (emissions and damages, carbon tax and green investment, on top of v1.3; reserves ' + p.reserveMonths + ' months)' : modelOf() === 'v1.3' ? ' (capital flows, fixed or floating rate per year, market pressure; reserves ' + p.reserveMonths + ' months)' : modelOf() === 'v1.2' ? ' (prices in trade, reserves ' + p.reserveMonths + ' months)' : ' (no price channel, reserves ' + p.reserveMonths + ' months)') + ' · ' + n + ' members · ' + (modelOf() === 'v1.3' ? 'regime per year' : 'fixed exchange rate');
   }
-  /* model version of the class: 'v1.2' (prices in trade, reserves 1.5 months) or 'v1.1' (class 6; also any class without the key) */
+  /* model version of the class: 'v1.2' (prices in trade, reserves 1.5 months) or 'v1.1' (also any class without the key) */
   function modelOf(s) { if (MS.isDuel(s || st())) return 'v2.0'; var m = ((s || st()).sim || {}).model; return m === 'v2.0' || m === 'v1.3' || m === 'v1.2' ? m : 'v1.1'; }
   function isCapModel(s) { var m = modelOf(s); return m === 'v1.3' || m === 'v2.0'; }
   function engineParams() {
@@ -1307,7 +1312,7 @@
         var d = decs.filter(function (x) { return x.country === cc; })[0];
         var verdict = '<span class="muted">no pledge</span>';
         if (p) { var k = MS.pledgeVerdict(p.payload, d ? d.payload : null); verdict = !k.items.length ? '<span class="muted">words only</span>' : (k.kept ? '<span class="kept">✓ kept</span>' : '<span class="broken">✗ broken</span>'); }
-        h += '<tr><td><b>' + esc(MS.countryName(cc)) + '</b></td><td>' + (p ? esc(p.text) + '<div class="vals">' + UI.pledgeChipsHtml(p.payload) + '</div>' : '—') + '</td><td>' + (d ? UI.chipsHtml(d.payload.years[0]) + UI.voteChipsHtml(d.payload.votes, { crisis: true }) : '<span class="muted">no decision yet</span>') + '</td><td>' + verdict + '</td></tr>';
+        h += '<tr><td><b>' + esc(MS.countryName(cc)) + '</b></td><td>' + (p ? '<span translate="no">' + esc(p.text) + '</span><div class="vals">' + UI.pledgeChipsHtml(p.payload) + '</div>' : '—') + '</td><td>' + (d ? UI.chipsHtml(d.payload.years[0]) + UI.voteChipsHtml(d.payload.votes, { crisis: true }) : '<span class="muted">no decision yet</span>') + '</td><td>' + verdict + '</td></tr>';
       });
       c.appendChild(el('div', { html: h + '</tbody></table></div>' }));
     });

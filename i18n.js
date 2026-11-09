@@ -23,9 +23,13 @@
      - dict.re: [[regular expression, replacement], …] for strings with
        variable parts; $1 inserts a captured part as is, %1 translated;
      - a string "A · B · C" with no entry of its own: each part on its own;
+       "a, b, c" too, but only when every part has an entry;
      - the attributes placeholder, title, aria-label, and the messages of
        confirm/alert/prompt;
      - in French, numbers take a decimal comma (not after 'v', 'version').
+   MXL.watch(root, {links: true}) is for static prose (the model page): an
+   element mixing text with inline tags and links is matched as a whole
+   (its inner HTML, spaces collapsed), and reported as a whole.
    Elements with translate="no" (names, free text written by players)
    are left alone. While tests run (window.__mxCollect present), every
    string with no French entry is reported, whatever the language shown.
@@ -91,6 +95,7 @@ var MXL = (function () {
 
   /* ---------- translation of a rendered page (MXL.watch) ---------- */
   var INLINE = { B: 1, I: 1, EM: 1, STRONG: 1, SPAN: 1, SMALL: 1, CODE: 1, SUB: 1, SUP: 1, BR: 1, U: 1 };
+  var opt = {};
   var SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, INPUT: 1, SELECT: 0 };
   function lookup(dl, s, lenient) {
     var d = dicts[dl]; if (!d) return null;
@@ -111,6 +116,11 @@ var MXL = (function () {
       var parts = core.split(' · ').map(function (x) { var tx = lookup(dl, x, lenient); if (tx !== null) { hit++; return tx; } if (needs(x)) miss++; return x; });
       if (hit && (lenient || !miss)) return m[1] + parts.join(' · ') + m[3];
     }
+    /* "a, b, c": only when every part has an entry */
+    if (core.indexOf(', ') > 0) {
+      var ok = true, cp = core.split(', ').map(function (x) { var tx = lookup(dl, x); if (tx === null && needs(x)) ok = false; return tx === null ? x : tx; });
+      if (ok) return m[1] + cp.join(', ') + m[3];
+    }
     return null;
   }
   function needs(s) { return /[A-Za-z]{2}/.test(s); }
@@ -129,7 +139,7 @@ var MXL = (function () {
     for (; c; c = c.nextSibling) {
       if (c.nodeType === 3) { if (/[A-Za-z]/.test(c.nodeValue)) txt = true; }
       else if (c.nodeType === 1) {
-        if (!INLINE[c.tagName] || c.id || c.querySelector('a,button,input,select,textarea,[id],[translate="no"]')) return false;
+        if (!(INLINE[c.tagName] || (opt.links && c.tagName === 'A')) || c.id || c.querySelector((opt.links ? '' : 'a,') + 'button,input,select,textarea,[id],[translate="no"]')) return false;
         inl = true;
       }
     }
@@ -154,14 +164,14 @@ var MXL = (function () {
     attrs(node);
     if (isBlock(node)) {
       var h = node.innerHTML.replace(/\s+/g, ' ');
-      if (lang === 'en') { if (lookup('fr', h) !== null) return; }
+      if (lang === 'en') { if (lookup('fr', h) !== null) return; if (opt.links) return report('html', h); }
       else { var t3 = lookup(lang, h); if (t3 !== null) { node.innerHTML = t3; Array.prototype.forEach.call(node.childNodes, function (c) { if (c.nodeType === 3) c.nodeValue = fixNum(c.nodeValue); }); return; } }
     }
     for (var c = node.firstChild; c; c = c.nextSibling) walk(c);
   }
   var watching = false;
-  function watch(root) {
-    root = root || document.body;
+  function watch(root, o) {
+    root = root || document.body; opt = o || {};
     if (lang !== 'en' && dicts[lang] && dicts[lang].title) document.title = dicts[lang].title;
     walk(root);
     if (watching || !window.MutationObserver) return;
@@ -178,7 +188,7 @@ var MXL = (function () {
     }).observe(root, { childList: true, subtree: true, characterData: true });
     ['confirm', 'alert', 'prompt'].forEach(function (f) {
       var orig = window[f]; if (!orig) return;
-      window[f] = function (msg, def) { msg = String(msg); report('dialog', msg); var t2 = lang !== 'en' ? lookup(lang, msg, true) : null; return orig.call(window, t2 !== null ? t2 : msg, def); };
+      window[f] = function (msg, def) { msg = String(msg); report('dialog', msg); var t2 = lang !== 'en' ? lookup(lang, msg.replace(/\s+/g, ' '), true) : null; return orig.call(window, t2 !== null ? t2 : msg, def); };
     });
   }
   function inNo(n) { for (var e = n.nodeType === 1 ? n : n.parentNode; e && e.getAttribute; e = e.parentNode) { if (e.getAttribute('translate') === 'no') return true; } return false; }

@@ -1,6 +1,8 @@
 /* Compiles the French text of a page (dev/i18n/<page>.fr.txt) into i18n/fr-<page>.js,
    the dictionary that i18n.js applies. Usage: node dev/i18n-build.js desk
-   Format of the source: see the head of dev/i18n/desk.fr.txt. */
+   Format of the source: see the head of dev/i18n/desk.fr.txt. An English line starting with « | » is
+   literal (for HTML with # in links or & in entities: the model page); one starting with « ~ » is a raw
+   regular expression, the French then uses $1 (as is) and %1 (translated). */
 const fs = require('fs'), path = require('path');
 const page = process.argv[2] || 'desk';
 const root = path.join(__dirname, '..');
@@ -19,6 +21,8 @@ for (let i = 0; i < lines.length; i++) {
   let fr = fl.slice(3);
   if (seen.has(en)) throw new Error('duplicate: ' + en); seen.add(en);
   if (en === '@title') { title = fr; continue; }
+  if (en.startsWith('~ ')) { re.push([en.slice(2), typo(fr)]); continue; }   /* raw regular expression; $1 / %1 in the French */
+  if (en.startsWith('| ')) { str[en.slice(2)] = typo(fr); continue; }   /* literal: # @ & are plain characters */
   const kinds = []; let rx = '';
   for (const ch of en) {
     if (ch === '#') { kinds.push('$'); rx += NUM; }
