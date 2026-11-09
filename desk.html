@@ -7,18 +7,19 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110903">
-<script src="i18n.js?v=2026110903"></script>
-<script src="i18n/fr-desk.js?v=2026110903"></script>
-<script src="config.js?v=2026110903"></script>
-<script src="core.js?v=2026110903"></script>
-<script src="app-common.js?v=2026110903"></script>
+<link rel="stylesheet" href="style.css?v=2026110905">
+<script src="i18n.js?v=2026110905"></script>
+<script src="i18n/fr-desk.js?v=2026110905"></script>
+<script src="guide.js?v=2026110905"></script>
+<script src="config.js?v=2026110905"></script>
+<script src="core.js?v=2026110905"></script>
+<script src="app-common.js?v=2026110905"></script>
 </head>
 <body>
 
 <div class="topbar">
   <div class="wrap">
-    <div class="lang lang-top" role="group" aria-label="Language"><button type="button" data-lang="en" lang="en" title="English">EN</button><button type="button" data-lang="fr" lang="fr" title="Français">FR</button></div>
+    <div class="top-tools"><button type="button" id="guideBtn" class="guide-btn" hidden>How it works?</button><div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en" lang="en" title="English">EN</button><button type="button" data-lang="fr" lang="fr" title="Français">FR</button></div></div>
     <div>
       <div class="kicker" id="courseLabel">Macroscope · the open-economy policy game</div>
       <h1>Macroscope · Policy desk</h1>
@@ -37,6 +38,8 @@
   'use strict';
   var $ = UI.$, el = UI.el, esc = UI.esc;
   MXL.apply(); MXL.watch(document.body);
+  /* the beginners' guide (guide.js): which card a lever's ⓘ opens */
+  var LEVER_GUIDE = { pubdem: 'demand', benefits: 'demand', inctax: 'demand', vat: 'vat', ctax: 'climate', green: 'climate', rate: 'rate?', tariffU: 'exit' };
   var cfg = window.MACSIM_CONFIG || {};
   $('#courseLabel').textContent = cfg.COURSE_LABEL || 'Macroscope';
   $('#homeLink').href = cfg.COURSE_HOME || '#';
@@ -119,6 +122,7 @@
     renderReveals();
     renderAllDecisions();
     renderHistory();
+    MXGUIDE.update(st);
   }
 
   function renderStrip() {
@@ -224,13 +228,13 @@
     var vc = votesConfig(); if (!vc.on || formConfig().out) return null;   /* §12: a country out of the union no longer votes */
     var prevV = MS.cleanVotes(pv && pv.votes);
     function q(name, title, hint, opts, cur, cls) {
-      var box = el('div', { class: 'q' + (cls ? ' ' + cls : '') }); box.appendChild(el('b', {}, [title])); box.appendChild(el('span', { class: 'hint' }, [hint]));
+      var box = el('div', { class: 'q' + (cls ? ' ' + cls : '') }); box.appendChild(el('b', name === 'V_cet' ? { 'data-guide': 'exit' } : {}, [title])); box.appendChild(el('span', { class: 'hint' }, [hint]));
       var row = el('div', { class: 'opts' });
       opts.forEach(function (o) { var r = el('input', { type: 'radio', name: name, value: o[0] }); r.checked = cur === o[0]; r.addEventListener('change', onInput); row.appendChild(el('label', {}, [r, o[1]])); });
       box.appendChild(row); return box;
     }
     var wrap = el('div', { class: 'votes' });
-    wrap.appendChild(q('V_rate', 'The central bank’s rate', 'One country, one vote. A majority of the countries moves the rate by ' + MS.fmt(vc.step, 2) + ' pt, permanently. It acts on investment next year and on every budget’s debt service at once.',
+    wrap.appendChild(q('V_rate', 'The central bank’s rate', 'One country, one vote. A majority of the countries moves the rate by ' + MS.fmt(vc.step, 2) + ' pt, permanently. It acts the following year, on investment and on every budget’s debt service.',
       [['cut', 'Cut −' + MS.fmt(vc.step, 2) + ' pt'], ['hold', 'Hold'], ['hike', 'Hike +' + MS.fmt(vc.step, 2) + ' pt']], prevV.rate));
 
     /* §13: the common external tariff, voted each year; the default is the level in force */
@@ -242,7 +246,7 @@
         MS.CET_LEVELS.map(function (l) { return [String(l), l + ' %']; }), String(curCet)));
     }
     var card = el('div');
-    card.appendChild(el('h3', { style: 'margin:14px 0 2px' }, ['Votes at the central bank']));
+    card.appendChild(el('h3', { style: 'margin:14px 0 2px', 'data-guide': 'rate' }, ['Votes at the central bank']));
     card.appendChild(el('p', { class: 'muted small', style: 'margin:0' }, ['Your votes travel with your decisions and stay secret while the round is open; they are revealed with everyone’s decisions once it is closed.']));
     card.appendChild(wrap);
     return card;
@@ -303,7 +307,7 @@
     thead.appendChild(hr); tbl.appendChild(thead);
     var tbody = el('tbody');
     f.levers.forEach(function (l) {
-      var tr = el('tr', {}, [el('td', { html: '<span class="n muted">' + l.n + '.</span> ' + esc(l.label) + '<span class="hint">' + esc(l.hint) + ' · <i>' + esc(f.out && l.duel ? 'Monetary policy' : MS.CATS[l.cat].replace(' policies', '')) + '</i></span>' }), el('td', { class: 'unit' }, [l.exitOnly ? '% · 0 to ' + (f.bounds.tariffU || 20) : l.duel ? 'pt · ±' + (f.bounds.rate || 2) : l.eco ? (l.unit + ' · 0 to ' + (f.bounds.eco || 10)) : '% of ref.'])]);
+      var tr = el('tr', {}, [el('td', { 'data-guide': LEVER_GUIDE[l.id] === 'rate?' ? (MS.isDuel(st) ? 'duel' : 'exit') : LEVER_GUIDE[l.id], html: '<span class="n muted">' + l.n + '.</span> ' + esc(l.label) + '<span class="hint">' + esc(l.hint) + ' · <i>' + esc(f.out && l.duel ? 'Monetary policy' : MS.CATS[l.cat].replace(' policies', '')) + '</i></span>' }), el('td', { class: 'unit' }, [l.exitOnly ? '% · 0 to ' + (f.bounds.tariffU || 20) : l.duel ? 'pt · ±' + (f.bounds.rate || 2) : l.eco ? (l.unit + ' · 0 to ' + (f.bounds.eco || 10)) : '% of ref.'])]);
       for (var y2 = 0; y2 < f.nYears; y2++) { var ni = numInput('L_' + l.id + '_' + y2, pv && pv.years[y2] ? pv.years[y2].levers[l.id] : 0, l.exitOnly ? (f.bounds.tariffU || 20) : l.duel ? (f.bounds.rate || 2) : l.eco ? (f.bounds.eco || 10) : f.bounds.lever); if (l.exitOnly) { ni.min = 0; ni.step = 1; } else if (l.duel) { ni.step = 0.25; } else if (l.eco) { ni.min = 0; ni.step = 0.5; } if (cap !== null && (l.id === 'pubdem' || l.id === 'benefits')) { ni.max = cap; ni.title = 'austerity: at most ' + cap + ' %'; } tr.appendChild(el('td', { class: 'num' }, [ni])); }
       tbody.appendChild(tr);
     });
@@ -346,7 +350,7 @@
       ob.appendChild(el('tr', { class: 'cat' }, [el('td', { colspan: 2 + f.nYears }, ['Monetary & structural options (subject to the administrator’s approval)'])]));
       var ctry = MS.countryById(f.country);
       if (f.euro) {
-        var tr1 = el('tr', {}, [el('td', { html: 'Leave the monetary union<span class="hint">Announced with this year’s decisions (secret until the round closes), effective next year: a new currency at 1 for 1 — all your debt converted —, your own central bank with your share of the reserves, your own policy rate, a floating or pegged currency of your choice. Irreversible. The year of the announcement your households may move their savings abroad, and the remaining members will vote on measures against you (tariff, sale of your bills held by their central bank).</span>' }), el('td', { class: 'unit' }, ['—'])]);
+        var tr1 = el('tr', {}, [el('td', { 'data-guide': 'exit', html: 'Leave the monetary union<span class="hint">Announced with this year’s decisions (secret until the round closes), effective next year: a new currency at 1 for 1 — all your debt converted —, your own central bank with your share of the reserves, your own policy rate, a floating or pegged currency of your choice. Irreversible. The year of the announcement your households may move their savings abroad, and the remaining members will vote on measures against you (tariff, sale of your bills held by their central bank).</span>' }), el('td', { class: 'unit' }, ['—'])]);
         var sel = el('select', { name: 'E_0', id: 'exitSel' });
         sel.appendChild(el('option', { value: 'none' }, ['stay in the union']));
         sel.appendChild(el('option', { value: 'leave' }, ['LEAVE the union at the end of this year']));
@@ -393,12 +397,12 @@
     var st = data.state, me = data.group.country, rec = MS.retaliationOf(st, st.round, target);
     var card = el('div', { class: 'card' });
     if (me === target || MS.isOutIn(st, me, st.round)) {
-      card.appendChild(el('h2', {}, ['Council on retaliation against ' + MS.countryName(target)]));
+      card.appendChild(el('h2', { 'data-guide': 'exit' }, ['Council on retaliation against ' + MS.countryName(target)]));
       card.appendChild(el('p', { class: 'muted' }, [me === target ? 'The remaining members are voting on measures against your country: a tariff on your exports to the union, the sale of your bills held by their central bank' + (rec && rec.settleOpen ? ', the immediate settlement of your TARGET balance' : '') + '. Your decisions for year ' + st.round + ' open once the council is closed.' : 'The members are voting on measures against ' + MS.countryName(target) + '. Your country has left the union and does not vote.']));
       return card;
     }
     var mine = (data.myDecisions || []).filter(function (d) { return d.phase === 'retaliation' && Number(d.round) === Number(st.round) && d.payload && d.payload.target === target; })[0], cur = mine ? mine.payload : {};
-    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Council on retaliation against ' + MS.countryName(target) + ' · year ' + st.round]), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'exit' }, ['Council on retaliation against ' + MS.countryName(target) + ' · year ' + st.round]), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
     card.appendChild(el('p', { class: 'muted small' }, [MS.countryName(target) + ' has left the union. Before any decision for year ' + st.round + ', the members vote. For each measure the outcome is the median of the votes of the members (a member that does not vote counts for 0): the level that no majority wants to raise or to lower. The measures stay in force until a later council changes them.']));
     var wrap = el('div', { class: 'votes' });
     function q(name, title, hint, opts, cur0) { var box = el('div', { class: 'q' }); box.appendChild(el('b', {}, [title])); box.appendChild(el('span', { class: 'hint' }, [hint])); var row = el('div', { class: 'opts' }); opts.forEach(function (o) { var r = el('input', { type: 'radio', name: name, value: String(o[0]) }); r.checked = String(cur0) === String(o[0]); row.appendChild(el('label', {}, [r, o[1]])); }); box.appendChild(row); return box; }
@@ -425,7 +429,7 @@
     var st = data.state, mine = myDecision('crisis', st.round), cur = mine && mine.payload ? mine.payload.crisis : null;
     var card = el('div', { class: 'card' });
     if (rec.kind === 'currency') return currencyVoteCard(rec, vc, mine, cur);
-    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Reserves crisis · year ' + st.round + ' — vote']), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'reserves' }, ['Reserves crisis · year ' + st.round + ' — vote']), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
     card.appendChild(el('p', { class: 'muted small' }, ['The union’s reserves ended year ' + (st.round - 1) + ' below the alert line. Before any decision for year ' + st.round + ', the council votes — one country, one vote; only the votes cast count: devaluation needs more than half of the voters. Decisions open once the administrator closes the vote.']));
     var wrap = el('div', { class: 'votes' });
     var box = el('div', { class: 'q crisis' }); box.appendChild(el('b', {}, ['Austerity or devaluation?']));
@@ -443,7 +447,7 @@
   function currencyVoteCard(rec, vc, mine, cur) {
     var st = data.state, rules = Object.assign({}, MS.defaultState().sim, st.sim || {});
     var card = el('div', { class: 'card' });
-    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Currency crisis · year ' + st.round + ' — vote']), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'float' }, ['Currency crisis · year ' + st.round + ' — vote']), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
     card.appendChild(el('p', { class: 'muted small' }, ['The union’s currency fell by more than ' + MS.fmt(rules.crisisDepr, 0) + ' % over year ' + (st.round - 1) + '. Before any decision for year ' + st.round + ', the council votes — one country, one vote; a country that does not vote counts as defend; letting the currency float needs more than half of the countries. Decisions open once the administrator closes the vote.']));
     var wrap = el('div', { class: 'votes' });
     var box = el('div', { class: 'q crisis' }); box.appendChild(el('b', {}, ['Defend the currency, or let it float?']));
@@ -501,7 +505,7 @@
     if (councilKey !== key) {
       box.innerHTML = '';
       var card = el('div', { class: 'card tint' });
-      card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Council of ministers · year ' + st.round]), el('span', { class: 'pill gold' }, ['in session'])]));
+      card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'coop' }, ['Council of ministers · year ' + st.round]), el('span', { class: 'pill gold' }, ['in session'])]));
       card.appendChild(el('p', { class: 'muted small' }, ['Pledges are public and visible to every country; actual decisions stay private until the year is simulated. After the run, the administrator may reveal who kept their word.']));
       var mine = (data.myPledges || []).filter(function (p) { return Number(p.round) === Number(st.round); })[0];
       var ta = el('textarea', { id: 'pledgeText', placeholder: 'e.g. "We will raise public demand by 0.5 pt of GDP if Germany does the same."', style: 'min-height:70px' });
@@ -624,7 +628,7 @@
     var u = last.detail.extra;
     if (MS.isDuel(data.state)) {
       var dd = MS.duelOf(data.group.country), cardD = el('div', { class: 'card' });
-      cardD.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Your duel · pair ' + (dd ? dd.pair : '')]), el('span', { class: 'small muted' }, ['after year ' + last.year])]));
+      cardD.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'duel' }, ['Your duel · pair ' + (dd ? dd.pair : '')]), el('span', { class: 'small muted' }, ['after year ' + last.year])]));
       cardD.appendChild(el('div', { class: 'union', html: UI.duelPanelHtml(u, dd ? dd.side : null) }));
       cardD.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, [u.regime === 'float'
         ? 'Floating rate: e moves until the balance of payments between you and your partner balances — a higher policy rate attracts capital and appreciates your currency; a deficit depreciates it (import prices and inflation rise, exports recover with a lag). No reserves move.'
@@ -633,7 +637,7 @@
     }
     var pct = u.R0 ? Math.max(0, Math.min(100, 100 * u.R / u.R0)) : 0;
     var card = el('div', { class: 'card' });
-    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title || 'The monetary union']), el('span', { class: 'small muted' }, ['after year ' + last.year])]));
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'reserves' }, [title || 'The monetary union']), el('span', { class: 'small muted' }, ['after year ' + last.year])]));
     card.appendChild(el('div', { class: 'union', html:
       (u.regime === 'float'
         ? '<div class="urow"><span>Foreign reserves of the common central bank (frozen while floating)</span><span class="num">' + esc(MS.fmt(pct, 0)) + ' % of initial</span></div>'
@@ -656,7 +660,7 @@
     var last = list[list.length - 1], prev = list.length > 1 ? list[list.length - 2] : null;
     function ux(y) { var u = (unionRows || []).filter(function (r) { return Number(r.year) === Number(y) && r.detail && r.detail.extra; })[0]; return u ? u.detail.extra.xr : null; }
     var card = el('div', { class: 'card' });
-    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Key indicators · ' + who]), el('span', { class: 'small muted' }, ['end of year ' + last.year])]));
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'compet debt' }, ['Key indicators · ' + who]), el('span', { class: 'small muted' }, ['end of year ' + last.year])]));
     card.appendChild(el('div', { html: UI.factSheetHtml(last, prev, { xr: ux(last.year), xrPrev: prev ? ux(prev.year) : null, duel: MS.isDuel(data.state) }) }));
     card.appendChild(el('p', { class: 'xs muted', style: 'margin:.4em 0 0' }, ['Inflation, unemployment and debt are levels (reference: 2 %, 7 %, about 105 % of GDP); GDP is the gap to the reference path; the balances are in % of GDP (0 at the reference); the relative price level compares your prices with ' + (MS.isDuel(data.state) ? 'your partner’s' : 'the union’s average') + ' in a common currency (above 0: less competitive — you export less and import more the next year). Arrows: change since the previous year, green when it helps your country, red when it hurts.']));
     return card;
@@ -664,7 +668,7 @@
   /* the five objective dimensions over time, as an SVG chart */
   function trajectoryCard(rows, title) {
     var card = el('div', { class: 'card' });
-    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [title || 'Your objective, year by year']), el('span', { class: 'small muted' }, ['deviation from the reference, year by year'])]));
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'score' }, [title || 'Your objective, year by year']), el('span', { class: 'small muted' }, ['deviation from the reference, year by year'])]));
     card.appendChild(el('div', { id: 'trajectory', html: UI.trajectorySvg(rows, { weights: data.state.weights }) }));
     card.appendChild(el('p', { class: 'trajcap' }, ['Each bar stacks the contributions of the five dimensions to R for the year (weight × deviation; unemployment and inflation count negatively): above zero what helped, below zero what hurt. The dashed line is R itself.']));
     return card;
@@ -677,7 +681,7 @@
     if (st.phase === 'warmup') {
       var mine = (data.myResults || []).filter(function (r) { return r.phase === 'warmup'; }).sort(function (a, b) { return a.year - b.year; });
       var card = el('div', { class: 'card' });
-      card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Your results']), el('span', { class: 'small muted' }, [weightsLine(w)])]));
+      card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'decomp' }, ['Your results']), el('span', { class: 'small muted' }, [weightsLine(w)])]));
       if (!mine.length) card.appendChild(el('p', { class: 'muted' }, ['Results will appear here once the administrator has run your plan.']));
       else {
         card.appendChild(el('div', { html: resultsTable(mine.map(function (r) { return Object.assign({ _label: 'Year ' + r.year }, r); })) }));
@@ -714,7 +718,7 @@
     var mineG = (data.myResults || []).filter(function (r) { return r.phase === 'game'; }).sort(function (a, b) { return a.year - b.year; });
     var fcG = factCard(mineG, (data.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'UNION'; }), MS.countryName(data.group.country)); if (fcG) box.appendChild(fcG);
     var cardG = el('div', { class: 'card' });
-    cardG.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, [MS.countryName(data.group.country) + ' · results so far']), el('span', { class: 'small muted' }, [weightsLine(w)])]));
+    cardG.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'decomp' }, [MS.countryName(data.group.country) + ' · results so far']), el('span', { class: 'small muted' }, [weightsLine(w)])]));
     if (!mineG.length) cardG.appendChild(el('p', { class: 'muted' }, ['No year has been simulated yet.']));
     else { cardG.appendChild(el('div', { html: resultsTable(mineG.map(function (r) { return Object.assign({ _label: 'Year ' + r.year }, r); })) })); var rlG = ratiosLine(mineG); if (rlG) cardG.appendChild(rlG); }
     box.appendChild(cardG);
@@ -722,7 +726,7 @@
     var lastG = mineG.length ? mineG[mineG.length - 1] : null;
     if (lastG && lastG.detail && lastG.detail.extra && lastG.detail.extra.exited) {
       var cardX = el('div', { class: 'card' });
-      cardX.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Your currency']), el('span', { class: 'small muted' }, ['after year ' + lastG.year])]));
+      cardX.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'exit' }, ['Your currency']), el('span', { class: 'small muted' }, ['after year ' + lastG.year])]));
       cardX.appendChild(el('div', { html: UI.currencyPanelHtml(lastG.detail.extra) }));
       cardX.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['A depreciation makes your goods cheaper abroad (exports recover with a lag) and every import dearer at once: all your imports now pass through the exchange rate, so inflation follows the currency. Your debt is in your own currency: a depreciation does not raise it, but the union’s central bank, which holds part of it, can sell it.']));
       box.appendChild(cardX);
@@ -739,7 +743,7 @@
       box.appendChild(cardP);
       if (mineG.length) {
         var cardT = el('div', { class: 'card' });
-        cardT.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['The objective, year by year · you and your partner']), el('span', { class: 'small muted' }, ['contributions to R'])]));
+        cardT.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'score' }, ['The objective, year by year · you and your partner']), el('span', { class: 'small muted' }, ['contributions to R'])]));
         var grid = el('div', { class: 'trajgrid' });
         grid.appendChild(el('div', { id: 'trajectory', html: UI.trajectorySvg(mineG, { weights: st.weights, title: MS.countryName(data.group.country) + ' (you)', legend: false, fontScale: 1.4 }) }));
         if (partnerRows.length) grid.appendChild(el('div', { html: UI.trajectorySvg(partnerRows, { weights: st.weights, title: MS.countryName(dd.partner) + ' (partner)', legend: false, fontScale: 1.4 }) }));
@@ -752,7 +756,7 @@
     if (st.publishLeaderboard) {
       var lb = MS.leaderboard(data.gameResults || [], w);
       var cardL = el('div', { class: 'card' });
-      cardL.appendChild(el('h2', {}, ['Ranking']));
+      cardL.appendChild(el('h2', { 'data-guide': 'score' }, ['Ranking']));
       if (!lb.length) cardL.appendChild(el('p', { class: 'muted' }, ['The ranking appears after the first simulated year.']));
       else {
         var maxAbs = Math.max.apply(null, lb.map(function (r) { return Math.abs(r.cumR || 0); }).concat([0.01]));

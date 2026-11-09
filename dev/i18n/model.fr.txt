@@ -165,8 +165,8 @@
 => Les chocs de l’année décidés par l’administrateur, les mêmes pour tous les membres (onglet Run ; certaines lignes n’apparaissent que pour la version du modèle qui les utilise) :
 | demand of the rest of the world for the union's exports, % (all versions)
 => demande du reste du monde pour les exportations de l’union, % (toutes versions)
-| central bank rate, in points, on top of the voted changes (all versions; v1.1 and later: investment with a one-year lag, debt service at once)
-=> taux de la banque centrale, en points, en plus des changements votés (toutes versions ; à partir de la v1.1 : investissement avec un an de retard, service de la dette tout de suite)
+| central bank rate, in points, on top of the voted changes (all versions; v1.1 and later: investment and debt service with a one-year lag)
+=> taux de la banque centrale, en points, en plus des changements votés (toutes versions ; à partir de la v1.1 : investissement et service de la dette avec un an de retard)
 | propensity to consume out of income, % (all versions)
 => propension à consommer le revenu, % (toutes versions)
 | propensity to import, % — an oil shock (all versions)
