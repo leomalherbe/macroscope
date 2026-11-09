@@ -9,11 +9,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
-/* decide before first paint: JS on, and whether to play the loader (once per session, never with reduced motion) */
+/* decide before first paint: JS on, and whether to play the loader (never with reduced motion, nor after a change of language) */
 (function(d){var h=d.documentElement;h.classList.remove('no-js');h.classList.add('js');
 var rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-if(rm){h.classList.add('rm')}h.classList.add('is-loading')})(document);
+if(rm){h.classList.add('rm')}var skip=false;try{skip=sessionStorage.getItem('macroscope.skipIntro');sessionStorage.removeItem('macroscope.skipIntro')}catch(e){}
+if(!skip){h.classList.add('is-loading')}})(document);
 </script>
+<script src="i18n.js?v=2026110901"></script>
+<link rel="alternate" hreflang="en" href="https://leomalherbe.github.io/macroscope/?lang=en">
+<link rel="alternate" hreflang="fr" href="https://leomalherbe.github.io/macroscope/?lang=fr">
 <style>
 :root{
   --bg:#ffffff;--bg2:#ffffff;--card:#ffffff;--ink:#122ddb;--text:#0f25b8;--muted:#5566cf;--line:rgba(18,45,219,.28);--line2:#122ddb;
@@ -357,6 +361,13 @@ h3{font-weight:700}
 .pill{background:var(--red);color:#fff;border-radius:0;box-shadow:inset 0 0 0 1.5px var(--red)}
 .pill::before{background:#fff;border-radius:0}
 .pill:hover{color:var(--red)}
+.nav-end{display:flex;align-items:center;gap:16px}
+.lang{display:flex;border:1.5px solid var(--red)}
+.lang button{font:inherit;font-size:.78rem;font-weight:700;letter-spacing:.06em;background:transparent;color:var(--red);border:0;padding:6px 9px;min-width:36px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--red);color:#fff;cursor:default}
+.lang button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+html[lang="fr"] .lab::before{content:"EN DIRECT"}
+@media (max-width:480px){.nav-end .pill{display:none}}
 
 /* hero */
 .hero-chart .grid line{stroke:rgba(18,45,219,.14)}
@@ -734,12 +745,15 @@ html.js:not(.rm) .split.in .w > span{transform:none}
   <div class="wrap">
     <a class="brand" href="#top"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="none" stroke="#122ddb" stroke-width="2.4"/><path d="M6.5 13.5l3-3 2.5 2 3.5-4" fill="none" stroke="#122ddb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 17l6 6" stroke="#122ddb" stroke-width="2.6" stroke-linecap="round"/></svg>Macroscope</a>
     <ul>
-      <li><a href="#principle">How it works</a></li>
-      <li><a href="#course">How a course uses it</a></li>
-      <li><a href="#versions">The versions</a></li>
+      <li><a data-i18n="k1" href="#principle">How it works</a></li>
+      <li><a data-i18n="k2" href="#course">How a course uses it</a></li>
+      <li><a data-i18n="k3" href="#versions">The versions</a></li>
       <li><a href="mailto:leo.malherbe@kedgebs.com">Contact</a></li>
     </ul>
-    <a class="pill" href="#try">Try the demo <span class="arr">→</span></a>
+    <div class="nav-end">
+    <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en" lang="en" title="English">EN</button><button type="button" data-lang="fr" lang="fr" title="Français">FR</button></div>
+    <a data-i18n="k4" class="pill" href="#try">Try the demo <span class="arr">→</span></a>
+    </div>
   </div>
 </nav>
 
@@ -753,13 +767,13 @@ html.js:not(.rm) .split.in .w > span{transform:none}
     
   </svg>
   <div class="wrap">
-    <p class="kicker"><i></i>A free and open teaching game for macroeconomics</p>
+    <p data-i18n="k5" class="kicker"><i></i>A free and open teaching game for macroeconomics</p>
     <h1 class="wordmark" id="wordmark" aria-label="Macroscope">Macroscope</h1>
     <div class="hero-row">
-      <p class="tagline">Learn economic policy by governing an economy.</p>
+      <p data-i18n="k6" class="tagline">Learn economic policy by governing an economy.</p>
       <div>
-        <p class="lead">Students run the government of a country in a monetary union. Each year they face a shock, choose their policy, and write down why: which effects they expect, through which channels. A model they have studied computes what actually happens.</p>
-        <p class="lead"><b>The game is the experiment.</b> The learning is in the gap between what they expected and what they got, and in how well they explain it.</p>
+        <p data-i18n="k7" class="lead">Students run the government of a country in a monetary union. Each year they face a shock, choose their policy, and write down why: which effects they expect, through which channels. A model they have studied computes what actually happens.</p>
+        <p data-i18n="k8" class="lead"><b>The game is the experiment.</b> The learning is in the gap between what they expected and what they got, and in how well they explain it.</p>
       </div>
     </div>
   </div>
@@ -768,109 +782,109 @@ html.js:not(.rm) .split.in .w > span{transform:none}
 <main>
 
 <div class="stats stats3" aria-label="Macroscope at a glance">
-  <div class="stat" data-reveal><b>Free</b><span>for any teacher, any class, any number of games</span></div>
-  <div class="stat" data-reveal style="--d:.08s"><b>Open</b><span>the code, the model and its equations are <a href="https://github.com/leomalherbe/macroscope">on GitHub</a>, free to reuse and adapt for non-commercial use</span></div>
-  <div class="stat" data-reveal style="--d:.16s"><b>Instant</b><span>nothing to install: it runs in a browser; your data stays in your own Google Sheet</span></div>
+  <div data-i18n="k9" class="stat" data-reveal><b>Free</b><span>for any teacher, any class, any number of games</span></div>
+  <div data-i18n="k10" class="stat" data-reveal style="--d:.08s"><b>Open</b><span>the code, the model and its equations are <a href="https://github.com/leomalherbe/macroscope">on GitHub</a>, free to reuse and adapt for non-commercial use</span></div>
+  <div data-i18n="k11" class="stat" data-reveal style="--d:.16s"><b>Instant</b><span>nothing to install: it runs in a browser; your data stays in your own Google Sheet</span></div>
 </div>
 
 <section id="principle">
   <div class="wrap">
-    <div class="label"><b>01</b> How it works</div>
+    <div data-i18n="k12" class="label"><b>01</b> How it works</div>
     <div class="intro">
-      <h2 class="split">One year of play, in four steps</h2>
-      <p data-reveal>Every version of the game runs the same loop. The administrator, usually the teacher, decides what happens to the world. The teams decide what their government does. The model decides the rest.</p>
+      <h2 data-i18n="k13" class="split">One year of play, in four steps</h2>
+      <p data-i18n="k14" data-reveal>Every version of the game runs the same loop. The administrator, usually the teacher, decides what happens to the world. The teams decide what their government does. The model decides the rest.</p>
     </div>
     <div class="loop">
       <div data-reveal>
-        <h3><i>01</i>Shocks</h3>
-        <p>The administrator announces what hits the economy this year: a recession abroad, a loss of household confidence, and more as the model gets richer.</p>
+        <h3 data-i18n="k15"><i>01</i>Shocks</h3>
+        <p data-i18n="k16">The administrator announces what hits the economy this year: a recession abroad, a loss of household confidence, and more as the model gets richer.</p>
       </div>
       <div data-reveal style="--d:.08s">
-        <h3><i>02</i>Levers</h3>
-        <p>Each team sets its government's policy for the year, and votes with the other governments on the decisions they share. Every decision comes with a written justification.</p>
+        <h3 data-i18n="k17"><i>02</i>Levers</h3>
+        <p data-i18n="k18">Each team sets its government's policy for the year, and votes with the other governments on the decisions they share. Every decision comes with a written justification.</p>
       </div>
       <div data-reveal style="--d:.16s">
         <h3><i>03</i>Simulation</h3>
-        <p>A stock-flow consistent model of the union computes the year: every flow comes from one sector and goes to another, every stock is the sum of its flows. Every equation is published.</p>
+        <p data-i18n="k19">A stock-flow consistent model of the union computes the year: every flow comes from one sector and goes to another, every stock is the sum of its flows. Every equation is published.</p>
       </div>
       <div data-reveal style="--d:.24s">
-        <h3><i>04</i>Results</h3>
-        <p>Growth, unemployment, inflation, the public and external accounts, and a score. Each result is split between the team's own policy, the other governments and the shocks.</p>
+        <h3 data-i18n="k20"><i>04</i>Results</h3>
+        <p data-i18n="k21">Growth, unemployment, inflation, the public and external accounts, and a score. Each result is split between the team's own policy, the other governments and the shocks.</p>
       </div>
     </div>
     <div class="score">
       <div class="score-text" data-reveal>
-        <h3>One number to maximise</h3>
-        <p>Each year, every government is scored on five results, each measured as a gap from the reference path: the path the economy would have followed with no shock and no policy. Growth, the public balance and the trade balance count in its favour; unemployment and inflation against it.</p>
-        <p>The weights are set by the teacher, equal by default. The score of each year is added up, and the ranking goes to the highest total. Every result is also split between the team's own policy, the other governments and the shocks, so that nobody can blame the weather for their own decisions, or take credit for someone else's.</p>
+        <h3 data-i18n="k22">One number to maximise</h3>
+        <p data-i18n="k23">Each year, every government is scored on five results, each measured as a gap from the reference path: the path the economy would have followed with no shock and no policy. Growth, the public balance and the trade balance count in its favour; unemployment and inflation against it.</p>
+        <p data-i18n="k24">The weights are set by the teacher, equal by default. The score of each year is added up, and the ranking goes to the highest total. Every result is also split between the team's own policy, the other governments and the shocks, so that nobody can blame the weather for their own decisions, or take credit for someone else's.</p>
       </div>
       <div class="score-box" data-reveal style="--d:.1s">
-        <p class="formula" role="math" aria-label="R for country i in year t equals a1 times the GDP gap, minus a2 times the unemployment gap, minus a3 times the inflation gap, plus a4 times the public balance gap, plus a5 times the trade balance gap"><span class="t lhs"><i>R</i><sub class="it">i,t</sub></span><span class="op eq">=</span><span class="t"><span class="w">a<sub>1</sub></span>ΔGDP<sub class="it">i,t</sub></span><span class="op m">−</span><span class="t"><span class="w">a<sub>2</sub></span>Δ<i>U</i><sub class="it">i,t</sub></span><span class="op m">−</span><span class="t"><span class="w">a<sub>3</sub></span>Δ<i>π</i><sub class="it">i,t</sub></span><span class="op p">+</span><span class="t"><span class="w">a<sub>4</sub></span>ΔPB<sub class="it">i,t</sub></span><span class="op p">+</span><span class="t"><span class="w">a<sub>5</sub></span>ΔTB<sub class="it">i,t</sub></span><span class="eqn">(1)</span></p>
+        <p data-i18n="formula" class="formula" role="math" aria-label="R for country i in year t equals a1 times the GDP gap, minus a2 times the unemployment gap, minus a3 times the inflation gap, plus a4 times the public balance gap, plus a5 times the trade balance gap"><span class="t lhs"><i>R</i><sub class="it">i,t</sub></span><span class="op eq">=</span><span class="t"><span class="w">a<sub>1</sub></span>ΔGDP<sub class="it">i,t</sub></span><span class="op m">−</span><span class="t"><span class="w">a<sub>2</sub></span>Δ<i>U</i><sub class="it">i,t</sub></span><span class="op m">−</span><span class="t"><span class="w">a<sub>3</sub></span>Δ<i>π</i><sub class="it">i,t</sub></span><span class="op p">+</span><span class="t"><span class="w">a<sub>4</sub></span>ΔPB<sub class="it">i,t</sub></span><span class="op p">+</span><span class="t"><span class="w">a<sub>5</sub></span>ΔTB<sub class="it">i,t</sub></span><span class="eqn">(1)</span></p>
         <ul class="terms">
-          <li><b class="up" aria-label="counts in favour">+</b><span><strong>GDP</strong>volume, gap in %</span></li>
-          <li><b class="down" aria-label="counts against">−</b><span><strong>Unemployment</strong>rate, gap in points</span></li>
-          <li><b class="down" aria-label="counts against">−</b><span><strong>Inflation</strong>rate, gap in points</span></li>
-          <li><b class="up" aria-label="counts in favour">+</b><span><strong>Public balance</strong>gap in points of GDP</span></li>
-          <li><b class="up" aria-label="counts in favour">+</b><span><strong>Trade balance</strong>gap in points of GDP</span></li>
+          <li data-i18n="k25"><b class="up" aria-label="counts in favour">+</b><span><strong>GDP</strong>volume, gap in %</span></li>
+          <li data-i18n="k26"><b class="down" aria-label="counts against">−</b><span><strong>Unemployment</strong>rate, gap in points</span></li>
+          <li data-i18n="k27"><b class="down" aria-label="counts against">−</b><span><strong>Inflation</strong>rate, gap in points</span></li>
+          <li data-i18n="k28"><b class="up" aria-label="counts in favour">+</b><span><strong>Public balance</strong>gap in points of GDP</span></li>
+          <li data-i18n="k29"><b class="up" aria-label="counts in favour">+</b><span><strong>Trade balance</strong>gap in points of GDP</span></li>
         </ul>
-        <p class="small muted" style="margin:14px 0 0">In the climate version, emissions are a sixth term, with a weight of zero until voters decide otherwise.</p>
+        <p data-i18n="k30" class="small muted" style="margin:14px 0 0">In the climate version, emissions are a sixth term, with a weight of zero until voters decide otherwise.</p>
       </div>
     </div>
 
     <figure class="score-chart" data-reveal>
-      <figcaption><span class="lvl">An example: one team, three years</span><span class="muted small">Engine output, public demand +7 % for three years</span></figcaption>
+      <figcaption data-i18n="k31"><span class="lvl">An example: one team, three years</span><span class="muted small">Engine output, public demand +7 % for three years</span></figcaption>
       <svg id="score-chart" viewBox="0 0 1200 520" role="img" aria-label="A stimulus held for three years: GDP and employment count in favour, inflation and the two balances against; the total score goes from plus 0.12 to plus 0.03, then minus 0.05"></svg>
     </figure>
     <aside class="elections" data-reveal>
-      <h3>Voters change their minds</h3>
-      <p>In the real world, the goals of economic policy are not given once and for all. An election can bring in a government that cares more about jobs than about the deficit, or one that puts the climate first. In Macroscope, the administrator can hold an election in any country, or across the whole union, from a given year: the weights of the score change, and a strategy that won yesterday may lose tomorrow.</p>
+      <h3 data-i18n="k32">Voters change their minds</h3>
+      <p data-i18n="k33">In the real world, the goals of economic policy are not given once and for all. An election can bring in a government that cares more about jobs than about the deficit, or one that puts the climate first. In Macroscope, the administrator can hold an election in any country, or across the whole union, from a given year: the weights of the score change, and a strategy that won yesterday may lose tomorrow.</p>
     </aside>
     <div class="richer" data-reveal>
       <svg width="80" height="50" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="26" width="10" height="12" rx="2" fill="rgba(18,45,219,.18)"/><rect x="18" y="18" width="10" height="20" rx="2" fill="rgba(18,45,219,.4)"/><rect x="34" y="10" width="10" height="28" rx="2" fill="rgba(18,45,219,.7)"/><rect x="50" y="2" width="10" height="36" rx="2" fill="#122ddb"/></svg>
-      <p>Then the next year begins, from where the last one left the economy. <strong>The richer the model chosen, the more there is to play with:</strong> more possible shocks, more levers, more channels through which a policy travels. The version is picked to fit the class.</p>
+      <p data-i18n="k34">Then the next year begins, from where the last one left the economy. <strong>The richer the model chosen, the more there is to play with:</strong> more possible shocks, more levers, more channels through which a policy travels. The version is picked to fit the class.</p>
     </div>
   </div>
 </section>
 
 <section id="course" class="light">
   <div class="wrap">
-    <div class="label"><b>02</b> In the classroom</div>
+    <div data-i18n="k35" class="label"><b>02</b> In the classroom</div>
     <div class="intro">
-      <h2 class="split">A course first, then a game</h2>
-      <p data-reveal>Macroscope can be played for its own sake, but it was built for teaching. The model under the game is chosen to fit the students, its mechanisms are taught before anyone plays, and the game is assessed on the quality of the reasoning, not only on the score.</p>
+      <h2 data-i18n="k36" class="split">A course first, then a game</h2>
+      <p data-i18n="k37" data-reveal>Macroscope can be played for its own sake, but it was built for teaching. The model under the game is chosen to fit the students, its mechanisms are taught before anyone plays, and the game is assessed on the quality of the reasoning, not only on the score.</p>
     </div>
     <ol class="course" id="course-rail">
       <li data-reveal>
         <div class="n">1</div>
         <div class="body">
-          <h3>Choose the model that fits the class</h3>
-          <p>The engine comes in versions of increasing richness. A first course in macroeconomics can play the plain union: demand, multipliers, an external constraint. A master's course in international finance can add relative prices, capital flows and exchange-rate regimes. A course in ecological macroeconomics can play the climate version, where growth, emissions and damage are tied together. A class keeps its version from the first year to the last.</p>
+          <h3 data-i18n="k38">Choose the model that fits the class</h3>
+          <p data-i18n="k39">The engine comes in versions of increasing richness. A first course in macroeconomics can play the plain union: demand, multipliers, an external constraint. A master's course in international finance can add relative prices, capital flows and exchange-rate regimes. A course in ecological macroeconomics can play the climate version, where growth, emissions and damage are tied together. A class keeps its version from the first year to the last.</p>
         </div>
-        <div class="made"><b>The teacher sets</b>the version, the number of years, the weights of the objective and the shocks of each year.</div>
+        <div data-i18n="k40" class="made"><b>The teacher sets</b>the version, the number of years, the weights of the objective and the shocks of each year.</div>
       </li>
       <li data-reveal>
         <div class="n">2</div>
         <div class="body">
-          <h3>Teach the mechanisms it contains</h3>
-          <p>Before playing, the class studies the economy it will govern: the sectors and their balance sheets, how output, prices and the external accounts respond to a policy, and the orders of magnitude. Every equation and parameter is published, so students can work out an expected effect before they decide.</p>
+          <h3 data-i18n="k41">Teach the mechanisms it contains</h3>
+          <p data-i18n="k42">Before playing, the class studies the economy it will govern: the sectors and their balance sheets, how output, prices and the external accounts respond to a policy, and the orders of magnitude. Every equation and parameter is published, so students can work out an expected effect before they decide.</p>
         </div>
-        <div class="made"><b>Students learn</b>the accounting, the behaviours and the transmission channels of their version.</div>
+        <div data-i18n="k43" class="made"><b>Students learn</b>the accounting, the behaviours and the transmission channels of their version.</div>
       </li>
       <li data-reveal>
         <div class="n">3</div>
         <div class="body">
-          <h3>Play, and justify every decision</h3>
-          <p>A warm-up first: every team governs the same country for up to three years, starting from a written strategy. Then the game: one country per team, year by year, with the year's shocks announced in a communiqué. A decision cannot be submitted without its justification: the situation as the team reads it, the effects it expects, and why.</p>
+          <h3 data-i18n="k44">Play, and justify every decision</h3>
+          <p data-i18n="k45">A warm-up first: every team governs the same country for up to three years, starting from a written strategy. Then the game: one country per team, year by year, with the year's shocks announced in a communiqué. A decision cannot be submitted without its justification: the situation as the team reads it, the effects it expects, and why.</p>
         </div>
-        <div class="made"><b>Students write</b>a strategy before the warm-up, then a justification with each year's decisions. The teacher sets the minimum length.</div>
+        <div data-i18n="k46" class="made"><b>Students write</b>a strategy before the warm-up, then a justification with each year's decisions. The teacher sets the minimum length.</div>
       </li>
       <li data-reveal>
         <div class="n">4</div>
         <div class="body">
-          <h3>Look back, and assess</h3>
-          <p>After the results, each team writes its analysis: what happened, what it had expected, and where the difference came from. The model helps: every result is split into the share due to the team's own policy, to the other governments and to the shocks.</p>
+          <h3 data-i18n="k47">Look back, and assess</h3>
+          <p data-i18n="k48">After the results, each team writes its analysis: what happened, what it had expected, and where the difference came from. The model helps: every result is split into the share due to the team's own policy, to the other governments and to the shocks.</p>
         </div>
-        <div class="made"><b>The teacher exports</b>decisions, justifications, analyses, pledges and results, and grades the reasoning.</div>
+        <div data-i18n="k49" class="made"><b>The teacher exports</b>decisions, justifications, analyses, pledges and results, and grades the reasoning.</div>
       </li>
     </ol>
   </div>
@@ -879,111 +893,111 @@ html.js:not(.rm) .split.in .w > span{transform:none}
 <section>
   <div class="wrap assess">
     <div data-reveal>
-      <div class="label"><b>03</b> Assessment</div>
-      <blockquote>The score says how the economy did. <em>The written work says whether the team understood why.</em></blockquote>
-      <p class="muted" style="margin-top:24px">A team can lose on the score and earn the better grade, if it saw the shock coming, chose a coherent policy, and explains exactly what went against it. The criteria below are a starting point, not a fixed grid.</p>
+      <div data-i18n="k50" class="label"><b>03</b> Assessment</div>
+      <blockquote data-i18n="k51">The score says how the economy did. <em>The written work says whether the team understood why.</em></blockquote>
+      <p data-i18n="k52" class="muted" style="margin-top:24px">A team can lose on the score and earn the better grade, if it saw the shock coming, chose a coherent policy, and explains exactly what went against it. The criteria below are a starting point, not a fixed grid.</p>
     </div>
     <dl class="criteria">
-      <div data-reveal><dt>Diagnosis</dt><dd>Does the team read its situation correctly: the shock, the state of its public and external accounts, the constraints it faces?</dd></div>
-      <div data-reveal style="--d:.08s"><dt>Expected effects</dt><dd>Does each decision come with a mechanism: the channel, the sign, a sense of size and timing, the side effects on the other objectives?</dd></div>
-      <div data-reveal style="--d:.16s"><dt>Coherence</dt><dd>Do the decisions follow the strategy from year to year, and does the strategy change for a reason when the situation changes?</dd></div>
-      <div data-reveal style="--d:.24s"><dt>Hindsight</dt><dd>Does the analysis explain the gap between expected and actual results, using the decomposition, rather than blaming bad luck?</dd></div>
+      <div data-reveal><dt data-i18n="k53">Diagnosis</dt><dd data-i18n="k54">Does the team read its situation correctly: the shock, the state of its public and external accounts, the constraints it faces?</dd></div>
+      <div data-reveal style="--d:.08s"><dt data-i18n="k55">Expected effects</dt><dd data-i18n="k56">Does each decision come with a mechanism: the channel, the sign, a sense of size and timing, the side effects on the other objectives?</dd></div>
+      <div data-reveal style="--d:.16s"><dt data-i18n="k57">Coherence</dt><dd data-i18n="k58">Do the decisions follow the strategy from year to year, and does the strategy change for a reason when the situation changes?</dd></div>
+      <div data-reveal style="--d:.24s"><dt data-i18n="k59">Hindsight</dt><dd data-i18n="k60">Does the analysis explain the gap between expected and actual results, using the decomposition, rather than blaming bad luck?</dd></div>
     </dl>
   </div>
 </section>
 
 <section id="versions" class="tint">
   <div class="wrap">
-    <div class="label"><b>04</b> Under the hood</div>
+    <div data-i18n="k61" class="label"><b>04</b> Under the hood</div>
     <div class="intro">
-      <h2 class="split">The versions of the model</h2>
+      <h2 data-i18n="k62" class="split">The versions of the model</h2>
       <div data-reveal>
-        <p>The engine, OPEN-MU, is a stock-flow consistent model in the post-Keynesian tradition. It was built in steps: it starts from Godley and Lavoie's <em>Monetary Economics</em> (2007), and each version adds a mechanism, either taken from the literature or built for the game. Read the table from the simplest to the richest and choose the column that matches what the class has learned.</p>
+        <p data-i18n="k63">The engine, OPEN-MU, is a stock-flow consistent model in the post-Keynesian tradition. It was built in steps: it starts from Godley and Lavoie's <em>Monetary Economics</em> (2007), and each version adds a mechanism, either taken from the literature or built for the game. Read the table from the simplest to the richest and choose the column that matches what the class has learned.</p>
       </div>
     </div>
-    <p class="eqlink" data-reveal><a class="pill" href="https://leomalherbe.github.io/macroscope/model.html">Read the full equations of the model <span class="arr">→</span></a><span>notation, equations, parameters and orders of magnitude, version by version</span></p>
-<div class="mxwrap" data-reveal><table class="mx"><thead><tr><th><span class="lvl">Read left to right: each version keeps everything before it</span></th><th><span class="lv-tag">version 1.1</span><b>The union</b><span class="for">First course in macroeconomics</span></th><th><span class="lv-tag">version 1.2</span><b>Prices</b><span class="for">Bachelor's in international macroeconomics</span></th><th><span class="lv-tag">version 1.3</span><b>Capital</b><span class="for">Master's in international financial macroeconomics</span></th><th><span class="lv-tag">version 2.0</span><b>Climate</b><span class="for">Ecological macroeconomics</span></th></tr></thead><tbody><tr class="learn"><td><b>What students learn</b></td><td>Multipliers and leakages through imports; twin deficits; the external constraint.</td><td>Competitiveness and inflation differentials; internal devaluation.</td><td>Interest rates, capital flows and the exchange rate; pegs, sudden stops, spreads.</td><td>The climate as a global public good; free riding; the transition.</td></tr><tr class="grp"><td colspan="5">Shocks, set by the administrator</td></tr><tr><td>World demand for the union's exports</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Household confidence</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>The share of spending that goes to imports</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>A devaluation against the rest of the world</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>A tariff of the rest of the world on the union's exports<span class="opt">tariffs on</span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>The exchange-rate regime, fixed or floating</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Capital flows, up to a sudden stop</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>The world interest rate</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>The central bank's backstop, on or off</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>World emissions</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td></tr><tr><td>A climate disaster</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td></tr><tr class="grp"><td colspan="5">Decisions, taken by the teams</td></tr><tr><td>Public demand</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Social benefits</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Income tax rate</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Consumption tax</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Vote on the central bank's rate: cut, hold or hike</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Vote when the reserves run low: austerity or devaluation</td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Vote on a common external tariff<span class="opt">tariffs on</span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Relative prices: the same decisions now also move them</td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Vote when the currency falls by more than 10 %: defend it or let it fall</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Announce an exit from the union<span class="opt">exit on</span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Once out: a national policy rate, a tariff on the union's goods<span class="opt">exit on</span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>For the others: a response to the leaver<span class="opt">exit on</span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td>Carbon tax</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td></tr><tr><td>Green public investment</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span class="new">NEW</span></td></tr></tbody></table><div class="legend"><span><i class="dot"></i>available</span><span><span class="new" style="margin:0">NEW</span>first version where it appears</span><span><span class="opt" style="margin:0">tariffs on</span>optional switch</span></div><details class="prov"><summary><span>Where each mechanism comes from: the literature and what was built for Macroscope</span><i>+</i></summary><div class="tablewrap">
+    <p class="eqlink" data-reveal><a data-i18n="k64" class="pill" href="https://leomalherbe.github.io/macroscope/model.html">Read the full equations of the model <span class="arr">→</span></a><span data-i18n="k65">notation, equations, parameters and orders of magnitude, version by version</span></p>
+<div class="mxwrap" data-reveal><table class="mx"><thead><tr><th><span data-i18n="k66" class="lvl">Read left to right: each version keeps everything before it</span></th><th><span class="lv-tag">version 1.1</span><b data-i18n="k67">The union</b><span data-i18n="k70" class="for">First course in macroeconomics</span></th><th><span class="lv-tag">version 1.2</span><b data-i18n="k68">Prices</b><span data-i18n="k71" class="for">Bachelor's in international macroeconomics</span></th><th><span class="lv-tag">version 1.3</span><b>Capital</b><span data-i18n="k72" class="for">Master's in international financial macroeconomics</span></th><th><span class="lv-tag">version 2.0</span><b data-i18n="k69">Climate</b><span data-i18n="k73" class="for">Ecological macroeconomics</span></th></tr></thead><tbody><tr class="learn"><td><b data-i18n="k74">What students learn</b></td><td data-i18n="k75">Multipliers and leakages through imports; twin deficits; the external constraint.</td><td data-i18n="k76">Competitiveness and inflation differentials; internal devaluation.</td><td data-i18n="k77">Interest rates, capital flows and the exchange rate; pegs, sudden stops, spreads.</td><td data-i18n="k78">The climate as a global public good; free riding; the transition.</td></tr><tr class="grp"><td data-i18n="k79" colspan="5">Shocks, set by the administrator</td></tr><tr><td data-i18n="k81">World demand for the union's exports</td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k82">Household confidence</td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k83">The share of spending that goes to imports</td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k84">A devaluation against the rest of the world</td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k85">A tariff of the rest of the world on the union's exports<span class="opt">tariffs on</span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k86">The exchange-rate regime, fixed or floating</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k87">Capital flows, up to a sudden stop</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k88">The world interest rate</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k89">The central bank's backstop, on or off</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k90">World emissions</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td></tr><tr><td data-i18n="k91">A climate disaster</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td></tr><tr class="grp"><td data-i18n="k80" colspan="5">Decisions, taken by the teams</td></tr><tr><td data-i18n="k92">Public demand</td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k93">Social benefits</td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k94">Income tax rate</td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k95">Consumption tax</td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k96">Vote on the central bank's rate: cut, hold or hike</td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k97">Vote when the reserves run low: austerity or devaluation</td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k98">Vote on a common external tariff<span class="opt">tariffs on</span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k99">Relative prices: the same decisions now also move them</td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k100">Vote when the currency falls by more than 10 %: defend it or let it fall</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k101">Announce an exit from the union<span class="opt">exit on</span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k102">Once out: a national policy rate, a tariff on the union's goods<span class="opt">exit on</span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k103">For the others: a response to the leaver<span class="opt">exit on</span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td><td class="c"><span class="dot"></span></td></tr><tr><td data-i18n="k104">Carbon tax</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td></tr><tr><td data-i18n="k105">Green public investment</td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c"><span class="dot o"></span></td><td class="c n"><span class="dot"></span><span data-i18n="k160" class="new">NEW</span></td></tr></tbody></table><div class="legend"><span data-i18n="k106"><i class="dot"></i>available</span><span data-i18n="k107"><span data-i18n="k160" class="new" style="margin:0">NEW</span>first version where it appears</span><span data-i18n="k108"><span class="opt" style="margin:0">tariffs on</span>optional switch</span></div><details class="prov"><summary data-i18n="k109"><span>Where each mechanism comes from: the literature and what was built for Macroscope</span><i>+</i></summary><div class="tablewrap">
       <table class="v">
-        <thead><tr><th scope="col">Version</th><th scope="col">Taken from the literature</th><th scope="col">Built for Macroscope</th><th scope="col">What students learn</th></tr></thead>
+        <thead><tr><th scope="col">Version</th><th data-i18n="k110" scope="col">Taken from the literature</th><th data-i18n="k111" scope="col">Built for Macroscope</th><th data-i18n="k74" scope="col">What students learn</th></tr></thead>
         <tbody>
           <tr>
-            <td><b>The union</b><span>version 1.1</span><a class="eq" href="https://leomalherbe.github.io/macroscope/model.html#households">Equations →</a></td>
-            <td>The open economy of Godley and Lavoie's chapter 6: a fixed exchange rate and a stock of foreign reserves. Investment financed by bank loans and amortisation funds, after their chapter 7.</td>
-            <td>The economy split into two to seven members, one per team, sharing a currency, a central bank and a pool of reserves. Investment that responds to the interest rate rather than to an accelerator. An alert line on the reserves and a crisis vote. Optional tariffs.</td>
-            <td>Multipliers and leakages through imports; why one country's stimulus is its partners' exports; twin deficits; the external constraint.</td>
+            <td><b data-i18n="k67">The union</b><span>version 1.1</span><a data-i18n="k112" class="eq" href="https://leomalherbe.github.io/macroscope/model.html#households">Equations →</a></td>
+            <td data-i18n="k113">The open economy of Godley and Lavoie's chapter 6: a fixed exchange rate and a stock of foreign reserves. Investment financed by bank loans and amortisation funds, after their chapter 7.</td>
+            <td data-i18n="k114">The economy split into two to seven members, one per team, sharing a currency, a central bank and a pool of reserves. Investment that responds to the interest rate rather than to an accelerator. An alert line on the reserves and a crisis vote. Optional tariffs.</td>
+            <td data-i18n="k115">Multipliers and leakages through imports; why one country's stimulus is its partners' exports; twin deficits; the external constraint.</td>
           </tr>
           <tr>
-            <td><b>Prices</b><span>version 1.2</span><a class="eq" href="https://leomalherbe.github.io/macroscope/model.html#trade">Equations →</a></td>
-            <td class="muted">Nothing new.</td>
-            <td>Relative price levels in trade: a member whose prices rise faster than its partners' loses market share, year after year.</td>
-            <td>Competitiveness and inflation differentials inside a union; internal devaluation as the only adjustment left.</td>
+            <td><b data-i18n="k68">Prices</b><span>version 1.2</span><a data-i18n="k112" class="eq" href="https://leomalherbe.github.io/macroscope/model.html#trade">Equations →</a></td>
+            <td data-i18n="k116" class="muted">Nothing new.</td>
+            <td data-i18n="k117">Relative price levels in trade: a member whose prices rise faster than its partners' loses market share, year after year.</td>
+            <td data-i18n="k118">Competitiveness and inflation differentials inside a union; internal devaluation as the only adjustment left.</td>
           </tr>
           <tr>
-            <td><b>Capital</b><span>version 1.3</span><a class="eq" href="https://leomalherbe.github.io/macroscope/model.html#capital">Equations →</a></td>
-            <td>Capital flows, portfolio choices, fixed and flexible exchange rates, after Godley and Lavoie's chapter 12.</td>
-            <td>A regime chosen year by year. A risk premium on public debt above 110 % of GDP. A central bank that may or may not stand behind its members' debt. A currency-crisis vote. Optionally, a member leaving the union, with its own currency, its debts to the union's central bank and the others' retaliation.</td>
-            <td>How interest rates, capital flows and the exchange rate move together; what a peg costs and what floating changes; sudden stops; sovereign spreads and what a lender of last resort is for.</td>
+            <td><b>Capital</b><span>version 1.3</span><a data-i18n="k112" class="eq" href="https://leomalherbe.github.io/macroscope/model.html#capital">Equations →</a></td>
+            <td data-i18n="k119">Capital flows, portfolio choices, fixed and flexible exchange rates, after Godley and Lavoie's chapter 12.</td>
+            <td data-i18n="k120">A regime chosen year by year. A risk premium on public debt above 110 % of GDP. A central bank that may or may not stand behind its members' debt. A currency-crisis vote. Optionally, a member leaving the union, with its own currency, its debts to the union's central bank and the others' retaliation.</td>
+            <td data-i18n="k121">How interest rates, capital flows and the exchange rate move together; what a peg costs and what floating changes; sudden stops; sovereign spreads and what a lender of last resort is for.</td>
           </tr>
           <tr>
-            <td><b>Climate</b><span>version 2.0</span><a class="eq" href="https://leomalherbe.github.io/macroscope/model.html#eco">Equations →</a></td>
-            <td>Inspired by DEFINE (Dafermos, Nikolaidi and Galanis, 2017), simplified: emissions, a carbon stock that accumulates, a damage function. Materials, energy and green finance are left out, and time is compressed to fit a game.</td>
-            <td>Damage that raises structural unemployment and inflation. A carbon tax, and green public investment that is largely imported and has diminishing returns. Emissions as an objective that voters can switch on.</td>
-            <td>The climate as a global public good; free riding; the cost and timing of the transition.</td>
+            <td><b data-i18n="k69">Climate</b><span>version 2.0</span><a data-i18n="k112" class="eq" href="https://leomalherbe.github.io/macroscope/model.html#eco">Equations →</a></td>
+            <td data-i18n="k122">Inspired by DEFINE (Dafermos, Nikolaidi and Galanis, 2017), simplified: emissions, a carbon stock that accumulates, a damage function. Materials, energy and green finance are left out, and time is compressed to fit a game.</td>
+            <td data-i18n="k123">Damage that raises structural unemployment and inflation. A carbon tax, and green public investment that is largely imported and has diminishing returns. Emissions as an objective that voters can switch on.</td>
+            <td data-i18n="k124">The climate as a global public good; free riding; the cost and timing of the transition.</td>
           </tr>
         </tbody>
       </table>
     </div></details></div>
-<p class="small muted" style="margin-top:24px">Every equation, parameter and order of magnitude is set out, version by version, on the <a href="https://leomalherbe.github.io/macroscope/model.html">model page</a>.</p>
+<p data-i18n="k125" class="small muted" style="margin-top:24px">Every equation, parameter and order of magnitude is set out, version by version, on the <a href="https://leomalherbe.github.io/macroscope/model.html">model page</a>.</p>
   </div>
 </section>
 
 <section id="try">
   <div class="wrap try">
     <div>
-      <div class="label"><b>05</b> Try it</div>
-      <h2 class="split">A mini demo of the engine</h2>
-      <p data-reveal>This is not the game. There are no other teams, no council, no votes and no second year: just version 1.2 of the engine, running in your browser, for one country and one shock. It gives a taste of the reasoning the game asks for.</p>
-      <p data-reveal>Before you run, say what the shock will do, then what your policy will do. In the game, that reasoning is the justification each team writes with its decisions, and the gap between what it expected and what happened is what its analysis has to explain.</p>
+      <div data-i18n="k126" class="label"><b>05</b> Try it</div>
+      <h2 data-i18n="k127" class="split">A mini demo of the engine</h2>
+      <p data-i18n="k128" data-reveal>This is not the game. There are no other teams, no council, no votes and no second year: just version 1.2 of the engine, running in your browser, for one country and one shock. It gives a taste of the reasoning the game asks for.</p>
+      <p data-i18n="k129" data-reveal>Before you run, say what the shock will do, then what your policy will do. In the game, that reasoning is the justification each team writes with its decisions, and the gap between what it expected and what happened is what its analysis has to explain.</p>
     </div>
 
     <div class="lab" id="lab" aria-labelledby="lab-title" data-reveal>
-      <div class="lab-head"><h3 id="lab-title">Mini demo</h3><span>one country, one year, model 1.2</span></div>
-      <p class="lab-intro">You set France’s policy; the other members of the union stay put.</p>
+      <div class="lab-head"><h3 data-i18n="k130" id="lab-title">Mini demo</h3><span data-i18n="k131">one country, one year, model 1.2</span></div>
+      <p data-i18n="k132" class="lab-intro">You set France’s policy; the other members of the union stay put.</p>
 
       <div class="stage"><div class="n">1</div><div>
-        <h4>The shock <span>announced by the administrator</span></h4>
-        <label for="shock" class="sr">Shock of the year</label>
+        <h4 data-i18n="k133">The shock <span>announced by the administrator</span></h4>
+        <label data-i18n="k134" for="shock" class="sr">Shock of the year</label>
         <select id="shock">
-          <option value="none">No shock this year</option>
-          <option value="world" selected>World recession: the rest of the world buys 6 % less</option>
-          <option value="imports">Imports rise: 10 % more of each euro spent goes abroad</option>
-          <option value="confidence">Households lose confidence: they consume 3 % less of their income</option>
+          <option data-i18n="k135" value="none">No shock this year</option>
+          <option data-i18n="k136" value="world" selected>World recession: the rest of the world buys 6 % less</option>
+          <option data-i18n="k137" value="imports">Imports rise: 10 % more of each euro spent goes abroad</option>
+          <option data-i18n="k138" value="confidence">Households lose confidence: they consume 3 % less of their income</option>
         </select>
       </div></div>
 
       <div class="stage"><div class="n">2</div><div>
-        <h4>Diagnosis <span>what will the shock do on its own?</span></h4>
+        <h4 data-i18n="k139">Diagnosis <span>what will the shock do on its own?</span></h4>
         <div id="g-shock"></div>
       </div></div>
 
       <div class="stage"><div class="n">3</div><div>
-        <h4>Your policy <span>change from the reference, in %</span></h4>
+        <h4 data-i18n="k140">Your policy <span>change from the reference, in %</span></h4>
         <div id="levers"></div>
       </div></div>
 
       <div class="stage"><div class="n">4</div><div>
-        <h4>Expected effects <span>what will your policy do on its own?</span></h4>
+        <h4 data-i18n="k141">Expected effects <span>what will your policy do on its own?</span></h4>
         <div id="g-nat"></div>
       </div></div>
 
       <div class="stage"><div class="n">5</div><div>
-        <h4>The simulation</h4>
-        <button class="run" id="run" type="button">Run the model</button>
+        <h4 data-i18n="k142">The simulation</h4>
+        <button data-i18n="k143" class="run" id="run" type="button">Run the model</button>
       </div></div>
 
       <div class="stage"><div class="n">6</div><div>
-        <h4>Your results <span>gap from the path with no shock and no policy</span></h4>
-        <div id="results" aria-live="polite"><p class="empty">Make your diagnosis, set your policy and its expected effects, then run the model.</p></div>
+        <h4 data-i18n="k144">Your results <span>gap from the path with no shock and no policy</span></h4>
+        <div id="results" aria-live="polite"><p data-i18n="k145" class="empty">Make your diagnosis, set your policy and its expected effects, then run the model.</p></div>
       </div></div>
     </div>
   </div>
@@ -991,14 +1005,14 @@ html.js:not(.rm) .split.in .w > span{transform:none}
 
 <section class="session" id="session">
   <div class="wrap">
-    <div class="label"><b>06</b> In practice</div>
-    <h2 class="split">Running a session</h2>
+    <div data-i18n="k146" class="label"><b>06</b> In practice</div>
+    <h2 data-i18n="k147" class="split">Running a session</h2>
   </div>
   <div class="wrap">
 
     <a class="guide-hero" href="https://github.com/leomalherbe/macroscope/blob/main/README.md" data-reveal>
       <div class="gdoc" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <div class="gtxt"><span class="gk">Start here</span><b>The operating guide</b><p>How to set up your own copy and how to run a session.</p></div>
+      <div data-i18n="k148" class="gtxt"><span class="gk">Start here</span><b>The operating guide</b><p>How to set up your own copy and how to run a session.</p></div>
       <span class="garr" aria-hidden="true">→</span>
     </a>
   </div>
@@ -1007,27 +1021,27 @@ html.js:not(.rm) .split.in .w > span{transform:none}
 <section class="arcade" aria-labelledby="arcade-title">
   <div class="wrap arcade-grid">
     <div>
-      <span class="tag">Arcade mode</span>
-      <h2 id="arcade-title" class="split">Settle it in a duel.</h2>
-      <p data-reveal>No union, no council, no one to hide behind. Two players, two identical countries, each with its own currency and its own central bank, sharing one atmosphere.</p>
+      <span data-i18n="k149" class="tag">Arcade mode</span>
+      <h2 data-i18n="k150" id="arcade-title" class="split">Settle it in a duel.</h2>
+      <p data-i18n="k151" data-reveal>No union, no council, no one to hide behind. Two players, two identical countries, each with its own currency and its own central bank, sharing one atmosphere.</p>
       <ul data-reveal>
-        <li>Your fiscal levers, your policy rate, your carbon tax.</li>
-        <li>A shock lands on one side and the symmetry breaks.</li>
-        <li>Pairs play side by side, a year a minute.</li>
+        <li data-i18n="k152">Your fiscal levers, your policy rate, your carbon tax.</li>
+        <li data-i18n="k153">A shock lands on one side and the symmetry breaks.</li>
+        <li data-i18n="k154">Pairs play side by side, a year a minute.</li>
       </ul>
     </div>
     <div class="versus" aria-hidden="true" data-reveal>
-      <div class="side a"><b>A</b><span>own currency<br>own rate</span></div>
+      <div class="side a"><b>A</b><span data-i18n="k155">own currency<br>own rate</span></div>
       <div class="vs">vs</div>
-      <div class="side b"><b>B</b><span>own currency<br>own rate</span></div>
-      <div class="shared">one exchange rate between them, one shared climate</div>
+      <div class="side b"><b>B</b><span data-i18n="k155">own currency<br>own rate</span></div>
+      <div data-i18n="k156" class="shared">one exchange rate between them, one shared climate</div>
     </div>
   </div>
 </section>
 
 <section class="contact-sec">
   <a class="ses-contact" href="mailto:leo.malherbe@kedgebs.com" data-reveal>
-    <span class="wrap"><span class="k">To use it in a course, or to contribute</span><span class="mail">leo.malherbe@kedgebs.com <span class="arr">→</span></span></span>
+    <span class="wrap"><span data-i18n="k157" class="k">To use it in a course, or to contribute</span><span class="mail">leo.malherbe@kedgebs.com <span class="arr">→</span></span></span>
   </a>
 </section>
 </main>
@@ -1036,47 +1050,49 @@ html.js:not(.rm) .split.in .w > span{transform:none}
   <div class="wrap">
     <p class="foot-big" aria-hidden="true">Macroscope</p>
     <div class="row">
-      <p>Macroscope, by Léo Malherbe, KEDGE Business School. Free to use, licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.</p>
-      <p>Source on <a href="https://github.com/leomalherbe/macroscope">GitHub</a></p>
+      <p data-i18n="k158">Macroscope, by Léo Malherbe, KEDGE Business School. Free to use, licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.</p>
+      <p data-i18n="k159">Source on <a href="https://github.com/leomalherbe/macroscope">GitHub</a></p>
     </div>
   </div>
 </footer>
 
+<script src="i18n/fr-index.js?v=2026110901"></script>
+<script>MXL.apply();</script>
 <script src="core.js?v=2026110901"></script>
 <script src="engine.js?v=2026110901"></script>
 <script>
 (function () {
   'use strict';
   if (typeof OPENMU === 'undefined' || typeof MS === 'undefined') {
-    document.getElementById('lab').innerHTML = '<p class="empty">The live model could not be loaded.</p>';
+    document.getElementById('lab').innerHTML = '<p class="empty">' + MXL.t('The live model could not be loaded.') + '</p>';
     return;
   }
-  var COUNTRY = 'FRA';
+  var T = MXL.t, COUNTRY = 'FRA';
   var params = OPENMU.paramsFor('v1.2');
   var state = MS.defaultState(); state.sim.model = 'v1.2';
   var weights = state.weights;
   var IND = [
-    { id: 'gdp', label: 'GDP', unit: '%', sign: 1 },
-    { id: 'unemp', label: 'Unemployment', unit: 'pt', sign: -1 },
-    { id: 'infl', label: 'Inflation', unit: 'pt', sign: -1 },
-    { id: 'pubbal', label: 'Public balance', unit: 'pt of GDP', sign: 1 },
-    { id: 'tradebal', label: 'Trade balance', unit: 'pt of GDP', sign: 1 }
+    { id: 'gdp', label: T('GDP'), unit: '%', sign: 1 },
+    { id: 'unemp', label: T('Unemployment'), unit: T('pt'), sign: -1 },
+    { id: 'infl', label: T('Inflation'), unit: T('pt'), sign: -1 },
+    { id: 'pubbal', label: T('Public balance'), unit: T('pt of GDP'), sign: 1 },
+    { id: 'tradebal', label: T('Trade balance'), unit: T('pt of GDP'), sign: 1 }
   ];
   var SHOCKS = { none: {}, world: { world: -6 }, imports: { imports: 10 }, confidence: { confidence: -3 } };
   var LEV = [
-    { id: 'pubdem', label: 'Public demand' },
-    { id: 'benefits', label: 'Social benefits' },
-    { id: 'inctax', label: 'Income tax rate' },
-    { id: 'vat', label: 'Consumption tax' }
+    { id: 'pubdem', label: T('Public demand') },
+    { id: 'benefits', label: T('Social benefits') },
+    { id: 'inctax', label: T('Income tax rate') },
+    { id: 'vat', label: T('Consumption tax') }
   ];
   var GUESS = [
-    { id: 'gdp', label: 'GDP', low: 'GDP', opts: [['up', 'Higher'], ['flat', 'Unchanged'], ['down', 'Lower']] },
-    { id: 'tradebal', label: 'Trade balance', low: 'the trade balance', opts: [['up', 'Better'], ['flat', 'Unchanged'], ['down', 'Worse']] }
+    { id: 'gdp', label: T('GDP'), low: T('low:GDP'), opts: [['up', T('Higher')], ['flat', T('Unchanged')], ['down', T('Lower')]] },
+    { id: 'tradebal', label: T('Trade balance'), low: T('low:the trade balance'), opts: [['up', T('Better')], ['flat', T('Unchanged')], ['down', T('Worse')]] }
   ];
   var pol = {}, guess = {};
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function fmt(x) { var v = Math.abs(x) < 0.005 ? 0 : x; return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(2); }
+  function fmt(x) { var v = Math.abs(x) < 0.005 ? 0 : x; return (v > 0 ? '+' : v < 0 ? '−' : '') + MXL.num(Math.abs(v).toFixed(2)); }
   function cls(x) { return Math.abs(x) < 0.005 ? '' : (x > 0 ? 'pos' : 'neg'); }
   function dir(x, tol) { return x > tol ? 'up' : (x < -tol ? 'down' : 'flat'); }
 
@@ -1116,27 +1132,27 @@ html.js:not(.rm) .split.in .w > span{transform:none}
       cols.nat[i.id] = d.nat || 0; cols.shock[i.id] = d.shock || 0; cols.total[i.id] = c[i.id];
     });
     ['nat', 'shock', 'total'].forEach(function (k) { cols[k].R = MS.scoreR(cols[k], weights); });
-    var order = [['shock', 'The shock'], ['nat', 'Your policy'], ['total', 'Total']];
+    var order = [['shock', T('The shock')], ['nat', T('Your policy')], ['total', T('Total')]];
 
     var h = '<table class="out"><thead><tr><th></th>' + order.map(function (o) { return '<th' + (o[0] === 'total' ? ' class="tot"' : '') + '>' + o[1] + '</th>'; }).join('') + '</tr></thead><tbody>';
     IND.forEach(function (ind) {
       h += '<tr><td>' + esc(ind.label) + ' <span class="muted">' + esc(ind.unit) + '</span></td>' + order.map(function (o) { var x = cols[o[0]][ind.id]; return '<td class="' + cls(ind.sign * x) + (o[0] === 'total' ? ' tot' : '') + '">' + fmt(x) + '</td>'; }).join('') + '</tr>';
     });
-    h += '<tr class="r"><td>Score of the year</td>' + order.map(function (o) { var x = cols[o[0]].R; return '<td class="' + cls(x) + (o[0] === 'total' ? ' tot' : '') + '">' + fmt(x) + '</td>'; }).join('') + '</tr></tbody></table>';
+    h += '<tr class="r"><td>' + T('Score of the year') + '</td>' + order.map(function (o) { var x = cols[o[0]].R; return '<td class="' + cls(x) + (o[0] === 'total' ? ' tot' : '') + '">' + fmt(x) + '</td>'; }).join('') + '</tr></tbody></table>';
 
     var notes = [];
-    [['shock', 'Diagnosis'], ['nat', 'Expected effects']].forEach(function (part) {
+    [['shock', T('Diagnosis')], ['nat', T('Expected effects')]].forEach(function (part) {
       var bits = [];
       GUESS.forEach(function (g) {
         var v = guess[part[0] + ':' + g.id]; if (!v) return;
         var x = cols[part[0]][g.id], actual = dir(x, 0.05);
         var word = g.opts.filter(function (o) { return o[0] === actual; })[0][1].toLowerCase();
-        bits.push((actual === v ? 'right' : 'not quite') + ' on ' + esc(g.low) + ' (' + esc(word) + ', ' + fmt(x) + ')');
+        bits.push(T(actual === v ? 'right on {what} ({word}, {x})' : 'not quite on {what} ({word}, {x})', { what: esc(g.low), word: esc(word), x: fmt(x) }));
       });
-      if (bits.length) notes.push('<p><b>' + part[1] + ':</b> ' + bits.join('; ') + '.</p>');
+      if (bits.length) notes.push('<p><b>' + T('{label}:', { label: part[1] }) + '</b> ' + bits.join(T('; ')) + '.</p>');
     });
-    if (Math.abs(cols.nat.gdp) < 0.005 && Math.abs(cols.shock.gdp) < 0.005) notes.push('<p>Nothing moved: no shock and no policy. Try a shock, then a policy to answer it.</p>');
-    notes.push('<p class="muted">In the game, this is where the team writes why.</p>');
+    if (Math.abs(cols.nat.gdp) < 0.005 && Math.abs(cols.shock.gdp) < 0.005) notes.push('<p>' + T('Nothing moved: no shock and no policy. Try a shock, then a policy to answer it.') + '</p>');
+    notes.push('<p class="muted">' + T('In the game, this is where the team writes why.') + '</p>');
     document.getElementById('results').innerHTML = h + '<div class="verdict">' + notes.join('') + '</div>';
   }
   document.getElementById('run').addEventListener('click', run);
@@ -1190,7 +1206,7 @@ html.js:not(.rm) .split.in .w > span{transform:none}
   var loader = document.getElementById('loader');
   if (html.classList.contains('is-loading') && loader) {
     var nEl = document.getElementById('ld-n'), bar = document.getElementById('ld-bar'), step = document.getElementById('ld-step');
-    var steps = ['Calibrating the model…', 'Balancing the accounts…', 'Announcing the shocks…', 'Your economy is ready.'];
+    var steps = ['Calibrating the model…', 'Balancing the accounts…', 'Announcing the shocks…', 'Your economy is ready.'].map(function (x) { return MXL.t(x); });
     var DUR = 2000, t0 = null, fontsReady = false, shown = -1;
     (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () { fontsReady = true; });
     setTimeout(function () { fontsReady = true; }, 3500);
@@ -1266,7 +1282,7 @@ html.js:not(.rm) .split.in .w > span{transform:none}
       if (!e.target.closest || e.target.closest('#run') !== runBtn) return;
       if (runBtn.dataset.ok) { delete runBtn.dataset.ok; return; }
       e.stopImmediatePropagation();
-      runBtn.classList.add('busy'); var label = runBtn.textContent; runBtn.textContent = 'Simulating…';
+      runBtn.classList.add('busy'); var label = runBtn.textContent; runBtn.textContent = MXL.t('Simulating…');
       setTimeout(function () { runBtn.classList.remove('busy'); runBtn.textContent = label; runBtn.dataset.ok = '1'; runBtn.click(); }, 650);
     }, true);
   }
@@ -1290,7 +1306,7 @@ const data=[ /* engine v1.2, France, public demand +7 % held three years, weight
  {gdp:.29,unemp:.12,infl:-.09,pub:-.17,trade:-.12},
  {gdp:.26,unemp:.10,infl:-.08,pub:-.18,trade:-.15}];
 const order=['gdp','unemp','infl','pub','trade'];
-const names={gdp:'GDP',unemp:'Unemployment',infl:'Inflation',pub:'Public balance',trade:'Trade balance'};
+const names={gdp:MXL.t('GDP'),unemp:MXL.t('Unemployment'),infl:MXL.t('Inflation'),pub:MXL.t('Public balance'),trade:MXL.t('Trade balance')};
 const y=v=>T+(0.5-v)/1.0*(B-T);
 const xs=[0,1,2].map(i=>L+(R-L)*(i+0.5)/3), bw=110, x0=L;
 const tot=data.map(d=>order.reduce((a,k)=>a+d[k],0));
@@ -1298,17 +1314,17 @@ const ease=t=>t<0?0:t>1?1:1-Math.pow(1-t,3);
 function draw(t){ // t in seconds
  let s='';
  
- s+=`<text x="${R}" y="34" text-anchor="end" font-size="14" font-weight="600" fill="${C.ink}" letter-spacing="1.5">GAP FROM THE REFERENCE PATH</text>`;
+ s+=`<text x="${R}" y="34" text-anchor="end" font-size="14" font-weight="600" fill="${C.ink}" letter-spacing="1.5">${MXL.t('GAP FROM THE REFERENCE PATH')}</text>`;
  [0.5,0.25,0,-0.25,-0.5].forEach(v=>{const yy=y(v);
   s+=`<line x1="${L}" x2="${R}" y1="${yy}" y2="${yy}" stroke="${v===0?C.ink:'rgba(18,45,219,.14)'}" stroke-width="${v===0?2:1}"/>`;
-  s+=`<text x="${L-16}" y="${yy+5}" text-anchor="end" font-size="15" fill="${C.ink}">${v>0?'+':v<0?'−':''}${Math.abs(v)}</text>`;});
+  s+=`<text x="${L-16}" y="${yy+5}" text-anchor="end" font-size="15" fill="${C.ink}">${v>0?'+':v<0?'−':''}${MXL.num(Math.abs(v))}</text>`;});
  data.forEach((d,i)=>{
   const k0=0.25+i*0.55; let up=0,dn=0;
   order.forEach((k,j)=>{const p=ease((t-k0-j*0.09)/0.45); if(p<=0)return; const v=d[k]*p;
    let a,b; if(d[k]>=0){a=up;b=up+v;up=b}else{a=dn;b=dn+v;dn=b}
    const y1=y(Math.max(a,b)),h=Math.abs(y(a)-y(b));
    s+=`<rect x="${xs[i]-bw/2}" y="${y1}" width="${bw}" height="${h}" fill="${C[k]}" stroke="#fff" stroke-width="1.5"/>`;});
-  s+=`<text x="${xs[i]}" y="${B+34}" text-anchor="middle" font-family="Inter Tight" font-weight="700" font-size="20" fill="${C.ink}">Year ${i+1}</text>`;
+  s+=`<text x="${xs[i]}" y="${B+34}" text-anchor="middle" font-family="Inter Tight" font-weight="700" font-size="20" fill="${C.ink}">${MXL.t('Year {n}',{n:i+1})}</text>`;
  });
  // R line: starts after bars
  const pts=[[x0,y(0)],...xs.map((x,i)=>[x,y(tot[i])])];
@@ -1319,12 +1335,12 @@ function draw(t){ // t in seconds
   s+=`<path d="${dpath}" fill="none" stroke="${C.line}" stroke-width="3.5" stroke-dasharray="11 8" stroke-linecap="round"/>`;
   let acc=0;pts.slice(1).forEach((p,i)=>{acc+=seg[i]; if(acc<=len*lt+0.5){const pp=ease((t-2.15-1.3*acc/len)/0.3);
    s+=`<circle cx="${p[0]}" cy="${p[1]}" r="${8*pp}" fill="#fff" stroke="${C.line}" stroke-width="3"/>`;
-   if(pp>0.5){const v=tot[i];s+=`<text x="${p[0]+16}" y="${p[1]+(v<0?24:-12)}" font-family="Inter Tight" font-weight="800" font-size="19" fill="${C.line}" stroke="#fff" stroke-width="6" stroke-linejoin="round" paint-order="stroke" opacity="${(pp-0.5)*2}">${v>0?'+':'−'}${Math.abs(v).toFixed(2)}</text>`}}});
+   if(pp>0.5){const v=tot[i];s+=`<text x="${p[0]+16}" y="${p[1]+(v<0?24:-12)}" font-family="Inter Tight" font-weight="800" font-size="19" fill="${C.line}" stroke="#fff" stroke-width="6" stroke-linejoin="round" paint-order="stroke" opacity="${(pp-0.5)*2}">${v>0?'+':'−'}${MXL.num(Math.abs(v).toFixed(2))}</text>`}}});
  }
  // legend
  let lx=L; const ly=H-36;
  order.forEach(k=>{s+=`<rect x="${lx}" y="${ly-13}" width="18" height="18" fill="${C[k]}"/><text x="${lx+26}" y="${ly+2}" font-size="16" fill="${C.ink}">${names[k]}</text>`;lx+=26+measure(names[k])+34});
- s+=`<line x1="${lx}" x2="${lx+34}" y1="${ly-4}" y2="${ly-4}" stroke="${C.line}" stroke-width="3.5" stroke-dasharray="9 6"/><text x="${lx+44}" y="${ly+2}" font-size="16" font-weight="600" fill="${C.line}">R, total score</text>`;
+ s+=`<line x1="${lx}" x2="${lx+34}" y1="${ly-4}" y2="${ly-4}" stroke="${C.line}" stroke-width="3.5" stroke-dasharray="9 6"/><text x="${lx+44}" y="${ly+2}" font-size="16" font-weight="600" fill="${C.line}">${MXL.t('R, total score')}</text>`;
  document.getElementById('score-chart').innerHTML=s;
 }
 function measure(t){const svg=document.getElementById('score-chart');const e=document.createElementNS('http://www.w3.org/2000/svg','text');e.setAttribute('font-size','16');e.setAttribute('font-family','Inter');e.textContent=t;svg.appendChild(e);const w=e.getComputedTextLength();e.remove();return w}
