@@ -9,6 +9,7 @@
    Switched off for a class by the administrator (state.sim.guide ===
    false). Text in English and French, chosen by i18n.js (MXL.lang); the
    panel is left alone by the page translator (translate="no").
+   The glossary keeps only the words of the cards the class sees.
    Anchors: any element with data-guide="<card id>[ <card id>…]" gets
    its ⓘ (before its .hint child if any). ES5.
    ===================================================================== */
@@ -140,29 +141,29 @@ var MXGUIDE = (function () {
           'What will your partner do with what you do?']
       },
       glossary: [
-        ['Appreciation, depreciation', 'A floating currency gaining or losing value against others, moved by the market.'],
-        ['Backstop', 'The central bank buying the public bills nobody else wants, which keeps the risk premium low.'],
-        ['Carbon intensity', 'Emissions per unit of output; it falls with the carbon tax and green investment.'],
-        ['Common external tariff', 'A single tax that all union members put on goods bought from the rest of the world.'],
-        ['Competitiveness (price)', 'How cheap your goods are compared with your partners’, in a common currency.'],
+        ['Appreciation, depreciation', 'A floating currency gaining or losing value against others, moved by the market.', 'float duel exit'],
+        ['Backstop', 'The central bank buying the public bills nobody else wants, which keeps the risk premium low.', 'debt'],
+        ['Carbon intensity', 'Emissions per unit of output; it falls with the carbon tax and green investment.', 'climate'],
+        ['Common external tariff', 'A single tax that all union members put on goods bought from the rest of the world.', 'tariffs'],
+        ['Competitiveness (price)', 'How cheap your goods are compared with your partners’, in a common currency.', 'compet duel'],
         ['Current account', 'What a country or the union earns from the rest of the world (exports, income received) minus what it pays it (imports, income paid).'],
         ['Cumulative R', 'The sum of the yearly scores since the start of the game; it makes the ranking.'],
-        ['Devaluation', 'A decision to lower the value of a fixed currency.'],
+        ['Devaluation', 'A decision to lower the value of a fixed currency.', 'deval duel exit'],
         ['Fixed or floating exchange rate', 'Fixed: the central bank holds the rate and its reserves absorb the gaps. Floating: the market moves the rate and the reserves are frozen.'],
         ['Foreign reserves', 'The stock of foreign currency held by the central bank to defend a fixed rate.'],
-        ['Free riding', 'Benefiting from others’ efforts without contributing.'],
+        ['Free riding', 'Benefiting from others’ efforts without contributing.', 'coop climate'],
         ['GDP', 'Everything the country produces in a year; shown as a gap in % from the reference path.'],
         ['Inflation', 'The yearly rise in prices, in %.'],
-        ['J-curve', 'After a devaluation, the trade balance first worsens (dearer imports at once), then improves (exports catch up a year later).'],
+        ['J-curve', 'After a devaluation, the trade balance first worsens (dearer imports at once), then improves (exports catch up a year later).', 'deval float duel exit'],
         ['Leakage', 'The part of income that does not come back into domestic output: saving, taxes, imports.'],
         ['Multiplier', 'The total effect on GDP of one euro of extra spending, larger than one euro because spending becomes income.'],
-        ['Policy rate', 'The interest rate set by a central bank; in the union it is common and voted by the members.'],
+        ['Policy rate', 'The interest rate set by a central bank; in the union it is common and voted by the members.', 'rate duel exit'],
         ['Propensity to import', 'The share of each euro spent that goes to foreign goods.'],
         ['Public balance', 'Government revenue minus spending, in points of GDP; a minus sign is a deficit.'],
         ['Reference path', 'What the economy would do with no shock and no policy; every result is a gap from it.'],
-        ['Risk premium (spread)', 'The extra interest lenders ask from a heavily indebted government.'],
-        ['Sudden stop', 'Foreign investors pulling their money out at once.'],
-        ['TARGET balance', 'What the central bank of a country that left still owes the union’s central bank, or the reverse.'],
+        ['Risk premium (spread)', 'The extra interest lenders ask from a heavily indebted government.', 'debt duel'],
+        ['Sudden stop', 'Foreign investors pulling their money out at once.', 'float'],
+        ['TARGET balance', 'What the central bank of a country that left still owes the union’s central bank, or the reverse.', 'exitOn'],
         ['Trade balance', 'Exports minus imports, in points of GDP.'],
         ['Unemployment rate', 'The share of the labour force without a job, in %.']
       ]
@@ -267,30 +268,30 @@ var MXGUIDE = (function () {
           'Que fera votre partenaire de ce que vous faites ?']
       },
       glossary: [
-        ['Appréciation, dépréciation', 'Une monnaie flottante qui gagne ou perd de la valeur face aux autres, sous l’effet du marché.'],
-        ['Arrêt brutal', 'Des investisseurs étrangers qui retirent leur argent d’un coup.'],
+        ['Appréciation, dépréciation', 'Une monnaie flottante qui gagne ou perd de la valeur face aux autres, sous l’effet du marché.', 'float duel exit'],
+        ['Arrêt brutal', 'Des investisseurs étrangers qui retirent leur argent d’un coup.', 'float'],
         ['Balance commerciale, solde commercial', 'Exportations moins importations, en points de PIB.'],
         ['Chômage (taux de)', 'La part de la population active sans emploi, en %.'],
-        ['Compétitivité-prix', 'Le prix de vos biens comparé à celui de vos partenaires, en monnaie commune.'],
-        ['Courbe en J', 'Après une dévaluation, le solde commercial se dégrade d’abord (importations plus chères tout de suite), puis s’améliore (les exportations rattrapent un an plus tard).'],
+        ['Compétitivité-prix', 'Le prix de vos biens comparé à celui de vos partenaires, en monnaie commune.', 'compet duel'],
+        ['Courbe en J', 'Après une dévaluation, le solde commercial se dégrade d’abord (importations plus chères tout de suite), puis s’améliore (les exportations rattrapent un an plus tard).', 'deval float duel exit'],
         ['Change fixe, change flottant', 'Fixe : la banque centrale tient le taux et ses réserves absorbent les écarts. Flottant : le marché fait bouger le taux et les réserves sont gelées.'],
-        ['Dévaluation', 'La décision de baisser la valeur d’une monnaie à change fixe.'],
-        ['Filet de sécurité', 'La banque centrale qui achète les titres publics dont personne ne veut, ce qui garde la prime de risque basse.'],
+        ['Dévaluation', 'La décision de baisser la valeur d’une monnaie à change fixe.', 'deval duel exit'],
+        ['Filet de sécurité', 'La banque centrale qui achète les titres publics dont personne ne veut, ce qui garde la prime de risque basse.', 'debt'],
         ['Fuite', 'La part du revenu qui ne revient pas dans la production nationale : épargne, impôts, importations.'],
         ['Inflation', 'La hausse des prix sur un an, en %.'],
-        ['Intensité carbone', 'Les émissions par unité produite ; elle baisse avec la taxe carbone et l’investissement vert.'],
+        ['Intensité carbone', 'Les émissions par unité produite ; elle baisse avec la taxe carbone et l’investissement vert.', 'climate'],
         ['Multiplicateur', 'L’effet total sur le PIB d’un euro de dépense en plus, supérieur à un euro parce que la dépense devient du revenu.'],
-        ['Passager clandestin', 'Profiter des efforts des autres sans y contribuer.'],
+        ['Passager clandestin', 'Profiter des efforts des autres sans y contribuer.', 'coop climate'],
         ['PIB', 'Tout ce que le pays produit en un an ; affiché en écart en % à la trajectoire de référence.'],
-        ['Prime de risque (spread)', 'Le supplément d’intérêt que les prêteurs exigent d’un État très endetté.'],
+        ['Prime de risque (spread)', 'Le supplément d’intérêt que les prêteurs exigent d’un État très endetté.', 'debt duel'],
         ['Propension à importer', 'La part de chaque euro dépensé qui va à des biens étrangers.'],
         ['R cumulé', 'La somme des scores annuels depuis le début de la partie ; c’est lui qui fait le classement.'],
         ['Réserves de change', 'Le stock de devises détenu par la banque centrale pour défendre un change fixe.'],
         ['Solde courant', 'Ce qu’un pays ou l’union gagne du reste du monde (exportations, revenus reçus) moins ce qu’il lui verse (importations, revenus versés).'],
         ['Solde public', 'Recettes moins dépenses de l’État, en points de PIB ; un signe moins est un déficit.'],
-        ['Solde TARGET', 'Ce que la banque centrale d’un pays sorti doit encore à celle de l’union, ou l’inverse.'],
-        ['Tarif extérieur commun', 'Une même taxe que tous les membres de l’union mettent sur les biens achetés au reste du monde.'],
-        ['Taux directeur', 'Le taux d’intérêt fixé par une banque centrale ; dans l’union il est commun et voté par les membres.'],
+        ['Solde TARGET', 'Ce que la banque centrale d’un pays sorti doit encore à celle de l’union, ou l’inverse.', 'exitOn'],
+        ['Tarif extérieur commun', 'Une même taxe que tous les membres de l’union mettent sur les biens achetés au reste du monde.', 'tariffs'],
+        ['Taux directeur', 'Le taux d’intérêt fixé par une banque centrale ; dans l’union il est commun et voté par les membres.', 'rate duel exit'],
         ['Trajectoire de référence', 'Ce que ferait l’économie sans choc ni politique ; chaque résultat est un écart à elle.']
       ]
     }
@@ -328,7 +329,7 @@ var MXGUIDE = (function () {
       h += '</dl></details>';
     });
     h += '</div><div class="gp-body" data-pane="glossary" hidden><p class="gp-intro">' + typo(esc(l.glossIntro)) + '</p><dl class="gloss">';
-    l.glossary.forEach(function (g) { h += '<dt>' + typo(esc(g[0])) + '</dt><dd>' + typo(esc(g[1])) + '</dd>'; });
+    l.glossary.filter(wordShown).forEach(function (g) { h += '<dt>' + typo(esc(g[0])) + '</dt><dd>' + typo(esc(g[1])) + '</dd>'; });
     h += '</dl></div>';
     panel.innerHTML = h;
     document.body.appendChild(panel);
@@ -340,6 +341,16 @@ var MXGUIDE = (function () {
     });
     panel.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('a.glink'); if (a) { e.preventDefault(); show(a.getAttribute('data-card')); } });
     current = (window.MXL && MXL.lang) + '|' + vis.join(',');
+  }
+  /* a glossary word is shown when the class sees one of its cards (third item; none = always) */
+  function wordShown(g) {
+    if (!g[2]) return true;
+    var vis = visible();
+    return g[2].split(' ').some(function (k) {
+      if (k === 'tariffs') return !isDuel(state) && !!(state && state.sim && state.sim.tariffs);
+      if (k === 'exitOn') return !isDuel(state) && !!(state && state.sim && state.sim.exit) && !!V13[model(state)];
+      return vis.indexOf(k) >= 0;
+    });
   }
   function tab(name) {
     Array.prototype.forEach.call(panel.querySelectorAll('[data-tab]'), function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === name)); });

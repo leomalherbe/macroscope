@@ -72,7 +72,7 @@ async function leftovers(page) {
   must((await desk.$$eval('#guidePanel details.gcard[open]', ds => ds.map(d => d.getAttribute('data-card')))).join() === 'rate', 'one card open at a time');
   must(/l’année suivante/.test(await desk.textContent('#guidePanel details.gcard[data-card="rate"]')), 'the rate card is in French');
   await desk.click('#guidePanel .gp-tabs [data-tab="glossary"]');
-  must((await desk.$$('#guidePanel dl.gloss dt')).length >= 20 && await desk.isHidden('#guidePanel [data-pane="cards"]'), 'glossary in its own tab');
+  must((await desk.$$('#guidePanel dl.gloss dt')).length === 22 && await desk.isHidden('#guidePanel [data-pane="cards"]'), 'glossary in its own tab, the 22 words of a v1.3 class (no climate, no exit, no tariffs)');
   await desk.screenshot({ path: OUT + '/fr-1b-glossary.png' });
   await desk.click('#guidePanel .gp-close'); await desk.waitForSelector('#guidePanel', { state: 'hidden' });
   const gi = await desk.$('td[data-guide="demand"] > .gi');
