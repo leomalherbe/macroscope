@@ -1,4 +1,4 @@
-/* The desk in French (i18n.js + i18n/fr-desk.js): a class of four, year 1 run and published, then the desk of
+/* The desk, the console and the model page in French (i18n.js + i18n/fr-desk.js): a class of four, year 1 run and published, then the desk of
    France opened with ?lang=fr — no page error, no English left outside the players' own text, decimal
    commas, the EN | FR switch back to English. Mock server: E2E_PORT env (default 8787). */
 const { chromium } = require('playwright');
@@ -17,7 +17,7 @@ async function leftovers(page) {
     const re = new RegExp(src, 'i'), out = [];
     const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n;
     while ((n = tw.nextNode())) {
-      const t = n.nodeValue.trim(); if (!t || !re.test(t)) continue;
+      const t = n.nodeValue.trim(); if (!t || !re.test(t) || /Google Sheet/.test(t)) continue;  /* the Sheet's tab names stay in English */
       const p = n.parentElement; if (!p || p.closest('script,style,textarea,[translate="no"]')) continue;
       if (p.offsetParent === null && p.tagName !== 'title') continue;
       out.push(t.slice(0, 100));
@@ -87,6 +87,35 @@ async function leftovers(page) {
   must(await desk.getAttribute('html', 'lang') === 'en', 'EN | FR switch: back to English');
   await desk.goto(BASE + '/desk.html?pin=' + pins.FRA + '&api=' + encodeURIComponent(API)); await desk.waitForSelector('text=results so far');
   must(await desk.getAttribute('html', 'lang') === 'en', 'the choice is remembered');
+
+  /* the console in French, in a fresh browser */
+  const ctxA = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const adm = await ctxA.newPage();
+  adm.on('pageerror', e => errors.push('admin (fr): ' + e.message));
+  await adm.goto(BASE + '/admin.html?lang=fr&api=' + encodeURIComponent(API));
+  await adm.fill('input[type=url]', API); await adm.fill('input[type=password]', KEY);
+  await adm.click('button:has-text("Se connecter")'); await adm.waitForSelector('#statusGrid');
+  must(/Pilotage/.test(await adm.textContent('#tabs')) && /Simulation/.test(await adm.textContent('#tabs')), 'console in French: tabs');
+  left = await leftovers(adm);
+  must(left.length === 0, 'no English left on the Control tab (' + left.join(' | ') + ')');
+  await adm.screenshot({ path: OUT + '/fr-3-admin-control.png', fullPage: true });
+  for (const tab of ['Groupes', 'Simulation', 'Résultats', 'Conseil', 'Export']) {
+    await adm.click('#tabs button:has-text("' + tab + '")'); await adm.waitForTimeout(500);
+    left = left.concat((await leftovers(adm)).map(t => tab + ': ' + t));
+  }
+  must(left.length === 0, 'no English left on the other tabs (' + left.join(' | ') + ')');
+  {
+  }
+  await adm.click('#tabs button:has-text("Simulation")'); await adm.waitForTimeout(400);
+  await adm.screenshot({ path: OUT + '/fr-4-admin-run.png', fullPage: true });
+
+  /* the model page in French */
+  const model = await ctxA.newPage();
+  model.on('pageerror', e => errors.push('model (fr): ' + e.message));
+  await model.goto(BASE + '/model.html?lang=fr'); await model.waitForSelector('#mxFlows table');
+  must(/Matrice des flux/.test(await model.textContent('body')) && /G = G\*·\(1 \+ pubdem\/100\)/.test(await model.textContent('body')), 'model page in French, equations untouched');
+  left = await leftovers(model);
+  must(left.length === 0, 'no English left on the model page (' + left.join(' | ') + ')');
 
   must(errors.length === 0, 'no page errors (' + errors.join(' | ') + ')');
   await browser.close();
