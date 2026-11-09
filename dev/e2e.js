@@ -154,6 +154,8 @@ console.log('engine:', realEngine ? 'engine.js (real)' : 'dev/engine-stub.js (st
   must(g1vals.length === 3 && g1vals[0][0] !== '' && g1vals[0][5] !== '', 'Results grid filled from the run (group 1: GDP y1 ' + g1vals[0][0] + ', R ' + g1vals[0][5] + ')');
   const g1cum = await admin.evaluate(() => { const b = [...document.querySelectorAll('.entry')].find(e => e.querySelector('b').textContent === 'Group 1'); return [...b.querySelectorAll('tbody tr')].map(tr => tr.lastElementChild.textContent.trim()); });
   must(g1cum.length === 3 && g1cum.every((c, i) => Math.abs(parseFloat(c.replace('−', '-')) - expCum[i]) < 0.002), 'Results grid: Cum. R column matches the running sum (' + g1cum.join(' / ') + ')');
+  const g1strat = await admin.evaluate(() => { const b = [...document.querySelectorAll('.entry')].find(e => e.querySelector('b').textContent === 'Group 1'); const d = [...b.querySelectorAll('details')].find(x => /strategy, a priori/.test(x.querySelector('summary').textContent)); return d ? d.querySelector('p').textContent : null; });
+  must(g1strat && g1strat.length >= 20, 'Results tab: the group’s strategy, a priori, in a drop-down (' + (g1strat || '').slice(0, 40) + '…)');
 
   /* ---- parameters: the votes group is saved in state.sim ---- */
   await admin.click('#tabs button:has-text("Control")');

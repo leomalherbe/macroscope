@@ -263,7 +263,8 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 "leave blank to compute R from the weights":"laisser vide pour calculer R à partir des poids",
 "engine.js is missing or failed to load: nothing can be run. Results can still be typed by hand in the Results tab.":"engine.js est absent ou n’a pas pu se charger : rien ne peut être simulé. Les résultats peuvent encore être saisis à la main dans l’onglet Résultats.",
 "beginners’ guide on the desk (« How it works? » panel and ⓘ buttons)":"guide pour débutants sur le desk (panneau « Comment ça marche ? » et boutons ⓘ)",
-"Short cards on the mechanisms at work (direction of effects only), and a glossary; the cards shown follow the model version and the options of the class.":"De courtes fiches sur les mécanismes à l’œuvre (sens des effets seulement) et un lexique ; les fiches affichées suivent la version du modèle et les options de la classe."},"re":[["Class deleted \\(([+−±-]?\\d+(?:[.,]\\d+)?) rows removed\\)",
+"Short cards on the mechanisms at work (direction of effects only), and a glossary; the cards shown follow the model version and the options of the class.":"De courtes fiches sur les mécanismes à l’œuvre (sens des effets seulement) et un lexique ; les fiches affichées suivent la version du modèle et les options de la classe.",
+"Groups’ justifications, a priori":"Justifications a priori des groupes"},"re":[["Class deleted \\(([+−±-]?\\d+(?:[.,]\\d+)?) rows removed\\)",
 "Classe supprimée ($1 lignes retirées)"],
 ["Delete the class « (.+?) » with all its groups, PINs, decisions, results, pledges and analyses\\? This cannot be undone\\. Type the class name to confirm:",
 "Supprimer la classe « $1 » avec tous ses groupes, PIN, décisions, résultats, engagements et analyses ? C’est irréversible. Tapez le nom de la classe pour confirmer :"],
@@ -583,8 +584,6 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 "Union monétaire · fin de l’année $1"],
 ["run at (.+?) · not published yet",
 "simulé à $1 · pas encore publié"],
-["(.+?) · (.+?)",
-"%1 · %2"],
 ["The Run tab fills these rows from the model\\. You can still edit or type numbers by hand \\(deviations from the reference: GDP in %, the others in points\\); R is the score of the year \\(not a change from the year before\\); « Cum\\. R » is the sum of the yearly scores, which the ranking uses\\. If R is left blank it is computed with the weights set in Parameters \\(([+−±-]?\\d+(?:[.,]\\d+)?)·ΔGDP − ([+−±-]?\\d+(?:[.,]\\d+)?)·ΔU − ([+−±-]?\\d+(?:[.,]\\d+)?)·Δπ \\+ ([+−±-]?\\d+(?:[.,]\\d+)?)·Δpublic balance \\+ ([+−±-]?\\d+(?:[.,]\\d+)?)·Δtrade balance\\)\\. Save as draft, then publish when you are ready to show the groups\\.",
 "L’onglet Simulation remplit ces lignes à partir du modèle. Vous pouvez encore les modifier ou saisir des nombres à la main (écarts à la référence : PIB en %, le reste en points) ; R est le score de l’année (pas une variation par rapport à l’année précédente) ; le « R cumulé » est la somme des scores annuels, celle qu’utilise le classement. Si R est laissé vide, il est calculé avec les poids fixés dans les paramètres ($1·ΔPIB − $2·ΔU − $3·Δπ + $4·Δsolde public + $5·Δsolde commercial). Enregistrez en brouillon, puis publiez quand vous êtes prêt à montrer les résultats aux groupes."],
 ["sale of ([+−±-]?\\d+(?:[.,]\\d+)?) %",
@@ -608,4 +607,8 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 ["(.+?) \\(v([+−±-]?\\d+(?:[.,]\\d+)?)\\)",
 "%1 (v$2)"],
 ["Group’s a posteriori analysis \\((.+?)\\)",
-"Analyse a posteriori du groupe ($1)"]],"title":"Macroscope · Administration"});
+"Analyse a posteriori du groupe ($1)"],
+["Group’s strategy, a priori \\((.+?)\\)",
+"Stratégie a priori du groupe ($1)"],
+["Groups’ justifications, a priori · year ([+−±-]?\\d+(?:[.,]\\d+)?)",
+"Justifications a priori des groupes · année $1"]],"title":"Macroscope · Administration"});
