@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110905">
-<script src="i18n.js?v=2026110905"></script>
-<script src="i18n/fr-desk.js?v=2026110905"></script>
-<script src="i18n/fr-admin.js?v=2026110905"></script>
-<script src="config.js?v=2026110905"></script>
-<script src="core.js?v=2026110905"></script>
-<script src="app-common.js?v=2026110905"></script>
-<script src="engine.js?v=2026110905"></script>
+<link rel="stylesheet" href="style.css?v=2026110906">
+<script src="i18n.js?v=2026110906"></script>
+<script src="i18n/fr-desk.js?v=2026110906"></script>
+<script src="i18n/fr-admin.js?v=2026110906"></script>
+<script src="config.js?v=2026110906"></script>
+<script src="core.js?v=2026110906"></script>
+<script src="app-common.js?v=2026110906"></script>
+<script src="engine.js?v=2026110906"></script>
 </head>
 <body>
 
@@ -49,15 +49,18 @@
   if (tab === 'entry') tab = 'run';
   var pollTimer = null;
 
+  /* another page of the site, next to this one, whatever the console's address looks like
+     (…/admin.html, …/admin without the extension, with or without a query or a hash) */
+  function sitePage(name) { return new URL(name, location.origin + location.pathname.replace(/[^/]*$/, '')).href; }
   function studentUrl(pin) {
-    var u = location.href.replace(/admin\.html.*$/, 'desk.html');
+    var u = sitePage('desk.html');
     var q = [];
     if (pin) q.push('pin=' + encodeURIComponent(pin));
     if (!cfg.API_URL) q.push('api=' + encodeURIComponent(MSApi.apiUrl()));
     return u + (q.length ? '?' + q.join('&') : '');
   }
   function boardUrl() {
-    var u = location.href.replace(/admin\.html.*$/, 'board.html') + '?class=' + encodeURIComponent(classId);
+    var u = sitePage('board.html') + '?class=' + encodeURIComponent(classId);
     if (!cfg.API_URL) u += '&api=' + encodeURIComponent(MSApi.apiUrl());
     return u;
   }
