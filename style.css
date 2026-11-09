@@ -30,6 +30,12 @@ h3{font-size:1.05rem}
 .topbar .who{text-align:right;font-size:.92rem;color:#d9dce4}
 .topbar .who b{color:#fff;font-size:1.05rem;display:block}
 .topbar .who .pill{margin-left:6px}
+.topbar .wrap{position:relative}
+.lang{display:inline-flex;border:1px solid rgba(255,255,255,.45);border-radius:6px;overflow:hidden}
+.lang button{font:inherit;font-size:.72rem;font-weight:700;letter-spacing:.06em;background:transparent;color:#d9dce4;border:0;padding:3px 8px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:#fff;color:var(--navy);cursor:default}
+.lang-top{position:absolute;top:-10px;right:16px}
+@media print{.lang{display:none}}
 
 main{padding:26px 0 56px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(20,33,61,.04)}

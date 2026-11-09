@@ -1,0 +1,1062 @@
+// French text of the policy desk (desk.html), compiled into i18n/fr-desk.js by dev/i18n-build.js.
+// Lines starting with // are comments. One entry per pair of lines: the English text, then « => » and the French.
+// In the English line: # = a number, @ = a name or phrase translated on its own, & = kept as is.
+// In the French line the same signs take the captured parts in order ({1}, {2}… to reorder).
+// A text « A · B · C » with no entry of its own is translated part by part.
+// Spaces before : ; ? ! and % become non-breaking in French automatically.
+
+// page
+@title
+=> Macroscope · Bureau des décisions
+Macroscope · Policy desk
+=> Macroscope · Bureau des décisions
+Macroscope · the open-economy policy game
+=> Macroscope · le jeu de politique économique en économie ouverte
+Submit your group's policy decisions.
+=> Soumettez les décisions de politique économique de votre groupe.
+← About Macroscope
+=> ← À propos de Macroscope
+The model: equations & notation ↗
+=> Le modèle : équations et notations (en anglais) ↗
+Macroscope · runs on OPEN-MU, a stock-flow consistent model of a monetary union after Godley & Lavoie ·
+=> Macroscope · fonctionne avec OPEN-MU, un modèle stock-flux cohérent d’union monétaire d’après Godley et Lavoie ·
+about
+=> à propos
+Loading…
+=> Chargement…
+Language
+=> Langue
+English
+=> English
+Français
+=> Français
+EN
+=> EN
+FR
+=> FR
+↻ Refresh
+=> ↻ Actualiser
+switch group
+=> changer de groupe
+Updated &
+=> Mis à jour à &
+Sending…
+=> Envoi…
+4-digit PIN
+=> PIN à 4 chiffres
+Write here…
+=> Écrivez ici…
+
+// countries and sides
+Germany
+=> Allemagne
+France
+=> France
+Italy
+=> Italie
+Spain
+=> Espagne
+Netherlands
+=> Pays-Bas
+Belgium
+=> Belgique
+Austria
+=> Autriche
+Country A
+=> Pays A
+Country B
+=> Pays B
+Country A (you)
+=> Pays A (vous)
+Country B (partner)
+=> Pays B (partenaire)
+Pair #
+=> Paire #
+pair #
+=> paire #
+Group
+=> Groupe
+Group #
+=> Groupe #
+Country
+=> Pays
+you
+=> vous
+your partner
+=> votre partenaire
+Your partner
+=> Votre partenaire
+Your partner · @ (@)
+=> Votre partenaire · @ (@)
+@ ·
+=> @ ·
+
+// status of the round
+Submissions open
+=> Soumissions ouvertes
+Submissions closed
+=> Soumissions closes
+Submitted
+=> Soumis
+submitted
+=> soumis
+not submitted yet
+=> pas encore soumis
+not voted yet
+=> pas encore voté
+no decision submitted
+=> aucune décision soumise
+Council in session
+=> Conseil en séance
+in session
+=> en séance
+The game
+=> La partie
+Year # of #
+=> Année # sur #
+Warm-up
+=> Échauffement
+warm-up
+=> échauffement
+#-year plan
+=> plan sur # ans
+plan
+=> plan
+published results
+=> résultats publiés
+Year
+=> Année
+Year #
+=> Année #
+year #
+=> année #
+year #: #
+=> année # : #
+year # (round closed)
+=> année # (tour clos)
+year # — vote
+=> année # — vote
+end of year #
+=> fin de l’année #
+after year #
+=> après l’année #
+Administrator’s communiqué
+=> Communiqué de l’administrateur
+You can update your submission until the round closes; only the last one counts.
+=> Vous pouvez modifier votre soumission jusqu’à la clôture du tour ; seule la dernière compte.
+Submissions are closed for this round — your last submission is shown above.
+=> Les soumissions sont closes pour ce tour — votre dernière soumission est affichée ci-dessus.
+Decisions received at &
+=> Décisions reçues à &
+instruments used: none.
+=> instruments utilisés : aucun.
+instruments used: &.
+=> instruments utilisés : &.
+Vote received at &: @.
+=> Vote reçu à & : @.
+Comment saved at & — you can still edit it.
+=> Commentaire enregistré le & — vous pouvez encore le modifier.
+
+// forms
+Decisions for year #
+=> Décisions pour l’année #
+Your #-year plan for @
+=> Votre plan sur # ans · @
+Instrument
+=> Instrument
+Unit
+=> Unité
+Change
+=> Variation
+Instruments used: #
+=> Instruments utilisés : #
+Instruments used: # / #
+=> Instruments utilisés : # / #
+# / # characters minimum
+=> # / # caractères minimum
+Justification
+=> Justification
+Your strategy, a priori
+=> Votre stratégie, a priori
+Your analysis, a posteriori
+=> Votre analyse, a posteriori
+Which objective does each instrument target, and through which mechanism of the model? What do you expect for GDP, unemployment, inflation, the public balance and the trade balance?
+=> Quel objectif vise chaque instrument, et par quel mécanisme du modèle ? Qu’attendez-vous pour le PIB, le chômage, l’inflation, le solde public et le solde commercial ?
+What did you learn from last year’s results, and what do you expect from this year’s decisions? (Mention foreign decisions if they matter.)
+=> Qu’avez-vous appris des résultats de l’an dernier, et qu’attendez-vous des décisions de cette année ? (Mentionnez les décisions étrangères si elles comptent.)
+Compare the results with what you expected. Which mechanisms of the model explain the gaps (restoring forces, trade leakages, interest rates)?
+=> Comparez les résultats avec ce que vous attendiez. Quels mécanismes du modèle expliquent les écarts (forces de rappel, fuites commerciales, taux d’intérêt) ?
+Submit our decisions
+=> Envoyer nos décisions
+Update our decisions
+=> Mettre à jour nos décisions
+Submit our analysis
+=> Envoyer notre analyse
+Update our analysis
+=> Mettre à jour notre analyse
+Decisions submitted
+=> Décisions soumises
+Your previous decisions (#)
+=> Vos décisions précédentes (#)
+Decisions
+=> Décisions
+#. @
+=> #. @
+Rules: every value is a relative variation, in %, of your country’s reference level (public demand # = # % more public spending; income tax # = a tax rate # % higher, e.g. from # % to # %)
+=> Règles : chaque valeur est une variation relative, en %, du niveau de référence de votre pays (demande publique # = # % de dépense publique en plus ; impôt sur le revenu # = un taux d’imposition # % plus élevé, par ex. de # % à # %)
+each variation between # % and # %
+=> chaque variation entre # % et # %
+# = no change from the reference
+=> # = aucun changement par rapport à la référence
+# = no change from the reference.
+=> # = aucun changement par rapport à la référence.
+your votes at the central bank go with your decisions.
+=> vos votes à la banque centrale partent avec vos décisions.
+at most # instruments
+=> au plus # instruments
+all other countries keep their policies unchanged
+=> tous les autres pays gardent leur politique inchangée
+the carbon tax and green investment are levels, from # to #: they cut your carbon intensity from next year on, the tax lifts prices at once. Green investment supports demand like public spending, but # % of it is imported equipment (about a third less effect on your GDP than public demand, and a worse trade balance) and its gain on your carbon intensity shrinks as you raise it.
+=> la taxe carbone et l’investissement vert sont des niveaux, de # à # : ils réduisent votre intensité carbone à partir de l’année suivante, la taxe fait monter les prix tout de suite. L’investissement vert soutient la demande comme la dépense publique, mais # % en est de l’équipement importé (environ un tiers d’effet en moins sur votre PIB que la demande publique, et un solde commercial dégradé), et son gain sur votre intensité carbone diminue à mesure que vous l’augmentez.
+the policy rate is yours to set, in points around # % (#): it moves investment next year, your debt service and the capital flows with your partner — a higher rate appreciates your currency
+=> le taux directeur est à vous, en points autour de # % (#) : il agit sur l’investissement l’année suivante, sur le service de votre dette et sur les flux de capitaux avec votre partenaire — un taux plus élevé apprécie votre monnaie
+your policy rate is yours to set, in points around # % (#): it moves investment next year, the cost of your debt and the capital flows — a lower rate depreciates your currency (imported inflation) when it floats, or drains your reserves when it is pegged
+=> votre taux directeur est à vous, en points autour de # % (#) : il agit sur l’investissement l’année suivante, sur le coût de votre dette et sur les flux de capitaux — un taux plus bas déprécie votre monnaie (inflation importée) en change flottant, ou vide vos réserves en change fixe
+
+// levers
+Public demand
+=> Demande publique
+Public demand #%
+=> Demande publique #%
+Social benefits
+=> Prestations sociales
+Social benefits #%
+=> Prestations sociales #%
+Household income tax rate
+=> Taux de l’impôt sur le revenu des ménages
+Household income tax rate #%
+=> Taux de l’impôt sur le revenu des ménages #%
+Consumption tax (VAT)
+=> Taxe sur la consommation (TVA)
+Consumption tax (VAT) #%
+=> Taxe sur la consommation (TVA) #%
+Carbon tax
+=> Taxe carbone
+Carbon tax # pt
+=> Taxe carbone # pt
+Green public investment
+=> Investissement public vert
+Green public investment #
+=> Investissement public vert #
+Policy rate
+=> Taux directeur
+Policy rate # pt
+=> Taux directeur # pt
+Tariff on goods from the union
+=> Droit de douane sur les biens de l’union
+Tariff on goods from the union #%
+=> Droit de douane sur les biens de l’union #%
+Demand-side
+=> Demande
+Supply-side
+=> Offre
+Ecological
+=> Écologique
+Monetary policy
+=> Politique monétaire
+Monetary policy (duel)
+=> Politique monétaire (duel)
+Trade policy
+=> Politique commerciale
+Monetary & structural options (subject to the administrator’s approval)
+=> Options monétaires et structurelles (soumises à l’accord de l’administrateur)
+real public expenditure on goods and services ·
+=> dépense publique réelle en biens et services ·
+transfers to households (pensions, allowances, insurance) ·
+=> transferts aux ménages (retraites, allocations, assurances) ·
+direct tax rate on household income ·
+=> taux de l’impôt direct sur le revenu des ménages ·
+tax on consumption spending; also lifts prices ·
+=> taxe sur les dépenses de consommation ; fait aussi monter les prix ·
+points; paid by firms on their emissions (# pt ≈ # % of GDP of revenue); lifts prices the year it changes; cuts the carbon intensity by # % per point the next year ·
+=> points ; payée par les entreprises sur leurs émissions (# pt ≈ # % du PIB de recettes) ; fait monter les prix l’année où elle change ; réduit l’intensité carbone de # % par point l’année suivante ·
+units of # pt of GDP of public investment (demand, deficit); cuts the carbon intensity next year, with diminishing returns (# units: # %, # units: # %). Green investment supports demand like public spending, but # % of it is imported equipment (about a third less effect on your GDP than public demand, and a worse trade balance) and its gain on your carbon intensity shrinks as you raise it. ·
+=> unités de # pt de PIB d’investissement public (demande, déficit) ; réduit l’intensité carbone l’année suivante, à rendements décroissants (# unités : # %, # unités : # %). L’investissement vert soutient la demande comme la dépense publique, mais # % en est de l’équipement importé (environ un tiers d’effet en moins sur votre PIB que la demande publique, et un solde commercial dégradé), et son gain sur votre intensité carbone diminue à mesure que vous l’augmentez. ·
+points above (+) or below (−) the reference rate of # %; acts on investment next year, on debt service and on capital flows (a higher rate pulls capital in and appreciates your currency) ·
+=> points au-dessus (+) ou au-dessous (−) du taux de référence de # % ; agit sur l’investissement l’année suivante, sur le service de la dette et sur les flux de capitaux (un taux plus élevé attire les capitaux et apprécie votre monnaie) ·
+a tax on everything your country buys from the members of the union, # to # %: your budget collects it, your households pay it, the union sells you less (and your currency appreciates, which gives part of it back) ·
+=> une taxe sur tout ce que votre pays achète aux membres de l’union, de # à # % : votre budget l’encaisse, vos ménages la paient, l’union vous vend moins (et votre monnaie s’apprécie, ce qui en reprend une partie) ·
+
+// votes
+Votes
+=> Votes
+Votes at the central bank
+=> Votes à la banque centrale
+Vote on the central bank’s rate
+=> Vote sur le taux de la banque centrale
+Vote on the central bank’s rate we announce
+=> Vote sur le taux de la banque centrale que nous annonçons
+The central bank’s rate
+=> Le taux de la banque centrale
+One country, one vote. A majority of the countries moves the rate by # pt, permanently. It acts on investment next year and on every budget’s debt service at once.
+=> Un pays, une voix. Une majorité des pays fait bouger le taux de # pt, durablement. Il agit sur l’investissement l’année suivante et, tout de suite, sur le service de la dette de chaque budget.
+Your votes travel with your decisions and stay secret while the round is open; they are revealed with everyone’s decisions once it is closed.
+=> Vos votes partent avec vos décisions et restent secrets tant que le tour est ouvert ; ils sont révélés avec les décisions de tous à sa clôture.
+Cut # pt
+=> Baisse # pt
+Hike # pt
+=> Hausse # pt
+Hold
+=> Statu quo
+hold
+=> statu quo
+Rate: cut
+=> Taux : baisse
+Rate: hold
+=> Taux : statu quo
+Rate: hike
+=> Taux : hausse
+Will vote: cut
+=> Votera : baisse
+Will vote: hold
+=> Votera : statu quo
+Will vote: hike
+=> Votera : hausse
+Will vote: austerity
+=> Votera : austérité
+Will vote: devaluation
+=> Votera : dévaluation
+Cast our vote
+=> Voter
+Vote cast
+=> Vote exprimé
+Vote recorded
+=> Vote enregistré
+You can change your vote until the administrator closes it.
+=> Vous pouvez changer votre vote jusqu’à ce que l’administrateur le clôture.
+You can change your vote until the administrator closes the council.
+=> Vous pouvez changer votre vote jusqu’à ce que l’administrateur clôture le conseil.
+# cut · # hold · # hike → # pt · rate # %
+=> # baisse · # statu quo · # hausse → # pt · taux # %
+# cut · # hold · # hike → unchanged · rate # %
+=> # baisse · # statu quo · # hausse → inchangé · taux # %
+hold · austerity
+=> statu quo · austérité
+
+// crises
+Reserves crisis
+=> Crise des réserves
+Reserves crisis · vote
+=> Crise des réserves · vote
+Currency crisis
+=> Crise de change
+Currency crisis · vote
+=> Crise de change · vote
+Crisis vote
+=> Vote de crise
+Austerity or devaluation?
+=> Austérité ou dévaluation ?
+Defend the currency, or let it float?
+=> Défendre la monnaie, ou la laisser flotter ?
+Austerity
+=> Austérité
+austerity
+=> austérité
+Devaluation
+=> Dévaluation
+Devaluation #%
+=> Dévaluation #%
+devaluation
+=> dévaluation
+Defend (rate # pt)
+=> Défendre (taux # pt)
+defend
+=> défendre
+defend (rate raised)
+=> défendre (taux relevé)
+Let it float
+=> Laisser flotter
+@: austerity
+=> @ : austérité
+@: devaluation
+=> @ : dévaluation
+@: austerity (no vote)
+=> @ : austérité (pas de vote)
+@: defend
+=> @ : défendre
+@: let it float
+=> @ : laisser flotter
+# austerity · # devaluation →
+=> # austérité · # dévaluation →
+: # austerity · # devaluation →
+=> : # austérité · # dévaluation →
+# defend · # let it float →
+=> # défendre · # laisser flotter →
+: # defend · # let it float →
+=> : # défendre · # laisser flotter →
+Crisis vote of year #:
+=> Vote de crise de l’année # :
+Currency-crisis vote of year #:
+=> Vote de crise de change de l’année # :
+. Austerity programme: public demand and social benefits of every member are capped at
+=> . Programme d’austérité : la demande publique et les prestations sociales de chaque membre sont plafonnées à
+of the reference this year (the form refuses more).
+=> de la référence cette année (le formulaire refuse davantage).
+. A devaluation of # % is applied this year: exports recover with a lag, import prices and inflation rise.
+=> . Une dévaluation de # % s’applique cette année : les exportations repartent avec un délai, les prix importés et l’inflation montent.
+. The central bank raises its rate by # pt this year.
+=> . La banque centrale relève son taux de # pt cette année.
+. Letting the currency float: nothing is done this year.
+=> . La monnaie flotte : rien n’est fait cette année.
+Reserves exhausted
+=> Réserves épuisées
+at the end of year # with the current account still in deficit: a devaluation of # % is imposed this year, without a vote.
+=> à la fin de l’année # avec un solde courant encore déficitaire : une dévaluation de # % est imposée cette année, sans vote.
+Year #: the reserves are gone — the union devalues by # %.
+=> Année # : les réserves sont épuisées — l’union dévalue de # %.
+Decisions for year # open once the crisis vote is closed.
+=> Les décisions de l’année # s’ouvrent une fois le vote de crise clos.
+Decisions for year # open once the vote is closed.
+=> Les décisions de l’année # s’ouvrent une fois le vote clos.
+Austerity caps every member’s public demand and social benefits at # % of the reference this year (no stimulus possible); a devaluation of # % restores exports with a lag but raises import prices and inflation.
+=> L’austérité plafonne la demande publique et les prestations sociales de chaque membre à # % de la référence cette année (aucune relance possible) ; une dévaluation de # % relance les exportations avec un délai mais fait monter les prix importés et l’inflation.
+Defend: the central bank raises its rate by # pt this year — capital comes back and the currency recovers, investment and every budget pay for it next year. Let it float: nothing is done; the depreciation restores competitiveness with a lag but import prices and inflation stay high.
+=> Défendre : la banque centrale relève son taux de # pt cette année — les capitaux reviennent et la monnaie se redresse, l’investissement et chaque budget en paient le prix l’année suivante. Laisser flotter : rien n’est fait ; la dépréciation rétablit la compétitivité avec un délai, mais les prix importés et l’inflation restent élevés.
+The union’s reserves ended year # below the alert line. Before any decision for year #, the council votes — one country, one vote; only the votes cast count: devaluation needs more than half of the voters. Decisions open once the administrator closes the vote.
+=> Les réserves de l’union ont fini l’année # sous le seuil d’alerte. Avant toute décision pour l’année #, le conseil vote — un pays, une voix ; seuls les votes exprimés comptent : la dévaluation exige plus de la moitié des votants. Les décisions s’ouvrent quand l’administrateur clôt le vote.
+The union’s currency fell by more than # % over year #. Before any decision for year #, the council votes — one country, one vote; a country that does not vote counts as defend; letting the currency float needs more than half of the countries. Decisions open once the administrator closes the vote.
+=> La monnaie de l’union a perdu plus de # % sur l’année #. Avant toute décision pour l’année #, le conseil vote — un pays, une voix ; un pays qui ne vote pas compte comme « défendre » ; laisser flotter la monnaie exige plus de la moitié des pays. Les décisions s’ouvrent quand l’administrateur clôt le vote.
+(# % over the year)
+=> (# % sur l’année)
+
+// council and pledges
+Council of ministers
+=> Conseil des ministres
+Pledges on the table
+=> Engagements sur la table
+Pledges are public and visible to every country; actual decisions stay private until the year is simulated. After the run, the administrator may reveal who kept their word.
+=> Les engagements sont publics et visibles par tous les pays ; les décisions effectives restent privées jusqu’à la simulation de l’année. Après le calcul, l’administrateur peut révéler qui a tenu parole.
+Our pledge
+=> Notre engagement
+Pledge
+=> Engagement
+no pledge
+=> pas d’engagement
+Update our pledge
+=> Mettre à jour notre engagement
+Submit our pledge
+=> Publier notre engagement
+Attach numbers or the vote you announce (optional)
+=> Joindre des chiffres ou le vote que vous annoncez (facultatif)
+An announced vote is public; your actual vote travels with your decisions and stays secret until the round closes. The reveal compares the two.
+=> Un vote annoncé est public ; votre vote effectif part avec vos décisions et reste secret jusqu’à la clôture du tour. La révélation compare les deux.
+no announcement
+=> pas d’annonce
+we will vote CUT
+=> nous voterons BAISSE
+we will vote HOLD
+=> nous voterons STATU QUO
+we will vote HIKE
+=> nous voterons HAUSSE
+we will vote AUSTERITY
+=> nous voterons AUSTÉRITÉ
+we will vote DEVALUATION
+=> nous voterons DÉVALUATION
+words only
+=> paroles seulement
+Pledges vs decisions
+=> Engagements vs décisions
+Actual decision
+=> Décision effective
+Verdict
+=> Verdict
+✓ kept
+=> ✓ tenu
+✗ broken
+=> ✗ rompu
+e.g. "We will raise public demand by 0.5 pt of GDP if Germany does the same."
+=> par ex. « Nous relèverons la demande publique de 0,5 pt de PIB si l’Allemagne fait de même. »
+
+// decisions of the others
+Everyone’s decisions
+=> Les décisions de tous
+Other countries’ decisions
+=> Décisions des autres pays
+Your partner’s decisions
+=> Les décisions de votre partenaire
+Your duel’s decisions
+=> Les décisions de votre duel
+Hidden while the round is open — everyone’s decisions for year # are shown once the round is closed.
+=> Masquées tant que le tour est ouvert — les décisions de tous pour l’année # s’affichent une fois le tour clos.
+Hidden while the round is open — your partner’s decisions for year # are shown once the round is closed.
+=> Masquées tant que le tour est ouvert — les décisions de votre partenaire pour l’année # s’affichent une fois le tour clos.
+All groups · warm-up debrief
+=> Tous les groupes · bilan de l’échauffement
+
+// results
+Your results
+=> Vos résultats
+results so far
+=> résultats à ce jour
+Results will appear here once the administrator has run your plan.
+=> Les résultats apparaîtront ici une fois votre plan simulé par l’administrateur.
+No year has been simulated yet.
+=> Aucune année n’a encore été simulée.
+Your partner’s results appear here once a year has been simulated and published.
+=> Les résultats de votre partenaire apparaissent ici une fois une année simulée et publiée.
+GDP
+=> PIB
+GDP volume
+=> PIB en volume
+Unemployment
+=> Chômage
+Unemployment rate
+=> Taux de chômage
+Inflation
+=> Inflation
+Inflation rate
+=> Taux d’inflation
+Public balance
+=> Solde public
+Trade balance
+=> Solde commercial
+Emissions
+=> Émissions
+gdp volume
+=> PIB en volume
+unemployment rate
+=> taux de chômage
+inflation rate
+=> taux d’inflation
+public balance
+=> solde public
+trade balance
+=> solde commercial
+emissions
+=> émissions
+· @
+=> · @
+Public debt
+=> Dette publique
+Current account
+=> Solde courant
+Exchange rate
+=> Taux de change
+Relative price level
+=> Niveau relatif des prix
+Risk premium
+=> Prime de risque
+R (total)
+=> R (total)
+Cum. R
+=> R cumulé
+Cumulative R
+=> R cumulé
+score of the year
+=> score de l’année
+sum so far
+=> somme à ce jour
+% of GDP
+=> % du PIB
+% of ref.
+=> % de la réf.
+% vs ref.
+=> % vs réf.
+% vs partner
+=> % vs partenaire
+% vs union
+=> % vs union
+pt
+=> pt
+pt of GDP
+=> pt de PIB
+pt · # to #
+=> pt · # à #
+pt · #
+=> pt · #
+% · # to #
+=> % · # à #
+# to #
+=> # à #
+× # pt GDP
+=> × # pt de PIB
+# % of GDP
+=> # % du PIB
+of which your own policy
+=> dont votre propre politique
+of which foreign policies
+=> dont les politiques étrangères
+of which your partner’s policy
+=> dont la politique de votre partenaire
+of which the shocks
+=> dont les chocs
+of which the climate
+=> dont le climat
+Deviations from the reference path (GDP in %, the rest in points). R is the score of the year — the weighted sum of that year’s deviations, not a change from the year before: higher GDP, lower unemployment and inflation, better public and trade balances raise it. « Cumulative R » adds the yearly scores up; it is what the ranking uses. The lines « of which » split each result between your own policy, the other countries’ policies and the administrator’s shocks.
+=> Écarts à la trajectoire de référence (PIB en %, le reste en points). R est le score de l’année — la somme pondérée des écarts de cette année, pas une variation par rapport à l’année précédente : un PIB plus élevé, moins de chômage et d’inflation, de meilleurs soldes public et commercial l’augmentent. Le « R cumulé » additionne les scores annuels ; c’est lui qui fait le classement. Les lignes « dont » répartissent chaque résultat entre votre propre politique, celles des autres pays et les chocs de l’administrateur.
+Deviations from the reference path (GDP in %, the rest in points). R is the score of the year; « Cumulative R » adds the yearly scores up — the ranking uses it. The lines « of which » split each result between your own policy, your partner’s policy, the administrator’s shocks and the climate.
+=> Écarts à la trajectoire de référence (PIB en %, le reste en points). R est le score de l’année ; le « R cumulé » additionne les scores annuels — c’est lui qui fait le classement. Les lignes « dont » répartissent chaque résultat entre votre propre politique, celle de votre partenaire, les chocs de l’administrateur et le climat.
+Your objective, year by year
+=> Votre objectif, année par année
+The objective, year by year
+=> L’objectif, année par année
+you and your partner
+=> vous et votre partenaire
+deviation from the reference, year by year
+=> écart à la référence, année par année
+contributions to R
+=> contributions au R
+contributions to the objective
+=> contributions à l’objectif
+Each bar stacks the contributions of the five dimensions to R for the year (weight × deviation; unemployment and inflation count negatively): above zero what helped, below zero what hurt. The dashed line is R itself.
+=> Chaque barre empile les contributions des cinq dimensions au R de l’année (poids × écart ; chômage et inflation comptent négativement) : au-dessus de zéro ce qui a aidé, en dessous ce qui a nui. La ligne en pointillés est R lui-même.
+Each bar stacks the contributions of the dimensions to R for the year (weight × deviation; unemployment, inflation and emissions count negatively). The dashed line is R.
+=> Chaque barre empile les contributions des dimensions au R de l’année (poids × écart ; chômage, inflation et émissions comptent négativement). La ligne en pointillés est R.
+year #: # to R (GDP # %)
+=> année # : # au R (PIB # %)
+year #: # to R (# pt)
+=> année # : # au R (# pt)
+R · year #: #
+=> R · année # : #
+▲ # vs year #
+=> ▲ # vs année #
+▼ # vs year #
+=> ▼ # vs année #
+= # vs year #
+=> = # vs année #
+Key indicators
+=> Indicateurs clés
+@ under your plan
+=> @ avec votre plan
+Inflation, unemployment and debt are levels (reference: # %, # %, about # % of GDP); GDP is the gap to the reference path; the balances are in % of GDP (# at the reference); the relative price level compares your prices with the union’s average in a common currency (above #: less competitive — you export less and import more the next year). Arrows: change since the previous year, green when it helps your country, red when it hurts.
+=> Inflation, chômage et dette sont des niveaux (référence : # %, # %, environ # % du PIB) ; le PIB est l’écart à la trajectoire de référence ; les soldes sont en % du PIB (# à la référence) ; le niveau relatif des prix compare vos prix à la moyenne de l’union en monnaie commune (au-dessus de # : moins compétitif — vous exportez moins et importez plus l’année suivante). Flèches : variation depuis l’année précédente, en vert quand elle aide votre pays, en rouge quand elle lui nuit.
+Inflation, unemployment and debt are levels (reference: # %, # %, about # % of GDP); GDP is the gap to the reference path; the balances are in % of GDP (# at the reference); the relative price level compares your prices with your partner’s in a common currency (above #: less competitive — you export less and import more the next year). Arrows: change since the previous year, green when it helps your country, red when it hurts.
+=> Inflation, chômage et dette sont des niveaux (référence : # %, # %, environ # % du PIB) ; le PIB est l’écart à la trajectoire de référence ; les soldes sont en % du PIB (# à la référence) ; le niveau relatif des prix compare vos prix à ceux de votre partenaire en monnaie commune (au-dessus de # : moins compétitif — vous exportez moins et importez plus l’année suivante). Flèches : variation depuis l’année précédente, en vert quand elle aide votre pays, en rouge quand elle lui nuit.
+cheaper: more competitive
+=> moins cher : plus compétitif
+dearer: less competitive
+=> plus cher : moins compétitif
+none below # % of debt
+=> aucune sous # % de dette
+debt above # % of GDP
+=> dette au-delà de # % du PIB
+End of year #: public debt # % of GDP
+=> Fin de l’année # : dette publique # % du PIB
+household wealth # % of GDP
+=> patrimoine des ménages # % du PIB
+investment # % vs reference
+=> investissement # % vs référence
+firms’ bank debt # % of GDP
+=> dette bancaire des entreprises # % du PIB
+bank deposits # % of GDP
+=> dépôts bancaires # % du PIB
+output gap # %
+=> écart de production # %
+output gap # %.
+=> écart de production # %.
+price level vs the union’s # % (above = less competitive)
+=> niveau des prix vs celui de l’union # % (au-dessus = moins compétitif)
+price level vs your partner’s (common currency) # % (above = less competitive)
+=> niveau des prix vs celui de votre partenaire (monnaie commune) # % (au-dessus = moins compétitif)
+foreign bills held by households # % of GDP
+=> titres étrangers détenus par les ménages # % du PIB
+risk premium on public debt # pt.
+=> prime de risque sur la dette publique # pt.
+your policy rate # %
+=> votre taux directeur # %
+Ranking
+=> Classement
+Ranked by the cumulative R: the sum of the yearly scores since year #.
+=> Classement par R cumulé : la somme des scores annuels depuis l’année #.
+Every player of every pair, ranked by the cumulative R: the sum of the yearly scores since year #.
+=> Tous les joueurs de toutes les paires, classés par R cumulé : la somme des scores annuels depuis l’année #.
+The ranking appears after the first simulated year.
+=> Le classement apparaît après la première année simulée.
+Your objective this year
+=> Votre objectif cette année
+— @ (election in @): @
+=> — @ (élection : @) : @
+— @ (union-wide election): @
+=> — @ (élection dans toute l’union) : @
+. Voters have changed what they reward: R is computed with these weights from year # on.
+=> . Les électeurs ont changé ce qu’ils récompensent : R est calculé avec ces poids à partir de l’année #.
+Left: unemployment first
+=> Gauche : le chômage d’abord
+Right: public finances first
+=> Droite : les finances publiques d’abord
+Green: emissions first
+=> Vert : les émissions d’abord
+Left: unemployment first — U #
+=> Gauche : le chômage d’abord — Chôm. #
+Right: public finances first — PB #
+=> Droite : les finances publiques d’abord — SP #
+Green: emissions first — Emis #
+=> Vert : les émissions d’abord — Émis. #
+others #
+=> autres #
+weights after the election
+=> poids après l’élection
+
+// the monetary union
+The monetary union
+=> L’union monétaire
+The monetary union during your plan
+=> L’union monétaire pendant votre plan
+Foreign reserves of the common central bank
+=> Réserves de change de la banque centrale commune
+Foreign reserves of the common central bank (frozen while floating)
+=> Réserves de change de la banque centrale commune (gelées en change flottant)
+# months of imports
+=> # mois d’importations
+# % of initial
+=> # % du stock initial
+ALERT
+=> ALERTE
+Current account of the union with the rest of the world
+=> Solde courant de l’union avec le reste du monde
+Exchange rate (union currency per unit of world currency; up = devaluation)
+=> Taux de change (monnaie de l’union par unité de monnaie mondiale ; hausse = dévaluation)
+Change of the exchange rate over the year (+ = depreciation)
+=> Variation du taux de change sur l’année (+ = dépréciation)
+Capital flows (net inflows from the rest of the world)
+=> Flux de capitaux (entrées nettes depuis le reste du monde)
+Exchange-rate regime
+=> Régime de change
+fixed
+=> fixe
+floating
+=> flottant
+pegged
+=> ancré
+# per world unit
+=> # par unité mondiale
+€ per world unit
+=> € par unité mondiale
+Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below # % of the initial stock (red mark) the administrator may decree a devaluation.
+=> Change fixe : la banque centrale vend des réserves pour couvrir un déficit courant. Sous # % du stock initial (repère rouge), l’administrateur peut décréter une dévaluation.
+Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below # % of the initial stock (red mark) the next round carries a vote between austerity and devaluation; reserves exhausted while the current account is still in deficit force a devaluation.
+=> Change fixe : la banque centrale vend des réserves pour couvrir un déficit courant. Sous # % du stock initial (repère rouge), le tour suivant comporte un vote entre austérité et dévaluation ; des réserves épuisées alors que le solde courant reste déficitaire imposent une dévaluation.
+Floating exchange rate: the reserves are frozen and the exchange rate moves until the balance of payments (trade, primary income and capital flows) balances. A rate rise attracts capital and appreciates the currency; a sudden stop depreciates it and raises import prices. If the currency falls by more than # % in a year, the next year opens with a vote: defend (rate rise) or let it float.
+=> Change flottant : les réserves sont gelées et le taux de change bouge jusqu’à ce que la balance des paiements (commerce, revenus primaires et flux de capitaux) s’équilibre. Une hausse de taux attire les capitaux et apprécie la monnaie ; un arrêt brutal la déprécie et fait monter les prix importés. Si la monnaie perd plus de # % en un an, l’année suivante s’ouvre par un vote : défendre (hausse de taux) ou laisser flotter.
+The common external tariff
+=> Le tarif extérieur commun
+A tariff on everything the members buy from the rest of the world (now # %). The median of the members’ votes wins. It brings revenue to every budget and protects the union’s trade balance, but your households pay it — and the rest of the world may answer with a tariff on your exports.
+=> Un droit de douane sur tout ce que les membres achètent au reste du monde (actuellement # %). La médiane des votes des membres l’emporte. Il rapporte des recettes à chaque budget et protège le solde commercial de l’union, mais vos ménages le paient — et le reste du monde peut répliquer par un droit de douane sur vos exportations.
+Common external tariff (median of the votes)
+=> Tarif extérieur commun (médiane des votes)
+External tariff: # %
+=> Tarif extérieur : # %
+Rest of the world’s tariff on the union’s exports
+=> Droit de douane du reste du monde sur les exportations de l’union
+revenue # % of GDP
+=> recettes # % du PIB
+Climate:
+=> Climat :
+damage # % of potential output
+=> dommages # % de la production potentielle
+your emissions # % vs the reference
+=> vos émissions # % vs la référence
+carbon intensity # % of the reference.
+=> intensité carbone # % de la référence.
+Climate damage this year (loss of potential output)
+=> Dommages climatiques cette année (perte de production potentielle)
+Climate damage this year (loss of potential output, both countries)
+=> Dommages climatiques cette année (perte de production potentielle, deux pays)
+Global pollution stock (start = #)
+=> Stock mondial de pollution (départ = #)
+Pollution stock of your world (start = #)
+=> Stock de pollution de votre monde (départ = #)
+Union emissions vs the reference
+=> Émissions de l’union vs la référence
+Emissions of the pair vs the reference
+=> Émissions de la paire vs la référence
+Emissions · year #: # to R (# pt)
+=> Émissions · année # : # au R (# pt)
+
+// leaving the union
+Leave the monetary union
+=> Quitter l’union monétaire
+stay in the union
+=> rester dans l’union
+LEAVE the union at the end of this year
+=> QUITTER l’union à la fin de cette année
+Leaving the union is irreversible. Announce the exit of @ with this year’s decisions?
+=> Quitter l’union est irréversible. Annoncer la sortie (@) avec les décisions de cette année ?
+Announced with this year’s decisions (secret until the round closes), effective next year: a new currency at # for # — all your debt converted —, your own central bank with your share of the reserves, your own policy rate, a floating or pegged currency of your choice. Irreversible. The year of the announcement your households may move their savings abroad, and the remaining members will vote on measures against you (tariff, sale of your bills held by their central bank).
+=> Annoncée avec les décisions de cette année (secrète jusqu’à la clôture du tour), effective l’année suivante : une nouvelle monnaie à # pour # — toute votre dette convertie —, votre propre banque centrale avec votre part des réserves, votre propre taux directeur, une monnaie flottante ou ancrée, à votre choix. Irréversible. L’année de l’annonce, vos ménages peuvent placer leur épargne à l’étranger, et les membres restants voteront des mesures contre vous (droit de douane, vente de vos titres détenus par leur banque centrale).
+Leaves the union
+=> Quitte l’union
+announced its exit
+=> a annoncé sa sortie
+out of the union next year
+=> hors de l’union l’an prochain
+@ is out of the union
+=> @ est hors de l’union
+Out of the union (own currency)
+=> Hors de l’union (monnaie propre)
+since year #: your own currency, your own central bank, your own policy rate. Measures of the union in force (council of year #): tariff
+=> depuis l’année # : votre propre monnaie, votre propre banque centrale, votre propre taux directeur. Mesures de l’union en vigueur (conseil de l’année #) : droit de douane
+on your exports to the union, sale of
+=> sur vos exportations vers l’union, vente de
+a year of your bills held by its central bank.
+=> par an de vos titres détenus par sa banque centrale.
+Your currency
+=> Votre monnaie
+Floating currency
+=> Monnaie flottante
+Peg to the euro
+=> Ancrage à l’euro
+peg to the euro
+=> ancrage à l’euro
+floating: the market sets it
+=> flottant : le marché le fixe
+peg to the euro: your central bank defends it with its reserves
+=> ancrage à l’euro : votre banque centrale le défend avec ses réserves
+Floating: the price of the euro in your currency moves until your balance of payments balances (your reserves are frozen). Peg: your central bank holds the parity and its reserves absorb your deficits and surpluses; reserves exhausted with a deficit force a devaluation of # %. Against the rest of the world your currency follows the euro.
+=> Flottant : le prix de l’euro dans votre monnaie bouge jusqu’à ce que votre balance des paiements s’équilibre (vos réserves sont gelées). Ancrage : votre banque centrale tient la parité et ses réserves absorbent vos déficits et vos excédents ; des réserves épuisées avec un déficit imposent une dévaluation de # %. Face au reste du monde, votre monnaie suit l’euro.
+Change of the parity (peg only)
+=> Changement de parité (ancrage seulement)
++ = devaluation (a euro costs more of your currency: exports recover with a lag, import prices and inflation rise at once), − = revaluation
+=> + = dévaluation (un euro coûte plus de votre monnaie : les exportations repartent avec un délai, les prix importés et l’inflation montent tout de suite), − = réévaluation
+Buy back the bills the union sells
+=> Racheter les titres que l’union vend
+If the union’s central bank sells your bills, your central bank buys them: your rate does not rise, but the money created goes abroad anyway — your currency still falls (or your reserves, in a peg)
+=> Si la banque centrale de l’union vend vos titres, votre banque centrale les rachète : votre taux ne monte pas, mais la monnaie créée part quand même à l’étranger — votre monnaie baisse tout de même (ou vos réserves, en ancrage)
+Your tariff on goods from the union
+=> Votre droit de douane sur les biens de l’union
+Price of one euro in your currency (+ = depreciation)
+=> Prix d’un euro dans votre monnaie (+ = dépréciation)
+Price of the world currency in your currency
+=> Prix de la monnaie mondiale dans votre monnaie
+up = the euro depreciates
+=> hausse = l’euro se déprécie
+up = your currency depreciates
+=> hausse = votre monnaie se déprécie
+# per € (float)
+=> # pour 1 € (flottant)
+# per € (peg)
+=> # pour 1 € (ancrage)
+per €
+=> pour 1 €
+Your policy rate · rate on your bills
+=> Votre taux directeur · taux sur vos titres
+Your foreign reserves (share received at the exit)
+=> Vos réserves de change (part reçue à la sortie)
+TARGET balance (+: your central bank owes the union, in euros)
+=> Solde TARGET (+ : votre banque centrale doit à l’union, en euros)
+Your bills held by the union’s central bank
+=> Vos titres détenus par la banque centrale de l’union
+(# % sold this year)
+=> (# % vendus cette année)
+A depreciation makes your goods cheaper abroad (exports recover with a lag) and every import dearer at once: all your imports now pass through the exchange rate, so inflation follows the currency. Your debt is in your own currency: a depreciation does not raise it, but the union’s central bank, which holds part of it, can sell it.
+=> Une dépréciation rend vos biens moins chers à l’étranger (les exportations repartent avec un délai) et chaque importation plus chère tout de suite : toutes vos importations passent désormais par le taux de change, l’inflation suit donc la monnaie. Votre dette est dans votre propre monnaie : une dépréciation ne l’alourdit pas, mais la banque centrale de l’union, qui en détient une partie, peut la vendre.
+Union tariff on your exports
+=> Droit de douane de l’union sur vos exportations
+The remaining members are voting on measures against your country: a tariff on your exports to the union, the sale of your bills held by their central bank. Your decisions for year # open once the council is closed.
+=> Les membres restants votent des mesures contre votre pays : un droit de douane sur vos exportations vers l’union, la vente de vos titres détenus par leur banque centrale. Vos décisions pour l’année # s’ouvrent une fois le conseil clos.
+Council on retaliation against @
+=> Conseil sur les représailles contre @
+@ has left the union. Before any decision for year #, the members vote. For each measure the outcome is the median of the votes of the members (a member that does not vote counts for #): the level that no majority wants to raise or to lower. The measures stay in force until a later council changes them.
+=> @ a quitté l’union. Avant toute décision pour l’année #, les membres votent. Pour chaque mesure, le résultat est la médiane des votes des membres (un membre qui ne vote pas compte pour #) : le niveau qu’aucune majorité ne veut relever ni abaisser. Les mesures restent en vigueur jusqu’à ce qu’un conseil ultérieur les change.
+Tariff on its exports to the union
+=> Droit de douane sur ses exportations vers l’union
+Its goods cost more in every member: it sells less, your consumers pay more, your government collects the tariff.
+=> Ses biens coûtent plus cher dans chaque membre : il vend moins, vos consommateurs paient plus, votre gouvernement perçoit le droit de douane.
+Sale of its bills held by our central bank (share a year)
+=> Vente de ses titres détenus par notre banque centrale (part par an)
+Our central bank keeps the bills of @ it held at the exit. Selling them pushes its currency down (the proceeds are converted into euros) and its rate up unless its central bank buys them back.
+=> Notre banque centrale garde les titres de @ qu’elle détenait à la sortie. Les vendre fait baisser sa monnaie (le produit est converti en euros) et monter son taux, sauf si sa banque centrale les rachète.
+Settle the TARGET balance now
+=> Exiger le règlement immédiat du solde TARGET
+Union measures against @
+=> Mesures de l’union contre @
+@: tariff # %
+=> @ : droit de douane # %
+: tariff # %
+=> : droit de douane # %
+sale # %
+=> vente # %
+sale # % (median of the votes)
+=> vente # % (médiane des votes)
+tariff # %
+=> droit de douane # %
+sale of # % of its bills held by the central bank
+=> vente de # % de ses titres détenus par la banque centrale
+no change
+=> aucun changement
+
+// duel
+Your duel
+=> Votre duel
+Reserves of Country A (you)
+=> Réserves du pays A (vous)
+Reserves of Country B (you)
+=> Réserves du pays B (vous)
+Reserves of Country A (your partner)
+=> Réserves du pays A (votre partenaire)
+Reserves of Country B (your partner)
+=> Réserves du pays B (votre partenaire)
+Policy rates (A · B)
+=> Taux directeurs (A · B)
+Exchange rate e (A’s currency per unit of B’s; up = A depreciates)
+=> Taux de change e (monnaie de A par unité de celle de B ; hausse = A se déprécie)
+Current account of A incl. primary income
+=> Solde courant de A, revenus primaires compris
+capital inflows to A
+=> entrées de capitaux vers A
+per partner unit
+=> par unité du partenaire
+Fixed rate: both central banks defend the parity; the deficit country sells reserves. Below # % of the initial stock: ALERT; reserves exhausted with a continuing deficit: a forced devaluation of # % of that currency. The administrator may also decree a devaluation.
+=> Change fixe : les deux banques centrales défendent la parité ; le pays en déficit vend des réserves. Sous # % du stock initial : ALERTE ; réserves épuisées avec un déficit persistant : dévaluation forcée de # % de cette monnaie. L’administrateur peut aussi décréter une dévaluation.
+Y#
+=> A#
+
+// login, connection, countdown
+Enter the desk
+=> Entrer
+Each group received a 4-digit PIN from the instructor. One submission per group: agree on your decisions, then one of you submits.
+=> Chaque groupe a reçu un PIN à 4 chiffres de l’enseignant. Une soumission par groupe : mettez-vous d’accord sur vos décisions, puis l’un de vous les envoie.
+The site administrator must set API_URL in config.js.
+=> L’administrateur du site doit renseigner API_URL dans config.js.
+No answer from the server (timeout).
+=> Pas de réponse du serveur (délai dépassé).
+Cannot reach the server.
+=> Impossible de joindre le serveur.
+No backend URL is configured (config.js).
+=> Aucune adresse de serveur n’est configurée (config.js).
+Time is up &
+=> Temps écoulé &
+The administrator will assign a country to your group before the game starts.
+=> L’administrateur attribuera un pays à votre groupe avant le début de la partie.
+Analysis saved
+=> Analyse enregistrée
+Post our pledge
+=> Publier notre engagement
+Pledge posted
+=> Engagement publié
+Reserves crisis vote we announce
+=> Vote sur la crise des réserves que nous annonçons
+Submissions are closed for this round.
+=> Les soumissions sont closes pour ce tour.
+Tariff on @
+=> Droit de douane sur @
+Central bank buys back the bills sold
+=> La banque centrale rachète les titres vendus
+(your partner)
+=> (votre partenaire)
+(you)
+=> (vous)
+& · year #: R of the year &, cumulative &
+=> & · année # : R de l’année &, cumulé &
+
+// crises seen by a country that has left
+The union’s council is voting
+=> Le conseil de l’union vote
+The members vote on a reserves or currency crisis of the union. @ has left the union and does not vote; your decisions open once the vote is closed.
+=> Les membres votent sur une crise des réserves ou de change de l’union. @ a quitté l’union et ne vote pas ; vos décisions s’ouvrent une fois le vote clos.
+let it float
+=> laisser flotter
+. The currency keeps floating.
+=> . La monnaie continue de flotter.
+The union has voted no measure against you.
+=> L’union n’a voté aucune mesure contre vous.
+The members are voting on measures against @. Your country has left the union and does not vote.
+=> Les membres votent des mesures contre @. Votre pays a quitté l’union et ne vote pas.
+Immediate settlement of its TARGET balance
+=> Règlement immédiat de son solde TARGET
+Its central bank owes ours: it must pay now, out of its reserves first — the union’s reserves rise.
+=> Sa banque centrale doit à la nôtre : elle doit payer tout de suite, d’abord sur ses réserves — les réserves de l’union augmentent.
+
+// messages of the server and of the form checks
+Unknown PIN.
+=> PIN inconnu.
+The round has changed (now: &). Reload the page.
+=> Le tour a changé (maintenant : &). Rechargez la page.
+No country is assigned to your group yet. Ask the administrator.
+=> Aucun pays n’est encore attribué à votre groupe. Demandez à l’administrateur.
+No country is assigned to your group yet.
+=> Aucun pays n’est encore attribué à votre groupe.
+Your vote was not accepted.
+=> Votre vote n’a pas été accepté.
+Your decision was not accepted.
+=> Votre décision n’a pas été acceptée.
+The crisis vote is not open.
+=> Le vote de crise n’est pas ouvert.
+A country that has left the union does not vote at the council.
+=> Un pays qui a quitté l’union ne vote pas au conseil.
+The crisis vote is in progress; decisions open afterwards.
+=> Le vote de crise est en cours ; les décisions s’ouvrent ensuite.
+The council on retaliation is in session; decisions open afterwards.
+=> Le conseil sur les représailles siège ; les décisions s’ouvrent ensuite.
+Your comment is too short (20 characters minimum).
+=> Votre commentaire est trop court (20 caractères minimum).
+The council of ministers only meets during the game.
+=> Le conseil des ministres ne se réunit que pendant la partie.
+The council of ministers is not in session.
+=> Le conseil des ministres ne siège pas.
+State your pledge in a sentence (10 characters minimum).
+=> Formulez votre engagement en une phrase (10 caractères minimum).
+No council on retaliation against this country is open.
+=> Aucun conseil sur les représailles contre ce pays n’est ouvert.
+A country does not vote on retaliation against itself.
+=> Un pays ne vote pas sur des représailles contre lui-même.
+Tariff: choose 0, 5, 10 or 20 %.
+=> Droit de douane : choisissez 0, 5, 10 ou 20 %.
+Sale of bills: choose 0, 25, 50 or 100 %.
+=> Vente de titres : choisissez 0, 25, 50 ou 100 %.
+Rate vote must be cut, hold or hike.
+=> Le vote sur le taux doit être baisse, statu quo ou hausse.
+Common external tariff vote: choose 0, 5, 10 or 20 %.
+=> Vote sur le tarif extérieur commun : choisissez 0, 5, 10 ou 20 %.
+Expected # year(s) of decisions, got #.
+=> # année(s) de décisions attendue(s), # reçue(s).
+Year #: "@" is not a number.
+=> Année # : « @ » n’est pas un nombre.
+"@" belongs to a country that has left the union (tariffs switched on).
+=> « @ » est réservé à un pays qui a quitté l’union (droits de douane activés).
+"@" must be between 0 and # %.
+=> « @ » doit être entre 0 et # %.
+"@" belongs to the duel mode or to a country that has left the union.
+=> « @ » est réservé au mode duel ou à un pays qui a quitté l’union.
+Year #: "@" must stay within # points.
+=> Année # : « @ » doit rester dans ± # points.
+"@" belongs to model v2.0 (not this class).
+=> « @ » appartient au modèle v2.0 (pas à cette classe).
+"@" is not available in this phase.
+=> « @ » n’est pas disponible dans cette phase.
+Year #: "@" must be between 0 and #.
+=> Année # : « @ » doit être entre 0 et #.
+Year #: "@" must stay within # %.
+=> Année # : « @ » doit rester dans ± # %.
+Austerity programme: "@" must be at most # % this year.
+=> Programme d’austérité : « @ » doit être au plus de # % cette année.
+Leaving the monetary union is not available (ask the administrator).
+=> La sortie de l’union monétaire n’est pas ouverte (demandez à l’administrateur).
+@ has already announced its exit.
+=> @ a déjà annoncé sa sortie.
+Only a member of the union can leave it.
+=> Seul un membre de l’union peut la quitter.
+The change of parity is not a number.
+=> Le changement de parité n’est pas un nombre.
+A change of parity needs a peg.
+=> Un changement de parité suppose un ancrage.
+The change of parity must stay within # %.
+=> Le changement de parité doit rester dans ± # %.
+Exchange-rate decisions belong to a country that has left the union.
+=> Les décisions de change sont réservées à un pays qui a quitté l’union.
+At most # instruments may be used (you use #).
+=> Au plus # instruments peuvent être utilisés (vous en utilisez #).
+No instrument is activated — a plan with all zeros is not a policy.
+=> Aucun instrument n’est activé — un plan tout à zéro n’est pas une politique.
+Your strategy statement needs at least # characters (# so far).
+=> Votre énoncé de stratégie doit compter au moins # caractères (# pour l’instant).
+Your justification needs at least # characters (# so far).
+=> Votre justification doit compter au moins # caractères (# pour l’instant).
+
+// toasts
+Refreshed
+=> Actualisé
+Error
+=> Erreur
+y#
+=> a#
