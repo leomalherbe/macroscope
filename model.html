@@ -6,7 +6,7 @@
 <title>Macroscope · The model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110803">
+<link rel="stylesheet" href="style.css?v=2026110804">
 <style>
 table.eq{width:100%;border-collapse:collapse;background:#faf8f1;border:1px solid var(--line);border-radius:10px;margin:8px 0;font-size:.86rem}
 table.eq td{padding:4px 10px;vertical-align:top;border-bottom:1px solid #efebe0}
@@ -16,6 +16,7 @@ table.eq td.c{color:var(--muted);font-size:.82rem}
 .block{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start}
 .block .note{font-size:.85rem;color:var(--muted);border-left:3px solid var(--gold);padding-left:12px}
 @media (max-width:820px){.block{grid-template-columns:1fr}}
+.block>div{min-width:0;overflow-x:auto}
 table.p{width:100%;border-collapse:collapse;font-size:.88rem}
 table.p th,table.p td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 table.p th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -28,7 +29,24 @@ details.ver>summary h2{display:inline}
 details.ver>summary h2::before{content:"▸ ";color:var(--gold)}
 details.ver[open]>summary h2::before{content:"▾ "}
 .pill{display:inline-block;font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--gold-soft);border:1px solid #e4d4a0;border-radius:999px;padding:2px 10px;margin-left:8px;vertical-align:middle}
+/* the two matrices of the model (G&L style) */
+table.mx{border-collapse:collapse;font-size:.8rem;min-width:820px;width:100%}
+table.mx th{background:var(--navy);color:#fff;font-weight:600;padding:6px 8px;text-align:center;font-size:.72rem;letter-spacing:.04em}
+table.mx th:first-child{text-align:left}
+table.mx td{padding:4px 8px;text-align:center;border-top:1px solid var(--line);vertical-align:top}
+table.mx td:first-child{text-align:left;color:var(--ink);font-weight:500;max-width:220px}
+table.mx td .s{display:block;font-family:var(--mono);font-size:.76rem;color:var(--muted);white-space:nowrap}
+table.mx td .v{display:block;font-family:var(--mono);color:var(--ink);white-space:nowrap}
+table.mx tr.blk td{background:#f3f1ea;font-weight:700;color:var(--navy);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase}
+table.mx tr.sum td{font-weight:700;border-top:2px solid var(--navy)}
+table.mx td.z .v{color:var(--muted)}
+table.mx td .n{display:block;font-weight:400;color:var(--muted);font-size:.72rem;margin-top:1px}
+.mxctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:end;margin:8px 0 10px}
+.mxctl label{font-size:.78rem;color:var(--muted);display:block}
+.mxctl>div{min-width:0;max-width:100%}.mxctl select{max-width:100%}
 </style>
+<script src="engine.js?v=2026110804"></script>
+<script src="accounts.js?v=2026110804"></script>
 </head>
 <body>
 <header class="topbar"><div class="wrap">
@@ -37,7 +55,7 @@ details.ver[open]>summary h2::before{content:"▾ "}
     <h1>OPEN-MU · the model behind Macroscope</h1>
     <p class="sub">Every equation the engine solves, with the parameters it uses — so that you can anticipate what a decision does before you take it.</p>
     <div class="toc">
-      <a href="#notation">Notation</a><a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#eco">Emissions &amp; damages</a><a href="#capital">Capital flows &amp; the exchange-rate regime</a><a href="#duel">Duel mode</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
+      <a href="#notation">Notation</a><a href="#accounts">The accounts</a><a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#eco">Emissions &amp; damages</a><a href="#capital">Capital flows &amp; the exchange-rate regime</a><a href="#duel">Duel mode</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
     </div>
   </div>
   <div class="who"><a href="desk.html">← Policy desk</a> · <a href="index.html">About Macroscope</a></div>
@@ -117,6 +135,67 @@ details.ver[open]>summary h2::before{content:"▾ "}
     <div class="note">Public demand +10 is 10 % more public spending, i.e. about +2 points of GDP (G* = 0.20 Y*). Benefits +10 is +1.5 points of GDP (TR* = 0.15 Y*). Income tax +10 lifts the rate from 33.1 % to 36.4 %.</div>
   </div>
 </div>
+
+<div class="card" id="accounts">
+  <h2>The accounts: who pays whom, who owes whom</h2>
+  <p class="small">OPEN-MU is a stock-flow consistent model: every flow leaves one sector and reaches another, every financial asset is another sector’s liability. The two matrices below are the whole model’s accounting, for the union as a whole — the members added up, the common central bank, the rest of the world — with the values the engine computes, in % of the union’s GDP. Trade between members nets out at this level: only trade with the rest of the world is left.</p>
+  <div class="mxctl">
+    <div><label for="mxModel">Model</label><select id="mxModel"><option value="v1.2">v1.1 / v1.2 — no capital flows</option><option value="v1.3" selected>v1.3 — capital flows</option><option value="v2.0">v2.0 — capital flows and climate</option></select></div>
+    <div><label for="mxScen">Year shown</label><select id="mxScen"><option value="ref">the reference (stationary state)</option><option value="stim">year 2 of a union-wide stimulus (+5 % public demand)</option><option value="stop">year 1 of a sudden stop (−20 %, floating rate)</option><option value="deval">year 1 of a 10 % devaluation (fixed rate)</option></select></div>
+  </div>
+  <h3>Transactions-flow matrix</h3>
+  <div class="tablewrap" id="mxFlows"></div>
+  <p class="xs muted">Sign convention: <b>+</b> a source of funds (a receipt, or more of a liability), <b>−</b> a use of funds (a payment, or more of an asset). Each row is one transaction seen from both sides and sums to zero; each column is one sector’s budget constraint and sums to zero. Interest is paid at last year’s rates on last year’s stocks (₋₁). In the reference year every change in stocks is zero.</p>
+  <h3 style="margin-top:14px">Balance-sheet matrix (end of year)</h3>
+  <div class="tablewrap" id="mxStocks"></div>
+  <p class="xs muted">Sign convention: <b>+</b> an asset, <b>−</b> a liability. Each financial row sums to zero; only real capital is net wealth for the union and the world together. Households’ net worth is their wealth V, the governments’ is minus their debt B.</p>
+  <p class="xs muted" id="mxReval"></p>
+</div>
+<script>
+(function () {
+  if (typeof OPENMU === 'undefined' || typeof OPENMU_ACCOUNTS === 'undefined') return;
+  var H = { h: 'Households', fc: 'Firms · current', fk: 'Firms · capital', f: 'Firms', b: 'Banks', g: 'Governments', cb: 'Central bank', w: 'Rest of the world' };
+  var ALL = ['DEU', 'FRA', 'ITA', 'ESP', 'NLD', 'BEL', 'AUT'];
+  function esc(x) { return String(x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fmt(v, Y) { var x = 100 * v / Y; if (Math.abs(x) < 0.005) return '0.00'; return (x > 0 ? '+' : '−') + Math.abs(x).toFixed(2); }
+  function run(model, scen) {
+    var p = OPENMU.paramsFor(model), pol = {}, sh = [], t = 0, n = 1;
+    if (scen === 'stim') { ALL.forEach(function (id) { pol[id] = [{ pubdem: 5 }, { pubdem: 5 }]; }); n = 2; t = 1; }
+    if (scen === 'stop') { sh = [{ regime: 'float', flows: -20 }]; }
+    if (scen === 'deval') { sh = [{ deval: 10 }]; }
+    var sim = OPENMU.simulate({ params: p, years: n, policies: pol, shocks: sh });
+    return OPENMU_ACCOUNTS.accounts(sim, t);
+  }
+  function cell(sym, v, Y, isSum) {
+    if (sym === undefined && v === undefined) return '<td></td>';
+    return '<td' + (isSum ? ' class="z"' : '') + '>' + (sym ? '<span class="s">' + esc(sym) + '</span>' : '') + '<span class="v">' + fmt(v || 0, Y) + '</span></td>';
+  }
+  function draw() {
+    var model = document.getElementById('mxModel').value, scen = document.getElementById('mxScen').value;
+    var stopOpt = document.querySelector('#mxScen option[value="stop"]');
+    stopOpt.disabled = model === 'v1.2'; if (model === 'v1.2' && scen === 'stop') { scen = 'ref'; document.getElementById('mxScen').value = 'ref'; }
+    var a = run(model, scen), Y = a.Y, S = OPENMU_ACCOUNTS.SECTORS, SB = OPENMU_ACCOUNTS.SECTORS_BS;
+    var cap = model !== 'v1.2';
+    var colsF = S.filter(function (k) { return cap || k !== 'w' || true; });
+    var h = '<table class="mx"><thead><tr><th>Flows (% of union GDP)</th>' + colsF.map(function (k) { return '<th>' + H[k] + '</th>'; }).join('') + '<th>Σ</th></tr></thead><tbody>';
+    a.flows.forEach(function (r) {
+      if (r.block) { h += '<tr class="blk"><td colspan="' + (colsF.length + 2) + '">' + esc(r.block) + '</td></tr>'; return; }
+      h += '<tr><td>' + esc(r.label) + (r.note ? '<span class="n">' + esc(r.note) + '</span>' : '') + '</td>' + colsF.map(function (k) { return r.sym[k] || r.val[k] ? cell(r.sym[k], r.val[k], Y) : '<td></td>'; }).join('') + cell('', r.sum, Y, true) + '</tr>';
+    });
+    h += '<tr class="sum"><td>Σ</td>' + colsF.map(function (k) { return cell('', a.colFlows[k], Y, true); }).join('') + '<td></td></tr></tbody></table>';
+    document.getElementById('mxFlows').innerHTML = h;
+    var hs = '<table class="mx"><thead><tr><th>Stocks (% of union GDP)</th>' + SB.map(function (k) { return '<th>' + H[k] + '</th>'; }).join('') + '<th>Σ</th></tr></thead><tbody>';
+    a.stocks.forEach(function (r) {
+      hs += '<tr' + (r.sum ? ' class="sum"' : '') + '><td>' + esc(r.label) + (r.note ? '<span class="n">' + esc(r.note) + '</span>' : '') + '</td>' + SB.map(function (k) { return r.sym[k] || r.val[k] ? cell(r.sym[k], r.val[k], Y) : '<td></td>'; }).join('') + cell('', r.sumRow, Y, r.label !== 'Capital' && !r.sum) + '</tr>';
+    });
+    document.getElementById('mxStocks').innerHTML = hs + '</tbody></table>';
+    document.getElementById('mxReval').textContent = Math.abs(a.reval) > 1e-9 ? 'Revaluation, not a flow: the exchange rate moved from ' + a.xr1.toFixed(3) + ' to ' + a.xr.toFixed(3) + ' this year, so the central bank’s reserves gained ' + fmt(a.reval, Y) + ' % of GDP in value (its net worth NWcb) and the households’ foreign bills changed value too — gains that appear in the stocks, not in the flows (Godley & Lavoie, ch. 12).' : '';
+  }
+  document.getElementById('mxModel').addEventListener('change', draw);
+  document.getElementById('mxScen').addEventListener('change', draw);
+  draw();
+})();
+</script>
 
 <div class="card" id="households">
   <h2>Households</h2>

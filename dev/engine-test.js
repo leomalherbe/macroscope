@@ -700,5 +700,26 @@ console.log('\n===== UNION SIZE (spec section 14) =====');
   console.log('union size — France public demand +10, year 1 (v1.3): ' + out.map(o => o.name + ': France GDP ' + f(o.gdp, 2) + ' %, partners ' + f(o.spill, 2) + ' %, reserves % ' + o.res).join(' | '));
 }
 
+/* ===================== THE TWO MATRICES (model page, macroscope/accounts.js) ===================== */
+console.log('\n===== MATRICES (model page) =====');
+{
+  const ACC = require('../macroscope/accounts.js');
+  let maxRow = 0, maxCol = 0, maxChk = 0, maxNW = 0;
+  for (let seed = 1; seed <= 16; seed++) {
+    const rnd = rng(seed * 7), v = ['v1.1', 'v1.2', 'v1.3', 'v2.0'][seed % 4], inp = randomInputs(rnd, 6, 1, v === 'v1.3' || v === 'v2.0', v === 'v2.0');
+    if (v === 'v1.3' || v === 'v2.0') inp.shocks.forEach(s => { s.cet = rnd() < 0.3 ? 10 : 0; });
+    const sim = OPENMU.simulate({ params: OPENMU.paramsFor(v), years: 6, policies: inp.policies, shocks: inp.shocks });
+    for (let t = 0; t < 6; t++) {
+      const a = ACC.accounts(sim, t), Y = a.Y;
+      a.flows.forEach(r => { if (!r.block) maxRow = Math.max(maxRow, Math.abs(r.sum) / Y); });
+      Object.keys(a.colFlows).forEach(k => { maxCol = Math.max(maxCol, Math.abs(a.colFlows[k]) / Y); });
+      a.stocks.forEach(r => { if (!r.sum && r.label !== 'Capital') maxRow = Math.max(maxRow, Math.abs(r.sumRow) / Y); });
+      maxChk = Math.max(maxChk, a.checks.V / Y, a.checks.B / Y, a.checks.K / Y);
+      maxNW = Math.max(maxNW, Math.abs(a.colStocks.cb - sim.years[t].union.NWcb) / Y);
+    }
+  }
+  must(maxRow < 1e-9 && maxCol < 1e-9 && maxChk < 1e-9 && maxNW < 1e-9, 'model page matrices: every row and column of the transactions-flow and balance-sheet matrices sums to zero, net worth = V, −B, K, NWcb (16 seeds × 6 years, v1.1–v2.0; max ' + Math.max(maxRow, maxCol, maxChk, maxNW).toExponential(1) + ' of GDP)');
+}
+
 console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' : '\nENGINE OK');
 process.exit(failed ? 1 : 0);
