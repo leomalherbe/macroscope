@@ -223,3 +223,60 @@ svg.race{width:100%;height:auto;display:block}
 .racelegend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:2px 0 6px;font-size:.85rem;color:var(--ink)}
 .racelegend i{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
 
+/* ===== Macroscope charter (9 Nov 2026), aligned on the landing page: blue frame, navy text, coral accents, square corners =====
+   Overrides the course-site house style above (cream, gold, Source Serif). Variant B chosen by Léo: text and figures in navy. */
+:root{
+  --blue:#122ddb; --navy:#122ddb; --text:#0a1670; --ink:var(--text);
+  --muted:#5566cf; --bg:#ffffff; --card:#ffffff;
+  --line:rgba(18,45,219,.16); --line-strong:rgba(18,45,219,.38);
+  --gold:#ff7a59; --gold-soft:#fff0ea; --coral:#ff7a59; --coral-soft:#ffd7cd;
+  --blue-soft:rgba(18,45,219,.06);
+  --green:#1f8a4c; --green-soft:#e7f4ec; --red:#d8343f; --red-soft:#fdecec;
+  --amber:#c8452a; --amber-soft:#fff0ea;
+  --display:"Inter Tight","Helvetica Neue",Arial,sans-serif;
+  --mono:Inter,system-ui,sans-serif;
+}
+html,body{background:#fff;color:var(--text)}
+td.num,th.num,.num,.v,.val,.countdown,input[type=number]{font-variant-numeric:tabular-nums}
+a{color:var(--blue)}
+h1,h2,h3,h4,.strip .big,.entry .head b,.rank{font-family:var(--display);font-weight:700;letter-spacing:-.03em;color:var(--blue)}
+.kicker{color:var(--muted)}
+.topbar{background:var(--blue);padding:22px 0 20px;border-bottom:0}
+.topbar h1{font-weight:800;letter-spacing:-.045em;color:#fff}
+.topbar .kicker{color:rgba(255,255,255,.8)}
+.topbar .sub,.topbar a,.topbar .who{color:rgba(255,255,255,.88)}
+.card{border-radius:0;box-shadow:none;border:1px solid var(--line);border-top:1.5px solid var(--blue)}
+.card.tint{background:var(--gold-soft);border-color:var(--line);border-top-color:var(--coral)}
+.card.alert{background:var(--amber-soft);border-color:var(--line);border-top-color:var(--coral)}
+.pill,.countdown,.chip,.btn,.err,.ok,.note,.communique,.toast,.votes .q,.entry,.status-grid .g,.fact,.traj,.bar,.bar i,input[type=text],input[type=number],input[type=password],input[type=url],select,textarea{border-radius:0}
+.pill{border-color:var(--line-strong);color:var(--blue)}
+.pill.blue{background:var(--blue-soft);color:var(--blue);border-color:var(--line-strong)}
+.pill.gold{background:var(--coral-soft);color:var(--blue);border-color:var(--coral)}
+.btn{border-color:var(--blue);color:var(--blue)}
+.btn.primary{background:var(--blue);color:#fff}
+.btn.primary:hover{background:var(--coral-soft);color:var(--blue)}
+.btn.ghost:hover{background:var(--blue-soft)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--coral-soft);border-color:var(--blue)}
+input.nz,.resgrid select.nz{background:var(--gold-soft);border-color:var(--coral)}
+th{background:#fff;color:var(--muted);border-bottom:1.5px solid var(--blue)}
+tr.cat td{background:var(--blue);color:#fff}
+tr.me td{background:var(--gold-soft)}
+tr.partner td{background:var(--blue-soft)}
+tr.bd td{background:#fbfbff}
+.bar,.bar.reserves{background:var(--blue-soft)}
+.bar i{background:var(--blue)}
+.communique{background:var(--amber-soft);border:0;border-left:3px solid var(--coral)}
+.communique .kicker{color:var(--amber)}
+.note{background:var(--blue-soft);border-color:var(--line);color:var(--text)}
+.pledge{border-left-color:var(--coral);background:#fff}
+.pledge b{color:var(--blue)}
+.chip{background:var(--gold-soft);border-color:var(--coral-soft)}
+.chip.zero,.chip.vote.zero{background:#f6f7fe;border-color:var(--line);color:var(--muted)}
+.chip.vote{background:var(--blue-soft);border-color:var(--line-strong);color:var(--blue)}
+.votes .q{background:#fff}
+.tabs{border-bottom:1.5px solid var(--blue)}
+.tabs button.active{color:var(--blue);border-bottom-color:var(--coral)}
+.toast{background:var(--blue)}
+.traj{border-color:var(--line)}
+.fact .val{color:var(--text)}
+footer{border-top:1.5px solid var(--blue);color:var(--muted)}
