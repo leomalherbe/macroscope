@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110903">
-<script src="i18n.js?v=2026110903"></script>
-<script src="i18n/fr-desk.js?v=2026110903"></script>
-<script src="i18n/fr-admin.js?v=2026110903"></script>
-<script src="config.js?v=2026110903"></script>
-<script src="core.js?v=2026110903"></script>
-<script src="app-common.js?v=2026110903"></script>
-<script src="engine.js?v=2026110903"></script>
+<link rel="stylesheet" href="style.css?v=2026110904">
+<script src="i18n.js?v=2026110904"></script>
+<script src="i18n/fr-desk.js?v=2026110904"></script>
+<script src="i18n/fr-admin.js?v=2026110904"></script>
+<script src="config.js?v=2026110904"></script>
+<script src="core.js?v=2026110904"></script>
+<script src="app-common.js?v=2026110904"></script>
+<script src="engine.js?v=2026110904"></script>
 </head>
 <body>
 
@@ -454,8 +454,10 @@
     var gTar = el('input', { type: 'checkbox', id: 'tariffsOn' }); gTar.checked = !!(s.sim && s.sim.tariffs);
     var gEu = el('input', { type: 'checkbox', id: 'exitAllowed' }); gEu.checked = !!(s.sim && s.sim.exit);
     var gTfp = el('input', { type: 'checkbox' }); gTfp.checked = !!s.game.allowTfp;
+    var gGuide = el('input', { type: 'checkbox', id: 'guideOn' }); gGuide.checked = !(s.sim && s.sim.guide === false);
     box.appendChild(el('div', { class: 'params' }, [gy.el, gm.el, gt.el]));
     box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Spec §13: the members vote each year on a common external tariff on the rest of the world (0, 5, 10 or 20 %, median of the votes); a country out of the union may tax the goods of the union (0–20 %); shock « Rest of the world: tariff on union exports » in Run. Backend 1.10.' }, [gTar, ' tariffs (common external tariff voted by the members; tariff of a country out of the union)']), el('label', { title: 'Spec §12: a member may announce its exit with its decisions; it leaves the union the next year (models v1.3 and v2.0 only; backend 1.9)' }, [gEu, ' leaving the union allowed (models v1.3 and v2.0)']), el('label', {}, [gTfp, ' TFP shock allowed'])]));
+    box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Short cards on the mechanisms at work (direction of effects only), and a glossary; the cards shown follow the model version and the options of the class.' }, [gGuide, ' beginners’ guide on the desk (« How it works? » panel and ⓘ buttons)'])]));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Votes at the central bank (game)']));
     var simNow = Object.assign({}, MS.defaultState().sim, s.sim || {});
     var vOn = el('input', { type: 'checkbox' }); vOn.checked = simNow.votes !== false;
@@ -482,7 +484,7 @@
         warmup: { country: wc.value, years: Math.max(1, Math.min(3, Math.round(MS.num(wy.input.value)) || 3)), allowed: allowed, maxNonZero: Math.round(MS.num(wm.input.value)), minText: Math.round(MS.num(wt.input.value)) },
         game: { allowTariff: false, allowEuro: false, allowTfp: gTfp.checked, maxNonZero: Math.round(MS.num(gm.input.value)), minText: Math.round(MS.num(gt.input.value)) },
         years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w,
-        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15, crisisDepr: MS.num(vDepr.input.value) || 10, defendStep: MS.num(vDef.input.value) || 1, model: mSel.value, exit: gEu.checked && (mSel.value === 'v1.3' || mSel.value === 'v2.0'), tariffs: gTar.checked && !isDuel() } }, (gEu.checked && !(mSel.value === 'v1.3' || mSel.value === 'v2.0')) ? 'Parameters saved — leaving the union needs model v1.3 or v2.0: left off' : 'Parameters saved');
+        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15, crisisDepr: MS.num(vDepr.input.value) || 10, defendStep: MS.num(vDef.input.value) || 1, model: mSel.value, exit: gEu.checked && (mSel.value === 'v1.3' || mSel.value === 'v2.0'), tariffs: gTar.checked && !isDuel(), guide: gGuide.checked } }, (gEu.checked && !(mSel.value === 'v1.3' || mSel.value === 'v2.0')) ? 'Parameters saved — leaving the union needs model v1.3 or v2.0: left off' : 'Parameters saved');
     } }, ['Save parameters'])]));
     det.appendChild(box); c5.appendChild(det); v.appendChild(c5);
   }
@@ -789,7 +791,7 @@
   function isCapModel(s) { var m = modelOf(s); return m === 'v1.3' || m === 'v2.0'; }
   function engineParams() {
     var ov_ = st().sim || {};
-    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, model: 1, crisisDepr: 1, defendStep: 1, exit: 1, tariffs: 1, members: 1 };   // console rules, not engine parameters
+    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, model: 1, crisisDepr: 1, defendStep: 1, exit: 1, tariffs: 1, members: 1, guide: 1 };   // console rules, not engine parameters
     if (isDuel()) { var o = { forcedDeval: gameRules().forcedDeval, rateMax: MS.num(st().bounds.rate) || 2 }; Object.keys(ov_).forEach(function (k) { if (k !== 'countries' && !rules[k]) o[k] = ov_[k]; }); return OPENMU.duelParams(o); }
     rules.forcedDeval = 1;
     var p = OPENMU.paramsFor ? OPENMU.paramsFor(modelOf()) : OPENMU.defaultParams();

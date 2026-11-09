@@ -903,3 +903,7 @@ leave blank to compute R from the weights
 => laisser vide pour calculer R à partir des poids
 engine.js is missing or failed to load: nothing can be run. Results can still be typed by hand in the Results tab.
 => engine.js est absent ou n’a pas pu se charger : rien ne peut être simulé. Les résultats peuvent encore être saisis à la main dans l’onglet Résultats.
+beginners’ guide on the desk (« How it works? » panel and ⓘ buttons)
+=> guide pour débutants sur le desk (panneau « Comment ça marche ? » et boutons ⓘ)
+Short cards on the mechanisms at work (direction of effects only), and a glossary; the cards shown follow the model version and the options of the class.
+=> De courtes fiches sur les mécanismes à l’œuvre (sens des effets seulement) et un lexique ; les fiches affichées suivent la version du modèle et les options de la classe.

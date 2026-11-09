@@ -61,6 +61,35 @@ async function leftovers(page) {
   let left = await leftovers(desk);
   must(left.length === 0, 'no English left during the round (' + left.join(' | ') + ')');
   await desk.screenshot({ path: OUT + '/fr-1-form.png', fullPage: true });
+
+  /* the beginners' guide: titles only, one card at a time, ⓘ next to the levers, glossary in its own tab */
+  must(await desk.isVisible('#guideBtn') && /^Comment ça marche\s\?$/.test((await desk.textContent('#guideBtn')).trim()), 'guide: « Comment ça marche ? » button');
+  await desk.click('#guideBtn'); await desk.waitForSelector('#guidePanel:not([hidden])');
+  const cards = await desk.$$eval('#guidePanel details.gcard', ds => ds.map(d => d.getAttribute('data-card')));
+  must(cards.join(',') === 'score,demand,leaks,vat,rate,reserves,deval,coop,decomp,compet,float,debt', 'guide (v1.3, no options): 12 cards, no climate / exit / duel (' + cards.join(',') + ')');
+  must((await desk.$$('#guidePanel details.gcard[open]')).length === 0, 'guide opens on the titles only');
+  await desk.click('#guidePanel details.gcard[data-card="vat"] summary'); await desk.click('#guidePanel details.gcard[data-card="rate"] summary'); await desk.waitForTimeout(150);
+  must((await desk.$$eval('#guidePanel details.gcard[open]', ds => ds.map(d => d.getAttribute('data-card')))).join() === 'rate', 'one card open at a time');
+  must(/l’année suivante/.test(await desk.textContent('#guidePanel details.gcard[data-card="rate"]')), 'the rate card is in French');
+  await desk.click('#guidePanel .gp-tabs [data-tab="glossary"]');
+  must((await desk.$$('#guidePanel dl.gloss dt')).length >= 20 && await desk.isHidden('#guidePanel [data-pane="cards"]'), 'glossary in its own tab');
+  await desk.screenshot({ path: OUT + '/fr-1b-glossary.png' });
+  await desk.click('#guidePanel .gp-close'); await desk.waitForSelector('#guidePanel', { state: 'hidden' });
+  const gi = await desk.$('td[data-guide="demand"] > .gi');
+  must(!!gi, 'an ⓘ next to the public demand lever');
+  await gi.click(); await desk.waitForSelector('#guidePanel details.gcard[data-card="demand"][open]');
+  must(await desk.isVisible('#guidePanel details.gcard[data-card="demand"] dd'), 'the ⓘ opens the multiplier card');
+  await desk.click('#guidePanel a.glink[data-card="leaks"]'); await desk.waitForSelector('#guidePanel details.gcard[data-card="leaks"][open]');
+  must(true, 'a « fiche n » link opens that card');
+  await desk.screenshot({ path: OUT + '/fr-1c-guide.png' });
+  await desk.keyboard.press('Escape');
+  /* switched off by the administrator */
+  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { sim: { guide: false } } });
+  await desk.click('button:has-text("Actualiser")'); await desk.waitForTimeout(1200);
+  must(await desk.isHidden('#guideBtn') && (await desk.$$('.gi')).length === 0, 'guide switched off: no button, no ⓘ');
+  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { sim: { guide: true } } });
+  await desk.click('button:has-text("Actualiser")'); await desk.waitForTimeout(1200);
+  must(await desk.isVisible('#guideBtn') && (await desk.$$('.gi')).length > 0, 'switched back on');
   /* a decision with a decimal, submitted from the French form */
   await desk.fill('input[name="L_pubdem_0"]', '2.5'); await desk.fill('#decisionText', TEXT + ' Nous relançons.');
   await desk.click('button:has-text("Envoyer nos décisions")'); await desk.waitForSelector('text=Décisions soumises');

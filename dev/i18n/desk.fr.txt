@@ -298,8 +298,8 @@ Vote on the central bank’s rate we announce
 => Vote sur le taux de la banque centrale que nous annonçons
 The central bank’s rate
 => Le taux de la banque centrale
-One country, one vote. A majority of the countries moves the rate by # pt, permanently. It acts on investment next year and on every budget’s debt service at once.
-=> Un pays, une voix. Une majorité des pays fait bouger le taux de # pt, durablement. Il agit sur l’investissement l’année suivante et, tout de suite, sur le service de la dette de chaque budget.
+One country, one vote. A majority of the countries moves the rate by # pt, permanently. It acts the following year, on investment and on every budget’s debt service.
+=> Un pays, une voix. Une majorité des pays fait bouger le taux de # pt, durablement. Il agit l’année suivante, sur l’investissement et sur le service de la dette de chaque budget.
 Your votes travel with your decisions and stay secret while the round is open; they are revealed with everyone’s decisions once it is closed.
 => Vos votes partent avec vos décisions et restent secrets tant que le tour est ouvert ; ils sont révélés avec les décisions de tous à sa clôture.
 Cut # pt
@@ -1060,3 +1060,7 @@ Error
 => Erreur
 y#
 => a#
+
+// beginners' guide
+How it works?
+=> Comment ça marche ?
