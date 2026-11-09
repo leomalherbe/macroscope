@@ -80,6 +80,8 @@ var UI = (function () {
     var m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
     return { text: (late ? '−' : '') + m + ':' + MS.pad(s), late: late };
   }
+  /* a label as the page will show it (the desk may translate it in place: i18n.js) */
+  function shownLabel(t) { return typeof MXL !== 'undefined' && MXL.lang !== 'en' ? MXL.t(t) : t; }
   function signedClass(v) { v = Number(v); return v > 0 ? 'pos' : (v < 0 ? 'neg' : ''); }
   /* compact description of a decision year: non-zero levers, tariffs, options */
   function yearChips(y, opts) {
@@ -335,7 +337,7 @@ var UI = (function () {
     var SER = trajSeriesFor(rows);
     var seriesAll = SER.concat([R_SERIES]);
     var legend = [], lx0 = padL, lrow = 0;
-    if (opts.legend !== false) seriesAll.forEach(function (s) { var w = 18 + 6.4 * s.label.length + 12; if (lx0 + w > W - padR) { lx0 = padL; lrow++; } legend.push({ s: s, x: lx0, row: lrow }); lx0 += w; });
+    if (opts.legend !== false) seriesAll.forEach(function (s) { var w = 18 + 6.4 * shownLabel(s.label).length + 12; if (lx0 + w > W - padR) { lx0 = padL; lrow++; } legend.push({ s: s, x: lx0, row: lrow }); lx0 += w; });
     var padB = opts.legend === false ? 22 + f11 : 30 + 16 * (lrow + 1);
     if (fs > 1) { padL = Math.round(padL * fs); padT = opts.title ? Math.round(20 * fs) + 10 : padT; }
     var data = (rows || []).filter(function (r) { return r && r.year !== undefined && r.year !== null; })
