@@ -723,6 +723,13 @@ html.js:not(.rm) .split.in .w > span{transform:none}
 #shock{-webkit-appearance:none;appearance:none;padding:10px 46px 10px 16px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23122ddb' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 16px center;cursor:pointer}
 /* « One year of play » cards: the number turns vivid coral on hover */
 .loop > div:hover h3 i{color:var(--coral)}
+/* Free / Open / Instant band: the page alignment sits on the band, not on its first column (on wide screens that
+   column shrank until its word overflowed onto the next one); the three words keep one common size (see the script) */
+.stats3{padding-left:max(0px,calc((100vw - 1200px)/2));padding-right:max(0px,calc((100vw - 1200px)/2))}
+.stats3 .stat:first-child{padding-left:24px}
+.stats3 .stat{min-width:0}
+.stats3 .stat b{white-space:nowrap}
+@media (max-width:760px){.stats3{padding-left:0;padding-right:0}}
 </style>
 </head>
 <body>
@@ -1352,5 +1359,31 @@ if(rm||!('IntersectionObserver' in window)){draw(10)}else{draw(0);
   (function f(n){const t=(n-t0)/1000;draw(t);if(t<4.3)requestAnimationFrame(f)})(t0)}})},{threshold:.35});io.observe(svgEl)}
 
 })();</script>
+<script>
+/* Free / Open / Instant (Gratuit / Ouvert / Immédiat): one common size for the three words, the largest at which the
+   longest of them fits its column; recomputed on resize, when the fonts arrive and when the language changes. ES5. */
+(function () {
+  'use strict';
+  var band = document.querySelector('.stats3');
+  if (!band) return;
+  var queued = false;
+  function fit() {
+    queued = false;
+    var words = band.querySelectorAll('.stat b'), scale = 1, i;
+    for (i = 0; i < words.length; i++) words[i].style.fontSize = '';
+    for (i = 0; i < words.length; i++) if (words[i].scrollWidth > words[i].clientWidth + 1) scale = Math.min(scale, words[i].clientWidth / words[i].scrollWidth);
+    if (scale < 1 && words.length) {
+      var size = (parseFloat(getComputedStyle(words[0]).fontSize) * scale * 0.97).toFixed(2) + 'px';
+      for (i = 0; i < words.length; i++) words[i].style.fontSize = size;
+    }
+  }
+  function later() { if (queued) return; queued = true; (window.requestAnimationFrame || setTimeout)(fit); }
+  later();
+  window.addEventListener('resize', later);
+  window.addEventListener('load', later);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(later);
+  if (window.MutationObserver) new MutationObserver(later).observe(band, { childList: true, subtree: true, characterData: true });
+})();
+</script>
 </body>
 </html>
