@@ -103,7 +103,6 @@ Méthode de travail avec Léo pour le visuel : proposer des captures avant/aprè
 
 **À faire / à surveiller** :
 - Redirections dans le dépôt du cours (voir §1) ; fermer la vieille PR #23 du dépôt du cours (page du modèle, sans doute dépassée).
-- Léo signale que « Ouvrir le board » de la console n'ouvre pas le board chez lui (après #7) ; non reproduit en local : attendre l'adresse de sa console et celle du lien.
 - Le board (projecteur) reste en anglais ; à traduire de la même façon si une classe joue en français.
 - Rappel programmé le jeudi 12/11 à 18 h 30 (heure de Paris) : aligner les réserves de départ de la v1.1 (3 mois) sur la v1.2 (1,5 mois). Choix à reposer à Léo : modifier v1.1 pour toutes les classes (casse le rejeu de la partie de la séance 6 et la régression bit à bit) ou un champ « Initial reserves » par classe (`sim.reserveMonths`, déjà lu par le moteur, verrouillé après l'année 1). Ce rappel arrive dans la session de l'ancien projet « International Financial Macroeconomics ».
 - Les copies `claude/handover.md` et `claude/openmu-spec.md` du projet Claude du cours datent d'avant l'autonomie (chemins `macroscope/…`) : la référence est ce fichier, dans le dépôt.
