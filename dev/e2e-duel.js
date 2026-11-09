@@ -5,7 +5,7 @@
    ranking with four players → backend guards (rate bound, rate refused on a union class). Mock server: PORT env (default 8787). */
 const { chromium } = require('playwright');
 const fs = require('fs');
-const MS = require('../macroscope/core.js');
+const MS = require('../core.js');
 const BASE = 'http://localhost:' + (process.env.E2E_PORT || 8787);
 const API = BASE + '/api';
 const OUT = process.argv[2] || '/tmp/shots-duel';

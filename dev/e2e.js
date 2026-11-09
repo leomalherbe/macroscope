@@ -2,11 +2,11 @@
    class + groups → warm-up submissions → shocks → Run all plans → publish → student sees 3 years + union panel
    → game: council, submissions + votes, close, Run year 1 (rate vote) → publish → year 2 (replay, reserves alert)
    → year 3 crisis vote (austerity then devaluation) → year 4 forced devaluation → board → delete class.
-   The engine is macroscope/engine.js when present, else dev/engine-stub.js (served by the mock at /engine.js). */
+   The engine is engine.js when present, else dev/engine-stub.js (served by the mock at /engine.js). */
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-const MS = require('../macroscope/core.js');
+const MS = require('../core.js');
 const BASE = 'http://localhost:' + (process.env.E2E_PORT || 8787);
 const API = BASE + '/api';
 const OUT = process.argv[2] || '/tmp/shots';
@@ -14,8 +14,8 @@ fs.mkdirSync(OUT, { recursive: true });
 async function api(params) { const r = await fetch(API, { method: 'POST', body: JSON.stringify(params) }); return r.json(); }
 const runClick = async (pg) => { await pg.click('#runBtn'); await pg.waitForSelector('#runBtn:not([disabled])'); };
 function must(cond, msg) { if (!cond) { throw new Error('ASSERTION FAILED: ' + msg); } console.log('ok -', msg); }
-const realEngine = fs.existsSync(path.join(__dirname, '..', 'macroscope', 'engine.js'));
-console.log('engine:', realEngine ? 'macroscope/engine.js (real)' : 'dev/engine-stub.js (stub)');
+const realEngine = fs.existsSync(path.join(__dirname, '..', 'engine.js'));
+console.log('engine:', realEngine ? 'engine.js (real)' : 'dev/engine-stub.js (stub)');
 
 (async () => {
   await api({ action: '__reset' });

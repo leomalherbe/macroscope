@@ -1,7 +1,7 @@
 /* OPEN-MU engine tests — node dev/engine-test.js (exit 1 on failure)
    The generic suite runs twice: firms:false (v1.0 behaviour, bit-for-bit) and firms:true (v1.1, the default).
    Then the v1.1-specific checks (regression, rate channel, reversibility, boundedness, multipliers vs v1.0). */
-const OPENMU = require('../macroscope/engine.js');
+const OPENMU = require('../engine.js');
 let failed = 0;
 function must(cond, msg) { console.log((cond ? 'ok   - ' : 'FAIL - ') + msg); if (!cond) failed++; }
 const f = (v, d) => (v >= 0 ? '+' : '') + v.toFixed(d === undefined ? 3 : d);
@@ -700,10 +700,10 @@ console.log('\n===== UNION SIZE (spec section 14) =====');
   console.log('union size — France public demand +10, year 1 (v1.3): ' + out.map(o => o.name + ': France GDP ' + f(o.gdp, 2) + ' %, partners ' + f(o.spill, 2) + ' %, reserves % ' + o.res).join(' | '));
 }
 
-/* ===================== THE TWO MATRICES (model page, macroscope/accounts.js) ===================== */
+/* ===================== THE TWO MATRICES (model page, accounts.js) ===================== */
 console.log('\n===== MATRICES (model page) =====');
 {
-  const ACC = require('../macroscope/accounts.js');
+  const ACC = require('../accounts.js');
   let maxRow = 0, maxCol = 0, maxChk = 0, maxNW = 0;
   for (let seed = 1; seed <= 16; seed++) {
     const rnd = rng(seed * 7), v = ['v1.1', 'v1.2', 'v1.3', 'v2.0'][seed % 4], inp = randomInputs(rnd, 6, 1, v === 'v1.3' || v === 'v2.0', v === 'v2.0');

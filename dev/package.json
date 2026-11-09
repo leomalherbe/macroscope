@@ -1,18 +1,6 @@
 {
-  "name": "devdeps",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "chart.js": "^4.4.1",
-    "katex": "^0.16.9",
-    "pdfjs-dist": "^3.11.174",
-    "reveal.js": "^5.1.0"
-  }
+  "name": "macroscope-dev",
+  "private": true,
+  "description": "Development tooling of Macroscope: install Playwright here (npm i playwright) to run the browser scenarios.",
+  "license": "CC-BY-NC-SA-4.0"
 }
