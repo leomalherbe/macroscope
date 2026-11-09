@@ -689,6 +689,22 @@ details.prov .tablewrap{border:0}
 .score-chart figcaption{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:6px}
 .score-chart svg{width:100%;height:auto;display:block}
 .score-chart svg text{font-family:Inter,sans-serif}
+/* coral accents (chosen by Léo, 9 Nov 2026): vivid coral for lines and marks, soft coral (as in the hero) under text, except the small LIVE badge */
+:root{--coral:#ff7a59;--coral-soft:#ffd7cd}
+.hero-chart .act{stroke:rgba(255,122,89,.3)}
+.hero-chart .dot{fill:var(--coral)}
+.hero-chart .pulse{stroke:var(--coral)}
+.kicker i{background:var(--coral)}
+.lab::before{background:var(--coral);color:#0a1670}
+.vs{color:var(--coral)}
+.loop > div::before{background:var(--coral-soft)}
+.loop > div:hover,.loop > div:hover h3,.loop > div:hover h3 i{color:var(--ink)}
+.nav ul a::after{background:var(--coral)}
+.pill::before{background:var(--coral-soft)}
+.pill:hover{color:var(--ink)}
+.run::before{background:var(--coral-soft)}
+.run:hover{color:var(--ink)}
+.criteria div::after{background:var(--coral)}
 </style>
 </head>
 <body>
