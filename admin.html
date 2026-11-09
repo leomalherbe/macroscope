@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110906">
-<script src="i18n.js?v=2026110906"></script>
-<script src="i18n/fr-desk.js?v=2026110906"></script>
-<script src="i18n/fr-admin.js?v=2026110906"></script>
-<script src="config.js?v=2026110906"></script>
-<script src="core.js?v=2026110906"></script>
-<script src="app-common.js?v=2026110906"></script>
-<script src="engine.js?v=2026110906"></script>
+<link rel="stylesheet" href="style.css?v=2026110907">
+<script src="i18n.js?v=2026110907"></script>
+<script src="i18n/fr-desk.js?v=2026110907"></script>
+<script src="i18n/fr-admin.js?v=2026110907"></script>
+<script src="config.js?v=2026110907"></script>
+<script src="core.js?v=2026110907"></script>
+<script src="app-common.js?v=2026110907"></script>
+<script src="engine.js?v=2026110907"></script>
 </head>
 <body>
 
@@ -613,6 +613,7 @@
     lines.push('\tTFP\t' + p.years.map(function (y) { return MS.fmt(y.tfp || 0, 2); }).join('\t'));
     return lines.join('\n');
   }
+  function decText(d) { return (d && (d.text || (d.payload && d.payload.text))) || ''; }
   function entryCard(d) {
     var g = groupById(d.groupId), p = d.payload, n = p.years.length;
     var card = el('div', { class: 'entry' });
@@ -708,6 +709,7 @@
           recompute(r);
         }
         tbl.appendChild(tb); block.appendChild(el('div', { class: 'tablewrap' }, [tbl]));
+        if (dec) block.appendChild(el('details', { class: 'small', style: 'margin-top:6px' }, [el('summary', {}, ['Group’s strategy, a priori (' + UI.fmtTime(dec.ts) + ')']), el('p', { style: 'white-space:pre-wrap', translate: 'no' }, [decText(dec)])]));
         var trW = ov.results.filter(function (r) { return r.phase === 'warmup' && r.key === g.groupId; });
         if (trW.length) block.appendChild(el('details', { class: 'small', style: 'margin-top:6px' }, [el('summary', {}, ['The objective, year by year']), el('div', { style: 'margin-top:6px', html: UI.trajectorySvg(trW, { weights: st().weights, height: 230 }) })]));
         var cm = ov.comments.filter(function (x) { return x.phase === 'warmup' && x.groupId === g.groupId; })[0];
@@ -728,6 +730,17 @@
         recompute(r);
       });
       tbl2.appendChild(tb2); c.appendChild(el('div', { class: 'tablewrap' }, [tbl2]));
+      /* each group's justification of the year, written with its decisions */
+      var decsY = decisionsFor('game', resSel.round);
+      if (decsY.length) {
+        var jb = el('div', { style: 'margin-top:6px' });
+        playedList.forEach(function (cc) {
+          var d = decsY.filter(function (x) { return x.country === cc.id; })[0], g = groupByCountry(cc.id);
+          jb.appendChild(el('div', { style: 'margin:8px 0' }, [el('b', {}, [cc.name]), ' ', el('span', { class: 'muted small' }, [(g ? g.name : '') + (d ? ' · ' + UI.fmtTime(d.ts) : '')]),
+            d ? el('p', { style: 'white-space:pre-wrap;margin:2px 0 0', translate: 'no' }, [decText(d)]) : el('p', { class: 'muted', style: 'margin:2px 0 0' }, ['no decision submitted'])]));
+        });
+        c.appendChild(el('details', { class: 'small', style: 'margin-top:10px' }, [el('summary', {}, ['Groups’ justifications, a priori · year ' + resSel.round]), jb]));
+      }
       var gameRows = ov.results.filter(function (r) { return r.phase === 'game' && r.key && String(r.key).indexOf('UNION') !== 0 && String(r.key).indexOf('DUEL:') !== 0; });
       if (gameRows.length) {
         var tgA = el('div', { class: 'trajgrid', style: 'margin-top:8px' });

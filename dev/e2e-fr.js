@@ -135,6 +135,9 @@ async function leftovers(page) {
   must(left.length === 0, 'no English left on the other tabs (' + left.join(' | ') + ')');
   {
   }
+  await adm.click('#tabs button:has-text("Résultats")'); await adm.waitForTimeout(500);
+  const just = await adm.$('details:has(summary:has-text("Justifications a priori des groupes"))');
+  must(!!just && (await just.textContent()).includes('Nous relançons') && (await just.textContent()).includes('Allemagne'), 'Results tab (game): the groups’ justifications of the year in a drop-down');
   await adm.click('#tabs button:has-text("Simulation")'); await adm.waitForTimeout(400);
   await adm.screenshot({ path: OUT + '/fr-4-admin-run.png', fullPage: true });
 
