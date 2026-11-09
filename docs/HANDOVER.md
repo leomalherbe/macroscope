@@ -8,7 +8,7 @@ Document de reprise : tout ce qu'il faut savoir pour continuer le travail sans l
 
 **Licence (décidée par Léo le 8/11, PR #45)** : **CC BY-NC-SA 4.0** pour tout le dépôt (code, modèle, équations, pages, documentation) : citation obligatoire (« Macroscope, by Léo Malherbe »), pas d'usage commercial, versions modifiées sous la même licence. Fichier `LICENSE` à la racine. Vocabulaire : ne pas écrire « open source » (réservé aux licences qui autorisent l'usage commercial), mais « free and open ».
 
-Site : **https://leomalherbe.github.io/macroscope/** (landing page) · desk : `desk.html` · console : `admin.html` · board : `board.html?class=…` · modèle : `model.html` · dépôt : **https://github.com/leomalherbe/macroscope** (GitHub Pages, branche `main`, racine). Projet autonome depuis le 9/11 : il a quitté le dépôt du cours de Léo (*International Financial Macroeconomics*, https://github.com/leomalherbe/internationalfinancialmacro) en emportant son historique ; les anciennes adresses du cours (`…/internationalfinancialmacro/macroscope/…` et `…/macsim/…`) sont des pages de redirection, dans le dépôt du cours, vers ce site (PIN, classe et ancre conservés). Même domaine `leomalherbe.github.io` : les PIN, clés et classes mémorisés par les navigateurs sont conservés.
+Site : **https://leomalherbe.github.io/macroscope/** (landing page) · desk : `desk.html` · console : `admin.html` · board : `board.html?class=…` · modèle : `model.html` · dépôt : **https://github.com/leomalherbe/macroscope** (GitHub Pages, branche `main`, racine). Projet autonome depuis le 9/11 : il a quitté le dépôt du cours de Léo (*International Financial Macroeconomics*, https://github.com/leomalherbe/internationalfinancialmacro) en emportant son historique ; les anciennes adresses du cours (`…/internationalfinancialmacro/macroscope/…` et `…/macsim/…`) **ne redirigent pas encore** : elles servent toujours l'ancienne copie du jeu, figée au 9/11 (PR à faire dans le dépôt du cours : pages de redirection vers ce site, PIN, classe et ancre conservés). Même domaine `leomalherbe.github.io` : les PIN, clés et classes mémorisés par les navigateurs sont conservés.
 
 ## 2. Architecture
 
@@ -98,6 +98,15 @@ Méthode de travail avec Léo pour le visuel : proposer des captures avant/aprè
 - Depuis le 9/11 le jeu est un dépôt à lui (`leomalherbe/macroscope`), pages à la racine. Les clés de stockage du navigateur (`macsim.pin`, `macsim.adminKey`…) et `window.MACSIM_CONFIG` gardent leur nom historique : les renommer effacerait ce que les navigateurs ont mémorisé. « Macroscope » est le nom du jeu, « OPEN-MU » celui du moteur.
 
 ## 8. En suspens / idées
+
+**État au 9/11 au soir (PR #1 à #9 de ce dépôt, toutes fusionnées)** : landing, desk, console et page du modèle bilingues EN/FR (#1–#4) ; libellés de la démo (#3) ; guide pour débutants du desk, fiches et lexique filtrés selon la classe (#6) ; liens « board » et « page étudiants » de la console construits depuis le dossier du site (#7) ; stratégies et justifications des groupes dans l'onglet Résultats (#8) ; courbe d'un indicateur clé au clic (#9). #5 (bandeau Free / Open / Instant) vient d'une autre session. Backend inchangé depuis la v1.10 (aucun redéploiement Apps Script requis par ces PR). Balise de cache : `2026110908`.
+
+**À faire / à surveiller** :
+- Redirections dans le dépôt du cours (voir §1) ; fermer la vieille PR #23 du dépôt du cours (page du modèle, sans doute dépassée).
+- Léo signale que « Ouvrir le board » de la console n'ouvre pas le board chez lui (après #7) ; non reproduit en local : attendre l'adresse de sa console et celle du lien.
+- Le board (projecteur) reste en anglais ; à traduire de la même façon si une classe joue en français.
+- Rappel programmé le jeudi 12/11 à 18 h 30 (heure de Paris) : aligner les réserves de départ de la v1.1 (3 mois) sur la v1.2 (1,5 mois). Choix à reposer à Léo : modifier v1.1 pour toutes les classes (casse le rejeu de la partie de la séance 6 et la régression bit à bit) ou un champ « Initial reserves » par classe (`sim.reserveMonths`, déjà lu par le moteur, verrouillé après l'année 1). Ce rappel arrive dans la session de l'ancien projet « International Financial Macroeconomics ».
+- Les copies `claude/handover.md` et `claude/openmu-spec.md` du projet Claude du cours datent d'avant l'autonomie (chemins `macroscope/…`) : la référence est ce fichier, dans le dépôt.
 
 - Licence : décidée (CC BY-NC-SA 4.0, §1) ; reste éventuellement à vérifier avec KEDGE les droits de l'école.
 - Contenus pédagogiques par version du modèle (fondements à enseigner avant de jouer), auxquels la landing pourra renvoyer ; mini-démo de la landing à affiner.
