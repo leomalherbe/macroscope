@@ -1074,3 +1074,37 @@ reference
 => @, année par année
 Year #: & &
 => Année # : & &
+
+// reserves crisis: third choice, floating (v1.3 / v2.0)
+floating rate
+=> change flottant
+Floating rate
+=> Change flottant
+Will vote: floating rate
+=> Votera : change flottant
+Crisis: floating rate
+=> Crise : change flottant
+we will vote FLOATING RATE
+=> nous voterons CHANGE FLOTTANT
+@: floating rate
+=> @ : change flottant
+Austerity, devaluation or a floating rate?
+=> Austérité, dévaluation ou change flottant ?
+Choose an option.
+=> Choisissez une option.
+# austerity · # devaluation · # floating →
+=> # austérité · # dévaluation · # flottement →
+: # austerity · # devaluation · # floating →
+=> : # austérité · # dévaluation · # flottement →
+. The union’s currency floats from this year on: no cap on public demand and benefits; the reserves are frozen and the exchange rate moves.
+=> . La monnaie de l’union flotte à partir de cette année : pas de plafond sur la demande publique et les prestations ; les réserves sont gelées et le taux de change bouge.
+The union’s reserves ended year # below the alert line. Before any decision for year #, the council votes — one country, one vote; only the votes cast count. The three choices go from the least to the most change, and the median vote wins: with three votes, the middle one. Decisions open once the administrator closes the vote.
+=> Les réserves de l’union ont fini l’année # sous le seuil d’alerte. Avant toute décision pour l’année #, le conseil vote — un pays, une voix ; seuls les votes exprimés comptent. Les trois choix vont du moins au plus grand changement, et le vote médian l’emporte : avec trois votes, celui du milieu. Les décisions s’ouvrent une fois le vote clos par l’administrateur.
+Austerity caps every member’s public demand and social benefits at # % of the reference this year (no stimulus possible); a devaluation of # % restores exports with a lag but raises import prices and inflation. Floating rate: the central bank stops defending the exchange rate from this year on — the reserves are frozen and the currency moves with the balance of payments; no cap on budgets.
+=> L’austérité plafonne la demande publique et les prestations sociales de chaque membre à # % de la référence cette année (aucune relance possible) ; une dévaluation de # % relance les exportations avec retard mais fait monter les prix importés et l’inflation. Change flottant : la banque centrale cesse de défendre le taux de change à partir de cette année — les réserves sont gelées et la monnaie bouge avec la balance des paiements ; pas de plafond sur les budgets.
+voted
+=> voté
+Update our vote
+=> Modifier notre vote
+Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below # % of the initial stock (red mark) the next round carries a vote between austerity and devaluation (or a move to a floating rate); reserves exhausted while the current account is still in deficit force a devaluation.
+=> Change fixe : la banque centrale vend des réserves pour couvrir un déficit courant. Sous # % du stock initial (repère rouge), le tour suivant comporte un vote entre austérité et dévaluation (ou passage au change flottant) ; des réserves épuisées alors que le solde courant reste déficitaire imposent une dévaluation.
