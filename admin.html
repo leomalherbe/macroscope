@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110908">
-<script src="i18n.js?v=2026110908"></script>
-<script src="i18n/fr-desk.js?v=2026110908"></script>
-<script src="i18n/fr-admin.js?v=2026110908"></script>
-<script src="config.js?v=2026110908"></script>
-<script src="core.js?v=2026110908"></script>
-<script src="app-common.js?v=2026110908"></script>
-<script src="engine.js?v=2026110908"></script>
+<link rel="stylesheet" href="style.css?v=2026110909">
+<script src="i18n.js?v=2026110909"></script>
+<script src="i18n/fr-desk.js?v=2026110909"></script>
+<script src="i18n/fr-admin.js?v=2026110909"></script>
+<script src="config.js?v=2026110909"></script>
+<script src="core.js?v=2026110909"></script>
+<script src="app-common.js?v=2026110909"></script>
+<script src="engine.js?v=2026110909"></script>
 </head>
 <body>
 
@@ -768,7 +768,7 @@
     { id: 'world',      label: 'World demand',            unit: '%',  hint: 'demand of the rest of the world for the union’s exports' },
     { id: 'rate',       label: 'Central bank rate',       unit: 'pt', hint: 'change of the rate set by the common central bank; acts on firms’ investment with a one-year lag (+1 pt ≈ GDP −1 % the next year) and on debt service' },
     { id: 'confidence', label: 'Household confidence',    unit: '%',  hint: 'propensity to consume out of income' },
-    { id: 'imports',    label: 'Import propensity',       unit: '%',  hint: 'e.g. an oil shock: more spent on imports for the same output' },
+    { id: 'imports',    label: 'Import propensity',       unit: '%',  hint: 'a larger share of each euro spent goes to foreign goods, at unchanged prices (a shift in tastes)' },
     { id: 'deval',      label: 'Devaluation',             unit: '%',  hint: 'jump of the exchange rate vs the rest of the world (+ = devaluation); fixed regime only' },
     /* §13 (tariffs switched on): the rest of the world's tariff on the union's exports */
     { id: 'worldTariff', label: 'Rest of the world: tariff on union exports', unit: '%', hint: 'a tariff the rest of the world puts on everything the members sell it (e.g. 10 in answer to a common external tariff): the union exports less; the revenue goes to the rest of the world. A country out of the union is not concerned', tariffs: true },
@@ -784,7 +784,7 @@
   /* duel (arcade mode): shocks of the year, the same for every pair */
   var DUEL_SHOCK_FIELDS = [
     { id: 'confidence', label: 'Household confidence',    unit: '%',  hint: 'propensity to consume out of income, both countries' },
-    { id: 'imports',    label: 'Import propensity',       unit: '%',  hint: 'e.g. an oil shock: more spent on the partner’s goods for the same output, both countries' },
+    { id: 'imports',    label: 'Import propensity',       unit: '%',  hint: 'a larger share of each euro spent goes to the partner’s goods, at unchanged prices, both countries' },
     { id: 'demandA',    label: 'Demand shock in A',       unit: '%',  hint: 'change of A’s public demand imposed by events (a disaster −, a boom +): breaks the symmetry' },
     { id: 'demandB',    label: 'Demand shock in B',       unit: '%',  hint: 'change of B’s public demand imposed by events' },
     { id: 'regime',     label: 'Exchange-rate regime',    unit: '',   hint: 'fixed: both central banks defend the parity, the deficit country loses reserves (alert at 25 %, forced devaluation of 15 % when exhausted with a continuing deficit); float: the bilateral rate clears the balance of payments, reserves frozen', type: 'select', options: [['fixed', 'fixed'], ['float', 'floating']] },

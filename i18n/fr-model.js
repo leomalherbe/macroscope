@@ -81,7 +81,7 @@ MXL.add('fr', {"str":{"Macroscope · the open-economy policy game":"Macroscope �
 "demand of the rest of the world for the union's exports, % (all versions)":"demande du reste du monde pour les exportations de l’union, % (toutes versions)",
 "central bank rate, in points, on top of the voted changes (all versions; v1.1 and later: investment and debt service with a one-year lag)":"taux de la banque centrale, en points, en plus des changements votés (toutes versions ; à partir de la v1.1 : investissement et service de la dette avec un an de retard)",
 "propensity to consume out of income, % (all versions)":"propension à consommer le revenu, % (toutes versions)",
-"propensity to import, % — an oil shock (all versions)":"propension à importer, % — un choc pétrolier (toutes versions)",
+"propensity to import, % — a shift of spending towards foreign goods, prices unchanged (all versions)":"propension à importer, % — une part plus grande de la dépense va aux biens étrangers, à prix inchangés (toutes versions)",
 "jump of the exchange rate xr, % (fixed regime; voted or forced devaluations add to it)":"saut du taux de change xr, % (change fixe ; les dévaluations votées ou forcées s’y ajoutent)",
 "exchange-rate regime of the year, fixed or floating (v1.3+; switchable during the game)":"régime de change de l’année, fixe ou flottant (v1.3+ ; modifiable en cours de partie)",
 "change of the rest of the world's desired holdings of union bills, % — a sudden stop when negative (v1.3+)":"variation des avoirs en titres de l’union que souhaite le reste du monde, % — un arrêt brutal quand elle est négative (v1.3+)",
