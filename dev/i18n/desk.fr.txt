@@ -210,8 +210,8 @@ each variation between # % and # %
 => # = aucun changement par rapport à la référence
 # = no change from the reference.
 => # = aucun changement par rapport à la référence.
-your votes at the central bank go with your decisions.
-=> vos votes à la banque centrale partent avec vos décisions.
+your votes in the union go with your decisions.
+=> vos votes dans l’union partent avec vos décisions.
 at most # instruments
 => au plus # instruments
 all other countries keep their policies unchanged
@@ -290,8 +290,8 @@ a tax on everything your country buys from the members of the union, # to # %: y
 // votes
 Votes
 => Votes
-Votes at the central bank
-=> Votes à la banque centrale
+Union votes
+=> Votes de l’union
 Vote on the central bank’s rate
 => Vote sur le taux de la banque centrale
 Vote on the central bank’s rate we announce
