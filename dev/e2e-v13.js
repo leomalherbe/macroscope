@@ -95,6 +95,7 @@ const KEY = 'TESTKEY';
   await admin.waitForSelector('text=game · year 2');
   await admin.click('#tabs button:has-text("Run")');
   await admin.waitForSelector('#runBtn');
+  must(await admin.inputValue('select[data-y="2"][data-f="regime"]') === 'float', 'year 2: the regime editor starts from last year\'s regime (float)');
   await admin.selectOption('select[data-y="2"][data-f="regime"]', 'float');
   await admin.click('button:has-text("Save shocks")');
   await admin.waitForTimeout(500);

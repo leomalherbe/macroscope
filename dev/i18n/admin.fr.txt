@@ -503,10 +503,10 @@ propensity to consume out of income, both countries
 => propension à consommer le revenu, les deux pays
 Import propensity
 => Propension à importer
-a larger share of each euro spent goes to foreign goods, at unchanged prices (a shift in tastes)
-=> une part plus grande de chaque euro dépensé va aux biens étrangers, à prix inchangés (un changement de goûts)
-a larger share of each euro spent goes to the partner’s goods, at unchanged prices, both countries
-=> une part plus grande de chaque euro dépensé va aux biens du partenaire, à prix inchangés, dans les deux pays
+a larger share of each euro spent goes to foreign goods (a shift in tastes)
+=> une part plus grande de chaque euro dépensé va aux biens étrangers (un changement de goûts)
+a larger share of each euro spent goes to the partner’s goods, both countries
+=> une part plus grande de chaque euro dépensé va aux biens du partenaire, dans les deux pays
 jump of the exchange rate vs the rest of the world (+ = devaluation); fixed regime only
 => saut du taux de change face au reste du monde (+ = dévaluation) ; change fixe seulement
 Total factor productivity
