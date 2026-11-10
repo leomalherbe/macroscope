@@ -79,7 +79,7 @@
     if (rec.status === 'open') return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num"><span class="pill open">in progress</span> ' + esc(data.crisisVotesIn || 0) + ' of ' + playing + ' countries have voted</span></div>';
     if (rec.status === 'forced') return '<div class="urow"><span>Year ' + esc(st.round) + '</span><span class="num neg">reserves exhausted → forced devaluation</span></div>';
     if (cur) return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num">' + esc(rec.austerity) + ' defend · ' + esc(rec.devaluation) + ' let it float → <b>' + (rec.outcome === 'float' ? 'let it float' : 'defend') + '</b></span></div>';
-    return '<div class="urow"><span>Crisis vote · year ' + esc(st.round) + '</span><span class="num">' + esc(rec.austerity) + ' austerity · ' + esc(rec.devaluation) + ' devaluation → <b>' + esc(UI.crisisWord(rec.outcome)) + '</b></span></div>';
+    return '<div class="urow"><span>Crisis vote · year ' + esc(st.round) + '</span><span class="num">' + esc(UI.crisisTally(rec)) + ' → <b>' + esc(UI.crisisWord(rec.outcome)) + '</b></span></div>';
   }
   /* §12: the councils on retaliation of the current year */
   function retaliationRoundHtml() {

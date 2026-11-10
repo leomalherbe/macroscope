@@ -1,6 +1,7 @@
-/* End-to-end scenario: reserves crisis in a v1.3 class, vote → austerity, then the central bank lets the currency float instead.
-   year 1 fixed with a capital outflow → alert → year 2 crisis vote (austerity) → "The central bank lets the currency float instead"
-   → no austerity cap, regime float from year 2 (and kept in year 3), the desk and the run preview say so (also in French).
+/* End-to-end scenario: reserves crisis in a v1.3 class with the third choice, floating (median of the votes).
+   year 1 fixed with a capital outflow → alert → year 2 crisis vote: austerity · floating · floating → floating
+   → no austerity cap, regime float from year 2 (and kept in year 3); the desk, the console and the run preview say so (also in French).
+   Also checks the median rule in core (tallyCrisis) and that 'float' is refused in a v1.1 class.
    Mock server: PORT env (default 8787). */
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -55,62 +56,68 @@ const KEY = 'TESTKEY';
   const u1 = s.union.filter(r => r.phase === 'game' && r.year === 1)[0].detail.extra;
   must(u1.regime === 'fixed' && u1.R > 0 && u1.R < 0.25 * u1.R0, 'year 1: fixed regime, reserves at ' + Math.round(100 * u1.R / u1.R0) + ' % of the initial stock (alert)');
 
-  /* year 2: reserves-crisis vote → austerity */
+  /* median rule (core) */
+  const MS = require('../core.js');
+  const T = (v) => MS.tallyCrisis(v, v.length).outcome;
+  must(T(['austerity', 'devaluation', 'float']) === 'devaluation' && T(['float', 'float', 'austerity']) === 'float' && T(['austerity', 'austerity', 'float']) === 'austerity' && T(['devaluation', 'float']) === 'devaluation' && T(['austerity', 'devaluation']) === 'austerity' && T(['devaluation', 'devaluation', 'austerity']) === 'devaluation' && T([]) === 'austerity', 'tallyCrisis: lower median along austerity < devaluation < float');
+
+  /* year 2: reserves-crisis vote with three choices */
   await admin.click('#tabs button:has-text("Control")');
   await admin.click('button:has-text("Next year")');
   await admin.waitForSelector('text=game · year 2');
   await admin.waitForSelector('text=Reserves crisis · year 2');
-  must(!(await admin.$('button:has-text("lets the currency float instead")')), 'no float button before the vote is closed');
+  must(/or a floating rate/.test(await admin.textContent('#view')), 'alert card lists the third choice');
   await admin.click('button:has-text("Open the crisis vote")');
   await admin.waitForSelector('text=Vote in progress');
+  const stu = await ctx.newPage();
+  stu.on('pageerror', e => errors.push('student: ' + e.message));
+  await stu.goto(BASE + '/desk.html?lang=en&api=' + encodeURIComponent(API) + '&pin=' + pins.FRA);
+  await stu.waitForSelector('#crisisBtn');
+  must((await stu.$$('#form input[name="C_vote"]')).length === 3 && /Austerity, devaluation or a floating rate\?/.test(await stu.textContent('#form')) && /median vote wins/.test(await stu.textContent('#form')), 'desk: three choices and the median rule');
+  await stu.click('#form input[name="C_vote"][value="float"]');
+  await stu.click('#crisisBtn');
+  await stu.waitForSelector('text=Vote received');
+  must(/floating rate/.test(await stu.textContent('#form')), 'desk: vote received, floating rate');
+  await stu.screenshot({ path: OUT + '/cf-s0-vote.png', fullPage: true });
+  await stu.goto(BASE + '/desk.html?lang=fr&api=' + encodeURIComponent(API) + '&pin=' + pins.FRA);
+  await stu.waitForSelector('#crisisBtn'); await stu.waitForTimeout(300);
+  const vfr = await stu.textContent('#form');
+  must(/Austérité, dévaluation ou change flottant/.test(vfr) && /le vote médian l’emporte/.test(vfr) && /Change flottant\s:\sla banque centrale/.test(vfr), 'desk in French: the vote card is translated');
+  await stu.screenshot({ path: OUT + '/cf-s0-vote-fr.png', fullPage: true });
   await api({ action: 'submit', pin: pins.DEU, phase: 'crisis', round: 2, payload: { crisis: 'austerity' } });
-  await api({ action: 'submit', pin: pins.FRA, phase: 'crisis', round: 2, payload: { crisis: 'austerity' } });
-  await api({ action: 'submit', pin: pins.ITA, phase: 'crisis', round: 2, payload: { crisis: 'devaluation' } });
+  await api({ action: 'submit', pin: pins.ITA, phase: 'crisis', round: 2, payload: { crisis: 'float' } });
   await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(600);
   await admin.click('#tabs button:has-text("Control")');
+  must(/the median vote wins/.test(await admin.textContent('#view')) && /Italy: floating rate/.test(await admin.textContent('#view')), 'console: median rule and the votes as chips');
   await admin.click('button:has-text("Close the crisis vote and announce")');
   await admin.waitForSelector('text=Vote closed');
-  let rec = (await api({ action: 'admin.overview', key: KEY, classId: cid })).state.crisis['2'];
-  must(rec.status === 'closed' && rec.outcome === 'austerity', 'vote closed: 2 austerity · 1 devaluation → austerity');
-  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'open' } });
-  let refused = await api({ action: 'submit', pin: pins.FRA, phase: 'game', round: 2, payload: { years: [{ levers: { pubdem: 3 }, tariffs: {}, euro: 'none', tfp: 0 }], text: 'France stimulates despite the crisis.'.padEnd(120, ' .'), votes: { rate: 'hold' } } });
-  must(!refused.ok, 'under austerity, public demand +3 is refused');
-  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'closed' } });
-  await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(600);
-  await admin.click('#tabs button:has-text("Control")');
-
-  /* the central bank floats instead */
-  await admin.click('button:has-text("The central bank lets the currency float instead")');
-  await admin.waitForSelector('text=floating instead of austerity');
   const ov = (await api({ action: 'admin.overview', key: KEY, classId: cid })).state;
-  rec = ov.crisis['2'];
-  must(rec.status === 'closed' && rec.outcome === 'float' && rec.austerity === 2 && rec.devaluation === 1, 'crisis record: outcome float, tally kept (2 · 1)');
+  const rec = ov.crisis['2'];
+  must(rec.status === 'closed' && rec.outcome === 'float' && rec.austerity === 1 && rec.devaluation === 0 && rec.float === 2, 'crisis record: 1 austerity · 0 devaluation · 2 floating → float');
   must(ov.shocks.g2 && ov.shocks.g2.regime === 'float' && ov.shocks.g1.flows === -20 && ov.shocks.g1.regime !== 'float', 'year-2 shocks: regime float; year 1 untouched');
-  must(!(await admin.$('button:has-text("lets the currency float instead")')), 'the float button is gone once used');
+  must(/1 austerity · 0 devaluation · 2 floating → floating rate/.test(await admin.textContent('#view')), 'console: closed tally');
   await admin.screenshot({ path: OUT + '/cf-a1-card.png', fullPage: true });
   const adminFr = await ctx.newPage();
   adminFr.on('pageerror', e => errors.push('admin fr: ' + e.message));
   await adminFr.goto(BASE + '/admin.html?lang=fr&api=' + encodeURIComponent(API));
   await adminFr.waitForSelector('#statusGrid'); await adminFr.waitForTimeout(500);
-  const cardFr = await adminFr.evaluate(() => { const h = [...document.querySelectorAll('#view h2')].filter(x => /2/.test(x.textContent) && x.closest('.card.tint'))[0]; return h ? h.closest('.card').textContent : ''; });
-  must(/flottement au lieu de l’austérité/.test(cardFr) && /au lieu d’imposer l’austérité/.test(cardFr), 'console in French: the crisis card is translated (' + cardFr.slice(0, 160) + ')');
+  const cardFr = await adminFr.evaluate(() => { const c = document.querySelector('#view .card.tint'); return c ? c.textContent : ''; });
+  must(/1 austérité · 0 dévaluation · 2 flottement → change flottant/.test(cardFr) && /La monnaie flotte à partir de cette année/.test(cardFr), 'console in French: the closed crisis card is translated (' + cardFr.slice(0, 200) + ')');
   await adminFr.screenshot({ path: OUT + '/cf-a2-card-fr.png', fullPage: true });
   await adminFr.close();
 
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'open' } });
   const ok = await api({ action: 'submit', pin: pins.FRA, phase: 'game', round: 2, payload: { years: [{ levers: { pubdem: 3 }, tariffs: {}, euro: 'none', tfp: 0 }], text: 'France stimulates despite the crisis.'.padEnd(120, ' .'), votes: { rate: 'hold' } } });
   must(ok.ok, 'no austerity cap any more: public demand +3 accepted (' + (ok.errors || []).join('; ') + ')');
-  const stu = await ctx.newPage();
-  stu.on('pageerror', e => errors.push('student: ' + e.message));
   await stu.goto(BASE + '/desk.html?lang=en&api=' + encodeURIComponent(API) + '&pin=' + pins.DEU);
   await stu.waitForSelector('#submitBtn');
   const f2 = await stu.textContent('#form');
-  must(/floating instead of austerity/.test(f2) && /instead of imposing austerity/.test(f2) && !/capped at/.test(f2), 'desk: the year note announces floating instead of austerity, no cap');
+  must(/→ floating rate/.test(f2) && /floats from this year on: no cap/.test(f2) && !/capped at/.test(f2), 'desk: the year note announces the floating rate, no cap');
   await stu.screenshot({ path: OUT + '/cf-s1-desk.png', fullPage: true });
   await stu.goto(BASE + '/desk.html?lang=fr&api=' + encodeURIComponent(API) + '&pin=' + pins.DEU);
   await stu.waitForSelector('#submitBtn'); await stu.waitForTimeout(300);
   const f2fr = await stu.textContent('#form');
-  must(/flottement au lieu de l’austérité/.test(f2fr) && /au lieu d’imposer l’austérité/.test(f2fr), 'desk in French: the note is translated');
+  must(/→ change flottant/.test(f2fr) && /La monnaie de l’union flotte à partir de cette année/.test(f2fr), 'desk in French: the note is translated');
   await stu.screenshot({ path: OUT + '/cf-s2-desk-fr.png', fullPage: true });
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'closed' } });
 
@@ -122,7 +129,7 @@ const KEY = 'TESTKEY';
   await runClick(admin);
   await admin.waitForSelector('#runPreview table');
   const y2 = await admin.textContent('#runPreview');
-  must(/2 austerity · 1 devaluation → floating instead of austerity \(no cap; floating regime from this year\)/.test(y2), 'run preview: floating instead of austerity, no cap');
+  must(/1 austerity · 0 devaluation · 2 floating → floating rate \(no cap; the currency floats from this year\)/.test(y2), 'run preview: floating rate, no cap');
   await admin.click('button:has-text("Save and publish all")');
   await admin.waitForTimeout(700);
   s = await api({ action: 'state', pin: pins.FRA });
@@ -132,7 +139,11 @@ const KEY = 'TESTKEY';
   must(fr2 && fr2.detail, 'France has its year-2 results');
   await stu.goto(BASE + '/desk.html?lang=en&api=' + encodeURIComponent(API) + '&pin=' + pins.DEU);
   await stu.waitForSelector('#app');
-  must(/floating instead of austerity/.test(await stu.textContent('#app')), 'desk: union panel and history show the outcome');
+  must(/2 floating → floating rate/.test(await stu.textContent('#app')), 'desk: union panel and history show the outcome');
+
+  /* a v1.1 class refuses the floating choice */
+  must(!MS.validateCrisisVote({ sim: { model: 'v1.1' }, round: 2, crisis: { 2: { status: 'open' } } }, { crisis: 'float' }).ok && MS.validateCrisisVote({ sim: { model: 'v1.3' }, round: 2, crisis: { 2: { status: 'open' } } }, { crisis: 'float' }).ok, 'float vote refused in v1.1, accepted in v1.3');
+  must(!MS.validateCrisisVote({ sim: { model: 'v1.3' }, round: 2, crisis: { 2: { status: 'open', kind: 'currency' } } }, { crisis: 'float' }).ok, 'float vote refused in a currency-crisis round');
 
   /* year 3: the floating regime carries over, no reserves crisis */
   await admin.click('#tabs button:has-text("Control")');

@@ -285,8 +285,8 @@
     }
     else if (rec && rec.status === 'closed') {
       cap = rec.outcome === 'austerity' ? MS.num(vc0.cap) : null;
-      card.appendChild(el('div', { class: 'note', html: '<b>Crisis vote of year ' + st.round + ':</b> ' + esc(rec.austerity) + ' austerity · ' + esc(rec.devaluation) + ' devaluation → <b>' + esc(UI.crisisWord(rec.outcome)) + '</b>. ' +
-        (rec.outcome === 'float' ? 'The central bank lets the union’s currency float from this year instead of imposing austerity: no cap on public demand and benefits; the reserves are frozen and the exchange rate moves.' : cap !== null ? 'Austerity programme: public demand and social benefits of every member are capped at <b>' + esc(MS.fmt(cap, 0)) + ' %</b> of the reference this year (the form refuses more).' : 'A devaluation of ' + esc(MS.fmt(vc0.deval, 0)) + ' % is applied this year: exports recover with a lag, import prices and inflation rise.') }));
+      card.appendChild(el('div', { class: 'note', html: '<b>Crisis vote of year ' + st.round + ':</b> ' + esc(UI.crisisTally(rec)) + ' → <b>' + esc(UI.crisisWord(rec.outcome)) + '</b>. ' +
+        (rec.outcome === 'float' ? 'The union’s currency floats from this year on: no cap on public demand and benefits; the reserves are frozen and the exchange rate moves.' : cap !== null ? 'Austerity programme: public demand and social benefits of every member are capped at <b>' + esc(MS.fmt(cap, 0)) + ' %</b> of the reference this year (the form refuses more).' : 'A devaluation of ' + esc(MS.fmt(vc0.deval, 0)) + ' % is applied this year: exports recover with a lag, import prices and inflation rise.') }));
     }
 
     var rules = [];
@@ -424,18 +424,21 @@
     } catch (e) { $('#retalErrors').innerHTML = '<div class="err">Network error: ' + esc(e.message) + '</div>'; }
     btn = $('#retalBtn'); if (btn) btn.disabled = false;
   }
-  /* the reserves-crisis round: austerity or devaluation, voted before the decisions of the year */
+  /* the reserves-crisis round: austerity or devaluation (or floating, v1.3/v2.0), voted before the decisions of the year */
   function crisisVoteCard(rec, vc) {
     var st = data.state, mine = myDecision('crisis', st.round), cur = mine && mine.payload ? mine.payload.crisis : null;
     var card = el('div', { class: 'card' });
     if (rec.kind === 'currency') return currencyVoteCard(rec, vc, mine, cur);
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'reserves' }, ['Reserves crisis · year ' + st.round + ' — vote']), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
-    card.appendChild(el('p', { class: 'muted small' }, ['The union’s reserves ended year ' + (st.round - 1) + ' below the alert line. Before any decision for year ' + st.round + ', the council votes — one country, one vote; only the votes cast count: devaluation needs more than half of the voters. Decisions open once the administrator closes the vote.']));
+    var fl = MS.floatVoteOn(st);
+    card.appendChild(el('p', { class: 'muted small' }, [fl
+      ? 'The union’s reserves ended year ' + (st.round - 1) + ' below the alert line. Before any decision for year ' + st.round + ', the council votes — one country, one vote; only the votes cast count. The three choices go from the least to the most change, and the median vote wins: with three votes, the middle one. Decisions open once the administrator closes the vote.'
+      : 'The union’s reserves ended year ' + (st.round - 1) + ' below the alert line. Before any decision for year ' + st.round + ', the council votes — one country, one vote; only the votes cast count: devaluation needs more than half of the voters. Decisions open once the administrator closes the vote.']));
     var wrap = el('div', { class: 'votes' });
-    var box = el('div', { class: 'q crisis' }); box.appendChild(el('b', {}, ['Austerity or devaluation?']));
-    box.appendChild(el('span', { class: 'hint' }, ['Austerity caps every member’s public demand and social benefits at ' + MS.fmt(vc.cap, 0) + ' % of the reference this year (no stimulus possible); a devaluation of ' + MS.fmt(vc.deval, 0) + ' % restores exports with a lag but raises import prices and inflation.']));
+    var box = el('div', { class: 'q crisis' }); box.appendChild(el('b', {}, [fl ? 'Austerity, devaluation or a floating rate?' : 'Austerity or devaluation?']));
+    box.appendChild(el('span', { class: 'hint' }, ['Austerity caps every member’s public demand and social benefits at ' + MS.fmt(vc.cap, 0) + ' % of the reference this year (no stimulus possible); a devaluation of ' + MS.fmt(vc.deval, 0) + ' % restores exports with a lag but raises import prices and inflation.' + (fl ? ' Floating rate: the central bank stops defending the exchange rate from this year on — the reserves are frozen and the currency moves with the balance of payments; no cap on budgets.' : '')]));
     var row = el('div', { class: 'opts' });
-    [['austerity', 'Austerity'], ['devaluation', 'Devaluation']].forEach(function (o) { var r = el('input', { type: 'radio', name: 'C_vote', value: o[0] }); r.checked = cur === o[0]; row.appendChild(el('label', {}, [r, o[1]])); });
+    [['austerity', 'Austerity'], ['devaluation', 'Devaluation']].concat(fl ? [['float', 'Floating rate']] : []).forEach(function (o) { var r = el('input', { type: 'radio', name: 'C_vote', value: o[0] }); r.checked = cur === o[0]; row.appendChild(el('label', {}, [r, o[1]])); });
     box.appendChild(row); wrap.appendChild(box); card.appendChild(wrap);
     card.appendChild(el('div', { id: 'formErrors' }));
     card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', id: 'crisisBtn', onclick: submitCrisis }, [mine ? 'Update our vote' : 'Cast our vote']), el('span', { class: 'small muted' }, ['You can change your vote until the administrator closes it.'])]));
@@ -463,12 +466,12 @@
   async function submitCrisis() {
     var st = data.state, e = $('#formErrors');
     var sel = $('#form input[name="C_vote"]:checked');
-    if (!sel) { e.innerHTML = '<div class="err">Choose austerity or devaluation.</div>'; return; }
+    if (!sel) { e.innerHTML = '<div class="err">Choose an option.</div>'; return; }
     var btn = $('#crisisBtn'); btn.disabled = true;
     try {
       var r = await MSApi.call('submit', { pin: pin, phase: 'crisis', round: st.round, payload: { crisis: sel.value } });
       if (!r.ok) e.innerHTML = '<div class="err"><b>' + esc(r.error) + '</b></div>';
-      else { e.innerHTML = '<div class="ok">Vote received at ' + esc(UI.fmtTime(r.ts)) + ': ' + esc(sel.value) + '.</div>'; UI.toast('Vote cast'); await load(true); }
+      else { e.innerHTML = '<div class="ok">Vote received at ' + esc(UI.fmtTime(r.ts)) + ': ' + esc(UI.crisisWord(sel.value)) + '.</div>'; UI.toast('Vote cast'); await load(true); }
     } catch (err) { e.innerHTML = '<div class="err">Network error: ' + esc(err.message) + '</div>'; }
     btn = $('#crisisBtn'); if (btn) btn.disabled = false;
   }
@@ -517,7 +520,7 @@
         var selR = el('select', { id: 'PL_vote_rate' }); [['', 'no announcement'], ['cut', 'we will vote CUT'], ['hold', 'we will vote HOLD'], ['hike', 'we will vote HIKE']].forEach(function (o) { selR.appendChild(el('option', { value: o[0] }, [o[1]])); }); selR.value = mv.rate || '';
         var vrow = el('div', { class: 'field', style: 'margin:8px 0' }, [el('label', { for: 'PL_vote_rate', class: 'small' }, ['Vote on the central bank’s rate we announce']), selR]);
         if (vc.crisis) {
-          var selC = el('select', { id: 'PL_vote_crisis' }); [['', 'no announcement'], ['austerity', 'we will vote AUSTERITY'], ['devaluation', 'we will vote DEVALUATION']].forEach(function (o) { selC.appendChild(el('option', { value: o[0] }, [o[1]])); }); selC.value = mv.crisis || '';
+          var selC = el('select', { id: 'PL_vote_crisis' }); [['', 'no announcement'], ['austerity', 'we will vote AUSTERITY'], ['devaluation', 'we will vote DEVALUATION']].concat(MS.floatVoteOn(st) ? [['float', 'we will vote FLOATING RATE']] : []).forEach(function (o) { selC.appendChild(el('option', { value: o[0] }, [o[1]])); }); selC.value = mv.crisis || '';
           vrow.appendChild(el('label', { for: 'PL_vote_crisis', class: 'small', style: 'margin-top:6px' }, ['Reserves crisis vote we announce'])); vrow.appendChild(selC);
         }
         vrow.appendChild(el('p', { class: 'xs muted', style: 'margin:4px 0 0' }, ['An announced vote is public; your actual vote travels with your decisions and stays secret until the round closes. The reveal compares the two.']));
@@ -649,7 +652,7 @@
     card.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, [u.regime === 'float'
       ? 'Floating exchange rate: the reserves are frozen and the exchange rate moves until the balance of payments (trade, primary income and capital flows) balances. A rate rise attracts capital and appreciates the currency; a sudden stop depreciates it and raises import prices. If the currency falls by more than ' + MS.fmt((Object.assign({}, MS.defaultState().sim, data.state.sim || {})).crisisDepr, 0) + ' % in a year, the next year opens with a vote: defend (rate rise) or let it float.'
       : u.votes && u.votes.rate
-      ? 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the next round carries a vote between austerity and devaluation; reserves exhausted while the current account is still in deficit force a devaluation.'
+      ? 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the next round carries a vote between austerity and devaluation' + (MS.floatVoteOn(data.state) ? ' (or a move to a floating rate)' : '') + '; reserves exhausted while the current account is still in deficit force a devaluation.'
       : 'Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below 25 % of the initial stock (red mark) the administrator may decree a devaluation.']));
     return card;
   }
@@ -888,8 +891,8 @@
       if (recC && recC.status === 'closed') {
         var cv = (rd.crisisVotes || []).slice().sort(function (a, b) { return MS.countryName(a.country).localeCompare(MS.countryName(b.country)); });
         var missingC = (data.groups || []).filter(function (g) { return g.country && !cv.some(function (x) { return x.groupId === g.groupId; }); });
-        h += '<tr><td colspan="' + (hasVotes ? 5 : 4) + '"><b>Crisis vote · year ' + rd.round + '</b>: ' + esc(recC.austerity) + ' austerity · ' + esc(recC.devaluation) + ' devaluation → <b>' + esc(UI.crisisWord(recC.outcome)) + '</b><div class="chips">' +
-          cv.map(function (x) { return '<span class="chip vote">' + esc(MS.countryName(x.country)) + ': ' + esc(x.crisis) + '</span>'; }).join('') + missingC.map(function (g) { return '<span class="chip zero">' + esc(MS.countryName(g.country)) + ': austerity (no vote)</span>'; }).join('') + '</div></td></tr>';
+        h += '<tr><td colspan="' + (hasVotes ? 5 : 4) + '"><b>Crisis vote · year ' + rd.round + '</b>: ' + esc(UI.crisisTally(recC)) + ' → <b>' + esc(UI.crisisWord(recC.outcome)) + '</b><div class="chips">' +
+          cv.map(function (x) { return '<span class="chip vote">' + esc(MS.countryName(x.country)) + ': ' + esc(UI.crisisWord(x.crisis)) + '</span>'; }).join('') + missingC.map(function (g) { return '<span class="chip zero">' + esc(MS.countryName(g.country)) + ': austerity (no vote)</span>'; }).join('') + '</div></td></tr>';
       }
       /* §12: votes of the councils on retaliation of that year */
       var rvs = (rd.retaliationVotes || []), tgs = {}; rvs.forEach(function (x) { tgs[x.target] = 1; });

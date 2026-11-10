@@ -251,8 +251,10 @@ over year # (threshold # %). Before the decisions of year #, the council votes:
 => sur l’année # (seuil # %). Avant les décisions de l’année #, le conseil vote :
 the currency (the central bank raises its rate by # pt this year) or
 => la monnaie (la banque centrale relève son taux de # pt cette année) ou
-— # of # countries have voted. Decisions cannot be opened until the vote is closed. A country that does not vote counts as austerity; devaluation needs more than half of the playing countries.
-=> — # pays sur # ont voté. Les décisions ne peuvent pas s’ouvrir avant la clôture du vote. Un pays qui ne vote pas compte comme « austérité » ; la dévaluation exige plus de la moitié des pays qui jouent.
+— # of # countries have voted. Decisions cannot be opened until the vote is closed. Only the votes cast count; devaluation needs more than half of the voters.
+=> — # pays sur # ont voté. Les décisions ne peuvent pas s’ouvrir avant la clôture du vote. Seuls les votes exprimés comptent ; la dévaluation exige plus de la moitié des votants.
+— # of # countries have voted. Decisions cannot be opened until the vote is closed. Only the votes cast count; the median vote wins along austerity < devaluation < floating (with three votes, the middle one).
+=> — # pays sur # ont voté. Les décisions ne peuvent pas s’ouvrir avant la clôture du vote. Seuls les votes exprimés comptent ; le vote médian l’emporte sur l’échelle austérité < dévaluation < flottement (avec trois votes, celui du milieu).
 — # of # countries have voted. A country that does not vote counts as defend; letting the currency float needs more than half of the playing countries.
 => — # pays sur # ont voté. Un pays qui ne vote pas compte comme « défendre » ; laisser flotter la monnaie exige plus de la moitié des pays qui jouent.
 Close the crisis vote first (card below).
@@ -912,16 +914,20 @@ Groups’ justifications, a priori · year #
 Groups’ justifications, a priori
 => Justifications a priori des groupes
 
-// reserves crisis: the central bank floats instead of austerity
-# austerity · # devaluation → floating instead of austerity
-=> # austérité · # dévaluation → flottement au lieu de l’austérité
-. The central bank lets the currency float from this year instead of imposing austerity: no cap on public demand and benefits, and the floating regime stays in the following years (Shocks). Announce it in the communiqué, then open the decisions.
-=> . La banque centrale laisse flotter la monnaie dès cette année au lieu d’imposer l’austérité : pas de plafond sur la demande publique et les prestations, et le régime flottant reste les années suivantes (Chocs). L’annoncer dans le communiqué, puis ouvrir les décisions.
-The central bank lets the currency float instead
-=> La banque centrale laisse flotter la monnaie à la place
-The central bank lets the currency float from year # instead of austerity: the cap on public demand and benefits is lifted and the regime is set to floating from this year on. Go on?
-=> La banque centrale laisse flotter la monnaie dès l’année # au lieu de l’austérité : le plafond sur la demande publique et les prestations est levé et le régime passe en flottant à partir de cette année. Continuer ?
-The currency floats instead of austerity
-=> La monnaie flotte au lieu de l’austérité
- (no cap; floating regime from this year).
-=> (pas de plafond ; régime flottant à partir de cette année).
+// reserves crisis: third choice, floating (v1.3 / v2.0)
+# austerity · # devaluation · # floating → @
+=> # austérité · # dévaluation · # flottement → @
+Close the vote: # austerity · # devaluation · # floating → @?
+=> Clore le vote : # austérité · # dévaluation · # flottement → @ ?
+. The currency floats from this year on: no cap on public demand and benefits; the floating regime is set in the shocks of this year and stays in the following years. Announce it in the communiqué, then open the decisions.
+=> . La monnaie flotte à partir de cette année : pas de plafond sur la demande publique et les prestations ; le régime flottant est inscrit dans les chocs de cette année et reste les années suivantes. L’annoncer dans le communiqué, puis ouvrir les décisions.
+(public demand and benefits capped at # % for every member),
+=> (demande publique et prestations plafonnées à # % pour chaque membre),
+ (# %) or a
+=> (# %) ou un
+ (the currency floats from this year on).
+=> (la monnaie flotte à partir de cette année).
+Reserves crisis (alert at the end of year #): # austerity · # devaluation · # floating →
+=> Crise des réserves (alerte à la fin de l’année #) : # austérité · # dévaluation · # flottement →
+ (no cap; the currency floats from this year).
+=> (pas de plafond ; la monnaie flotte à partir de cette année).

@@ -178,6 +178,7 @@ Two collective decisions are taken by the member countries themselves, with thei
 ### 7.2 Reserves crisis: austerity or devaluation
 - Active for year N only if the union's reserves at the end of year N−1 (in the replay, i.e. simulated, not published) are below the alert line (R < 0.25·R0). The student form shows the crisis vote only when the published union row of year N−1 has `alert = true` (same condition in practice).
 - Field: `votes.crisis ∈ {austerity, devaluation}` (default `austerity`).
+- Models v1.3 and v2.0 (backend 1.11): a third choice `float`. The choices are ordered austerity < devaluation < float and the outcome is the lower median of the votes cast (with only austerity and devaluation this is the same as the majority rule below). `float` → no cap, no devaluation; the console sets `shocks[N].regime = 'float'`, which carries over to the following years. Refused in v1.1/v1.2 classes and in a currency-crisis round.
 - Tally: devaluations > half → `shocks[N].deval += devalSize` (default 10 %). Otherwise **austerity programme**: for year N every member's `pubdem` and `benefits` are capped at `austerityCap` (default −5: at most 95 % of the reference; a lower submission is kept); the console applies the cap to the effective policies and marks the overridden countries.
 - Reserves exhausted (R ≤ 0 at the end of N−1): forced devaluation of `forcedDeval` (default 15 %) in year N, whatever the vote (the central bank cannot sell what it no longer has), and the crisis vote is not held.
 - When the alert is not active the crisis field is ignored.

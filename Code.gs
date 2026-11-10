@@ -259,7 +259,10 @@ var MS = (function () {
   function emptyYear() { return { levers: {}, tariffs: {}, euro: 'none', tfp: 0 }; }
   /* votes at the central bank (game phase): one country, one vote — see spec §7 */
   var VOTE_RATE = ['cut', 'hold', 'hike'];
-  var VOTE_CRISIS = ['austerity', 'devaluation'];
+  /* reserves-crisis choices, ordered along a continuum (the median wins): austerity < devaluation < float.
+     'float' (the central bank lets the currency float from that year on) exists only in the models with a floating regime. */
+  var VOTE_CRISIS = ['austerity', 'devaluation', 'float'];
+  function floatVoteOn(state) { return exitModelOk(state); }
   function cleanVotes(v) {
     v = v || {};
     return {
@@ -288,15 +291,18 @@ var MS = (function () {
   /* a country's vote in the reserves-crisis round: payload = {crisis: 'austerity'|'devaluation'} */
   function validateCrisisVote(state, payload) {
     var v = payload && payload.crisis;
-    if (VOTE_CRISIS.indexOf(v) < 0) return { ok: false, errors: ['Vote austerity or devaluation.'] };
+    var rec = crisisOf(state, state && state.round), fl = floatVoteOn(state) && !(rec && rec.kind === 'currency');
+    if (VOTE_CRISIS.indexOf(v) < 0 || (v === 'float' && !fl)) return { ok: false, errors: [fl ? 'Vote austerity, devaluation or floating.' : 'Vote austerity or devaluation.'] };
     return { ok: true, clean: { crisis: v, years: [], text: '' }, used: ['crisis:' + v] };
   }
-  /* tally of a crisis round: one country one vote, absent = austerity, devaluation needs more than half of the playing countries */
+  /* tally of a crisis round: one country one vote, absent = austerity; the outcome is the (lower) median along
+     austerity < devaluation < float — with two choices, devaluation needs more than half of the votes */
   function tallyCrisis(votes, nPlaying) {
-    var a = 0, d = 0;
-    (votes || []).forEach(function (v) { if (v === 'devaluation') d++; else a++; });
-    a += Math.max(0, nPlaying - a - d);
-    return { austerity: a, devaluation: d, outcome: d > nPlaying / 2 ? 'devaluation' : 'austerity' };
+    var a = 0, d = 0, f = 0;
+    (votes || []).forEach(function (v) { if (v === 'devaluation') d++; else if (v === 'float') f++; else a++; });
+    a += Math.max(0, nPlaying - a - d - f);
+    var k = Math.floor((a + d + f - 1) / 2);   /* index of the lower median in the sorted votes */
+    return { austerity: a, devaluation: d, float: f, outcome: a + d + f === 0 || k < a ? 'austerity' : (k < a + d ? 'devaluation' : 'float') };
   }
   /* §12 retaliation council against an exited country: each remaining member votes a level per measure; outcome = lower median
      of the playing members' votes (absent = 0); settlement of the TARGET balance by majority */
@@ -542,7 +548,7 @@ var MS = (function () {
     exitModelOk: exitModelOk, exitAllowed: exitAllowed, exitYearOf: exitYearOf, isOutIn: isOutIn, leversForCountry: leversForCountry, FX_REGIMES: FX_REGIMES,
     RETAL_TARIFF: RETAL_TARIFF, RETAL_SALE: RETAL_SALE, retaliationOf: retaliationOf, openRetaliation: openRetaliation, retaliationIn: retaliationIn, validateRetaliationVote: validateRetaliationVote, tallyRetaliation: tallyRetaliation,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
-    VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, cleanVotes: cleanVotes,
+    VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
 })();
@@ -562,7 +568,7 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.10';
+  var VERSION = '1.11';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
