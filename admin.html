@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110910">
-<script src="i18n.js?v=2026110910"></script>
-<script src="i18n/fr-desk.js?v=2026110910"></script>
-<script src="i18n/fr-admin.js?v=2026110910"></script>
-<script src="config.js?v=2026110910"></script>
-<script src="core.js?v=2026110910"></script>
-<script src="app-common.js?v=2026110910"></script>
-<script src="engine.js?v=2026110910"></script>
+<link rel="stylesheet" href="style.css?v=2026111002">
+<script src="i18n.js?v=2026111002"></script>
+<script src="i18n/fr-desk.js?v=2026111002"></script>
+<script src="i18n/fr-admin.js?v=2026111002"></script>
+<script src="config.js?v=2026111002"></script>
+<script src="core.js?v=2026111002"></script>
+<script src="app-common.js?v=2026111002"></script>
+<script src="engine.js?v=2026111002"></script>
 </head>
 <body>
 
@@ -461,7 +461,7 @@
     box.appendChild(el('div', { class: 'params' }, [gy.el, gm.el, gt.el]));
     box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Spec §13: the members vote each year on a common external tariff on the rest of the world (0, 5, 10 or 20 %, median of the votes); a country out of the union may tax the goods of the union (0–20 %); shock « Rest of the world: tariff on union exports » in Run. Backend 1.10.' }, [gTar, ' tariffs (common external tariff voted by the members; tariff of a country out of the union)']), el('label', { title: 'Spec §12: a member may announce its exit with its decisions; it leaves the union the next year (models v1.3 and v2.0 only; backend 1.9)' }, [gEu, ' leaving the union allowed (models v1.3 and v2.0)']), el('label', {}, [gTfp, ' TFP shock allowed'])]));
     box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Short cards on the mechanisms at work (direction of effects only), and a glossary; the cards shown follow the model version and the options of the class.' }, [gGuide, ' beginners’ guide on the desk (« How it works? » panel and ⓘ buttons)'])]));
-    box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Votes at the central bank (game)']));
+    box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Union votes (game)']));
     var simNow = Object.assign({}, MS.defaultState().sim, s.sim || {});
     var vOn = el('input', { type: 'checkbox' }); vOn.checked = simNow.votes !== false;
     var vStep = numField('Rate step per majority vote (pt)', simNow.voteStep, 0.25), vCap = numField('Austerity cap on public demand and benefits (% of ref.)', simNow.austerityCap, 1), vDev = numField('Devaluation if voted (%)', simNow.devalSize, 1), vForced = numField('Forced devaluation when reserves are exhausted (%)', simNow.forcedDeval, 1), vDepr = numField('Floating (v1.3): currency crisis if the yearly depreciation exceeds (%)', simNow.crisisDepr, 1), vDef = numField('Floating (v1.3): rate rise when the council votes to defend (pt)', simNow.defendStep, 0.25);
