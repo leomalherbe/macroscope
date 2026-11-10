@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111001">
-<script src="i18n.js?v=2026111001"></script>
-<script src="i18n/fr-desk.js?v=2026111001"></script>
-<script src="guide.js?v=2026111001"></script>
-<script src="config.js?v=2026111001"></script>
-<script src="core.js?v=2026111001"></script>
-<script src="app-common.js?v=2026111001"></script>
+<link rel="stylesheet" href="style.css?v=2026111003">
+<script src="i18n.js?v=2026111003"></script>
+<script src="i18n/fr-desk.js?v=2026111003"></script>
+<script src="guide.js?v=2026111003"></script>
+<script src="config.js?v=2026111003"></script>
+<script src="core.js?v=2026111003"></script>
+<script src="app-common.js?v=2026111003"></script>
 </head>
 <body>
 
@@ -207,7 +207,7 @@
     }
     return out;
   }
-  /* votes at the central bank: rules from the state, crisis question only when the union ended the last published year under alert */
+  /* union votes: rules from the state, crisis question only when the union ended the last published year under alert */
   function votesConfig() {
     var st = data.state, sim = Object.assign({}, MS.defaultState().sim, st.sim || {});
     var last = (data.union || []).filter(function (r) { return r.phase === 'game' && r.detail && r.detail.extra && Number(r.year) === Number(st.round) - 1; })[0];
@@ -246,7 +246,7 @@
         MS.CET_LEVELS.map(function (l) { return [String(l), l + ' %']; }), String(curCet)));
     }
     var card = el('div');
-    card.appendChild(el('h3', { style: 'margin:14px 0 2px', 'data-guide': 'rate' }, ['Votes at the central bank']));
+    card.appendChild(el('h3', { style: 'margin:14px 0 2px', 'data-guide': 'rate' }, ['Union votes']));
     card.appendChild(el('p', { class: 'muted small', style: 'margin:0' }, ['Your votes travel with your decisions and stay secret while the round is open; they are revealed with everyone’s decisions once it is closed.']));
     card.appendChild(wrap);
     return card;
@@ -298,7 +298,7 @@
     if (f.maxNonZero) rules.push('at most ' + f.maxNonZero + ' instruments');
     if (f.isWarm) rules.push('all other countries keep their policies unchanged');
     rules.push('0 = no change from the reference');
-    if (!f.isWarm && votesConfig().on && !f.out) rules.push('your votes at the central bank go with your decisions');
+    if (!f.isWarm && votesConfig().on && !f.out) rules.push('your votes in the union go with your decisions');
     card.appendChild(el('p', { class: 'muted small' }, ['Rules: ' + rules.join(' · ') + '.']));
 
     /* lever table */

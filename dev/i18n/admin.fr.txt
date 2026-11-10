@@ -415,8 +415,8 @@ v# — v# + emissions, a global pollution stock and a damage function; carbon ta
 => v# — v# + émissions, un stock mondial de pollution et une fonction de dommages ; leviers taxe carbone et investissement vert (backend v# requis)
 Duels run on the v#-based duel engine (two economies, two currencies, climate)
 => Les duels tournent sur le moteur duel issu de la v# (deux économies, deux monnaies, climat)
-Votes at the central bank (game)
-=> Votes à la banque centrale (partie)
+Union votes (game)
+=> Votes de l’union (partie)
 votes enabled (rate: cut / hold / hike; reserves crisis: austerity / devaluation)
 => votes activés (taux : baisse / statu quo / hausse ; crise des réserves : austérité / dévaluation)
 Votes disabled

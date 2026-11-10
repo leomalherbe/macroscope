@@ -121,7 +121,7 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 "Game":"Partie",
 "Model version":"Version du modèle",
 "Engine used by Run for this class (a game in progress should keep its version)":"Moteur utilisé par la simulation pour cette classe (une partie en cours doit garder sa version)",
-"Votes at the central bank (game)":"Votes à la banque centrale (partie)",
+"Union votes (game)":"Votes de l’union (partie)",
 "votes enabled (rate: cut / hold / hike; reserves crisis: austerity / devaluation)":"votes activés (taux : baisse / statu quo / hausse ; crise des réserves : austérité / dévaluation)",
 "Votes disabled":"Votes désactivés",
 "Rate step per majority vote (pt)":"Pas du taux par vote majoritaire (pt)",
