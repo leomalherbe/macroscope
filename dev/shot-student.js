@@ -78,7 +78,7 @@ async function api(params) { const r = await fetch(BASE + '/api', { method: 'POS
     { key: 'DEU', year: 1, gdp: 0.15, unemp: -0.05, infl: 0.0, pubbal: 0.05, tradebal: 0.2, published: true },
     { key: 'ITA', year: 1, gdp: -0.4, unemp: 0.2, infl: -0.1, pubbal: -0.2, tradebal: -0.1, published: true },
     { key: 'ESP', year: 1, gdp: -0.6, unemp: 0.3, infl: -0.2, pubbal: -0.3, tradebal: -0.4, published: true }] });
-  await api({ action: 'admin.state.set', key: 'TESTKEY', classId: cid, patch: { round: 2, status: 'open', councilOpen: false, revealRounds: [1], communique: 'Year 2: oil price shock (+30%).' } });
+  await api({ action: 'admin.state.set', key: 'TESTKEY', classId: cid, patch: { round: 2, status: 'open', councilOpen: false, revealRounds: [1], communique: 'Year 2: households turn to foreign goods (+30 % import propensity).' } });
   await page.click('text=Refresh');
   await page.waitForSelector('text=Pledges vs decisions');
   await page.screenshot({ path: OUT + '/s7-game-year2.png', fullPage: true });
