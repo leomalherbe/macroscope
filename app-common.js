@@ -106,6 +106,9 @@ var UI = (function () {
   }
   /* votes at the central bank (spec §7): chips for a decision, tally lines for a union row's detail.extra */
   var VOTE_LABEL = { cut: 'Rate: cut', hold: 'Rate: hold', hike: 'Rate: hike', austerity: 'Crisis: austerity', devaluation: 'Crisis: devaluation' };
+  /* outcome of a reserves-crisis round as shown to people: 'float' = the vote went to austerity, then the central bank let the
+     currency float instead (no austerity cap; floating regime from that year on) */
+  function crisisWord(o) { return o === 'float' ? 'floating instead of austerity' : (o || '—'); }
   function voteChipsHtml(v, opts) {
     if (!v || !v.rate) return '';
     var h = '<span class="chip vote' + (v.rate === 'hold' ? ' zero' : '') + '">' + esc(VOTE_LABEL[v.rate] || v.rate) + '</span>';
@@ -123,7 +126,7 @@ var UI = (function () {
     var c = v.crisis || {};
     if (c.outcome === 'forced') h += '<div class="urow"><span>Reserves exhausted</span><span class="num neg">forced devaluation</span></div>';
     else if (c.active && c.kind === 'currency') h += '<div class="urow"><span>Currency crisis · vote</span><span class="num">' + esc(c.austerity) + ' defend · ' + esc(c.devaluation) + ' let it float → <b>' + (c.outcome === 'float' ? 'let it float' : 'defend (rate raised)') + '</b></span></div>';
-    else if (c.active) h += '<div class="urow"><span>Reserves crisis · vote</span><span class="num">' + esc(c.austerity) + ' austerity · ' + esc(c.devaluation) + ' devaluation → <b>' + esc(c.outcome || '—') + '</b>' + (c.outcome === 'austerity' && u.caps && u.caps.length ? ' (capped: ' + esc(u.caps.join(', ')) + ')' : '') + '</span></div>';
+    else if (c.active) h += '<div class="urow"><span>Reserves crisis · vote</span><span class="num">' + esc(c.austerity) + ' austerity · ' + esc(c.devaluation) + ' devaluation → <b>' + esc(crisisWord(c.outcome)) + '</b>' + (c.outcome === 'austerity' && u.caps && u.caps.length ? ' (capped: ' + esc(u.caps.join(', ')) + ')' : '') + '</span></div>';
     return h;
   }
   /* Fact sheet of a country: key indicators at the end of a year, with the change since the previous year.
@@ -431,5 +434,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

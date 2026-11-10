@@ -1074,3 +1074,9 @@ reference
 => @, année par année
 Year #: & &
 => Année # : & &
+
+// reserves crisis: the central bank floats instead of austerity
+floating instead of austerity
+=> flottement au lieu de l’austérité
+. The central bank lets the union’s currency float from this year instead of imposing austerity: no cap on public demand and benefits; the reserves are frozen and the exchange rate moves.
+=> . La banque centrale laisse flotter la monnaie de l’union dès cette année au lieu d’imposer l’austérité : pas de plafond sur la demande publique et les prestations ; les réserves sont gelées et le taux de change bouge.

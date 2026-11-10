@@ -264,7 +264,11 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 "engine.js is missing or failed to load: nothing can be run. Results can still be typed by hand in the Results tab.":"engine.js est absent ou n’a pas pu se charger : rien ne peut être simulé. Les résultats peuvent encore être saisis à la main dans l’onglet Résultats.",
 "beginners’ guide on the desk (« How it works? » panel and ⓘ buttons)":"guide pour débutants sur le desk (panneau « Comment ça marche ? » et boutons ⓘ)",
 "Short cards on the mechanisms at work (direction of effects only), and a glossary; the cards shown follow the model version and the options of the class.":"De courtes fiches sur les mécanismes à l’œuvre (sens des effets seulement) et un lexique ; les fiches affichées suivent la version du modèle et les options de la classe.",
-"Groups’ justifications, a priori":"Justifications a priori des groupes"},"re":[["Class deleted \\(([+−±-]?\\d+(?:[.,]\\d+)?) rows removed\\)",
+"Groups’ justifications, a priori":"Justifications a priori des groupes",
+". The central bank lets the currency float from this year instead of imposing austerity: no cap on public demand and benefits, and the floating regime stays in the following years (Shocks). Announce it in the communiqué, then open the decisions.":". La banque centrale laisse flotter la monnaie dès cette année au lieu d’imposer l’austérité : pas de plafond sur la demande publique et les prestations, et le régime flottant reste les années suivantes (Chocs). L’annoncer dans le communiqué, puis ouvrir les décisions.",
+"The central bank lets the currency float instead":"La banque centrale laisse flotter la monnaie à la place",
+"The currency floats instead of austerity":"La monnaie flotte au lieu de l’austérité",
+" (no cap; floating regime from this year).":"(pas de plafond ; régime flottant à partir de cette année)."},"re":[["Class deleted \\(([+−±-]?\\d+(?:[.,]\\d+)?) rows removed\\)",
 "Classe supprimée ($1 lignes retirées)"],
 ["Delete the class « (.+?) » with all its groups, PINs, decisions, results, pledges and analyses\\? This cannot be undone\\. Type the class name to confirm:",
 "Supprimer la classe « $1 » avec tous ses groupes, PIN, décisions, résultats, engagements et analyses ? C’est irréversible. Tapez le nom de la classe pour confirmer :"],
@@ -611,4 +615,8 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 ["Group’s strategy, a priori \\((.+?)\\)",
 "Stratégie a priori du groupe ($1)"],
 ["Groups’ justifications, a priori · year ([+−±-]?\\d+(?:[.,]\\d+)?)",
-"Justifications a priori des groupes · année $1"]],"title":"Macroscope · Administration"});
+"Justifications a priori des groupes · année $1"],
+["([+−±-]?\\d+(?:[.,]\\d+)?) austerity · ([+−±-]?\\d+(?:[.,]\\d+)?) devaluation → floating instead of austerity",
+"$1 austérité · $2 dévaluation → flottement au lieu de l’austérité"],
+["The central bank lets the currency float from year ([+−±-]?\\d+(?:[.,]\\d+)?) instead of austerity: the cap on public demand and benefits is lifted and the regime is set to floating from this year on\\. Go on\\?",
+"La banque centrale laisse flotter la monnaie dès l’année $1 au lieu de l’austérité : le plafond sur la demande publique et les prestations est levé et le régime passe en flottant à partir de cette année. Continuer ?"]],"title":"Macroscope · Administration"});

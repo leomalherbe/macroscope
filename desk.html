@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110910">
-<script src="i18n.js?v=2026110910"></script>
-<script src="i18n/fr-desk.js?v=2026110910"></script>
-<script src="guide.js?v=2026110910"></script>
-<script src="config.js?v=2026110910"></script>
-<script src="core.js?v=2026110910"></script>
-<script src="app-common.js?v=2026110910"></script>
+<link rel="stylesheet" href="style.css?v=2026111001">
+<script src="i18n.js?v=2026111001"></script>
+<script src="i18n/fr-desk.js?v=2026111001"></script>
+<script src="guide.js?v=2026111001"></script>
+<script src="config.js?v=2026111001"></script>
+<script src="core.js?v=2026111001"></script>
+<script src="app-common.js?v=2026111001"></script>
 </head>
 <body>
 
@@ -285,8 +285,8 @@
     }
     else if (rec && rec.status === 'closed') {
       cap = rec.outcome === 'austerity' ? MS.num(vc0.cap) : null;
-      card.appendChild(el('div', { class: 'note', html: '<b>Crisis vote of year ' + st.round + ':</b> ' + esc(rec.austerity) + ' austerity · ' + esc(rec.devaluation) + ' devaluation → <b>' + esc(rec.outcome) + '</b>. ' +
-        (cap !== null ? 'Austerity programme: public demand and social benefits of every member are capped at <b>' + esc(MS.fmt(cap, 0)) + ' %</b> of the reference this year (the form refuses more).' : 'A devaluation of ' + esc(MS.fmt(vc0.deval, 0)) + ' % is applied this year: exports recover with a lag, import prices and inflation rise.') }));
+      card.appendChild(el('div', { class: 'note', html: '<b>Crisis vote of year ' + st.round + ':</b> ' + esc(rec.austerity) + ' austerity · ' + esc(rec.devaluation) + ' devaluation → <b>' + esc(UI.crisisWord(rec.outcome)) + '</b>. ' +
+        (rec.outcome === 'float' ? 'The central bank lets the union’s currency float from this year instead of imposing austerity: no cap on public demand and benefits; the reserves are frozen and the exchange rate moves.' : cap !== null ? 'Austerity programme: public demand and social benefits of every member are capped at <b>' + esc(MS.fmt(cap, 0)) + ' %</b> of the reference this year (the form refuses more).' : 'A devaluation of ' + esc(MS.fmt(vc0.deval, 0)) + ' % is applied this year: exports recover with a lag, import prices and inflation rise.') }));
     }
 
     var rules = [];
@@ -888,7 +888,7 @@
       if (recC && recC.status === 'closed') {
         var cv = (rd.crisisVotes || []).slice().sort(function (a, b) { return MS.countryName(a.country).localeCompare(MS.countryName(b.country)); });
         var missingC = (data.groups || []).filter(function (g) { return g.country && !cv.some(function (x) { return x.groupId === g.groupId; }); });
-        h += '<tr><td colspan="' + (hasVotes ? 5 : 4) + '"><b>Crisis vote · year ' + rd.round + '</b>: ' + esc(recC.austerity) + ' austerity · ' + esc(recC.devaluation) + ' devaluation → <b>' + esc(recC.outcome) + '</b><div class="chips">' +
+        h += '<tr><td colspan="' + (hasVotes ? 5 : 4) + '"><b>Crisis vote · year ' + rd.round + '</b>: ' + esc(recC.austerity) + ' austerity · ' + esc(recC.devaluation) + ' devaluation → <b>' + esc(UI.crisisWord(recC.outcome)) + '</b><div class="chips">' +
           cv.map(function (x) { return '<span class="chip vote">' + esc(MS.countryName(x.country)) + ': ' + esc(x.crisis) + '</span>'; }).join('') + missingC.map(function (g) { return '<span class="chip zero">' + esc(MS.countryName(g.country)) + ': austerity (no vote)</span>'; }).join('') + '</div></td></tr>';
       }
       /* §12: votes of the councils on retaliation of that year */

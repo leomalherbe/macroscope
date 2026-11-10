@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026110910">
-<script src="i18n.js?v=2026110910"></script>
-<script src="i18n/fr-desk.js?v=2026110910"></script>
-<script src="i18n/fr-admin.js?v=2026110910"></script>
-<script src="config.js?v=2026110910"></script>
-<script src="core.js?v=2026110910"></script>
-<script src="app-common.js?v=2026110910"></script>
-<script src="engine.js?v=2026110910"></script>
+<link rel="stylesheet" href="style.css?v=2026111001">
+<script src="i18n.js?v=2026111001"></script>
+<script src="i18n/fr-desk.js?v=2026111001"></script>
+<script src="i18n/fr-admin.js?v=2026111001"></script>
+<script src="config.js?v=2026111001"></script>
+<script src="core.js?v=2026111001"></script>
+<script src="app-common.js?v=2026111001"></script>
+<script src="engine.js?v=2026111001"></script>
 </head>
 <body>
 
@@ -264,8 +264,15 @@
     if (rec && rec.status === 'forced') {
       card.appendChild(el('p', {}, ['Reserves exhausted at the end of year ' + (N - 1) + ' with the current account still in deficit: a forced devaluation of ' + MS.fmt(rules.forcedDeval, 0) + ' % is recorded for this year, without a vote. Announce it in the communiqué, then open the decisions.']));
     } else if (rec && rec.status === 'closed') {
-      card.appendChild(el('p', { html: 'Vote closed: <b>' + rec.austerity + ' austerity · ' + rec.devaluation + ' devaluation → ' + esc(rec.outcome) + '</b>. ' + (rec.outcome === 'devaluation' ? 'A devaluation of ' + MS.fmt(rules.devalSize, 0) + ' % is applied this year.' : 'Public demand and benefits of every member are capped at ' + MS.fmt(rules.austerityCap, 0) + ' % of the reference this year (the form refuses more).') + ' Announce it in the communiqué, then open the decisions.' }));
-      card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn ghost sm', onclick: function () { if (confirm('Reopen the crisis vote of year ' + N + '? Decisions already submitted this year stay recorded.')) patch({ crisis: setCrisis({ status: 'open' }), status: 'closed' }, 'Crisis vote reopened'); } }, ['Reopen the vote'])]));
+      card.appendChild(el('p', { html: 'Vote closed: <b>' + rec.austerity + ' austerity · ' + rec.devaluation + ' devaluation → ' + esc(UI.crisisWord(rec.outcome)) + '</b>. ' + (rec.outcome === 'devaluation' ? 'A devaluation of ' + MS.fmt(rules.devalSize, 0) + ' % is applied this year.' : rec.outcome === 'float' ? 'The central bank lets the currency float from this year instead of imposing austerity: no cap on public demand and benefits, and the floating regime stays in the following years (Shocks).' : 'Public demand and benefits of every member are capped at ' + MS.fmt(rules.austerityCap, 0) + ' % of the reference this year (the form refuses more).') + ' Announce it in the communiqué, then open the decisions.' }));
+      var crBtns = [el('button', { class: 'btn ghost sm', onclick: function () { if (confirm('Reopen the crisis vote of year ' + N + '? Decisions already submitted this year stay recorded.')) patch({ crisis: setCrisis({ status: 'open' }), status: 'closed' }, 'Crisis vote reopened'); } }, ['Reopen the vote'])];
+      /* v1.3: after an austerity outcome, the central bank may let the currency float instead (no cap, floating regime from year N) */
+      if (rec.outcome === 'austerity' && shockFields().some(function (f) { return f.id === 'regime'; })) crBtns.unshift(el('button', { class: 'btn primary', onclick: function () {
+        if (!confirm('The central bank lets the currency float from year ' + N + ' instead of austerity: the cap on public demand and benefits is lifted and the regime is set to floating from this year on. Go on?')) return;
+        var allS = Object.assign({}, s.shocks || {}), k = shockKey(N, 'game'); allS[k] = Object.assign({}, allS[k] || {}, { regime: 'float' });
+        patch({ crisis: setCrisis({ status: 'closed', austerity: rec.austerity, devaluation: rec.devaluation, outcome: 'float' }), shocks: allS }, 'The currency floats instead of austerity');
+      } }, ['The central bank lets the currency float instead']));
+      card.appendChild(el('div', { class: 'btnrow' }, crBtns));
     } else if (rec && rec.status === 'open') {
       var votes = decisionsFor('crisis', N), playing = ov.groups.filter(function (g) { return !!g.country && !isOutY(g.country, N); });
       card.appendChild(el('p', { html: '<b>Vote in progress</b> — ' + votes.length + ' of ' + playing.length + ' countries have voted. Decisions cannot be opened until the vote is closed. A country that does not vote counts as austerity; devaluation needs more than half of the playing countries.' }));
@@ -1154,8 +1161,9 @@
       }
       else if (rec && rec.status === 'forced') { shock.deval = (shock.deval || 0) + rules.forcedDeval; crisis.outcome = 'forced'; }
       else if (rec && rec.status === 'closed') {
-        crisis.active = true; crisis.outcome = rec.outcome === 'devaluation' ? 'devaluation' : 'austerity';
+        crisis.active = true; crisis.outcome = rec.outcome === 'devaluation' || rec.outcome === 'float' ? rec.outcome : 'austerity';
         if (crisis.outcome === 'devaluation') shock.deval = (shock.deval || 0) + rules.devalSize;
+        else if (crisis.outcome === 'float') shock.regime = 'float';   /* the central bank floats instead of austerity: no cap */
         else playing.forEach(function (g) {
           if (isOutY(g.country, y)) return;
           var pol = policies[g.country][y - 1];
@@ -1276,7 +1284,7 @@
       if (t.cet) lines.push('Common external tariff: ' + MS.CET_LEVELS.map(function (l, i) { return t.cet.levels[i] + ' × ' + l + ' %'; }).join(' · ') + ' (' + t.cet.votes + ' vote(s)) → <b>' + esc(MS.fmt(t.cet.level, 0)) + ' %</b>' + (t.cet.votes ? ' (median)' : ' (no vote: unchanged)') + (MS.num(sh.worldTariff) ? ' · the rest of the world taxes the union’s exports at ' + esc(MS.fmt(sh.worldTariff, 0)) + ' %' : '') + '.');
       if (cr.outcome === 'forced') lines.push('<span class="neg">Reserves exhausted at the end of year ' + (runPreview.round - 1) + ' with the current account still in deficit: forced devaluation of ' + esc(MS.fmt(gameRules().forcedDeval, 0)) + ' %.</span>');
       else if (cr.active && cr.kind === 'currency') lines.push('Currency crisis (depreciation over year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' defend · ' + cr.devaluation + ' let it float → <b>' + (cr.outcome === 'float' ? 'let it float' : 'defend: rate +' + esc(MS.fmt(gameRules().defendStep || 1, 1)) + ' pt this year') + '</b>.');
-      else if (cr.active) lines.push('Reserves crisis (alert at the end of year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' austerity · ' + cr.devaluation + ' devaluation → <b>' + esc(cr.outcome) + '</b>' + (cr.outcome === 'devaluation' ? ' (' + esc(MS.fmt(gameRules().devalSize, 0)) + ' % devaluation applied)' : (runPreview.caps && runPreview.caps.length ? ' — public demand and benefits capped at ' + esc(MS.fmt(gameRules().austerityCap, 0)) + ' % for: ' + esc(runPreview.caps.map(MS.countryName).join(', ')) : ' — nobody above the cap')) + '.');
+      else if (cr.active) lines.push('Reserves crisis (alert at the end of year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' austerity · ' + cr.devaluation + ' devaluation → <b>' + esc(UI.crisisWord(cr.outcome)) + '</b>' + (cr.outcome === 'devaluation' ? ' (' + esc(MS.fmt(gameRules().devalSize, 0)) + ' % devaluation applied)' : cr.outcome === 'float' ? ' (no cap; floating regime from this year)' : (runPreview.caps && runPreview.caps.length ? ' — public demand and benefits capped at ' + esc(MS.fmt(gameRules().austerityCap, 0)) + ' % for: ' + esc(runPreview.caps.map(MS.countryName).join(', ')) : ' — nobody above the cap')) + '.');
       else lines.push(runPreview.shock && runPreview.shock.regime === 'float' ? 'No currency crisis this year (floating regime).' : 'No reserves crisis this year.');
       if (MS.num(sh.deval)) lines.push('Devaluation applied this year: ' + esc(MS.fmt(sh.deval, 1)) + ' %.');
       /* §12 */
