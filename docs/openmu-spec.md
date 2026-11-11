@@ -1,4 +1,4 @@
-# OPEN-MU — specification (v1, fixed exchange rate; sections up to §12)
+# OPEN-MU — specification (sections up to §15; §15: two models, Trade and Finance, and options)
 
 Game engine replacing MacSim 2 in the policy desk. Runs in the browser (admin console) and in Node (tests). Decided with Léo on 3 Nov 2026: option 1 (chapter-6 OPEN/REG logic extended to N countries in a monetary union, rest of the world exogenous), **fixed exchange rate with reserves**, devaluation decreed by the administrator near the alert threshold, two "thermometer" equations (unemployment, inflation) outside the dynamics, no sandbox, no tariffs in v1.
 
@@ -585,3 +585,12 @@ Activation par classe : `sim.tariffs` (Control → Parameters → « tariffs »)
 - **Magnitudes** (engine-test): France public demand +10, year 1 (v1.3): seven: France GDP +2.39 %, partners +0.14 %, reserves % 97 94 89 | DEU FRA ITA ESP: France GDP +2.40 %, partners +0.18 %, reserves % 97 92 87 | FRA ITA ESP: France GDP +2.42 %, partners +0.35 %, reserves % 95 88 79. A smaller union spreads a member's policy over fewer partners and a smaller common stock of reserves: the interdependence is easier to see.
 - **No backend change** (`sim` merges unknown keys); `MS.membersOf(state)` in core.js (re-bundled into Code.gs, no redeploy needed). Tests: `dev/e2e-members.js`.
 
+
+## 15. Two models and options (11/11, backend 1.12)
+
+- **Models** (`state.sim.model`): `v1` · **Trade** = the union of §1–§8 with relative prices in trade (the former v1.2) and reserves of **3 months** of imports (the former v1.2 had 1.5); `v2` · **Finance** = Trade + §9 (capital flows, fixed or floating rate per year, risk premium, backstop), identical to the former v1.3. New classes start on `v1`.
+- **Options**: **climate** (`state.sim.climate`, §10 on either model; v2 + climate is identical to the former v2.0; v1 + climate runs the §10 block with a fixed rate and no capital flows); **tariffs** (§13, both models); **leaving the union** (§12, Finance only). The duel (§11) is a mode of its own.
+- **Engine**: `OPENMU.paramsFor('v1' | 'v2' | 'v1+climate' | 'v2+climate')`; former ids `v1.1`, `v1.2`, `v1.3`, `v2.0` are kept so that classes created with them replay unchanged.
+- **Core** (`core.js`, also in the backend): `modelId(state)` (a class without the key is a former v1.1 class), `financeModel`, `climateOn`, `engineModel` (the engine id), `modelLabel` (« v2 · Finance + Climate », « v1 · Trade (former v1.2: reserves 1.5 months) »); `isEcoModel = climateOn`, `exitModelOk` and the floating choice of the crisis vote = Finance.
+- **Console**: Parameters → "Model and options": the two models, the former v1.1 / v1.2 listed only for a class that uses them (climate unavailable there); v1.3 and v2.0 classes show as v2 (saving the parameters writes `v2` and, for v2.0, `climate: true`, with identical results). The climate option adds or removes the two ecological levers of the warm-up.
+- Tests: `dev/e2e-models.js` (identities v2 = v1.3, v2 + climate = v2.0, v1 = v1.2 + 3 months; a Trade + Climate year; exit refused outside Finance).

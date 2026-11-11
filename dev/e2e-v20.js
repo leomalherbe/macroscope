@@ -43,19 +43,20 @@ const KEY = 'TESTKEY';
   await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(600);
   await admin.click('#tabs button:has-text("Control")');
   await admin.click('summary:has-text("Parameters")');
-  await admin.selectOption('#modelSel', 'v2.0');
+  await admin.selectOption('#modelSel', 'v2');
+  await admin.check('#climateOn');
   await admin.click('button:has-text("Save parameters")');
   await admin.waitForTimeout(700);
   let ov = await api({ action: 'admin.overview', key: KEY, classId: cid });
-  must(ov.state.sim.model === 'v2.0' && ov.state.warmup.allowed.indexOf('ctax') >= 0 && ov.state.warmup.allowed.indexOf('green') >= 0 && ov.state.bounds.eco === 10, 'class switched to v2.0: the carbon tax and green investment join the warm-up levers, eco bound 10');
-  must(/backend v1\.10/.test(await admin.textContent('#footTime')), 'backend reports v1.10');
+  must(ov.state.sim.model === 'v2' && ov.state.sim.climate === true && ov.state.warmup.allowed.indexOf('ctax') >= 0 && ov.state.warmup.allowed.indexOf('green') >= 0 && ov.state.bounds.eco === 10, 'class switched to v2 · Finance + Climate (= the former v2.0): the carbon tax and green investment join the warm-up levers, eco bound 10');
+  must(/backend v1\.12/.test(await admin.textContent('#footTime')), 'backend reports v1.12');
 
   /* warm-up: shocks editor shows the v2.0 rows; open submissions */
   await admin.click('#tabs button:has-text("Run")');
   await admin.waitForSelector('text=Run all submitted plans');
   const rows = await admin.evaluate(() => [...document.querySelectorAll('#view table.resgrid tbody tr td:first-child')].map(td => td.textContent.trim().split('\n')[0]));
   must(rows.some(r => /World emissions/.test(r)) && rows.some(r => /Climate disaster/.test(r)) && rows.some(r => /Exchange-rate regime/.test(r)), 'shocks editor shows the v2.0 rows (world emissions, climate disaster) next to the v1.3 ones');
-  must(/model v2\.0/.test(await admin.textContent('#view')), 'engine line names model v2.0');
+  must(/model v2 · Finance \+ Climate/.test(await admin.textContent('#view')), 'engine line names v2 · Finance + Climate');
   await admin.screenshot({ path: OUT + '/v20-a1-run.png', fullPage: true });
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'open' } });
 
@@ -83,7 +84,7 @@ const KEY = 'TESTKEY';
   must(!negative.ok && (negative.errors || []).some(e => /between 0 and 10/.test(e)), 'negative green investment refused');
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { sim: { model: 'v1.2' } } });
   const wrongModel = await api({ action: 'submit', pin: pins.DEU, phase: 'warmup', round: 1, payload: { years: [{ levers: { ctax: 3 } }, {}, {}], text: 'x'.repeat(160) } });
-  must(!wrongModel.ok && (wrongModel.errors || []).some(e => /belongs to model v2\.0/.test(e)), 'carbon tax refused on a v1.2 class');
+  must(!wrongModel.ok && (wrongModel.errors || []).some(e => /belongs to the climate option/.test(e)), 'carbon tax refused on a v1.2 class');
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { sim: { model: 'v2.0' } } });
 
   /* run the warm-up, publish */

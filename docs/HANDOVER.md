@@ -29,7 +29,11 @@ Site : **https://leomalherbe.github.io/macroscope/** (landing page) · desk : `d
 
 Flux d'un tour : l'administrateur ouvre les soumissions → les équipes soumettent (décisions + votes) → Close → **Run year N** (la console rejoue les années 1..N avec décisions, chocs, votes, élections enregistrés ; le backend ne calcule rien) → aperçu → Save and publish all → les pages se rafraîchissent.
 
-## 3. Versions du modèle (sélection par classe : Control → Parameters → Model version)
+## 3. Modèles et options (sélection par classe : Control → Parameters → Model and options)
+
+**Depuis le 11/11 (backend 1.12)** : deux modèles emboîtés et des options. `sim.model` = **`v1` · Trade** (union monétaire, prix relatifs dans les échanges, change fixe, réserves 3 mois = l'ancienne v1.2 avec 3 mois) ou **`v2` · Finance** (= l'ancienne v1.3 au chiffre près) ; option **Climat** `sim.climate` sur l'un ou l'autre (v2 + climat = l'ancienne v2.0 au chiffre près ; v1 + climat = nouveau) ; options **droits de douane** (`sim.tariffs`, les deux modèles) et **sortie de l'union** (`sim.exit`, Finance seulement) ; le duel reste un mode à part. Moteur : `OPENMU.paramsFor('v1' | 'v2' [+ '+climate'])` ; `MS.modelId / financeModel / climateOn / engineModel / modelLabel` dans `core.js` (seule source de vérité : console, desk, guide, backend). Les anciens identifiants (v1.1, v1.2, v1.3, v2.0) restent dans le moteur pour que les classes créées avec eux se rejouent à l'identique ; la console affiche v1.3 et v2.0 comme v2 · Finance (+ Climate), et ne propose v1.1 / v1.2 qu'aux classes qui les utilisent. Option « ménages modestes et aisés » : prototype sur la branche `proto/v1.4-households` (projet Claude : `claude/prototype-v1.4-menages.md`), pas encore branchée.
+
+Historique des versions (anciens identifiants) :
 
 | Version | Ajout | Backend requis |
 |---|---|---|
@@ -48,7 +52,7 @@ Calibration du 7/11 (PR #29, validée par Léo) : pour v1.3+/duel, réserves à 
 
 ## 4. Backend : versions et redéploiement
 
-Le pied de page de la console affiche « backend vX.Y ». Toute modification de `core.js`, `dev/service.js` ou `dev/gas-adapter.js` change `Code.gs` ; un **changement de comportement** exige : Google Sheet → Extensions → Apps Script → remplacer tout `Code.gs` → enregistrer → **Déployer → Gérer les déploiements → ✎ → Nouvelle version → Déployer** (l'URL ne change pas). Un simple re-bundle (core.js modifié pour les pages seulement) ne l'exige pas, mais ne nuit pas. Dernière version : **1.11** (`Code.gs`) : troisième choix « change flottant » au vote de crise des réserves (v1.3/v2.0, choix médian) ; 1.10 : droits de douane (§13) ; 1.9 : sortie de l'union (§12). Migration de feuille automatique (colonne `emis`).
+Le pied de page de la console affiche « backend vX.Y ». Toute modification de `core.js`, `dev/service.js` ou `dev/gas-adapter.js` change `Code.gs` ; un **changement de comportement** exige : Google Sheet → Extensions → Apps Script → remplacer tout `Code.gs` → enregistrer → **Déployer → Gérer les déploiements → ✎ → Nouvelle version → Déployer** (l'URL ne change pas). Un simple re-bundle (core.js modifié pour les pages seulement) ne l'exige pas, mais ne nuit pas. Dernière version : **1.12** (`Code.gs`) : deux modèles (`v1` Trade, `v2` Finance) et l'option Climat (`sim.climate`) ; 1.11 : troisième choix « change flottant » au vote de crise des réserves (v1.3/v2.0, choix médian) ; 1.10 : droits de douane (§13) ; 1.9 : sortie de l'union (§12). Migration de feuille automatique (colonne `emis`).
 
 ## 5. Outils de développement (`dev/` à la racine du dépôt, depuis la PR #29)
 
@@ -105,7 +109,7 @@ Méthode de travail avec Léo pour le visuel : proposer des captures avant/aprè
 - Redirections dans le dépôt du cours (voir §1) ; fermer la vieille PR #23 du dépôt du cours (page du modèle, sans doute dépassée).
 - Léo signale que « Ouvrir le board » de la console n'ouvre pas le board chez lui (après #7) ; non reproduit en local : attendre l'adresse de sa console et celle du lien.
 - Le board (projecteur) reste en anglais ; à traduire de la même façon si une classe joue en français.
-- Rappel programmé le jeudi 12/11 à 18 h 30 (heure de Paris) : aligner les réserves de départ de la v1.1 (3 mois) sur la v1.2 (1,5 mois). Choix à reposer à Léo : modifier v1.1 pour toutes les classes (casse le rejeu de la partie de la séance 6 et la régression bit à bit) ou un champ « Initial reserves » par classe (`sim.reserveMonths`, déjà lu par le moteur, verrouillé après l'année 1). Ce rappel arrive dans la session de l'ancien projet « International Financial Macroeconomics ».
+- ~~Rappel programmé le jeudi 12/11 à 18 h 30 : aligner les réserves de la v1.1 sur la v1.2.~~ Réglé autrement le 11/11 : la nouvelle v1 · Trade a 3 mois de réserves, comme la v2 ; les anciennes v1.1 et v1.2 restent pour leurs classes. Ancienne note : modifier v1.1 pour toutes les classes (casse le rejeu de la partie de la séance 6 et la régression bit à bit) ou un champ « Initial reserves » par classe (`sim.reserveMonths`, déjà lu par le moteur, verrouillé après l'année 1). Ce rappel arrive dans la session de l'ancien projet « International Financial Macroeconomics ».
 - Les copies `claude/handover.md` et `claude/openmu-spec.md` du projet Claude du cours datent d'avant l'autonomie (chemins `macroscope/…`) : la référence est ce fichier, dans le dépôt.
 
 - Licence : décidée (CC BY-NC-SA 4.0, §1) ; reste éventuellement à vérifier avec KEDGE les droits de l'école.

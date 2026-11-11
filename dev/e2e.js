@@ -36,15 +36,19 @@ console.log('engine:', realEngine ? 'engine.js (real)' : 'dev/engine-stub.js (st
   await admin.click('button:has-text("+ New class")');
   await admin.waitForSelector('#statusGrid');
   must(await admin.textContent('#classbar select') === 'M1 Finance A', 'class created through the console');
-  must(/backend v1\.10/.test(await admin.textContent('#footTime')), 'backend reports v1.10');
-  /* a class created from the console plays model v1.2; this scenario was written for v1.1, so switch it back through Parameters */
-  const ov0 = await api({ action: 'admin.overview', key: 'TESTKEY', classId: JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id });
-  must(ov0.state.sim && ov0.state.sim.model === 'v1.2', 'a new class is created with model v1.2');
+  must(/backend v1\.12/.test(await admin.textContent('#footTime')), 'backend reports v1.12');
+  /* a class created from the console plays v1 · Trade; this scenario was written for the former v1.1, kept for the classes that
+     use it: set it through the backend, then check that Parameters lists it for this class only */
+  const cidA = JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id;
+  const ov0 = await api({ action: 'admin.overview', key: 'TESTKEY', classId: cidA });
+  must(ov0.state.sim && ov0.state.sim.model === 'v1', 'a new class is created with model v1 · Trade');
   await admin.click('summary:has-text("Parameters")');
-  must(await admin.inputValue('#modelSel') === 'v1.2', 'Parameters shows model v1.2 for the new class');
-  await admin.selectOption('#modelSel', 'v1.1');
-  await admin.click('button:has-text("Save parameters")');
-  await admin.waitForTimeout(500);
+  must(await admin.inputValue('#modelSel') === 'v1' && (await admin.$$('#modelSel option')).length === 2 && !(await admin.isChecked('#climateOn')), 'Parameters: v1 · Trade, two models offered, climate option off');
+  await api({ action: 'admin.state.set', key: 'TESTKEY', classId: cidA, patch: { sim: { model: 'v1.1' } } });
+  await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(600);
+  await admin.click('#tabs button:has-text("Control")');
+  await admin.click('summary:has-text("Parameters")');
+  must(await admin.inputValue('#modelSel') === 'v1.1' && (await admin.$$('#modelSel option')).length === 3 && await admin.isDisabled('#climateOn'), 'a former v1.1 class: listed for it, climate option unavailable');
   must((await api({ action: 'admin.overview', key: 'TESTKEY', classId: JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id })).state.sim.model === 'v1.1', 'model switched back to v1.1 for the rest of the scenario');
   await admin.click('#tabs button:has-text("Control")');
 

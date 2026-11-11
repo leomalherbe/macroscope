@@ -34,7 +34,7 @@ const TEXT = 'We announce our decisions for the year and explain them to the cou
   await admin.waitForSelector('text=No class yet');
   await admin.click('button:has-text("+ New class")');
   await admin.waitForSelector('#statusGrid');
-  must(/backend v1\.10/.test(await admin.textContent('#footTime')), 'backend reports v1.10');
+  must(/backend v1\.12/.test(await admin.textContent('#footTime')), 'backend reports v1.12');
   const cid = JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id;
   await admin.click('#tabs button:has-text("Groups")');
   await admin.click('button:has-text("Add 7 default groups")');
@@ -44,12 +44,12 @@ const TEXT = 'We announce our decisions for the year and explain them to the cou
   const pins = {}; (await api({ action: '__dump' })).dump.groups.forEach(g => { pins[g.country] = g.pin; });
   await admin.click('#tabs button:has-text("Control")');
   await admin.click('summary:has-text("Parameters")');
-  await admin.selectOption('#modelSel', 'v1.3');
+  await admin.selectOption('#modelSel', 'v2');
   await admin.check('#exitAllowed');
   await admin.click('button:has-text("Save parameters")');
   await admin.waitForTimeout(600);
   let ovw = await api({ action: 'admin.overview', key: KEY, classId: cid });
-  must(ovw.state.sim.model === 'v1.3' && ovw.state.sim.exit === true && ovw.state.game.allowEuro === false, 'Parameters: model v1.3, leaving the union allowed (sim.exit), the old euro option off');
+  must(ovw.state.sim.model === 'v2' && ovw.state.sim.exit === true && ovw.state.game.allowEuro === false, 'Parameters: model v2 · Finance, leaving the union allowed (sim.exit), the old euro option off');
   await admin.click('button:has-text("Start the game")');
   await admin.waitForSelector('text=game · year 1');
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'open' } });

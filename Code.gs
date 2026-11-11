@@ -33,7 +33,21 @@ var MS = (function () {
   ];
   /* the levers available to a class: the four demand/supply levers, plus the two ecological levers when the model is v2.0 */
   function isDuel(state) { return !!(state && state.kind === 'duel'); }
-  function isEcoModel(state) { return isDuel(state) || !!(state && state.sim && String(state.sim.model) === 'v2.0'); }
+  /* the model of a class (spec: two models and options). Current: 'v1' (Trade) and 'v2' (Finance), the climate block as an option
+     (sim.climate). Former ids kept for the classes created with them: 'v1.1', 'v1.2' (Trade, older calibrations), 'v1.3' (= v2),
+     'v2.0' (= v2 + climate). A class without the key is a v1.1 class. */
+  var MODEL_IDS = ['v1', 'v2', 'v1.1', 'v1.2', 'v1.3', 'v2.0'];
+  function modelId(state) { if (isDuel(state)) return 'v2.0'; var m = String((state && state.sim && state.sim.model) || ''); return MODEL_IDS.indexOf(m) >= 0 ? m : 'v1.1'; }
+  function financeModel(state) { var m = modelId(state); return m === 'v2' || m === 'v1.3' || m === 'v2.0'; }
+  function climateOn(state) { var m = modelId(state); return isDuel(state) || m === 'v2.0' || ((m === 'v1' || m === 'v2') && !!(state && state.sim && state.sim.climate)); }
+  /* the engine id of a class: OPENMU.paramsFor(engineModel(state)) */
+  function engineModel(state) { var m = modelId(state); return (m === 'v1' || m === 'v2') && climateOn(state) ? m + '+climate' : m; }
+  function modelLabel(state) {
+    if (isDuel(state)) return 'duel';
+    var m = modelId(state), lab = (financeModel(state) ? 'v2 · Finance' : 'v1 · Trade') + (climateOn(state) ? ' + Climate' : '');
+    return lab + (m === 'v1.1' ? ' (former v1.1: no price channel)' : m === 'v1.2' ? ' (former v1.2: reserves 1.5 months)' : '');
+  }
+  function isEcoModel(state) { return climateOn(state); }
   function leversFor(state) { var eco = isEcoModel(state), duel = isDuel(state); return LEVERS.filter(function (l) { return !l.exitOnly && (!l.eco || eco) && (!l.duel || duel); }); }
   /* §13 tariffs: the common external tariff voted by the members and the tariff of a country out of the union (sim.tariffs) */
   function tariffsOn(state) { return !isDuel(state) && !!(state && state.sim && state.sim.tariffs); }
@@ -41,7 +55,7 @@ var MS = (function () {
   /* §12 leaving the union: allowed in union classes playing model v1.3 or v2.0 when the administrator switches sim.exit on.
      state.exits = {country: N}: the country announced its exit in game year N−1 and is out from year N (recorded by the console
      at the publication of year N−1). */
-  function exitModelOk(state) { var m = String((state && state.sim && state.sim.model) || ''); return !isDuel(state) && (m === 'v1.3' || m === 'v2.0'); }
+  function exitModelOk(state) { return !isDuel(state) && financeModel(state); }
   function exitAllowed(state) { return exitModelOk(state) && !!(state && state.sim && state.sim.exit); }
   function exitYearOf(state, country) { var e = state && state.exits ? Number(state.exits[country]) : NaN; return isFinite(e) && e > 0 ? e : null; }
   function isOutIn(state, country, year) { var e = exitYearOf(state, country); return e !== null && Number(year) >= e; }
@@ -405,7 +419,7 @@ var MS = (function () {
         }
         if (l.eco) {
           /* v2.0 levers: only in a v2.0 class, one-sided, 0 to bounds.eco */
-          if (v !== 0 && !ecoOn) { errors.push('"' + l.label + '" belongs to model v2.0 (not this class).'); v = 0; }
+          if (v !== 0 && !ecoOn) { errors.push('"' + l.label + '" belongs to the climate option (not on in this class).'); v = 0; }
           else if (v !== 0 && allowed.indexOf(l.id) < 0) errors.push('"' + l.label + '" is not available in this phase.');
           else if (v < -1e-9 || v > num(st.bounds.eco || 10) + 1e-9) errors.push('Year ' + (yi + 1) + ': "' + l.label + '" must be between 0 and ' + num(st.bounds.eco || 10) + '.');
           cy.levers[l.id] = round2(Math.max(0, v));
@@ -545,7 +559,7 @@ var MS = (function () {
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
     scoreR: scoreR, isDuel: isDuel, duelOf: duelOf, ELECTION_PRESETS: ELECTION_PRESETS, electionsUpTo: electionsUpTo, weightsInfo: weightsInfo, weightsFor: weightsFor, sameWeights: sameWeights, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision, isEcoModel: isEcoModel, leversFor: leversFor, crisisOf: crisisOf, validateCrisisVote: validateCrisisVote, tallyCrisis: tallyCrisis,
     tariffsOn: tariffsOn, CET_LEVELS: CET_LEVELS,
-    exitModelOk: exitModelOk, exitAllowed: exitAllowed, exitYearOf: exitYearOf, isOutIn: isOutIn, leversForCountry: leversForCountry, FX_REGIMES: FX_REGIMES,
+    exitModelOk: exitModelOk, MODEL_IDS: MODEL_IDS, modelId: modelId, financeModel: financeModel, climateOn: climateOn, engineModel: engineModel, modelLabel: modelLabel, exitAllowed: exitAllowed, exitYearOf: exitYearOf, isOutIn: isOutIn, leversForCountry: leversForCountry, FX_REGIMES: FX_REGIMES,
     RETAL_TARIFF: RETAL_TARIFF, RETAL_SALE: RETAL_SALE, retaliationOf: retaliationOf, openRetaliation: openRetaliation, retaliationIn: retaliationIn, validateRetaliationVote: validateRetaliationVote, tallyRetaliation: tallyRetaliation,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
@@ -568,7 +582,7 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.11';
+  var VERSION = '1.12';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;

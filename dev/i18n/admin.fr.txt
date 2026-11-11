@@ -403,10 +403,20 @@ Years in the plan (#–#)
 => Années du plan (#–#)
 Game
 => Partie
-Model version
-=> Version du modèle
-Engine used by Run for this class (a game in progress should keep its version)
-=> Moteur utilisé par la simulation pour cette classe (une partie en cours doit garder sa version)
+Model and options
+=> Modèle et options
+Model used by Run for this class (a game in progress should keep its model)
+=> Modèle utilisé par la simulation pour cette classe (une partie en cours doit garder son modèle)
+v1 · Trade — the monetary union: prices in trade, fixed exchange rate, reserves # months of imports
+=> v1 · Commerce — l’union monétaire : prix dans les échanges, change fixe, réserves de # mois d’importations
+v2 · Finance — Trade + capital flows, fixed or floating rate (per year), risk premium on public debt, central-bank backstop
+=> v2 · Finance — Commerce + flux de capitaux, change fixe ou flottant (année par année), prime de risque sur la dette publique, filet de la banque centrale
+former v1.1 — Trade without the price channel, reserves # months (kept for this class)
+=> ancienne v1.1 — Commerce sans le canal des prix, réserves de # mois (gardée pour cette classe)
+former v1.2 — Trade with reserves of # months (kept for this class)
+=> ancienne v1.2 — Commerce avec des réserves de # mois (gardée pour cette classe)
+climate option (emissions and damages, carbon tax, green investment)
+=> option Climat (émissions et dommages, taxe carbone, investissement vert)
 v# — no price channel, reserves # months of imports
 => v# — sans canal des prix, réserves de # mois d’importations
 v# — price levels enter trade (one-year lag), reserves # months
@@ -415,8 +425,8 @@ v# — v# + capital flows, fixed or floating exchange rate (per year), risk prem
 => v# — v# + flux de capitaux, change fixe ou flottant (par année), prime de risque sur la dette publique, filet de sécurité de la banque centrale
 v# — v# + emissions, a global pollution stock and a damage function; carbon tax and green investment levers (backend v# needed)
 => v# — v# + émissions, un stock mondial de pollution et une fonction de dommages ; leviers taxe carbone et investissement vert (backend v# requis)
-Duels run on the v#-based duel engine (two economies, two currencies, climate)
-=> Les duels tournent sur le moteur duel issu de la v# (deux économies, deux monnaies, climat)
+Duels run on their own engine (two economies, two currencies, capital flows and climate)
+=> Les duels tournent sur leur propre moteur (deux économies, deux monnaies, flux de capitaux et climat)
 Union votes (game)
 => Votes de l’union (partie)
 votes enabled (rate: cut / hold / hike; reserves crisis: austerity / devaluation)
@@ -431,26 +441,26 @@ Devaluation if voted (%)
 => Dévaluation si votée (%)
 Forced devaluation when reserves are exhausted (%)
 => Dévaluation forcée à l’épuisement des réserves (%)
-Floating (v#): currency crisis if the yearly depreciation exceeds (%)
-=> Change flottant (v#) : crise de change si la dépréciation annuelle dépasse (%)
-Floating (v#): rate rise when the council votes to defend (pt)
-=> Change flottant (v#) : hausse du taux quand le conseil vote « défendre » (pt)
+Finance, floating: currency crisis if the yearly depreciation exceeds (%)
+=> Finance, change flottant : crise de change si la dépréciation annuelle dépasse (%)
+Finance, floating: rate rise when the council votes to defend (pt)
+=> Finance, change flottant : hausse du taux quand le conseil vote « défendre » (pt)
 One country, one vote; a majority of the playing countries is needed (a country without a decision votes hold / austerity). The crisis vote is held only when the union’s reserves ended the previous year below the alert line.
 => Un pays, une voix ; il faut une majorité des pays qui jouent (un pays sans décision vote statu quo / austérité). Le vote de crise n’a lieu que si les réserves de l’union ont fini l’année précédente sous le seuil d’alerte.
-leaving the union allowed (models v# and v#)
-=> sortie de l’union autorisée (modèles v# et v#)
+leaving the union allowed (Finance model)
+=> sortie de l’union autorisée (modèle Finance)
 tariffs (common external tariff voted by the members; tariff of a country out of the union)
 => droits de douane (tarif extérieur commun voté par les membres ; droit de douane d’un pays hors de l’union)
-Spec §#: a member may announce its exit with its decisions; it leaves the union the next year (models v# and v# only; backend #)
-=> Spéc. §# : un membre peut annoncer sa sortie avec ses décisions ; il quitte l’union l’année suivante (modèles v# et v# seulement ; backend #)
+Spec §#: a member may announce its exit with its decisions; it leaves the union the next year (Finance model only; backend #)
+=> Spéc. §# : un membre peut annoncer sa sortie avec ses décisions ; il quitte l’union l’année suivante (modèle Finance seulement ; backend #)
 Spec §#: the members vote each year on a common external tariff on the rest of the world (#, #, # or # %, median of the votes); a country out of the union may tax the goods of the union (#–# %); shock « Rest of the world: tariff on union exports » in Run. Backend #.
 => Spéc. §# : les membres votent chaque année un tarif extérieur commun sur le reste du monde (#, #, # ou # %, médiane des votes) ; un pays hors de l’union peut taxer les biens de l’union (#–# %) ; choc « Reste du monde : droit de douane sur les exportations de l’union » dans Simulation. Backend #.
 Objective function weights
 => Poids de la fonction objectif
 R = Σ weight × deviation, with negative signs on unemployment and inflation. The engine computes the deviations; R is computed here with these weights.
 => R = Σ poids × écart, avec un signe négatif pour le chômage et l’inflation. Le moteur calcule les écarts ; R est calculé ici avec ces poids.
-R = Σ weight × deviation, with negative signs on unemployment and inflation and emissions (sixth dimension of model v#: # by default, activated by an election — preset « Green » — or here). The engine computes the deviations; R is computed here with these weights.
-=> R = Σ poids × écart, avec un signe négatif pour le chômage, l’inflation et les émissions (sixième dimension du modèle v# : # par défaut, activée par une élection — préréglage « Vert » — ou ici). Le moteur calcule les écarts ; R est calculé ici avec ces poids.
+R = Σ weight × deviation, with negative signs on unemployment and inflation and emissions (sixth dimension, climate option: # by default, activated by an election — preset « Green » — or here). The engine computes the deviations; R is computed here with these weights.
+=> R = Σ poids × écart, avec un signe négatif pour le chômage, l’inflation et les émissions (sixième dimension, option Climat : # par défaut, activée par une élection — préréglage « Vert » — ou ici). Le moteur calcule les écarts ; R est calculé ici avec ces poids.
 + GDP volume
 => + PIB en volume
 − Unemployment rate
@@ -645,16 +655,30 @@ Close the round first (Control → Close submissions), then run.
 => Clôturez d’abord le tour (Pilotage → Clore les soumissions), puis lancez la simulation.
 engine OPEN-MU v#
 => moteur OPEN-MU v#
-model v# (no price channel, reserves # months)
-=> modèle v# (sans canal des prix, réserves # mois)
-model v# (prices in trade, reserves # months)
-=> modèle v# (prix dans les échanges, réserves # mois)
-model v# (capital flows, fixed or floating rate per year, market pressure; reserves # months)
-=> modèle v# (flux de capitaux, change fixe ou flottant par année, pression des marchés ; réserves # mois)
-model v# (emissions and damages, carbon tax and green investment, on top of v#; reserves # months)
-=> modèle v# (émissions et dommages, taxe carbone et investissement vert, en plus de la v# ; réserves # mois)
-duel mode (two identical v# economies with their own currencies, bilateral rate fixed or floating per year, capital flows, market pressure, shared climate; reserves # months)
-=> mode duel (deux économies v# identiques avec leurs propres monnaies, taux bilatéral fixe ou flottant par année, flux de capitaux, pression des marchés, climat partagé ; réserves # mois)
+model v#
+=> modèle v#
+Trade
+=> Commerce
+Trade + Climate
+=> Commerce + Climat
+Finance + Climate
+=> Finance + Climat
+Trade (former v#: no price channel)
+=> Commerce (ancienne v# : sans canal des prix)
+Trade (former v#: reserves # months)
+=> Commerce (ancienne v# : réserves de # mois)
+no price channel, fixed exchange rate
+=> sans canal des prix, change fixe
+prices in trade, fixed exchange rate
+=> prix dans les échanges, change fixe
+capital flows, fixed or floating rate per year, market pressure
+=> flux de capitaux, change fixe ou flottant par année, pression des marchés
+emissions and damages, carbon tax and green investment
+=> émissions et dommages, taxe carbone et investissement vert
+reserves # months
+=> réserves # mois
+duel mode (two identical economies, Finance + Climate, with their own currencies, bilateral rate fixed or floating per year, capital flows, market pressure, shared climate; reserves # months)
+=> mode duel (deux économies identiques, Finance + Climat, avec leurs propres monnaies, taux bilatéral fixe ou flottant par année, flux de capitaux, pression des marchés, climat partagé ; réserves # mois)
 # members
 => # membres
 # pair(s)
@@ -869,8 +893,8 @@ Close the council on retaliation first (card below).
 => Clôturez d’abord le conseil sur les représailles (carte ci-dessous).
 Timer cleared
 => Minuteur effacé
-Parameters saved — leaving the union needs model v1.3 or v2.0: left off
-=> Paramètres enregistrés — la sortie de l’union exige le modèle v1.3 ou v2.0 : laissée désactivée
+Parameters saved — leaving the union needs the Finance model: left off
+=> Paramètres enregistrés — la sortie de l’union exige le modèle Finance : laissée désactivée
 Add 7 default groups (Group 1–7) with the seven large economies?
 => Ajouter 7 groupes par défaut (Group 1–7) avec les sept grandes économies ?
 Two groups share the same PIN.
@@ -891,8 +915,8 @@ No pair yet — add pairs in the Groups tab.
 => Pas encore de paire — ajoutez des paires dans l’onglet Groupes.
 No pledge yet. Convene the council from the Control tab during the game.
 => Pas encore d’engagement. Convoquez le conseil depuis l’onglet Pilotage pendant la partie.
-@ (v#)
-=> @ (v#)
+@ (climate option)
+=> @ (option Climat)
 The objective, year by year (all years saved so far)
 => L’objectif, année par année (toutes les années enregistrées)
 Group’s a posteriori analysis (&)
@@ -931,3 +955,5 @@ Reserves crisis (alert at the end of year #): # austerity · # devaluation · # 
 => Crise des réserves (alerte à la fin de l’année #) : # austérité · # dévaluation · # flottement →
  (no cap; the currency floats from this year).
 => (pas de plafond ; la monnaie flotte à partir de cette année).
+Emissions, a global pollution stock and a damage function; carbon tax and green investment levers; emissions as a sixth objective dimension (weight # until an election). On the Trade or the Finance model.
+=> Émissions, un stock mondial de pollution et une fonction de dommages ; leviers taxe carbone et investissement vert ; les émissions comme sixième dimension de l’objectif (poids # jusqu’à une élection). Sur le modèle Commerce ou Finance.

@@ -1020,8 +1020,8 @@ Year #: "@" is not a number.
 => « @ » est réservé au mode duel ou à un pays qui a quitté l’union.
 Year #: "@" must stay within # points.
 => Année # : « @ » doit rester dans ± # points.
-"@" belongs to model v2.0 (not this class).
-=> « @ » appartient au modèle v2.0 (pas à cette classe).
+"@" belongs to the climate option (not on in this class).
+=> « @ » relève de l’option Climat (pas activée dans cette classe).
 "@" is not available in this phase.
 => « @ » n’est pas disponible dans cette phase.
 Year #: "@" must be between 0 and #.

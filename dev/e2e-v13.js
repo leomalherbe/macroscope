@@ -44,7 +44,7 @@ const KEY = 'TESTKEY';
   await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(600);
   await admin.click('#tabs button:has-text("Control")');
   await admin.click('summary:has-text("Parameters")');
-  must(await admin.inputValue('#view select >> nth=-1') === 'v1.3' || (await admin.evaluate(() => [...document.querySelectorAll('#view select')].some(s => s.value === 'v1.3'))), 'Parameters select shows model v1.3');
+  must(await admin.inputValue('#modelSel') === 'v2' && !(await admin.isChecked('#climateOn')), 'a class created as v1.3 shows as v2 · Finance (same engine), climate off');
   await admin.click('button:has-text("Start the game")');
   await admin.waitForSelector('text=game · year 1');
 
