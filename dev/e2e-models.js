@@ -21,6 +21,8 @@ const MS = require('../core.js'), OPENMU = require('../engine.js');
   must(sim('v2') === sim('v1.3') && sim('v2+climate') === sim('v2.0'), 'engine: v2 = the former v1.3, v2+climate = the former v2.0, to the last digit');
   const p1 = OPENMU.paramsFor('v1'), p12 = OPENMU.paramsFor('v1.2');
   must(p1.reserveMonths === 3 && Object.keys(p1).filter(k => JSON.stringify(p1[k]) !== JSON.stringify(p12[k])).join() === 'reserveMonths', 'engine: v1 = the former v1.2 with 3 months of reserves');
+  const lv = sh => OPENMU.report({ params: OPENMU.paramsFor('v2'), years: 2, policies: { ITA: [{ leave: 1 }, {}] }, shocks: [{}, sh] }).years[1].countries.ITA.gdp;
+  must(Math.abs(lv({ worldTariff: 10 }) - lv({ worldTariff: 10, worldTariffOut: 10 })) < 1e-12 && Math.abs(lv({ worldTariff: 10 }) - lv({ worldTariff: 10, worldTariffOut: 0 })) > 0.5, 'engine: by default the rest of the world taxes a leaver like the union; worldTariffOut: 0 spares it');
   must(OPENMU.paramsFor('v1+climate').eco === true && OPENMU.paramsFor('v1+climate').capital !== true, 'engine: the climate option on Trade, without capital flows');
   must(MS.engineModel({ sim: { model: 'v1', climate: true } }) === 'v1+climate' && MS.engineModel({ sim: { model: 'v1.2', climate: true } }) === 'v1.2' && MS.modelLabel({ sim: { model: 'v1.3' } }) === 'v2 · Finance' && MS.modelLabel({ sim: { model: 'v2.0' } }) === 'v2 · Finance + Climate', 'core: engine ids and labels, former ids included');
   must(MS.exitModelOk({ sim: { model: 'v2' } }) && !MS.exitModelOk({ sim: { model: 'v1', climate: true } }) && MS.isEcoModel({ sim: { model: 'v1', climate: true } }) && !MS.isEcoModel({ sim: { model: 'v1' } }), 'core: exit in Finance only; climate levers with the option');

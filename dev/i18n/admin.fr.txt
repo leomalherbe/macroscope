@@ -957,3 +957,15 @@ Reserves crisis (alert at the end of year #): # austerity · # devaluation · # 
 => (pas de plafond ; la monnaie flotte à partir de cette année).
 Emissions, a global pollution stock and a damage function; carbon tax and green investment levers; emissions as a sixth objective dimension (weight # until an election). On the Trade or the Finance model.
 => Émissions, un stock mondial de pollution et une fonction de dommages ; leviers taxe carbone et investissement vert ; les émissions comme sixième dimension de l’objectif (poids # jusqu’à une élection). Sur le modèle Commerce ou Finance.
+
+// rest of the world's tariff on the countries out of the union (exit + tariffs)
+Rest of the world: tariff on the exports of a country out of the union
+=> Reste du monde : droit de douane sur les exportations d’un pays sorti de l’union
+the tariff on what any country that has left the union sells to the rest of the world. Blank (the default): the same as on the union — the rest of the world treats the leaver like the union; a value (#, for instance): an asymmetric shock
+=> le droit de douane sur ce que tout pays sorti de l’union vend au reste du monde. Vide (par défaut) : le même que sur l’union — le reste du monde traite le pays sorti comme l’union ; une valeur (#, par exemple) : un choc asymétrique
+= union
+=> = union
+the rest of the world taxes the exports of the countries out of the union at # %.
+=> le reste du monde taxe les exportations des pays sortis de l’union à # %.
+the rest of the world taxes the exports of the countries out of the union at # %
+=> le reste du monde taxe les exportations des pays sortis de l’union à # %

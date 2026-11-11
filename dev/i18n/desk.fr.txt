@@ -1110,3 +1110,5 @@ Fixed exchange rate: the central bank sells reserves to cover a current-account 
 => Change fixe : la banque centrale vend des réserves pour couvrir un déficit courant. Sous # % du stock initial (repère rouge), le tour suivant comporte un vote entre austérité et dévaluation (ou passage au change flottant) ; des réserves épuisées alors que le solde courant reste déficitaire imposent une dévaluation.
 Board
 => Board
+Rest of the world’s tariff on the exports of the countries out of the union
+=> Droit de douane du reste du monde sur les exportations des pays sortis de l’union

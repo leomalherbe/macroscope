@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111202">
-<script src="i18n.js?v=2026111202"></script>
-<script src="i18n/fr-desk.js?v=2026111202"></script>
-<script src="i18n/fr-admin.js?v=2026111202"></script>
-<script src="config.js?v=2026111202"></script>
-<script src="core.js?v=2026111202"></script>
-<script src="app-common.js?v=2026111202"></script>
-<script src="engine.js?v=2026111202"></script>
+<link rel="stylesheet" href="style.css?v=2026111203">
+<script src="i18n.js?v=2026111203"></script>
+<script src="i18n/fr-desk.js?v=2026111203"></script>
+<script src="i18n/fr-admin.js?v=2026111203"></script>
+<script src="config.js?v=2026111203"></script>
+<script src="core.js?v=2026111203"></script>
+<script src="app-common.js?v=2026111203"></script>
+<script src="engine.js?v=2026111203"></script>
 </head>
 <body>
 
@@ -786,6 +786,7 @@
     { id: 'imports',    label: 'Import propensity',       unit: '%',  hint: 'a larger share of each euro spent goes to foreign goods (a shift in tastes)' },
     { id: 'deval',      label: 'Devaluation',             unit: '%',  hint: 'jump of the exchange rate vs the rest of the world (+ = devaluation); fixed regime only' },
     /* §13 (tariffs switched on): the rest of the world's tariff on the union's exports */
+    { id: 'worldTariffOut', label: 'Rest of the world: tariff on the exports of a country out of the union', unit: '%', hint: 'the tariff on what any country that has left the union sells to the rest of the world. Blank (the default): the same as on the union — the rest of the world treats the leaver like the union; a value (0, for instance): an asymmetric shock', tariffs: true, exit: true, blankSame: 'worldTariff' },
     { id: 'worldTariff', label: 'Rest of the world: tariff on union exports', unit: '%', hint: 'a tariff the rest of the world puts on everything the members sell it (e.g. 10 in answer to a common external tariff): the union exports less; the revenue goes to the rest of the world. A country out of the union is not concerned', tariffs: true },
     /* v1.3 (capital flows): shown only when the class runs model v1.3 */
     { id: 'regime',     label: 'Exchange-rate regime',    unit: '',   hint: 'fixed: the reserves absorb the balance of payments (alert, crisis vote); float: the reserves are frozen and the exchange rate clears it (currency-crisis vote)', type: 'select', options: [['fixed', 'fixed'], ['float', 'floating']], v13: true },
@@ -808,7 +809,7 @@
     { id: 'backstop',   label: 'Central-bank backstop',   unit: '',   hint: 'on: each central bank buys its government’s residual bills at the policy rate (the spread above 110 % of debt is paid on privately held bills only); off: an indebted country must place its bills on the market — its rate rises until households and banks absorb them, and the partner’s flight is not cushioned', type: 'check' },
     { id: 'disaster',   label: 'Climate disaster',        unit: '%',  hint: 'one-off extra damage this year for both countries (e.g. 3 = potential output −3 %)' }
   ];
-  function shockFields() { if (isDuel()) return DUEL_SHOCK_FIELDS; var v13 = MS.financeModel(st()), v20 = MS.climateOn(st()), tar = MS.tariffsOn(st()); return SHOCK_FIELDS.filter(function (f) { return (!f.v13 || v13) && (!f.v20 || v20) && (!f.tariffs || tar); }); }
+  function shockFields() { if (isDuel()) return DUEL_SHOCK_FIELDS; var v13 = MS.financeModel(st()), v20 = MS.climateOn(st()), tar = MS.tariffsOn(st()); var ex = MS.exitAllowed(st()); return SHOCK_FIELDS.filter(function (f) { return (!f.v13 || v13) && (!f.v20 || v20) && (!f.tariffs || tar) && (!f.exit || ex); }); }
   var runPreview = null;   // {phase, round, rows:[...], union:[...]} built by the last run
   function engineOk() { return typeof OPENMU !== 'undefined' && OPENMU && typeof OPENMU.report === 'function'; }
   function engineLine() {
@@ -868,6 +869,7 @@
         /* the regime stays as it was the year before until the administrator changes it */
         if (f.type === 'select') row[f.id] = o[f.id] === 'float' || o[f.id] === 'fixed' ? o[f.id] : (list.length ? list[list.length - 1][f.id] : 'fixed');
         else if (f.type === 'check') row[f.id] = o[f.id] !== false && o[f.id] !== 0;
+        else if (f.blankSame) row[f.id] = o[f.id] === undefined || o[f.id] === null || o[f.id] === '' ? null : MS.num(o[f.id]);   /* blank = same as f.blankSame */
         else row[f.id] = MS.num(o[f.id]) || 0;
       });
       if (o.exitShocks && typeof o.exitShocks === 'object') row.exitShocks = o.exitShocks;   /* §12 */
@@ -879,7 +881,7 @@
     var x = { CA: u.CA, R: u.R, R0: u.R0, xr: u.xr, alert: !!u.alert, months: u.months, gdp: u.gdp, rate: u.r };
     if (u.regime) { x.regime = u.regime; x.dxr = u.dxr; x.CAp = u.CAp; x.KA = u.KA; x.Bw = u.Bw; x.Bf = u.Bf; x.backstop = u.backstop !== false; x.pressured = u.pressured || []; x.sBar = u.sBar; x.rw = u.rw; }   // v1.3
     if (u.D !== undefined) { x.D = u.D; x.Sshare = u.Sshare; x.Erel = u.Erel; }   // v2.0: damage %, pollution stock vs start, union emissions vs reference %
-    if (u.cet) x.cet = u.cet; if (u.worldTariff) x.worldTariff = u.worldTariff;   // §13
+    if (u.cet) x.cet = u.cet; if (u.worldTariff) x.worldTariff = u.worldTariff; if (u.worldTariffOut) x.worldTariffOut = u.worldTariffOut;   // §13
     if (u.x) x.x = u.x;   // model explorer (board)
     if (extra) Object.keys(extra).forEach(function (k) { x[k] = extra[k]; });
     return { key: key || 'UNION', year: year, gdp: '', unemp: '', infl: '', pubbal: '', tradebal: '', R: '', detail: { extra: roundDeep(x, 4) } };
@@ -947,6 +949,11 @@
           if (inp.value !== 'fixed') inp.classList.add('nz'); inp.addEventListener('change', function () { inp.classList.toggle('nz', inp.value !== 'fixed'); });
         } else if (f.type === 'check') {
           inp = el('input', { type: 'checkbox', 'data-y': yy, 'data-f': f.id }); inp.checked = cur[f.id] !== false && cur[f.id] !== 0;
+        } else if (f.blankSame) {
+          var hasV = cur[f.id] !== undefined && cur[f.id] !== null && cur[f.id] !== '';
+          inp = el('input', { type: 'number', step: 0.5, value: hasV ? cur[f.id] : '', placeholder: '= union', 'data-y': yy, 'data-f': f.id });
+          if (hasV) inp.classList.add('nz');
+          inp.addEventListener('input', function () { inp.classList.toggle('nz', inp.value !== ''); });
         } else {
           inp = el('input', { type: 'number', step: 0.5, value: cur[f.id] || 0, 'data-y': yy, 'data-f': f.id });
           if (MS.num(inp.value)) inp.classList.add('nz');
@@ -978,7 +985,7 @@
     tbl.appendChild(tb); sh.appendChild(el('div', { class: 'tablewrap' }, [tbl]));
     sh.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: async function () {
       var all = Object.assign({}, s.shocks || {});
-      yearsToEdit.forEach(function (yy) { var o = {}; shockFields().forEach(function (f) { var i = inputs[yy + ':' + f.id]; o[f.id] = f.type === 'select' ? i.value : (f.type === 'check' ? i.checked : (MS.num(i.value) || 0)); }); var prevE = ((s.shocks || {})[shockKey(yy)] || {}).elections; if (prevE) o.elections = prevE;
+      yearsToEdit.forEach(function (yy) { var o = {}; shockFields().forEach(function (f) { var i = inputs[yy + ':' + f.id]; o[f.id] = f.type === 'select' ? i.value : (f.type === 'check' ? i.checked : (f.blankSame ? (i.value === '' ? null : MS.num(i.value)) : (MS.num(i.value) || 0))); }); var prevE = ((s.shocks || {})[shockKey(yy)] || {}).elections; if (prevE) o.elections = prevE;
         var exs = {}; exitCountries.forEach(function (X) { var e = {}, any = false; EXIT_SHOCK_FIELDS.forEach(function (f) { var v = MS.num(inputs[yy + ':exit:' + X + ':' + f.id].value) || 0; if (v) { e[f.id] = v; any = true; } }); if (any) exs[X] = e; }); if (Object.keys(exs).length) o.exitShocks = exs;
         all[shockKey(yy)] = o; });
       await patch({ shocks: all }, 'Shocks saved');
@@ -1292,7 +1299,7 @@
       var lines = [];
       if (t.rate) lines.push('<b>Votes of year ' + runPreview.round + '</b> — rate: ' + t.rate.cut + ' cut · ' + t.rate.hold + ' hold · ' + t.rate.hike + ' hike → ' + (t.rate.outcome ? esc(MS.fmt(t.rate.outcome, 2, true)) + ' pt' : 'unchanged') + ' · effective rate ' + esc(MS.fmt(t.rate.level, 2)) + ' % (administrator shock ' + esc(MS.fmt(((st().shocks || {})[shockKey(runPreview.round, 'game')] || {}).rate || 0, 2, true)) + ' pt included).');
       else lines.push('<b>Votes disabled</b> (Control → Parameters).');
-      if (t.cet) lines.push('Common external tariff: ' + MS.CET_LEVELS.map(function (l, i) { return t.cet.levels[i] + ' × ' + l + ' %'; }).join(' · ') + ' (' + t.cet.votes + ' vote(s)) → <b>' + esc(MS.fmt(t.cet.level, 0)) + ' %</b>' + (t.cet.votes ? ' (median)' : ' (no vote: unchanged)') + (MS.num(sh.worldTariff) ? ' · the rest of the world taxes the union’s exports at ' + esc(MS.fmt(sh.worldTariff, 0)) + ' %' : '') + '.');
+      if (t.cet) lines.push('Common external tariff: ' + MS.CET_LEVELS.map(function (l, i) { return t.cet.levels[i] + ' × ' + l + ' %'; }).join(' · ') + ' (' + t.cet.votes + ' vote(s)) → <b>' + esc(MS.fmt(t.cet.level, 0)) + ' %</b>' + (t.cet.votes ? ' (median)' : ' (no vote: unchanged)') + (MS.num(sh.worldTariff) ? ' · the rest of the world taxes the union’s exports at ' + esc(MS.fmt(sh.worldTariff, 0)) + ' %' : '') + (runPreview.exits && Object.keys(runPreview.exits).length && (sh.worldTariffOut !== null && sh.worldTariffOut !== undefined ? MS.num(sh.worldTariffOut) !== MS.num(sh.worldTariff) : false) ? ' · the rest of the world taxes the exports of the countries out of the union at ' + esc(MS.fmt(sh.worldTariffOut, 0)) + ' %' : '') + '.');
       if (cr.outcome === 'forced') lines.push('<span class="neg">Reserves exhausted at the end of year ' + (runPreview.round - 1) + ' with the current account still in deficit: forced devaluation of ' + esc(MS.fmt(gameRules().forcedDeval, 0)) + ' %.</span>');
       else if (cr.active && cr.kind === 'currency') lines.push('Currency crisis (depreciation over year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' defend · ' + cr.devaluation + ' let it float → <b>' + (cr.outcome === 'float' ? 'let it float' : 'defend: rate +' + esc(MS.fmt(gameRules().defendStep || 1, 1)) + ' pt this year') + '</b>.');
       else if (cr.active) lines.push('Reserves crisis (alert at the end of year ' + (runPreview.round - 1) + '): ' + esc(UI.crisisTally(cr)) + ' → <b>' + esc(UI.crisisWord(cr.outcome)) + '</b>' + (cr.outcome === 'devaluation' ? ' (' + esc(MS.fmt(gameRules().devalSize, 0)) + ' % devaluation applied)' : cr.outcome === 'float' ? ' (no cap; the currency floats from this year)' : (runPreview.caps && runPreview.caps.length ? ' — public demand and benefits capped at ' + esc(MS.fmt(gameRules().austerityCap, 0)) + ' % for: ' + esc(runPreview.caps.map(MS.countryName).join(', ')) : ' — nobody above the cap')) + '.');

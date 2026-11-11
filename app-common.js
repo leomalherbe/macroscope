@@ -122,6 +122,7 @@ var UI = (function () {
     var r = v.rate, h = '';
     var ct = v.cet;   /* §13: the common external tariff */
     if (ct) h += '<div class="urow"><span>Common external tariff (median of the votes)</span><span class="num wrap">' + MS.CET_LEVELS.map(function (l, i) { return esc(ct.levels[i]) + ' × ' + l + ' %'; }).join(' · ') + ' → <b>' + esc(MS.fmt(ct.level, 0)) + ' %</b>' + (ct.votes ? '' : ' (no vote: unchanged)') + '</span></div>';
+    if (u.worldTariffOut) h += '<div class="urow"><span>Rest of the world’s tariff on the exports of the countries out of the union</span><span class="num neg">' + esc(MS.fmt(u.worldTariffOut, 0)) + ' %</span></div>';
     if (u.worldTariff) h += '<div class="urow"><span>Rest of the world’s tariff on the union’s exports</span><span class="num neg">' + esc(MS.fmt(u.worldTariff, 0)) + ' %</span></div>';
     if (r) h += '<div class="urow"><span>Vote on the central bank’s rate</span><span class="num">' + esc(r.cut) + ' cut · ' + esc(r.hold) + ' hold · ' + esc(r.hike) + ' hike → ' + (r.outcome ? esc(MS.fmt(r.outcome, 2, true)) + ' pt' : 'unchanged') + ' · rate ' + esc(MS.fmt(r.level, 2)) + ' %</span></div>';
     var c = v.crisis || {};
