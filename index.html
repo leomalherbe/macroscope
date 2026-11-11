@@ -1076,8 +1076,8 @@ html.js:not(.rm) .split.in .w > span{transform:none}
     return;
   }
   var T = MXL.t, COUNTRY = 'FRA';
-  var params = OPENMU.paramsFor('v1.2');
-  var state = MS.defaultState(); state.sim.model = 'v1.2';
+  var params = OPENMU.paramsFor('v1');
+  var state = MS.defaultState(); state.sim.model = 'v1';
   var weights = state.weights;
   var IND = [
     { id: 'gdp', label: T('GDP'), unit: '%', sign: 1 },
@@ -1309,7 +1309,7 @@ html.js:not(.rm) .split.in .w > span{transform:none}
 <script>(function(){
 const W=1200,H=520,L=110,R=1160,T=70,B=410;
 const C={gdp:'#122ddb',unemp:'#7f8ff2',infl:'#ff7a59',pub:'#ffc2ad',trade:'#cfd5ea',line:'#0a1670',ink:'#122ddb'};
-const data=[ /* engine v1.2, France, public demand +7 % held three years, weights 0.2: contributions to R */
+const data=[ /* engine v1 (Trade), France, public demand +7 % held three years, weights 0.2: contributions to R */
  {gdp:.34,unemp:.13,infl:-.10,pub:-.15,trade:-.10},
  {gdp:.29,unemp:.12,infl:-.09,pub:-.17,trade:-.12},
  {gdp:.26,unemp:.10,infl:-.08,pub:-.18,trade:-.15}];

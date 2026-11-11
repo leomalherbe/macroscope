@@ -153,8 +153,9 @@
     var r = await MSApi.call('admin.class.create', { key: key, name: name });
     if (!r.ok) { UI.toast(r.error); return; }
     classes = r.classes; classId = r.classId; UI.store('macsim.classId', classId);
-    /* new classes play the current model; classes created before this key keep v1.1 (see modelOf). A duel starts directly at game year 1 on the v2.0-based duel engine, no votes, no council. */
-    var patch0 = kind === 'duel' ? { kind: 'duel', phase: 'game', round: 1, status: 'closed', years: 10, sim: { model: 'v2.0', votes: false }, game: { minText: 40 } } : { sim: { model: 'v1.2' } };
+    /* new classes play v1 · Trade (the model and its options can be changed in Parameters before the game); classes created before
+       the key keep v1.1 (see MS.modelId). A duel starts directly at game year 1 on the duel engine, no votes, no council. */
+    var patch0 = kind === 'duel' ? { kind: 'duel', phase: 'game', round: 1, status: 'closed', years: 10, sim: { model: 'v2.0', votes: false }, game: { minText: 40 } } : { sim: { model: 'v1' } };
     try { await MSApi.call('admin.state.set', { key: key, classId: classId, patch: patch0 }); } catch (e) { /* the Parameters select can still set it */ }
     renderClassBar(); refresh();
   }
@@ -452,7 +453,7 @@
     var allowedInputs = {};
     MS.LEVERS.concat([MS.TARIFF, MS.TFP]).forEach(function (l) {
       var cb = el('input', { type: 'checkbox' }); cb.checked = (s.warmup.allowed || []).indexOf(l.id) >= 0; allowedInputs[l.id] = cb;
-      allowedBox.appendChild(el('label', {}, [cb, ' ' + (l.n ? l.n + '. ' : '') + l.label + (l.eco ? ' (v2.0)' : '')]));
+      allowedBox.appendChild(el('label', {}, [cb, ' ' + (l.n ? l.n + '. ' : '') + l.label + (l.eco ? ' (climate option)' : '')]));
     });
     box.appendChild(el('div', { class: 'small muted', style: 'margin-top:8px' }, ['Instruments allowed in the warm-up:'])); box.appendChild(allowedBox);
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Game']));
@@ -462,35 +463,46 @@
     var gTfp = el('input', { type: 'checkbox' }); gTfp.checked = !!s.game.allowTfp;
     var gGuide = el('input', { type: 'checkbox', id: 'guideOn' }); gGuide.checked = !(s.sim && s.sim.guide === false);
     box.appendChild(el('div', { class: 'params' }, [gy.el, gm.el, gt.el]));
-    box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Spec §13: the members vote each year on a common external tariff on the rest of the world (0, 5, 10 or 20 %, median of the votes); a country out of the union may tax the goods of the union (0–20 %); shock « Rest of the world: tariff on union exports » in Run. Backend 1.10.' }, [gTar, ' tariffs (common external tariff voted by the members; tariff of a country out of the union)']), el('label', { title: 'Spec §12: a member may announce its exit with its decisions; it leaves the union the next year (models v1.3 and v2.0 only; backend 1.9)' }, [gEu, ' leaving the union allowed (models v1.3 and v2.0)']), el('label', {}, [gTfp, ' TFP shock allowed'])]));
+    box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Spec §13: the members vote each year on a common external tariff on the rest of the world (0, 5, 10 or 20 %, median of the votes); a country out of the union may tax the goods of the union (0–20 %); shock « Rest of the world: tariff on union exports » in Run. Backend 1.10.' }, [gTar, ' tariffs (common external tariff voted by the members; tariff of a country out of the union)']), el('label', { title: 'Spec §12: a member may announce its exit with its decisions; it leaves the union the next year (Finance model only; backend 1.9)' }, [gEu, ' leaving the union allowed (Finance model)']), el('label', {}, [gTfp, ' TFP shock allowed'])]));
     box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Short cards on the mechanisms at work (direction of effects only), and a glossary; the cards shown follow the model version and the options of the class.' }, [gGuide, ' beginners’ guide on the desk (« How it works? » panel and ⓘ buttons)'])]));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Union votes (game)']));
     var simNow = Object.assign({}, MS.defaultState().sim, s.sim || {});
     var vOn = el('input', { type: 'checkbox' }); vOn.checked = simNow.votes !== false;
-    var vStep = numField('Rate step per majority vote (pt)', simNow.voteStep, 0.25), vCap = numField('Austerity cap on public demand and benefits (% of ref.)', simNow.austerityCap, 1), vDev = numField('Devaluation if voted (%)', simNow.devalSize, 1), vForced = numField('Forced devaluation when reserves are exhausted (%)', simNow.forcedDeval, 1), vDepr = numField('Floating (v1.3): currency crisis if the yearly depreciation exceeds (%)', simNow.crisisDepr, 1), vDef = numField('Floating (v1.3): rate rise when the council votes to defend (pt)', simNow.defendStep, 0.25);
+    var vStep = numField('Rate step per majority vote (pt)', simNow.voteStep, 0.25), vCap = numField('Austerity cap on public demand and benefits (% of ref.)', simNow.austerityCap, 1), vDev = numField('Devaluation if voted (%)', simNow.devalSize, 1), vForced = numField('Forced devaluation when reserves are exhausted (%)', simNow.forcedDeval, 1), vDepr = numField('Finance, floating: currency crisis if the yearly depreciation exceeds (%)', simNow.crisisDepr, 1), vDef = numField('Finance, floating: rate rise when the council votes to defend (pt)', simNow.defendStep, 0.25);
     box.appendChild(el('div', { class: 'checks', style: 'margin:0 0 8px' }, [el('label', {}, [vOn, ' votes enabled (rate: cut / hold / hike; reserves crisis: austerity / devaluation)'])]));
     box.appendChild(el('div', { class: 'params' }, [vStep.el, vCap.el, vDev.el, vForced.el, vDepr.el, vDef.el]));
-    box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Model version']));
-    var mSel = el('select', { id: 'modelSel' });
-    [['v1.1', 'v1.1 — no price channel, reserves 3 months of imports'], ['v1.2', 'v1.2 — price levels enter trade (one-year lag), reserves 1.5 months'], ['v1.3', 'v1.3 — v1.2 + capital flows, fixed or floating exchange rate (per year), risk premium on public debt, central-bank backstop'], ['v2.0', 'v2.0 — v1.3 + emissions, a global pollution stock and a damage function; carbon tax and green investment levers (backend v1.6 needed)']].forEach(function (o) { mSel.appendChild(el('option', { value: o[0] }, [o[1]])); });
-    mSel.value = modelOf(s);
-    if (isDuel()) { mSel.value = 'v2.0'; mSel.disabled = true; }
-    box.appendChild(el('div', { class: 'params' }, [el('div', {}, [el('label', { class: 'small' }, [isDuel() ? 'Duels run on the v2.0-based duel engine (two economies, two currencies, climate)' : 'Engine used by Run for this class (a game in progress should keep its version)']), el('br'), mSel])]));
+    box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Model and options']));
+    var mSel = el('select', { id: 'modelSel' }), mNow = MS.modelId(s);
+    /* the two models; a class created with v1.3 or v2.0 is shown as v2 (identical engine: saving turns v2.0 into v2 + climate);
+       a v1.1 or v1.2 class keeps its former calibration, listed only for it */
+    var mOpts = [['v1', 'v1 · Trade — the monetary union: prices in trade, fixed exchange rate, reserves 3 months of imports'], ['v2', 'v2 · Finance — Trade + capital flows, fixed or floating rate (per year), risk premium on public debt, central-bank backstop']];
+    if (mNow === 'v1.1') mOpts.push(['v1.1', 'former v1.1 — Trade without the price channel, reserves 3 months (kept for this class)']);
+    if (mNow === 'v1.2') mOpts.push(['v1.2', 'former v1.2 — Trade with reserves of 1.5 months (kept for this class)']);
+    mOpts.forEach(function (o) { mSel.appendChild(el('option', { value: o[0] }, [o[1]])); });
+    mSel.value = mNow === 'v1.3' || mNow === 'v2.0' ? 'v2' : mNow;
+    var gClim = el('input', { type: 'checkbox', id: 'climateOn' }); gClim.checked = MS.climateOn(s);
+    function climSync() { var legacy = mSel.value === 'v1.1' || mSel.value === 'v1.2'; gClim.disabled = legacy || isDuel(); if (legacy) gClim.checked = false; }
+    mSel.addEventListener('change', climSync); climSync();
+    if (isDuel()) { mSel.disabled = true; gClim.checked = true; }
+    box.appendChild(el('div', { class: 'params' }, [el('div', {}, [el('label', { class: 'small' }, [isDuel() ? 'Duels run on their own engine (two economies, two currencies, capital flows and climate)' : 'Model used by Run for this class (a game in progress should keep its model)']), el('br'), mSel])]));
+    box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Emissions, a global pollution stock and a damage function; carbon tax and green investment levers; emissions as a sixth objective dimension (weight 0 until an election). On the Trade or the Finance model.' }, [gClim, ' climate option (emissions and damages, carbon tax, green investment)'])]));
     box.appendChild(el('p', { class: 'muted small' }, ['One country, one vote; a majority of the playing countries is needed (a country without a decision votes hold / austerity). The crisis vote is held only when the union’s reserves ended the previous year below the alert line.']));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Objective function weights']));
     var wInputs = {};
     box.appendChild(el('div', { class: 'params' }, MS.indicatorsFor(st()).map(function (i) { var f = numField((i.sign > 0 ? '+ ' : '− ') + i.label, s.weights[i.id]); wInputs[i.id] = f.input; return f.el; })));
-    box.appendChild(el('p', { class: 'muted small' }, ['R = Σ weight × deviation, with negative signs on unemployment and inflation' + (MS.isEcoModel(st()) ? ' and emissions (sixth dimension of model v2.0: 0 by default, activated by an election — preset « Green » — or here)' : '') + '. The engine computes the deviations; R is computed here with these weights.']));
+    box.appendChild(el('p', { class: 'muted small' }, ['R = Σ weight × deviation, with negative signs on unemployment and inflation' + (MS.isEcoModel(st()) ? ' and emissions (sixth dimension, climate option: 0 by default, activated by an election — preset « Green » — or here)' : '') + '. The engine computes the deviations; R is computed here with these weights.']));
     box.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () {
       var allowed = Object.keys(allowedInputs).filter(function (k) { return allowedInputs[k].checked; });
-      /* v2.0: the two ecological levers follow the model choice in the warm-up (added when switching to v2.0, dropped otherwise) */
-      MS.LEVERS.filter(function (l) { return l.eco; }).forEach(function (l) { var i = allowed.indexOf(l.id); if (mSel.value === 'v2.0' && i < 0 && !(s.sim && s.sim.model === 'v2.0')) allowed.push(l.id); if (mSel.value !== 'v2.0' && i >= 0) allowed.splice(i, 1); });
+      /* climate option: the two ecological levers follow it in the warm-up (added when it is switched on, dropped when off) */
+      var climNew = gClim.checked && !gClim.disabled;
+      MS.LEVERS.filter(function (l) { return l.eco; }).forEach(function (l) { var i = allowed.indexOf(l.id); if (climNew && i < 0 && !MS.climateOn(s)) allowed.push(l.id); if (!climNew && i >= 0) allowed.splice(i, 1); });
+      var finNew = mSel.value === 'v2';
       var w = {}; Object.keys(wInputs).forEach(function (k) { w[k] = MS.num(wInputs[k].value); });
       patch({ bounds: { lever: MS.num(pb.input.value), tariff: MS.num(pt.input.value), tfp: MS.num(pp.input.value), eco: MS.num(st().bounds.eco) || 10, rate: MS.num(pr.input.value) || 2 },
         warmup: { country: wc.value, years: Math.max(1, Math.min(3, Math.round(MS.num(wy.input.value)) || 3)), allowed: allowed, maxNonZero: Math.round(MS.num(wm.input.value)), minText: Math.round(MS.num(wt.input.value)) },
         game: { allowTariff: false, allowEuro: false, allowTfp: gTfp.checked, maxNonZero: Math.round(MS.num(gm.input.value)), minText: Math.round(MS.num(gt.input.value)) },
         years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w,
-        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15, crisisDepr: MS.num(vDepr.input.value) || 10, defendStep: MS.num(vDef.input.value) || 1, model: mSel.value, exit: gEu.checked && (mSel.value === 'v1.3' || mSel.value === 'v2.0'), tariffs: gTar.checked && !isDuel(), guide: gGuide.checked } }, (gEu.checked && !(mSel.value === 'v1.3' || mSel.value === 'v2.0')) ? 'Parameters saved — leaving the union needs model v1.3 or v2.0: left off' : 'Parameters saved');
+        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15, crisisDepr: MS.num(vDepr.input.value) || 10, defendStep: MS.num(vDef.input.value) || 1, model: isDuel() ? 'v2.0' : mSel.value, climate: climNew, exit: gEu.checked && finNew, tariffs: gTar.checked && !isDuel(), guide: gGuide.checked } }, (gEu.checked && !finNew) ? 'Parameters saved — leaving the union needs the Finance model: left off' : 'Parameters saved');
     } }, ['Save parameters'])]));
     det.appendChild(box); c5.appendChild(det); v.appendChild(c5);
   }
@@ -796,24 +808,25 @@
     { id: 'backstop',   label: 'Central-bank backstop',   unit: '',   hint: 'on: each central bank buys its government’s residual bills at the policy rate (the spread above 110 % of debt is paid on privately held bills only); off: an indebted country must place its bills on the market — its rate rises until households and banks absorb them, and the partner’s flight is not cushioned', type: 'check' },
     { id: 'disaster',   label: 'Climate disaster',        unit: '%',  hint: 'one-off extra damage this year for both countries (e.g. 3 = potential output −3 %)' }
   ];
-  function shockFields() { if (isDuel()) return DUEL_SHOCK_FIELDS; var m = modelOf(), v13 = m === 'v1.3' || m === 'v2.0', v20 = m === 'v2.0', tar = MS.tariffsOn(st()); return SHOCK_FIELDS.filter(function (f) { return (!f.v13 || v13) && (!f.v20 || v20) && (!f.tariffs || tar); }); }
+  function shockFields() { if (isDuel()) return DUEL_SHOCK_FIELDS; var v13 = MS.financeModel(st()), v20 = MS.climateOn(st()), tar = MS.tariffsOn(st()); return SHOCK_FIELDS.filter(function (f) { return (!f.v13 || v13) && (!f.v20 || v20) && (!f.tariffs || tar); }); }
   var runPreview = null;   // {phase, round, rows:[...], union:[...]} built by the last run
   function engineOk() { return typeof OPENMU !== 'undefined' && OPENMU && typeof OPENMU.report === 'function'; }
   function engineLine() {
-    if (isDuel()) return 'engine OPEN-MU v' + (OPENMU.VERSION || '?') + ' · duel mode (two identical v2.0 economies with their own currencies, bilateral rate fixed or floating per year, capital flows, market pressure, shared climate; reserves 1.5 months) · ' + duelPairs().length + ' pair(s)';
+    if (isDuel()) return 'engine OPEN-MU v' + (OPENMU.VERSION || '?') + ' · duel mode (two identical economies, Finance + Climate, with their own currencies, bilateral rate fixed or floating per year, capital flows, market pressure, shared climate; reserves 1.5 months) · ' + duelPairs().length + ' pair(s)';
     var p = engineParams(), n = 0, ver = OPENMU.VERSION || '?';
     try { var d = OPENMU.describe ? OPENMU.describe(p) : null; if (d && d.version) ver = d.version; n = d && d.countries ? Object.keys(d.countries).length : (Array.isArray(p.countries) ? p.countries.length : 0); } catch (e) { n = Array.isArray(p.countries) ? p.countries.length : 0; }
-    return 'engine OPEN-MU v' + ver + ' · model ' + modelOf() + (modelOf() === 'v2.0' ? ' (emissions and damages, carbon tax and green investment, on top of v1.3; reserves ' + p.reserveMonths + ' months)' : modelOf() === 'v1.3' ? ' (capital flows, fixed or floating rate per year, market pressure; reserves ' + p.reserveMonths + ' months)' : modelOf() === 'v1.2' ? ' (prices in trade, reserves ' + p.reserveMonths + ' months)' : ' (no price channel, reserves ' + p.reserveMonths + ' months)') + ' · ' + n + ' members · ' + (modelOf() === 'v1.3' ? 'regime per year' : 'fixed exchange rate');
+    var fin = MS.financeModel(st());
+    return 'engine OPEN-MU v' + ver + ' · model ' + MS.modelLabel(st()) + ' (' + (fin ? 'capital flows, fixed or floating rate per year, market pressure' : MS.modelId(st()) === 'v1.1' ? 'no price channel' : 'prices in trade, fixed exchange rate') + (MS.climateOn(st()) ? '; emissions and damages, carbon tax and green investment' : '') + '; reserves ' + p.reserveMonths + ' months) · ' + n + ' members · ' + (fin ? 'regime per year' : 'fixed exchange rate');
   }
-  /* model version of the class: 'v1.2' (prices in trade, reserves 1.5 months) or 'v1.1' (also any class without the key) */
-  function modelOf(s) { if (MS.isDuel(s || st())) return 'v2.0'; var m = ((s || st()).sim || {}).model; return m === 'v2.0' || m === 'v1.3' || m === 'v1.2' ? m : 'v1.1'; }
-  function isCapModel(s) { var m = modelOf(s); return m === 'v1.3' || m === 'v2.0'; }
+  /* the model of the class (MS.modelId: 'v1', 'v2', or a former id) and its engine id (with '+climate' when the option is on) */
+  function modelOf(s) { return MS.modelId(s || st()); }
+  function isCapModel(s) { return MS.financeModel(s || st()); }
   function engineParams() {
     var ov_ = st().sim || {};
-    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, model: 1, crisisDepr: 1, defendStep: 1, exit: 1, tariffs: 1, members: 1, guide: 1 };   // console rules, not engine parameters
+    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, model: 1, climate: 1, crisisDepr: 1, defendStep: 1, exit: 1, tariffs: 1, members: 1, guide: 1 };   // console rules, not engine parameters
     if (isDuel()) { var o = { forcedDeval: gameRules().forcedDeval, rateMax: MS.num(st().bounds.rate) || 2 }; Object.keys(ov_).forEach(function (k) { if (k !== 'countries' && !rules[k]) o[k] = ov_[k]; }); return OPENMU.duelParams(o); }
     rules.forcedDeval = 1;
-    var p = OPENMU.paramsFor ? OPENMU.paramsFor(modelOf()) : OPENMU.defaultParams();
+    var p = OPENMU.paramsFor ? OPENMU.paramsFor(MS.engineModel(st())) : OPENMU.defaultParams();
     Object.keys(ov_).forEach(function (k) { if (k !== 'countries' && !rules[k]) p[k] = ov_[k]; });
     /* §14: the union of this class (2 to 7 members, from its groups); the seven when the class has no list */
     var mem = MS.membersOf(st()).map(function (c) { return c.id; });

@@ -121,9 +121,13 @@ var OPENMU = (function () {
     if (useCapital) { p.reserveMonths = 3; p.bwShare = 0.15; p.chiW = 3; p.lambdaF1 = 0.7; }   /* re-tuned: +0.5 pt on the rate → floating xr −3.7 % */
     return p;
   }
-  /* parameters of a game version: 'v1.1' (class 6: no price channel, 3 months of reserves), 'v1.2' (prices in trade), 'v1.3' (capital flows) */
+  /* parameters of a class's model. Current models: 'v1' (Trade: prices in trade, fixed rate, reserves 3 months) and 'v2' (Finance:
+     Trade + capital flows, fixed or floating rate, market pressure), each with an optional '+climate' (the emissions-and-damages
+     block). Former ids, kept so that classes created with them replay unchanged: 'v1.1' (no price channel, 3 months), 'v1.2'
+     (prices in trade, 1.5 months), 'v1.3' (= v2) and 'v2.0' (= v2+climate). */
   function paramsFor(version) {
-    var v = String(version || '').replace(/^v/, '');
+    var s = String(version || ''), climate = /\+climate$/.test(s), v = s.replace(/\+climate$/, '').replace(/^v/, '');
+    if (v === '1' || v === '2') { var pm = defaultParams(true, true, v === '2', climate); pm.reserveMonths = 3; return pm; }
     if (v === '2.0') return defaultParams(true, true, true, true);
     if (v === '1.3') return defaultParams(true, true, true);
     return v === '1.2' ? defaultParams(true, true) : defaultParams(true);

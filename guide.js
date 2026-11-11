@@ -17,9 +17,10 @@ var MXGUIDE = (function () {
   'use strict';
 
   /* which cards a class sees */
-  function model(st) { return (st && st.sim && st.sim.model) || 'v1.1'; }
+  /* the model and its options (MS from core.js): prices in trade in every model but the former v1.1; capital flows in Finance */
   function isDuel(st) { return !!(st && st.kind === 'duel'); }
-  var V12 = { 'v1.2': 1, 'v1.3': 1, 'v2.0': 1 }, V13 = { 'v1.3': 1, 'v2.0': 1 };
+  function prices(st) { return MS.modelId(st) !== 'v1.1'; }
+  function finance(st) { return MS.financeModel(st); }
   var SHOW = {
     score: function () { return true; },
     demand: function () { return true; },
@@ -30,10 +31,10 @@ var MXGUIDE = (function () {
     deval: function (st) { return !isDuel(st); },
     coop: function (st) { return !isDuel(st); },
     decomp: function () { return true; },
-    compet: function (st) { return !isDuel(st) && !!V12[model(st)]; },
-    float: function (st) { return !isDuel(st) && !!V13[model(st)]; },
-    debt: function (st) { return !isDuel(st) && !!V13[model(st)]; },
-    climate: function (st) { return isDuel(st) || model(st) === 'v2.0'; },
+    compet: function (st) { return !isDuel(st) && prices(st); },
+    float: function (st) { return !isDuel(st) && finance(st); },
+    debt: function (st) { return !isDuel(st) && finance(st); },
+    climate: function (st) { return MS.climateOn(st); },
     exit: function (st) { return !isDuel(st) && !!(st && st.sim && (st.sim.exit || st.sim.tariffs)); },
     duel: function (st) { return isDuel(st); }
   };
@@ -81,7 +82,7 @@ var MXGUIDE = (function () {
           'What will you need next year, and what will your partners need?'],
         reserves: ['Foreign reserves and the external constraint',
           'With a fixed exchange rate, the common central bank covers the union’s current-account deficit with the rest of the world by selling its foreign reserves; that stock is shared by all members.',
-          'Imports from the rest of the world ↑ or exports ↓ → the union’s current account ↓ → reserves ↓ → below 25 % of the initial stock: alert → the next year opens with a vote, austerity or devaluation (in the versions with a floating rate, also floating) → reserves exhausted with a continuing deficit: forced devaluation.',
+          'Imports from the rest of the world ↑ or exports ↓ → the union’s current account ↓ → reserves ↓ → below 25 % of the initial stock: alert → the next year opens with a vote, austerity or devaluation (in the Finance model, also floating) → reserves exhausted with a continuing deficit: forced devaluation.',
           'Austerity: GDP ↓ · unemployment ↑ · inflation ↓ · public balance ↑ · trade balance ↑. Devaluation: see [[deval]].',
           'Each member’s deficit drains everyone’s stock: a member stimulating alone makes the others pay. A large shock can empty the reserves without going through the alert.',
           'How many years will the reserves last at the current pace, and who is widening the deficit?'],
@@ -208,7 +209,7 @@ var MXGUIDE = (function () {
           'Quel sera votre besoin l’année prochaine, et celui de vos partenaires ?'],
         reserves: ['Les réserves de change et la contrainte extérieure',
           'Avec un change fixe, la banque centrale commune couvre le déficit courant de l’union avec le reste du monde en vendant ses réserves de devises ; ce stock est commun à tous les membres.',
-          'Importations du reste du monde ↑ ou exportations ↓ → solde courant de l’union ↓ → réserves ↓ → sous 25 % du stock initial : alerte → l’année suivante s’ouvre par un vote, austérité ou dévaluation (dans les versions avec change flottant, aussi le flottement) → réserves épuisées avec un déficit persistant : dévaluation forcée.',
+          'Importations du reste du monde ↑ ou exportations ↓ → solde courant de l’union ↓ → réserves ↓ → sous 25 % du stock initial : alerte → l’année suivante s’ouvre par un vote, austérité ou dévaluation (dans le modèle Finance, aussi le change flottant) → réserves épuisées avec un déficit persistant : dévaluation forcée.',
           'Austérité : PIB ↓ · chômage ↑ · inflation ↓ · solde public ↑ · solde commercial ↑. Dévaluation : voir [[deval]].',
           'Le déficit de chacun vide le stock de tous : un membre qui relance seul fait payer les autres. Un gros choc peut vider les réserves sans passer par l’alerte.',
           'Combien d’années tiennent les réserves au rythme actuel, et qui creuse le déficit ?'],
@@ -348,7 +349,7 @@ var MXGUIDE = (function () {
     var vis = visible();
     return g[2].split(' ').some(function (k) {
       if (k === 'tariffs') return !isDuel(state) && !!(state && state.sim && state.sim.tariffs);
-      if (k === 'exitOn') return !isDuel(state) && !!(state && state.sim && state.sim.exit) && !!V13[model(state)];
+      if (k === 'exitOn') return !isDuel(state) && !!(state && state.sim && state.sim.exit) && finance(state);
       return vis.indexOf(k) >= 0;
     });
   }
