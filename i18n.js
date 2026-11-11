@@ -104,11 +104,16 @@ var MXL = (function () {
     if (d.str[core] !== undefined) return m[1] + d.str[core] + m[3];
     for (var i = 0; i < d.re.length; i++) {
       var r = d.re[i], g = r[0].exec(core);
-      if (g) return m[1] + r[1].replace(/([$%])(\d)/g, function (x, k, n) {
+      if (!g) continue;
+      /* a translated capture (%n) with no entry of its own: this pattern does not fit (e.g. a generic « @ · » before the
+         precise entry of the same sentence) — try the next one */
+      var missed = false;
+      var out = r[1].replace(/([$%])(\d)/g, function (x, k, n) {
         var v = g[+n] === undefined ? '' : g[+n];
         if (k === '$') return v;
-        var tv = lookup(dl, v, lenient); return tv === null ? v : tv;
-      }) + m[3];
+        var tv = lookup(dl, v, lenient); if (tv === null && needs(v)) missed = true; return tv === null ? v : tv;
+      });
+      if (!missed) return m[1] + out + m[3];
     }
     /* "A · B · C": each part on its own */
     if (core.indexOf(' · ') > 0) {
