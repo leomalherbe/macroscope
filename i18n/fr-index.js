@@ -81,7 +81,7 @@ MXL.add('fr', {
 "k78": "Le climat comme bien public mondial ; le passager clandestin ; la transition.",
 "k79": "Chocs, fixés par l’administrateur",
 "k80": "Décisions, prises par les équipes",
-"k100": "Vote quand la monnaie chute de plus de 10 % : la défendre ou la laisser filer",
+"k100": "Vote de l’union : la réponse à une crise de change",
 "k106": "<i class=\"dot\"></i>disponible",
 "k107": "<span class=\"new\" style=\"margin:0\">NOUVEAU</span>première version où il apparaît",
 "k109": "<span>D’où vient chaque mécanisme : la littérature et ce qui a été construit pour Macroscope</span><i>+</i>",
