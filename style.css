@@ -328,3 +328,25 @@ tr.bd td{background:#fbfbff}
 .traj{border-color:var(--line)}
 .fact .val{color:var(--text)}
 footer{border-top:1.5px solid var(--blue);color:var(--muted)}
+
+/* board: model explorer */
+.explore summary{cursor:pointer;list-style:none}
+.explore summary::-webkit-details-marker{display:none}
+.explore summary h2::before{content:"▸ ";color:var(--accent2,#ff7a59)}
+.explore[open] summary h2::before{content:"▾ "}
+.xpick{margin:12px 0 6px}
+.xctry{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-bottom:10px}
+.xchip{display:inline-flex;align-items:center;gap:5px;font-size:.88rem;cursor:pointer}
+.xchip i{display:inline-block;width:14px;height:3px;border-radius:2px}
+.xvars{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px 16px}
+.xgroup{display:flex;flex-direction:column;gap:2px}
+.xgroup label{cursor:pointer}
+.xgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:12px}
+.xcell{border-top:2px solid var(--line,rgba(18,45,219,.16));padding-top:6px}
+.xcell a{color:var(--muted)}
+.xchart{width:100%;height:auto;display:block}
+.xchart .t{font:600 13px Inter,sans-serif;fill:var(--text,#0a1670)}
+.xchart .u{font:11px Inter,sans-serif;fill:var(--muted,#5566cf)}
+.xchart .a{font:10.5px Inter,sans-serif;fill:var(--muted,#5566cf)}
+.xchart .gl{stroke:rgba(18,45,219,.10)}
+.xchart .z{stroke:rgba(10,22,112,.45)}

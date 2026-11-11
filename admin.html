@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111102">
-<script src="i18n.js?v=2026111102"></script>
-<script src="i18n/fr-desk.js?v=2026111102"></script>
-<script src="i18n/fr-admin.js?v=2026111102"></script>
-<script src="config.js?v=2026111102"></script>
-<script src="core.js?v=2026111102"></script>
-<script src="app-common.js?v=2026111102"></script>
-<script src="engine.js?v=2026111102"></script>
+<link rel="stylesheet" href="style.css?v=2026111201">
+<script src="i18n.js?v=2026111201"></script>
+<script src="i18n/fr-desk.js?v=2026111201"></script>
+<script src="i18n/fr-admin.js?v=2026111201"></script>
+<script src="config.js?v=2026111201"></script>
+<script src="core.js?v=2026111201"></script>
+<script src="app-common.js?v=2026111201"></script>
+<script src="engine.js?v=2026111201"></script>
 </head>
 <body>
 
@@ -880,6 +880,7 @@
     if (u.regime) { x.regime = u.regime; x.dxr = u.dxr; x.CAp = u.CAp; x.KA = u.KA; x.Bw = u.Bw; x.Bf = u.Bf; x.backstop = u.backstop !== false; x.pressured = u.pressured || []; x.sBar = u.sBar; x.rw = u.rw; }   // v1.3
     if (u.D !== undefined) { x.D = u.D; x.Sshare = u.Sshare; x.Erel = u.Erel; }   // v2.0: damage %, pollution stock vs start, union emissions vs reference %
     if (u.cet) x.cet = u.cet; if (u.worldTariff) x.worldTariff = u.worldTariff;   // §13
+    if (u.x) x.x = u.x;   // model explorer (board)
     if (extra) Object.keys(extra).forEach(function (k) { x[k] = extra[k]; });
     return { key: key || 'UNION', year: year, gdp: '', unemp: '', infl: '', pubbal: '', tradebal: '', R: '', detail: { extra: roundDeep(x, 4) } };
   }
