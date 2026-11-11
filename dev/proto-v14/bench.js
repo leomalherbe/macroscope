@@ -18,7 +18,7 @@ for (const v of ['v1.3', 'v1.4']) {
   const incTax = rc.T - rc.tauc * rc.CE, Y = rc.Y;
   const L = { pubdem: 100 * 0.01 * Y / rc.G, benefits: 100 * 0.01 * Y / rc.TR, inctax: -100 * 0.01 * Y / incTax };
   console.log(`\n=== ${v}: income tax ${(100 * incTax / Y).toFixed(1)} % of GDP` + (p.hetero ? `, rate on the wealthy ${(100 * rc.theta).toFixed(1)} %, alpha2 wealthy ${rc.alpha2R.toFixed(4)}; bottom/top disposable income ${(rc.YDP / rc.YDR).toFixed(3)}, bottom share ${(100 * rc.YDP / rc.CE).toFixed(1)} %, bottom share of wealth ${(100 * rc.VP / rc.V).toFixed(1)} %` : ''));
-  const row = (lab, a) => console.log(`  ${lab.padEnd(30)} GDP ${f(a, 'gdp')} | pub.bal ${f(a, 'pubbal')} | unemp ${f(a, 'unemp')}` + (p.hetero ? ` | ratio ${f(a, 'ratio', 3)}` : ''));
+  const row = (lab, a) => console.log(`  ${lab.padEnd(30)} GDP ${f(a, 'gdp')} | pub.bal ${f(a, 'pubbal')} | unemp ${f(a, 'unemp')}` + (p.hetero ? ` | bottom-50 share ${f(a, 'share', 2)} %` : ''));
   console.log(' France alone, years 1/2/3 — cost 1 % of GDP:');
   for (const k of ['pubdem', 'benefits', 'inctax']) row(`${k} (lever ${L[k].toFixed(2)})`, run(p, { [k]: L[k] }));
   row('benefits + income tax (balanced)', run(p, { benefits: L.benefits, inctax: -L.inctax }));
