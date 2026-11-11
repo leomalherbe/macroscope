@@ -7,19 +7,19 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111102">
-<script src="i18n.js?v=2026111102"></script>
-<script src="i18n/fr-desk.js?v=2026111102"></script>
-<script src="guide.js?v=2026111102"></script>
-<script src="config.js?v=2026111102"></script>
-<script src="core.js?v=2026111102"></script>
-<script src="app-common.js?v=2026111102"></script>
+<link rel="stylesheet" href="style.css?v=2026111201">
+<script src="i18n.js?v=2026111201"></script>
+<script src="i18n/fr-desk.js?v=2026111201"></script>
+<script src="guide.js?v=2026111201"></script>
+<script src="config.js?v=2026111201"></script>
+<script src="core.js?v=2026111201"></script>
+<script src="app-common.js?v=2026111201"></script>
 </head>
 <body>
 
 <div class="topbar">
   <div class="wrap">
-    <div class="top-tools"><button type="button" id="guideBtn" class="guide-btn" hidden>How it works?</button><div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en" lang="en" title="English">EN</button><button type="button" data-lang="fr" lang="fr" title="Français">FR</button></div></div>
+    <div class="top-tools"><a id="boardBtn" class="guide-btn" target="_blank" rel="noopener" hidden>Board</a><button type="button" id="guideBtn" class="guide-btn" hidden>How it works?</button><div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en" lang="en" title="English">EN</button><button type="button" data-lang="fr" lang="fr" title="Français">FR</button></div></div>
     <div>
       <div class="kicker" id="courseLabel">Macroscope · the open-economy policy game</div>
       <h1>Macroscope · Policy desk</h1>
@@ -81,6 +81,9 @@
       if (!quiet) { app.innerHTML = ''; app.appendChild(el('div', { class: 'card alert' }, [el('b', {}, ['Cannot reach the server. ']), String(e.message || e), ' ', el('button', { class: 'btn sm', onclick: function () { load(); } }, ['Retry'])])); }
       return;
     }
+    /* the class's board (projector view), in a new tab */
+    var bb = $('#boardBtn'), cid = data.group && data.group.classId;
+    if (bb && cid) { var api = new URLSearchParams(location.search).get('api'); bb.href = 'board.html?class=' + encodeURIComponent(cid) + (api && !cfg.API_URL ? '&api=' + encodeURIComponent(api) : ''); bb.hidden = false; }
     try { render(); $('#footTime').textContent = 'Updated ' + UI.fmtTime(data.now); }
     catch (e2) {
       if (window.console) console.error(e2);

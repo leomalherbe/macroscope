@@ -1174,6 +1174,13 @@ var OPENMU = (function () {
         if (cy.tariffRev) detail.extra.tariffRev = 100 * cy.tariffRev / cy.Y;   // §13: tariff revenue, % of GDP          // the member's current account (trade + primary income), % of GDP — for the fact sheet
         if (p.capital) { detail.extra.foreign = 100 * runAll.years[t].union.xr * cy.Bf / cy.Y; detail.extra.spread = 100 * cy.spread; detail.extra.pressured = !!cy.pressured; }   // v1.3: foreign bills % of GDP, spread in points
         if (p.eco) { detail.extra.E = p.ci0 > 0 ? 100 * (cy.E / (p.ci0 * rc.Y) - 1) : 0; detail.extra.ci = cy.ci / p.ci0; detail.extra.ctax = cy.ctax; detail.extra.green = cy.green; detail.extra.D = 100 * cy.D; }   // v2.0: emissions vs reference %, carbon intensity (share of reference), levers, damage %
+        /* model explorer (board): more variables of the year, as deviations from the reference — volumes in %, ratios to GDP in
+           points of GDP */
+        var pctV = function (v, v0) { return v0 ? 100 * (v / v0 - 1) : 0; }, ptsY = function (v, v0) { return 100 * (v / cy.Y - v0 / rc.Y); };
+        detail.x = { C: pctV(cy.C, rc.C), YD: pctV(cy.YD, rc.YD), V: pctV(cy.V, rc.V), I: pctV(cy.I, rc.I), G: pctV(cy.G, rc.G), TR: pctV(cy.TR, rc.TR),
+          T: pctV(cy.T, rc.T), X: pctV(cy.X, rc.X), IM: pctV(cy.IMV, rc.IMV), debt: ptsY(cy.B, rc.B), Bcb: ptsY(cy.Bcb, rc.Bcb) };
+        if (p.capital) detail.x.Bf = 100 * (runAll.years[t].union.xr * cy.Bf / cy.Y - (rc.Bf || 0) / rc.Y);
+        if (p.eco) detail.x.ci = 100 * (cy.ci / p.ci0 - 1);
         if (cy.exited !== undefined) {
           /* §12: exit fields (present only in runs where a member leaves) */
           var ex = detail.extra;
@@ -1195,6 +1202,9 @@ var OPENMU = (function () {
       if (u.exited && u.exited.length) { uRefY = 0; u.members.forEach(function (id) { uRefY += runRef.years[t].countries[id].Y; }); }   // §12: the union without the exited countries
       yr.union = { Y: u.Y, CA: u.CA, R: u.R, R0: u.R0, xr: u.xr, r: u.r, alert: u.alert, months: u.months,
         gdp: 100 * (u.Y / uRefY - 1), CAref: uRef.CA, Rshare: u.R / u.R0 };
+      /* model explorer (board): union variables as deviations from the reference */
+      yr.union.x = { R: 100 * (u.R / u.R0 - 1), xr: 100 * (u.xr / ref.union.xr0 - 1), CA: 100 * (u.CAp !== undefined ? u.CAp : u.CA) / u.Y, rate: 100 * (u.r - ref.union.r0) };
+      if (p.capital) yr.union.x.KA = 100 * u.KA / u.Y;
       if (p.capital) {
         var press = ids.filter(function (id) { return runAll.years[t].countries[id].pressured; });
         yr.union.regime = u.regime; yr.union.dxr = u.dxr; yr.union.CAp = u.CAp; yr.union.KA = u.KA; yr.union.Bw = u.Bw; yr.union.Bf = u.Bf;

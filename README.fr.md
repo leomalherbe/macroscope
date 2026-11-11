@@ -55,7 +55,7 @@ L'aperçu de *Run* et le panneau de l'union (console, page étudiants, board) af
 
 **Réserves et dévaluation.** Le change est fixe : la banque centrale commune couvre le déficit courant de l'union avec ses réserves (3 mois d'importations au départ). Le panneau de l'union (console, page étudiants, board) montre les réserves en mois d'importations et en % du stock initial ; sous **25 %**, l'étiquette **ALERT** apparaît et le tour suivant porte le vote austérité / dévaluation. Vous pouvez aussi décréter une **dévaluation** vous-même : *Run* → champ « Devaluation » de l'année (par ex. 10 = le change saute de 10 %) → **Save shocks** → annoncer dans le communiqué (elle s'ajoute à une éventuelle dévaluation votée). Effets : les importations renchérissent tout de suite (inflation importée), les exportations repartent avec un an de retard (courbe en J).
 
-Le **board** (`Open the board ↗` dans la console) se rafraîchit seul toutes les 15 s ; la page étudiants toutes les 30 s (bouton Refresh aussi).
+Le **board** (`Open the board ↗` dans la console, ou le bouton **Board** en haut de la page étudiants) se rafraîchit seul toutes les 15 s ; la page étudiants toutes les 30 s (bouton Refresh aussi). En bas du board, une section repliée **Explore the model** trace une trentaine de variables au choix (ménages, entreprises, État, échanges, monnaie, union, climat avec son option) pour les pays cochés, année par année, en écart à la référence — pour le débriefing. Les variables sont enregistrées à chaque publication d'une année (années publiées avant cet outil : les republier pour combler les trous).
 
 ---
 

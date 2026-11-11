@@ -1108,3 +1108,5 @@ Update our vote
 => Modifier notre vote
 Fixed exchange rate: the central bank sells reserves to cover a current-account deficit. Below # % of the initial stock (red mark) the next round carries a vote between austerity and devaluation (or a move to a floating rate); reserves exhausted while the current account is still in deficit force a devaluation.
 => Change fixe : la banque centrale vend des réserves pour couvrir un déficit courant. Sous # % du stock initial (repère rouge), le tour suivant comporte un vote entre austérité et dévaluation (ou passage au change flottant) ; des réserves épuisées alors que le solde courant reste déficitaire imposent une dévaluation.
+Board
+=> Board

@@ -179,6 +179,17 @@ const KEY = 'TESTKEY';
   must(await board.$('#app > .grid2 .union') && /Ranking/.test(order[0]) && /Everyone’s decisions/.test(order[1]) && order.some(t => /Key indicators/.test(t)) && /The objective, year by year/.test(order[order.length - 1]), 'board layout: union and submissions side by side, then full width: ranking, everyone′s decisions, …, the objective (' + order.join(' · ') + ')');
   must((await board.$$('svg.race polyline')).length === 7 && /The race · cumulative R/.test(await board.textContent('#app')), 'board: the race chart (cumulative R, one line per country)');
   await board.screenshot({ path: OUT + '/v13-b1-board.png', fullPage: true });
+  /* model explorer: folded section, any variable for the chosen countries */
+  must(await board.$('details.explore') && !(await board.$eval('details.explore', e => e.open)), 'board: the « Explore the model » section, folded');
+  await board.click('details.explore summary');
+  await board.click('details.explore label:has-text("Consumption")');
+  await board.click('details.explore label:has-text("Foreign reserves")');
+  must((await board.$$('.xchart')).length === 4 && (await board.$$eval('.xchart', a => a.map(s => s.querySelectorAll('path').length))).join() === '7,7,7,1', 'explorer: GDP, debt, consumption (7 countries) and the reserves (union): 4 charts');
+  const xv = await board.$$eval('.xchart circle title', t => t.map(x => x.textContent));
+  must(xv.some(t => /France · year 3: [+−]?\d/.test(t)), 'explorer: hover values (' + xv[0] + ')');
+  /* the desk links to the board */
+  const deskB = await ctx.newPage(); await deskB.goto(BASE + '/desk.html?api=' + encodeURIComponent(API) + '&pin=' + pins.FRA); await deskB.waitForSelector('#boardBtn:not([hidden])');
+  must((await deskB.getAttribute('#boardBtn', 'href')).indexOf('board.html?class=' + cid) === 0, 'desk: the Board button opens the class board'); await deskB.close();
 
   must(errors.length === 0, 'no page errors (' + errors.join(' | ') + ')');
   await browser.close();

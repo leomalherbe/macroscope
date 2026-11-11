@@ -333,6 +333,80 @@ var UI = (function () {
     var legend = '<div class="racelegend">' + lines.map(function (l) { return '<span><i style="background:' + l.color + '"></i>' + esc(l.name) + '</span>'; }).join('') + '</div>';
     return legend + '<svg class="race" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cumulative R of every country, year by year">' + g + marks + '</svg>';
   }
+
+  /* ---------- model explorer (board): any published variable, several countries, year by year ----------
+     Every value is a deviation from the reference: volumes in %, rates and ratios in points. src: 'row' (the result row),
+     'extra' (detail.extra), 'x' (detail.x, recorded since the explorer), 'u' (the union row's detail.extra.x).
+     need: 'prices' | 'capital' | 'eco' — shown only when the class's model or options have it. */
+  var EXPLORE_GROUPS = ['Activity', 'Households', 'Firms', 'Government', 'Trade', 'Money and finance', 'The union', 'Climate'];
+  var EXPLORE_VARS = [
+    { id: 'gdp', g: 'Activity', label: 'GDP', sym: 'Y', unit: '%', src: 'row', eq: 'trade' },
+    { id: 'unemp', g: 'Activity', label: 'Unemployment', sym: 'u', unit: 'pt', src: 'row', eq: 'thermo' },
+    { id: 'infl', g: 'Activity', label: 'Inflation', sym: 'π', unit: 'pt', src: 'row', eq: 'thermo' },
+    { id: 'compet', g: 'Activity', label: 'Price level vs the union', sym: 'compet', unit: '%', src: 'extra', eq: 'thermo', need: 'prices' },
+    { id: 'C', g: 'Households', label: 'Consumption', sym: 'C', unit: '%', src: 'x', eq: 'households' },
+    { id: 'YD', g: 'Households', label: 'Disposable income', sym: 'YD', unit: '%', src: 'x', eq: 'households' },
+    { id: 'V', g: 'Households', label: 'Wealth', sym: 'V', unit: '%', src: 'x', eq: 'households' },
+    { id: 'I', g: 'Firms', label: 'Investment', sym: 'I', unit: '%', src: 'x', eq: 'firms' },
+    { id: 'G', g: 'Government', label: 'Public demand', sym: 'G', unit: '%', src: 'x', eq: 'levers' },
+    { id: 'TR', g: 'Government', label: 'Social benefits', sym: 'TR', unit: '%', src: 'x', eq: 'levers' },
+    { id: 'T', g: 'Government', label: 'Tax revenue', sym: 'T', unit: '%', src: 'x', eq: 'gov' },
+    { id: 'pubbal', g: 'Government', label: 'Public balance', sym: 'PB', unit: 'pt of GDP', src: 'row', eq: 'gov' },
+    { id: 'debt', g: 'Government', label: 'Public debt', sym: 'B/Y', unit: 'pt of GDP', src: 'x', eq: 'gov' },
+    { id: 'spread', g: 'Government', label: 'Risk premium', sym: 's', unit: 'pt', src: 'extra', eq: 'capital', need: 'capital' },
+    { id: 'X', g: 'Trade', label: 'Exports', sym: 'X', unit: '%', src: 'x', eq: 'trade' },
+    { id: 'IM', g: 'Trade', label: 'Imports (value)', sym: 'IMV', unit: '%', src: 'x', eq: 'trade' },
+    { id: 'tradebal', g: 'Trade', label: 'Trade balance', sym: 'TB', unit: 'pt of GDP', src: 'row', eq: 'trade' },
+    { id: 'ca', g: 'Trade', label: 'Current account', sym: 'CA′', unit: 'pt of GDP', src: 'extra', eq: 'capital', need: 'capital' },
+    { id: 'Bcb', g: 'Money and finance', label: 'Bills held by the central bank', sym: 'Bcb/Y', unit: 'pt of GDP', src: 'x', eq: 'gov' },
+    { id: 'Bf', g: 'Money and finance', label: 'Foreign bills held by households', sym: 'xr·Bf/Y', unit: 'pt of GDP', src: 'x', eq: 'capital', need: 'capital' },
+    { id: 'rate', g: 'Money and finance', label: 'Central bank rate', sym: 'r', unit: 'pt', src: 'u', eq: 'rules' },
+    { id: 'R', g: 'The union', label: 'Foreign reserves', sym: 'R', unit: '%', src: 'u', eq: 'union' },
+    { id: 'xr', g: 'The union', label: 'Exchange rate (up = depreciation)', sym: 'xr', unit: '%', src: 'u', eq: 'union' },
+    { id: 'CAu', g: 'The union', label: 'Current account of the union', sym: 'CA', unit: 'pt of GDP', src: 'u', key: 'CA', eq: 'union' },
+    { id: 'KA', g: 'The union', label: 'Net capital inflows', sym: 'KA', unit: 'pt of GDP', src: 'u', eq: 'capital', need: 'capital' },
+    { id: 'E', g: 'Climate', label: 'Emissions', sym: 'E', unit: '%', src: 'extra', eq: 'eco', need: 'eco' },
+    { id: 'ci', g: 'Climate', label: 'Carbon intensity', sym: 'ci', unit: '%', src: 'x', eq: 'eco', need: 'eco' },
+    { id: 'D', g: 'Climate', label: 'Climate damage', sym: 'D', unit: 'pt of potential', src: 'extra', eq: 'eco', need: 'eco' }
+  ];
+  function exploreVars(st) {
+    var has = { prices: MS.modelId(st) !== 'v1.1', capital: MS.financeModel(st), eco: MS.climateOn(st) };
+    return EXPLORE_VARS.filter(function (v) { return !v.need || has[v.need]; });
+  }
+  /* the value of variable v in a result row (country) or a union row; null when the row does not carry it */
+  function exploreValue(v, row) {
+    if (!row) return null;
+    var d = row.detail || {}, x;
+    if (v.src === 'row') x = row[v.id];
+    else if (v.src === 'extra') x = d.extra ? d.extra[v.id] : undefined;
+    else if (v.src === 'x') x = d.x ? d.x[v.id] : undefined;
+    else x = d.extra && d.extra.x ? d.extra.x[v.key || v.id] : undefined;
+    return x === undefined || x === null || x === '' || !isFinite(Number(x)) ? null : Number(x);
+  }
+  /* one small chart: series = [{name, color, pts: [{year, v}]}] over years */
+  function exploreSvg(v, series, years) {
+    var W = 360, H = 190, L = 46, Rg = 12, T = 32, B = 26;
+    var vals = []; series.forEach(function (s) { s.pts.forEach(function (p) { if (p.v !== null) vals.push(p.v); }); });
+    var lo = Math.min(0, Math.min.apply(null, vals.length ? vals : [0])), hi = Math.max(0, Math.max.apply(null, vals.length ? vals : [0]));
+    if (hi - lo < 1e-9) { hi += 1; lo -= 1; }
+    var pad = (hi - lo) * 0.08; hi += pad; lo -= pad;
+    var X = function (y) { return years.length < 2 ? L + (W - L - Rg) / 2 : L + (W - L - Rg) * (years.indexOf(y) / (years.length - 1)); };
+    var Y = function (val) { return T + (H - T - B) * (hi - val) / (hi - lo); };
+    var dec = Math.abs(hi - lo) < 2 ? 2 : 1;
+    var g = '<svg class="xchart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(v.label) + '">';
+    g += '<text x="' + L + '" y="14" class="t">' + esc(v.label) + '</text><text x="' + L + '" y="27" class="u"><tspan translate="no">' + esc(v.sym) + '</tspan> · ' + esc(v.unit) + ' vs the reference</text>';
+    [hi - pad, 0, lo + pad].forEach(function (tv, k) { if (k !== 1 && Math.abs(tv) < 1e-9) return; g += '<line x1="' + L + '" x2="' + (W - Rg) + '" y1="' + Y(tv) + '" y2="' + Y(tv) + '" class="' + (k === 1 ? 'z' : 'gl') + '"/><text x="' + (L - 6) + '" y="' + (Y(tv) + 4) + '" class="a" text-anchor="end">' + esc(fmt2(tv, dec)) + '</text>'; });
+    years.forEach(function (y, k) { if (years.length > 8 && k % 2 && k !== years.length - 1) return; g += '<text x="' + X(y) + '" y="' + (H - 8) + '" class="a" text-anchor="middle">Y' + y + '</text>'; });
+    series.forEach(function (s) {
+      var path = '', on = false;
+      s.pts.forEach(function (p) { if (p.v === null) { on = false; return; } path += (on ? 'L' : 'M') + X(p.year).toFixed(1) + ' ' + Y(p.v).toFixed(1); on = true; });
+      if (path) g += '<path d="' + path + '" fill="none" stroke="' + s.color + '" stroke-width="2" stroke-linejoin="round"/>';
+      s.pts.forEach(function (p) { if (p.v === null) return; g += '<circle cx="' + X(p.year).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="3.2" fill="' + s.color + '" stroke="#fff" stroke-width="1.5"><title>' + esc(s.name + ' · year ' + p.year + ': ' + fmt2(p.v, 2) + ' ' + v.unit) + '</title></circle>'; });
+    });
+    if (!vals.length) g += '<text x="' + ((W + L) / 2) + '" y="' + (H / 2) + '" class="a" text-anchor="middle">not recorded for these years</text>';
+    return g + '</svg>';
+  }
+  function fmt2(x, d) { return (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(d); }
   function trajectorySvg(rows, opts) {
     opts = opts || {};
     var W = 640, H = opts.height || 240, padL = 44, padR = 20, padT = opts.title ? 30 : 14;
@@ -435,5 +509,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

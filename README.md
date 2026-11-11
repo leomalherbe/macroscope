@@ -55,7 +55,7 @@ The *Run* preview and the union panel (console, students' page, board) show the 
 
 **Reserves and devaluation.** The exchange rate is fixed: the common central bank covers the union's current-account deficit with its reserves (3 months of imports at the start). The union panel (console, students' page, board) shows the reserves in months of imports and in % of the initial stock; below **25 %**, the **ALERT** label appears and the next round carries the austerity / devaluation vote. You may also decree a **devaluation** yourself: *Run* → field "Devaluation" of the year (e.g. 10 = the exchange rate jumps by 10 %) → **Save shocks** → announce it in the communiqué (it adds to a voted devaluation, if any). Effects: imports become dearer at once (imported inflation), exports recover with a one-year lag (J-curve).
 
-The **board** (`Open the board ↗` in the console) refreshes itself every 15 s; the students' page every 30 s (there is also a Refresh button).
+The **board** (`Open the board ↗` in the console, or the **Board** button at the top of the students' page) refreshes itself every 15 s; the students' page every 30 s (there is also a Refresh button). At the bottom of the board, a folded section **Explore the model** draws any of about thirty variables (households, firms, government, trade, money, the union, the climate with its option) for the countries ticked, year by year, as deviations from the reference — for the debrief. The variables are recorded with each published year (years published before this tool: publish them again to fill the gaps).
 
 ---
 
