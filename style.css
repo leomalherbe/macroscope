@@ -350,3 +350,14 @@ footer{border-top:1.5px solid var(--blue);color:var(--muted)}
 .xchart .a{font:10.5px Inter,sans-serif;fill:var(--muted,#5566cf)}
 .xchart .gl{stroke:rgba(18,45,219,.10)}
 .xchart .z{stroke:rgba(10,22,112,.45)}
+
+/* desk: − / + buttons around the number fields (phone keypads often have no minus sign) */
+.stepper{display:inline-flex;align-items:stretch;gap:0;vertical-align:middle}
+.stepper .st-btn{min-width:34px;padding:0 8px;border:1px solid var(--line-strong);background:#fff;color:var(--accent,#122ddb);font:600 1.05rem/1 Inter,sans-serif;cursor:pointer;touch-action:manipulation}
+.stepper .st-btn:first-child{border-right:0}
+.stepper .st-btn:last-child{border-left:0}
+@media (hover:hover){.stepper .st-btn:hover{background:#fff0ea}}
+.stepper .st-btn:active{background:#ffd7cd}
+.stepper:has(input:disabled) .st-btn{opacity:.35;cursor:default}
+@media (max-width:640px){.stepper input[type=number]{width:62px;padding:7px 6px}.stepper .st-btn{min-width:32px;padding:0 6px}}
+@media print{.stepper .st-btn{display:none}}

@@ -79,6 +79,13 @@ const MS = require('../core.js'), OPENMU = require('../engine.js');
   await stu.goto(BASE + '/desk.html?lang=en&api=' + encodeURIComponent(API) + '&pin=' + pins.DEU);
   await stu.waitForSelector('#form');
   must(/Carbon tax/.test(await stu.textContent('#form')), 'desk: the carbon tax lever is offered');
+  /* − / + buttons on every number field (phone keypads often have no minus sign) */
+  const nSt = (await stu.$$('#form .stepper')).length, nIn = (await stu.$$('#form input[type=number]')).length;
+  await stu.click('#form .stepper .st-btn >> nth=0'); await stu.click('#form .stepper .st-btn >> nth=0');
+  const v0 = await stu.inputValue('#form input[type=number] >> nth=0');
+  for (let k = 0; k < 30; k++) await stu.click('#form .stepper .st-btn >> nth=1');
+  const vMax = await stu.inputValue('#form input[type=number] >> nth=0'), mx = await stu.getAttribute('#form input[type=number] >> nth=0', 'max');
+  must(nSt === nIn && nSt >= 6 && v0 === '-1' && Number(vMax) === Number(mx), 'desk: − / + on every field (' + nSt + '), two presses of − give −1, + stops at the bound (' + vMax + ')');
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'closed' } });
   await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(600);
   await admin.click('#tabs button:has-text("Run")');

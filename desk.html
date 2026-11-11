@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111201">
-<script src="i18n.js?v=2026111201"></script>
-<script src="i18n/fr-desk.js?v=2026111201"></script>
-<script src="guide.js?v=2026111201"></script>
-<script src="config.js?v=2026111201"></script>
-<script src="core.js?v=2026111201"></script>
-<script src="app-common.js?v=2026111201"></script>
+<link rel="stylesheet" href="style.css?v=2026111202">
+<script src="i18n.js?v=2026111202"></script>
+<script src="i18n/fr-desk.js?v=2026111202"></script>
+<script src="guide.js?v=2026111202"></script>
+<script src="config.js?v=2026111202"></script>
+<script src="core.js?v=2026111202"></script>
+<script src="app-common.js?v=2026111202"></script>
 </head>
 <body>
 
@@ -169,6 +169,29 @@
   function myDecision(phase, round) {
     return (data.myDecisions || []).filter(function (d) { return d.phase === phase && Number(d.round) === Number(round); })[0] || null;
   }
+  /* − / + buttons around every number field of the desk: many phone keypads have no minus sign. One press = the field's step,
+     at least 0.5 for the levers typed to the tenth; the bounds hold; typing stays possible. Added to every new field. */
+  function addSteppers(root) {
+    Array.prototype.forEach.call((root || document).querySelectorAll('input[type=number]:not([data-st])'), function (inp) {
+      inp.setAttribute('data-st', '1');
+      var st0 = Number(inp.getAttribute('step')) || 1, bstep = st0 >= 0.25 ? st0 : 0.5;
+      var dec = String(bstep).indexOf('.') >= 0 ? String(bstep).split('.')[1].length : 0;
+      var wrap = el('span', { class: 'stepper' });
+      function btn(sign) {
+        return el('button', { type: 'button', class: 'st-btn', tabindex: '-1', 'aria-label': sign < 0 ? 'decrease' : 'increase', onclick: function () {
+          if (inp.disabled || inp.readOnly) return;
+          var v = MS.num(inp.value) || 0, lo = inp.min !== '' ? Number(inp.min) : -Infinity, hi = inp.max !== '' ? Number(inp.max) : Infinity;
+          v = Math.round((v + sign * bstep) / bstep) * bstep;
+          v = Math.max(lo, Math.min(hi, v));
+          inp.value = String(Number(v.toFixed(Math.max(dec, 2))));
+          inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true }));
+        } }, [sign < 0 ? '−' : '+']);
+      }
+      inp.parentNode.insertBefore(wrap, inp);
+      wrap.appendChild(btn(-1)); wrap.appendChild(inp); wrap.appendChild(btn(1));
+    });
+  }
+  if (window.MutationObserver) new MutationObserver(function () { addSteppers(document.getElementById('app')); }).observe(document.getElementById('app') || document.body, { childList: true, subtree: true });
   function numInput(name, value, bound, step) {
     var inp = el('input', { type: 'number', name: name, step: step || 0.1, min: -bound, max: bound, value: value || 0 });
     inp.addEventListener('input', onInput);
