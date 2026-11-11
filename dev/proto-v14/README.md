@@ -1,7 +1,8 @@
-# Prototype v1.4 — modest and wealthy households (in development, not used by the site)
+# Prototypes v1.4 and v2.1 — modest and wealthy households (in development, not used by the site)
 
-`engine14.js` is generated: `python3 dev/proto-v14/make.py` = `engine.js` (v1.3) + `paramsFor('v1.4')` (`params.hetero`).
-Union and exit paths only; the duel model and v1.1–v1.3 are unchanged (checked bit for bit).
+`engine14.js` is generated: `python3 dev/proto-v14/make.py` = `engine.js` + `paramsFor('v1.4')` (v1.3 + households) and
+`paramsFor('v2.1')` (v2.0, climate block, + households), both through `params.hetero`.
+Union and exit paths only; the duel model and v1.1–v2.0 are unchanged (checked bit for bit).
 
 - Two halves of the population per country. **Modest (bottom 50 %)**: 35 % of the wages (wages = 65 % of the income
   distributed by firms, the rest = profits) + all benefits, no income tax, wealth held as cash; propensity to consume
@@ -12,4 +13,7 @@ Union and exit paths only; the duel model and v1.1–v1.3 are unchanged (checked
 - Reference inequality: disposable income bottom/top 0.824 (bottom share 45.2 %); bottom share of wealth 18.1 %.
 - Levers unchanged: benefits → modest, income tax → wealthy, VAT → both through consumption.
 
-Run `node dev/proto-v14/bench.js` (v1.3 vs v1.4, France alone, union shocks, an exit).
+Run `node dev/proto-v14/bench.js` (v1.3 vs v1.4, France alone, union shocks, an exit) and `node dev/proto-v14/bench21.js`
+(v2.0 vs v2.1: fiscal levers, carbon tax and its recycling into benefits or income tax, green investment).
+Note: the carbon tax is paid by firms (it lowers the income they distribute, mostly to the wealthy) — its regressive side
+through household energy prices is not in the model.

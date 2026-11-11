@@ -111,7 +111,9 @@ r("""          year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: 
 r("""          newPrev[id] = { Y: Y, V: V, Bh: pf.Bh,""", """          newPrev[id] = { Y: Y, V: V, VP: VP, VR: VR, Bh: pf.Bh,""")
 
 # paramsFor('v1.4') = v1.3 + households
-r("""  function paramsFor(version) {""", """  function paramsFor(version) {
-    if (version === 'v1.4') return Object.assign(paramsFor('v1.3'), { hetero: true, omegaP: 0.35, wageShare: 0.65, alpha1P: 0.90, alpha1R: 0.60 });""")
+r("""  function paramsFor(version) {""", """  var HOUSEHOLDS = { hetero: true, omegaP: 0.35, wageShare: 0.65, alpha1P: 0.90, alpha1R: 0.60 };   // v1.4 / v2.1 prototype
+  function paramsFor(version) {
+    if (version === 'v1.4') return Object.assign(paramsFor('v1.3'), HOUSEHOLDS);
+    if (version === 'v2.1') return Object.assign(paramsFor('v2.0'), HOUSEHOLDS);   // v2.0 (climate) + the two household groups""")
 open(os.path.join(here, 'engine14.js'), 'w', encoding='utf-8').write(s)
 print('engine14.js written')

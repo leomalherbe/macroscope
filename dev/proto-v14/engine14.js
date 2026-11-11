@@ -122,8 +122,10 @@ var OPENMU = (function () {
     return p;
   }
   /* parameters of a game version: 'v1.1' (class 6: no price channel, 3 months of reserves), 'v1.2' (prices in trade), 'v1.3' (capital flows) */
+  var HOUSEHOLDS = { hetero: true, omegaP: 0.35, wageShare: 0.65, alpha1P: 0.90, alpha1R: 0.60 };   // v1.4 / v2.1 prototype
   function paramsFor(version) {
-    if (version === 'v1.4') return Object.assign(paramsFor('v1.3'), { hetero: true, omegaP: 0.35, wageShare: 0.65, alpha1P: 0.90, alpha1R: 0.60 });
+    if (version === 'v1.4') return Object.assign(paramsFor('v1.3'), HOUSEHOLDS);
+    if (version === 'v2.1') return Object.assign(paramsFor('v2.0'), HOUSEHOLDS);   // v2.0 (climate) + the two household groups
     var v = String(version || '').replace(/^v/, '');
     if (v === '2.0') return defaultParams(true, true, true, true);
     if (v === '1.3') return defaultParams(true, true, true);
