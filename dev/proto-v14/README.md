@@ -15,7 +15,4 @@ Union and exit paths only; the duel model and v1.1–v2.0 are unchanged (checked
 
 Run `node dev/proto-v14/bench.js` (v1.3 vs v1.4, France alone, union shocks, an exit) and `node dev/proto-v14/bench21.js`
 (v2.0 vs v2.1: fiscal levers, carbon tax and its recycling into benefits or income tax, green investment).
-v2.1: the carbon tax is passed on to consumer prices (`ctaxPass`): it cuts households' real consumption instead of the
-income distributed by firms. Its burden is split by consumption, a modest euro of spending carrying 1.7 times more carbon
-(`ctaxWeightP`: energy weighs more in modest budgets); `carbP`/`carbR` in the results. Limit: at the stationary reference
-both halves consume exactly their income (consumption out of wealth fills the gap), so VAT is proportional, not regressive.
+v2.1 keeps the v2.0 carbon tax as it is (paid by firms on their emissions).
