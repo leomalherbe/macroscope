@@ -151,9 +151,9 @@ MXL.add('fr', {
 "k182": "Sortie de l’union",
 "k183": "Un membre peut partir, avec sa propre monnaie et son taux directeur ; les autres choisissent leur riposte. Elle a besoin des flux de capitaux et du change flottant de la version 2.",
 "k184": "option, sur la version 1 ou 2",
-"k185": "Ce qu’un droit de douane fait aux prix, aux échanges, au budget et aux partenaires ; la riposte ; protection et ouverture, et ce qu’un tarif extérieur commun change pour chaque membre.",
-"k186": "Comment une politique se répartit entre ménages modestes et aisés, et comment cette répartition rejaillit sur la demande : un même effort budgétaire n’a pas les mêmes effets selon ceux qu’il touche.",
-"k187": "Ce qu’un membre gagne et perd en partant : son propre taux directeur et un change qui peut s’ajuster d’un côté ; la réaction des flux de capitaux et des partenaires, et le règlement de ses dettes envers l’union, de l’autre.",
+"k185": "Ce qu’un droit de douane fait aux prix, aux échanges, au budget et aux partenaires.",
+"k186": "Le versant distributif de la politique économique : comment une politique se répartit entre ménages modestes et aisés, et comment cette répartition rejaillit sur la demande.",
+"k187": "Ce qu’un membre gagne et perd en partant : plus de marges de manœuvre (son propre taux d’intérêt, son change et ses droits de douane) face à une possible riposte de ses partenaires.",
 "formula": "<span class=\"t lhs\"><i>R</i><sub class=\"it\">i,t</sub></span><span class=\"op eq\">=</span><span class=\"t\"><span class=\"w\">a<sub>1</sub></span>ΔPIB<sub class=\"it\">i,t</sub></span><span class=\"op m\">−</span><span class=\"t\"><span class=\"w\">a<sub>2</sub></span>Δ<i>U</i><sub class=\"it\">i,t</sub></span><span class=\"op m\">−</span><span class=\"t\"><span class=\"w\">a<sub>3</sub></span>Δ<i>π</i><sub class=\"it\">i,t</sub></span><span class=\"op p\">+</span><span class=\"t\"><span class=\"w\">a<sub>4</sub></span>ΔSP<sub class=\"it\">i,t</sub></span><span class=\"op p\">+</span><span class=\"t\"><span class=\"w\">a<sub>5</sub></span>ΔSC<sub class=\"it\">i,t</sub></span><span class=\"eqn\">(1)</span>"
 },
 "attr": [
