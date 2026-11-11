@@ -6,7 +6,7 @@
 <title>Macroscope · The model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111003">
+<link rel="stylesheet" href="style.css?v=2026111102">
 <style>
 table.eq{width:100%;border-collapse:collapse;background:#faf8f1;border:1px solid var(--line);border-radius:10px;margin:8px 0;font-size:.86rem}
 table.eq td{padding:4px 10px;vertical-align:top;border-bottom:1px solid #efebe0}
@@ -63,10 +63,10 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
 .part{margin:34px 0 12px;font-size:1.15rem;font-weight:700;color:var(--accent,#1a3cff);border-bottom:2px solid currentColor;padding-bottom:4px}
 .part .pill{margin-right:8px;vertical-align:2px}
 </style>
-<script src="i18n.js?v=2026111003"></script>
-<script src="i18n/fr-model.js?v=2026111101"></script>
-<script src="engine.js?v=2026111003"></script>
-<script src="accounts.js?v=2026111003"></script>
+<script src="i18n.js?v=2026111102"></script>
+<script src="i18n/fr-model.js?v=2026111102"></script>
+<script src="engine.js?v=2026111102"></script>
+<script src="accounts.js?v=2026111102"></script>
 </head>
 <body>
 <header class="topbar"><div class="wrap">
@@ -177,7 +177,7 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
   <h2>The accounts: who pays whom, who owes whom</h2>
   <p class="small">OPEN-MU is a stock-flow consistent model: every flow leaves one sector and reaches another, every financial asset is another sector’s liability. The two matrices below are the whole model’s accounting, for the union as a whole — the members added up, the common central bank, the rest of the world — with the values the engine computes, in % of the union’s GDP. Trade between members nets out at this level: only trade with the rest of the world is left.</p>
   <div class="mxctl">
-    <div><label for="mxModel">Model</label><select id="mxModel"><option value="v1.2">v1 · Trade — no capital flows</option><option value="v1.3" selected>v2 · Finance — capital flows</option><option value="v2.0">v2 · Finance + Climate</option></select></div>
+    <div><label for="mxModel">Model</label><select id="mxModel"><option value="v1">v1 · Trade — no capital flows</option><option value="v2" selected>v2 · Finance — capital flows</option><option value="v2+climate">v2 · Finance + Climate</option></select></div>
     <div><label for="mxScen">Year shown</label><select id="mxScen"><option value="ref">the reference (stationary state)</option><option value="stim">year 2 of a union-wide stimulus (+5 % public demand)</option><option value="stop">year 1 of a sudden stop (−20 %, floating rate)</option><option value="deval">year 1 of a 10 % devaluation (fixed rate)</option></select></div>
   </div>
   <h3>Transactions-flow matrix</h3>
@@ -210,9 +210,9 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
   function draw() {
     var model = document.getElementById('mxModel').value, scen = document.getElementById('mxScen').value;
     var stopOpt = document.querySelector('#mxScen option[value="stop"]');
-    stopOpt.disabled = model === 'v1.2'; if (model === 'v1.2' && scen === 'stop') { scen = 'ref'; document.getElementById('mxScen').value = 'ref'; }
+    stopOpt.disabled = model === 'v1'; if (model === 'v1' && scen === 'stop') { scen = 'ref'; document.getElementById('mxScen').value = 'ref'; }
     var a = run(model, scen), Y = a.Y, S = OPENMU_ACCOUNTS.SECTORS, SB = OPENMU_ACCOUNTS.SECTORS_BS;
-    var cap = model !== 'v1.2';
+    var cap = model !== 'v1';
     var colsF = S.filter(function (k) { return cap || k !== 'w' || true; });
     var h = '<table class="mx"><thead><tr><th>Flows (% of union GDP)</th>' + colsF.map(function (k) { return '<th>' + H[k] + '</th>'; }).join('') + '<th>Σ</th></tr></thead><tbody>';
     a.flows.forEach(function (r) {

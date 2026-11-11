@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111003">
-<script src="i18n.js?v=2026111003"></script>
-<script src="i18n/fr-desk.js?v=2026111003"></script>
-<script src="i18n/fr-admin.js?v=2026111003"></script>
-<script src="config.js?v=2026111003"></script>
-<script src="core.js?v=2026111003"></script>
-<script src="app-common.js?v=2026111003"></script>
-<script src="engine.js?v=2026111003"></script>
+<link rel="stylesheet" href="style.css?v=2026111102">
+<script src="i18n.js?v=2026111102"></script>
+<script src="i18n/fr-desk.js?v=2026111102"></script>
+<script src="i18n/fr-admin.js?v=2026111102"></script>
+<script src="config.js?v=2026111102"></script>
+<script src="core.js?v=2026111102"></script>
+<script src="app-common.js?v=2026111102"></script>
+<script src="engine.js?v=2026111102"></script>
 </head>
 <body>
 
@@ -816,7 +816,8 @@
     var p = engineParams(), n = 0, ver = OPENMU.VERSION || '?';
     try { var d = OPENMU.describe ? OPENMU.describe(p) : null; if (d && d.version) ver = d.version; n = d && d.countries ? Object.keys(d.countries).length : (Array.isArray(p.countries) ? p.countries.length : 0); } catch (e) { n = Array.isArray(p.countries) ? p.countries.length : 0; }
     var fin = MS.financeModel(st());
-    return 'engine OPEN-MU v' + ver + ' · model ' + MS.modelLabel(st()) + ' (' + (fin ? 'capital flows, fixed or floating rate per year, market pressure' : MS.modelId(st()) === 'v1.1' ? 'no price channel' : 'prices in trade, fixed exchange rate') + (MS.climateOn(st()) ? '; emissions and damages, carbon tax and green investment' : '') + '; reserves ' + p.reserveMonths + ' months) · ' + n + ' members · ' + (fin ? 'regime per year' : 'fixed exchange rate');
+    return ['engine OPEN-MU v' + ver, 'model ' + MS.modelLabel(st()), fin ? 'capital flows, fixed or floating rate per year, market pressure' : MS.modelId(st()) === 'v1.1' ? 'no price channel, fixed exchange rate' : 'prices in trade, fixed exchange rate']
+      .concat(MS.climateOn(st()) ? ['emissions and damages, carbon tax and green investment'] : [], ['reserves ' + p.reserveMonths + ' months', n + ' members']).join(' · ');
   }
   /* the model of the class (MS.modelId: 'v1', 'v2', or a former id) and its engine id (with '+climate' when the option is on) */
   function modelOf(s) { return MS.modelId(s || st()); }

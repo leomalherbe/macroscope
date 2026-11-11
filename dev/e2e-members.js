@@ -69,7 +69,7 @@ const KEY = 'TESTKEY', TEXT = 'We explain our decisions to the council: the mech
   await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(600);
   await admin.click('#tabs button:has-text("Run")');
   await admin.waitForSelector('#runBtn');
-  must(/· 4 members ·/.test(await admin.textContent('#view')), 'Run tab: the engine line says 4 members');
+  must(/· 4 members/.test(await admin.textContent('#view')), 'Run tab: the engine line says 4 members');
   await admin.click('#runBtn'); await admin.waitForSelector('#runBtn:not([disabled])');
   await admin.waitForSelector('#runPreview table');
   await admin.click('button:has-text("Save and publish all")');

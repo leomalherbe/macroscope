@@ -410,7 +410,7 @@ var MS = (function () {
         }
         if (l.eco) {
           /* v2.0 levers: only in a v2.0 class, one-sided, 0 to bounds.eco */
-          if (v !== 0 && !ecoOn) { errors.push('"' + l.label + '" belongs to model v2.0 (not this class).'); v = 0; }
+          if (v !== 0 && !ecoOn) { errors.push('"' + l.label + '" belongs to the climate option (not on in this class).'); v = 0; }
           else if (v !== 0 && allowed.indexOf(l.id) < 0) errors.push('"' + l.label + '" is not available in this phase.');
           else if (v < -1e-9 || v > num(st.bounds.eco || 10) + 1e-9) errors.push('Year ' + (yi + 1) + ': "' + l.label + '" must be between 0 and ' + num(st.bounds.eco || 10) + '.');
           cy.levers[l.id] = round2(Math.max(0, v));
