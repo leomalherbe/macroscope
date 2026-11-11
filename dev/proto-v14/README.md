@@ -1,10 +1,15 @@
-# Prototype v1.4 — modest and wealthy households (not used by the site)
+# Prototype v1.4 — modest and wealthy households (in development, not used by the site)
 
-`engine14.js` = `engine.js` (v1.3) + `params.hetero`: two household groups per country.
-- Modest: share `omegaP` of the income distributed by firms + all benefits, untaxed, wealth held as cash; consumption `alpha1P·YD + alpha2P·V`.
-- Wealthy: the rest of that income + all asset income, pay all the income tax (rate recalibrated, ≈ 49 %), hold the financial portfolio; consumption `alpha1R·YD + alpha2R·V`, `alpha2R` calibrated so that the reference stays stationary.
-- Same aggregates as v1.3 at the reference (debt 105 % of GDP, wealth, consumption); identities hold to 1e-14.
-- Only the union path (`simulateV11`) is changed; exit and duel paths are not.
+`engine14.js` is generated: `python3 dev/proto-v14/make.py` = `engine.js` (v1.3) + `paramsFor('v1.4')` (`params.hetero`).
+Union and exit paths only; the duel model and v1.1–v1.3 are unchanged (checked bit for bit).
 
-Run: `node dev/proto-v14/bench.js` (v1.3 vs prototype, France alone) and `node dev/proto-v14/sens.js` (sensitivity).
-Defaults: `omegaP 0.35, alpha1P 0.95, alpha2P 0.1, alpha1R 0.55`.
+- Two halves of the population per country. **Modest (bottom 50 %)**: 35 % of the wages (wages = 65 % of the income
+  distributed by firms, the rest = profits) + all benefits, no income tax, wealth held as cash; propensity to consume
+  out of income 0.90 (v1.3: 0.75). **Wealthy (top 50 %)**: 65 % of the wages + all profits and asset income, all the
+  income tax, the financial portfolio; propensity 0.60.
+- Calibrated so that the reference stays the v1.3 one (consumption, wealth 209 % of GDP, debt 105 %, balanced budget):
+  income-tax rate of the wealthy 41.3 %; propensity to consume out of wealth 0.092 for the modest, 0.0985 for the wealthy.
+- Reference inequality: disposable income bottom/top 0.824 (bottom share 45.2 %); bottom share of wealth 18.1 %.
+- Levers unchanged: benefits → modest, income tax → wealthy, VAT → both through consumption.
+
+Run `node dev/proto-v14/bench.js` (v1.3 vs v1.4, France alone, union shocks, an exit).

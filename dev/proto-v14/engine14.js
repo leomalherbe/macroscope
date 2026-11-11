@@ -123,6 +123,7 @@ var OPENMU = (function () {
   }
   /* parameters of a game version: 'v1.1' (class 6: no price channel, 3 months of reserves), 'v1.2' (prices in trade), 'v1.3' (capital flows) */
   function paramsFor(version) {
+    if (version === 'v1.4') return Object.assign(paramsFor('v1.3'), { hetero: true, omegaP: 0.35, wageShare: 0.65, alpha1P: 0.90, alpha1R: 0.60 });
     var v = String(version || '').replace(/^v/, '');
     if (v === '2.0') return defaultParams(true, true, true, true);
     if (v === '1.3') return defaultParams(true, true, true);
@@ -202,6 +203,16 @@ var OPENMU = (function () {
 
   /* v1.1: firms (capital K financed by loans L), banks (deposits M, bills Bb, advances A), households with three assets */
   function billsShare(p, r) { return Math.min(p.lambdaCap, p.lambda0 + p.lambda1 * r); }
+  /* v1.4 prototype (params.hetero): modest households = bottom 50 % (share wP of the income distributed by firms + all benefits,
+     no income tax, wealth held as cash) and wealthy households = top 50 % (the rest + all asset income, all the income tax,
+     the financial portfolio). Propensity to consume out of wealth: alpha2 for the modest, alpha2R (calibrated, ≈ alpha2) for the
+     wealthy. conf = confidence factor a1/alpha1. */
+  function households(p, rc, YF, assetInc, theta, TR, conf, VP, VR) {
+    if (!p.hetero) { var b0 = YF + assetInc, yd0 = (1 - theta) * b0 + TR; return { base: b0, YD: yd0, CE: conf * p.alpha1 * yd0 + p.alpha2 * (VP + VR), YDP: 0, YDR: yd0, CEP: 0, CER: 0 }; }
+    var ydp = rc.wP * YF + TR, base = (1 - rc.wP) * YF + assetInc, ydr = (1 - theta) * base;
+    var cep = conf * p.alpha1P * ydp + p.alpha2 * VP, cer = conf * p.alpha1R * ydr + rc.alpha2R * VR;
+    return { base: base, YD: ydp + ydr, CE: cep + cer, YDP: ydp, YDR: ydr, CEP: cep, CER: cer };
+  }
   function calibrateV11(p) {
     var s = shares(p.countries);
     var tauc = p.tau / (1 + p.tau);
@@ -215,21 +226,21 @@ var OPENMU = (function () {
       var CE = C / (1 - tauc);
       var V = (1 - p.alpha1) / p.alpha2 * CE;  // households at their wealth target: YD = CE
       var YF = Y - AF - p.r * L;               // income distributed to households by firms
-      /* v1.4 prototype: modest households (share omegaP of YF + all benefits, untaxed, wealth in cash) and wealthy households
-         (the rest of YF + all asset income, pay all the income tax, hold the financial portfolio) */
-      var het = !!p.hetero, YDP = 0, VP = 0, VR = V;
-      if (het) { YDP = p.omegaP * YF + TR; VP = (1 - p.alpha1P) / p.alpha2P * YDP; VR = V - VP; }
+      /* v1.4: the modest households get omegaP of the wages (wageShare of the income distributed by firms; the rest is profits,
+         to the wealthy) and all benefits; each group at its own wealth target; the wealthy's alpha2R and income-tax rate are what
+         keep the same aggregate CE, V and public balance as v1.3 */
+      var het = !!p.hetero, YDP = 0, VP = 0, VR = V, wP = 0, alpha2R = p.alpha2;
+      if (het) { wP = p.omegaP * p.wageShare; YDP = wP * YF + TR; VP = (1 - p.alpha1P) / p.alpha2 * YDP; VR = V - VP; alpha2R = (1 - p.alpha1R) * (CE - YDP) / VR; }
       var BhAll = VR * billsShare(p, p.r);
       var Bf = p.capital ? p.bwShare * Y : 0;
       var Bh = BhAll - Bf;
       var M = (VR - BhAll) * p.nu, H = (VR - BhAll) * (1 - p.nu) + VP;
-      var base = (het ? (1 - p.omegaP) * YF : YF) + p.r * (Bh + M) + p.rw * Bf;
+      var base = (1 - wP) * YF + p.r * (Bh + M) + p.rw * Bf;
       var theta = het ? 1 - (CE - YDP) / base : 1 - (CE - TR) / base;
-      var alpha2R = het ? (1 - p.alpha1R) * (CE - YDP) / VR : 0;
       var Bb = Math.max(0, M - L), A = Math.max(0, L - M);
       var IM = p.mu * Y, IMU = (1 - p.sR) * IM, IMR = p.sR * IM;
       ref.countries[c.id] = { id: c.id, name: c.name, size: c.size, Y: Y, G: G, TR: TR, theta: theta, tau: p.tau, tauc: tauc,
-        C: C, CE: CE, YD: CE, V: V, VP: VP, VR: VR, YDP: YDP, alpha2R: alpha2R, Bh: Bh, Bf: Bf, Bw: Bf, lambdaF0: p.capital ? Bf / VR : 0, M: M, H: H, I: I, K: K, L: L, AF: AF, YF: YF, Bb: Bb, A: A, IM: IM, IMU: IMU, IMR: IMR, T: 0, PB: 0, TB: 0 };
+        C: C, CE: CE, YD: CE, V: V, VP: VP, VR: VR, YDP: YDP, YDR: CE - YDP, wP: wP, alpha2R: alpha2R, Bh: Bh, Bf: Bf, Bw: Bf, lambdaF0: p.capital ? Bf / VR : 0, M: M, H: H, I: I, K: K, L: L, AF: AF, YF: YF, Bb: Bb, A: A, IM: IM, IMU: IMU, IMR: IMR, T: 0, PB: 0, TB: 0 };
     });
     var sumIMR = 0;
     p.countries.forEach(function (c) {
@@ -238,7 +249,7 @@ var OPENMU = (function () {
       p.countries.forEach(function (cj) { intraX += s[cj.id][c.id] * ref.countries[cj.id].IMU; });
       rc.xR = rc.IM - intraX;
       rc.XR = rc.xR; rc.X = intraX + rc.xR; rc.IMV = rc.IMU + p.xr0 * rc.IMR;
-      rc.T = rc.theta * ((p.hetero ? (1 - p.omegaP) * rc.YF : rc.YF) + p.r * (rc.Bh + rc.M) + p.rw * rc.Bf) + rc.tauc * rc.CE;
+      rc.T = rc.theta * ((1 - rc.wP) * rc.YF + p.r * (rc.Bh + rc.M) + p.rw * rc.Bf) + rc.tauc * rc.CE;
       sumIMR += rc.IMR;
     });
     var R0 = (p.reserveMonths / 12) * sumIMR;
@@ -441,7 +452,7 @@ var OPENMU = (function () {
     var prev = {}, prevU = { xr: ref.union.xr0, R: ref.union.R0, NWcb: 0, r: ref.union.r0, rw: p.rw, backstop: true, S: eco ? ref.union.S0 : 0 };
     ids.forEach(function (id) {
       var rc = ref.countries[id];
-      prev[id] = { Y: rc.Y, V: rc.V, VP: rc.VP, VR: rc.VR, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1,
+      prev[id] = { Y: rc.Y, V: rc.V, VP: rc.VP || 0, VR: rc.VR !== undefined ? rc.VR : rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1,
         Bf: rc.Bf || 0, Bw: rc.Bw || 0, Bb: rc.Bb, s: 0, ci: p.ci0, ctax: 0, green: 0 };
     });
     var out = { years: [], ref: ref, checks: { maxIdentityError: 0, maxIterations: 0 } };
@@ -545,11 +556,8 @@ var OPENMU = (function () {
             var IMV = IMU[id] + xr * IMR;
             var X = c.XR + exportsTo(id, Yof);
             var YF = Yc - c.AF - r1 * pv.L - (eco ? c.ctaxRate * ci[id] * Yc : 0);
-            var base = (p.hetero ? (1 - p.omegaP) * YF : YF) + r1 * (pv.Bh + pv.M) + (cap ? extraInc[id] : 0);
-            var YD, CE;
-            if (p.hetero) { var cf = a1 / p.alpha1, ydp = p.omegaP * YF + c.TR, ydr = (1 - c.theta) * base;
-              YD = ydp + ydr; CE = cf * p.alpha1P * ydp + p.alpha2P * pv.VP + cf * p.alpha1R * ydr + ref.countries[id].alpha2R * pv.VR; }
-            else { YD = (1 - c.theta) * base + c.TR; CE = a1 * YD + p.alpha2 * pv.V; }
+            var hh = households(p, ref.countries[id], YF, r1 * (pv.Bh + pv.M) + (cap ? extraInc[id] : 0), c.theta, c.TR, a1 / p.alpha1, pv.VP, pv.VR);
+            var YD = hh.YD, CE = hh.CE;
             var C = cetR ? (1 - c.tauc) * CE - cetR * xr * IMR : (1 - c.tauc) * CE;
             next[id] = C + c.G + c.I + X - IMV;
           });
@@ -584,16 +592,13 @@ var OPENMU = (function () {
           var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
           var Tc = eco ? c.ctaxRate * ci[id] * Y : 0;      // v2.0: carbon tax, paid by firms on their emissions
           var YF = Y - c.AF - r1 * pv.L - Tc;
-          var base = (p.hetero ? (1 - p.omegaP) * YF : YF) + r1 * (pv.Bh + pv.M) + (cap ? extraInc[id] : 0);
-          var YD, CE, YDP = 0, YDR = 0, CEP = 0, CER = 0;
-          if (p.hetero) { var cf2 = a1 / p.alpha1; YDP = p.omegaP * YF + c.TR; YDR = (1 - c.theta) * base;
-            CEP = cf2 * p.alpha1P * YDP + p.alpha2P * pv.VP; CER = cf2 * p.alpha1R * YDR + rc.alpha2R * pv.VR; YD = YDP + YDR; CE = CEP + CER; }
-          else { YD = (1 - c.theta) * base + c.TR; CE = a1 * YD + p.alpha2 * pv.V; }
+          var hh = households(p, rc, YF, r1 * (pv.Bh + pv.M) + (cap ? extraInc[id] : 0), c.theta, c.TR, a1 / p.alpha1, pv.VP, pv.VR);
+          var base = hh.base, YD = hh.YD, CE = hh.CE;
           var Tcet = cetR ? cetR * xr * IMR : 0;              // §13: common external tariff collected by this member
           var C = cetR ? (1 - c.tauc) * CE - Tcet : (1 - c.tauc) * CE;
           var T = cetR ? c.theta * base + c.tauc * CE + Tc + Tcet : c.theta * base + c.tauc * CE + Tc;
           var V = cap ? pv.V + YD - CE + capGain[id] : pv.V + YD - CE;
-          var VP = p.hetero ? pv.VP + YDP - CEP : 0, VR = p.hetero ? V - VP : V;
+          var VP = pv.VP + hh.YDP - hh.CEP, VR = V - VP;
           /* v1.3: government interest of the year (lagged rates); the spread is not paid on the CB's holdings while the backstop was on */
           var govInt = cap ? r1 * pv.B + pv.s * (pv.B - (bsPrev ? pv.Bcb : 0)) : r1 * pv.B;
           var Fcb = cap ? r1 * (pv.Bcb + pv.A) + (bsPrev ? 0 : pv.s * pv.Bcb) : r1 * (pv.Bcb + pv.A);
@@ -609,7 +614,7 @@ var OPENMU = (function () {
             var o = {};
             o.Bf = cap ? lamF * VR / xr : 0;               // world currency
             o.Bh = cap ? all - lamF * VR : all;
-            o.M = (VR - all) * p.nu; o.H = (VR - all) * (1 - p.nu) + (V - VR);
+            o.M = (VR - all) * p.nu; o.H = (VR - all) * (1 - p.nu) + VP;
             o.Bb = Math.max(0, o.M - L); o.A = Math.max(0, L - o.M);
             return o;
           }
@@ -636,7 +641,7 @@ var OPENMU = (function () {
           var pi = p.pistar + p.kappa * gapD + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
           var P = pv.P * (1 + pi / 100);
           var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);   // v1.2: price level relative to the reference path (= world prices, growing at π*)
-          year.countries[id] = { YDP: YDP, YDR: YDR, CEP: CEP, CER: CER, VP: VP, VR: VR, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
+          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, VP: VP, VR: VR, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
             V: V, Bh: Bh, H: H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
             pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: r,
             I: c.I, K: K, L: L, M: M, Bb: Bb, A: A, AF: c.AF, YF: YF,
@@ -744,7 +749,7 @@ var OPENMU = (function () {
     var prev = {}, prevU = { xr: ref.union.xr0, R: ref.union.R0, NWcb: 0, r: ref.union.r0, rw: p.rw, backstop: true, S: eco ? ref.union.S0 : 0 };
     ids.forEach(function (id) {
       var rc = ref.countries[id];
-      prev[id] = { Y: rc.Y, V: rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1,
+      prev[id] = { Y: rc.Y, V: rc.V, VP: rc.VP || 0, VR: rc.VR !== undefined ? rc.VR : rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1,
         Bf: rc.Bf || 0, Bw: rc.Bw || 0, Bb: rc.Bb, s: 0, ci: p.ci0, ctax: 0, green: 0,
         H0: rc.H, runCum: 0, E: 1, rb: p.r, out: false, BcbU: 0, BcbN: 0, T2: 0, RX: 0, RX0: 0, NWn: 0, peg: false, CApX: 0 };
     });
@@ -887,9 +892,8 @@ var OPENMU = (function () {
             var IMV = intraVal(id, Yc) + E[id] * xr * IMR;
             var X = c.XR + exportsTo(id, Yof);
             var YF = Yc - c.AF - pv.rb * pv.L - (eco ? c.ctaxRate * ci[id] * Yc : 0);
-            var base = YF + pv.rb * (pv.Bh + pv.M) + extraInc[id];
-            var YD = (1 - c.theta) * base + c.TR;
-            var CE = a1[id] * YD + p.alpha2 * pv.V;
+            var hh = households(p, ref.countries[id], YF, pv.rb * (pv.Bh + pv.M) + extraInc[id], c.theta, c.TR, a1[id] / p.alpha1, pv.VP, pv.VR);
+            var YD = hh.YD, CE = hh.CE;
             var C = (1 - c.tauc) * CE - tariffRev(id, Yc);
             next[id] = C + c.G + c.I + X - IMV;
           });
@@ -928,12 +932,12 @@ var OPENMU = (function () {
           var Tc = eco ? c.ctaxRate * ci[id] * Y : 0;
           var Tt = tariffRev(id, Y);
           var YF = Y - c.AF - pv.rb * pv.L - Tc;
-          var base = YF + pv.rb * (pv.Bh + pv.M) + extraInc[id];
-          var YD = (1 - c.theta) * base + c.TR;
-          var CE = a1[id] * YD + p.alpha2 * pv.V;
+          var hh = households(p, rc, YF, pv.rb * (pv.Bh + pv.M) + extraInc[id], c.theta, c.TR, a1[id] / p.alpha1, pv.VP, pv.VR);
+          var base = hh.base, YD = hh.YD, CE = hh.CE;
           var C = (1 - c.tauc) * CE - Tt;
           var T = c.theta * base + c.tauc * CE + Tc + Tt;
           var V = pv.V + YD - CE + capGain[id];
+          var VP = pv.VP + hh.YDP - hh.CEP, VR = V - VP;
           var govInt, Fcb;
           if (!out_) {
             govInt = r1 * pv.B + pv.s * (pv.B - (bsPrev ? pv.Bcb : 0));
@@ -949,9 +953,9 @@ var OPENMU = (function () {
           /* deposit flight: a lasting portfolio shift towards foreign bills, cumulated from the announcement (reversed by a negative entry) */
           var run = pv.runCum + (announce[id] || out_ ? xs(t, id, 'run') / 100 : 0);
           function portfolio(rE) {
-            var all = V * billsShare(p, rE);
+            var all = VR * billsShare(p, rE);
             var lamF = Math.max(0, Math.min(billsShare(p, rE), rc.lambdaF0 + run + p.lambdaF1 * (rw - rE)));
-            var o = { Bf: lamF * V / (Ei * xr), Bh: all - lamF * V, M: (V - all) * p.nu, H: (V - all) * (1 - p.nu) };
+            var o = { Bf: lamF * VR / (Ei * xr), Bh: all - lamF * VR, M: (VR - all) * p.nu, H: (VR - all) * (1 - p.nu) + VP };
             o.Bb = Math.max(0, o.M - L); o.A = Math.max(0, L - o.M);
             return o;
           }
@@ -1007,7 +1011,7 @@ var OPENMU = (function () {
           var pi = p.pistar + p.kappa * gapD + p.rho * (c.tau - pv.tau) * 100 + p.omega * dW + (out_ ? omegaU * dE : 0) + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
           var P = pv.P * (1 + pi / 100);
           var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);
-          year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
+          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, VP: VP, VR: VR, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
             V: V, Bh: pf.Bh, H: pf.H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
             pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: rb[id],
             I: c.I, K: K, L: L, M: pf.M, Bb: pf.Bb, A: pf.A, AF: c.AF, YF: YF,
@@ -1017,7 +1021,7 @@ var OPENMU = (function () {
             exited: out_, announced: !!announce[id], fx: out_ ? Ei : 1, dfx: out_ ? dE : 0, peg: !!pegged[id], forced: !!forced[id], tariffRev: Tt,
             BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, sold: sold, settled: !!settle[id], tariff: out_ ? 100 * (tar[id] - 1) : 0, tariffU: out_ ? 100 * (tarX[id] - 1) : 0, KAX: KAX };
           if (eco) U.E += ci[id] * Y;
-          newPrev[id] = { Y: Y, V: V, Bh: pf.Bh, M: pf.M, H0: pf.H, B: B, Bcb: Bcb, A: pf.A, K: K, L: L, tau: c.tau, P: P, Prel: Prel, Bf: pf.Bf, Bw: Bw, Bb: pf.Bb, s: sEff,
+          newPrev[id] = { Y: Y, V: V, VP: VP, VR: VR, Bh: pf.Bh, M: pf.M, H0: pf.H, B: B, Bcb: Bcb, A: pf.A, K: K, L: L, tau: c.tau, P: P, Prel: Prel, Bf: pf.Bf, Bw: Bw, Bb: pf.Bb, s: sEff,
             ci: eco ? ci[id] : p.ci0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0,
             runCum: run, E: Ei, rb: rb[id], out: out_, BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, NWn: NWn, peg: !!pegged[id], CApX: CApX };
           if (!out_) {
