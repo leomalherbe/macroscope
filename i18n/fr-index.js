@@ -77,7 +77,7 @@ MXL.add('fr', {
 "k74": "Ce qu’apprennent les étudiants",
 "k75": "Multiplicateurs et fuites par les importations ; déficits jumeaux ; la contrainte extérieure ; compétitivité et écarts d’inflation, dévaluation interne.",
 "k77": "Taux d’intérêt, flux de capitaux et taux de change ; ancrages, arrêts brutaux, spreads.",
-"k78": "Le climat comme bien public mondial ; le passager clandestin ; le coût et le calendrier de la transition.",
+"k78": "Comment les dommages s’accumulent et pèsent sur l’économie ; ce que changent une taxe carbone et l’investissement vert, et à quel horizon ; comment les coûts et les gains de l’action se répartissent dans le temps et entre pays.",
 "k79": "Chocs, fixés par l’administrateur",
 "k80": "Décisions, prises par les équipes",
 "k100": "Vote de l’union : la réponse à une crise de change",
@@ -151,9 +151,9 @@ MXL.add('fr', {
 "k182": "Sortie de l’union",
 "k183": "Un membre peut partir, avec sa propre monnaie et son taux directeur ; les autres choisissent leur riposte. Elle a besoin des flux de capitaux et du change flottant de la version 2.",
 "k184": "option, sur la version 1 ou 2",
-"k185": "La politique commerciale d’une union douanière : qui paie un droit de douane, comment le reste du monde riposte, et pourquoi les membres négocient d’une seule voix.",
-"k186": "Le versant distributif de la politique économique : une même relance n’a pas le même multiplicateur selon qu’elle augmente les prestations ou baisse l’impôt sur le revenu, et un plan d’austérité ne pèse pas sur les mêmes ménages.",
-"k187": "Ce contre quoi protège une monnaie commune, et ce que coûte d’en sortir : une nouvelle monnaie qui flotte, la fuite des capitaux, les dettes envers la banque centrale de l’union, les représailles des autres.",
+"k185": "Ce qu’un droit de douane fait aux prix, aux échanges, au budget et aux partenaires ; la riposte ; protection et ouverture, et ce qu’un tarif extérieur commun change pour chaque membre.",
+"k186": "Comment une politique se répartit entre ménages modestes et aisés, et comment cette répartition rejaillit sur la demande : un même effort budgétaire n’a pas les mêmes effets selon ceux qu’il touche.",
+"k187": "Ce qu’un membre gagne et perd en partant : son propre taux directeur et un change qui peut s’ajuster d’un côté ; la réaction des flux de capitaux et des partenaires, et le règlement de ses dettes envers l’union, de l’autre.",
 "formula": "<span class=\"t lhs\"><i>R</i><sub class=\"it\">i,t</sub></span><span class=\"op eq\">=</span><span class=\"t\"><span class=\"w\">a<sub>1</sub></span>ΔPIB<sub class=\"it\">i,t</sub></span><span class=\"op m\">−</span><span class=\"t\"><span class=\"w\">a<sub>2</sub></span>Δ<i>U</i><sub class=\"it\">i,t</sub></span><span class=\"op m\">−</span><span class=\"t\"><span class=\"w\">a<sub>3</sub></span>Δ<i>π</i><sub class=\"it\">i,t</sub></span><span class=\"op p\">+</span><span class=\"t\"><span class=\"w\">a<sub>4</sub></span>ΔSP<sub class=\"it\">i,t</sub></span><span class=\"op p\">+</span><span class=\"t\"><span class=\"w\">a<sub>5</sub></span>ΔSC<sub class=\"it\">i,t</sub></span><span class=\"eqn\">(1)</span>"
 },
 "attr": [
