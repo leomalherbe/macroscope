@@ -125,7 +125,7 @@ var OPENMU = (function () {
   var HOUSEHOLDS = { hetero: true, omegaP: 0.35, wageShare: 0.65, alpha1P: 0.90, alpha1R: 0.60 };   // v1.4 / v2.1 prototype
   function paramsFor(version) {
     if (version === 'v1.4') return Object.assign(paramsFor('v1.3'), HOUSEHOLDS);
-    if (version === 'v2.1') return Object.assign(paramsFor('v2.0'), HOUSEHOLDS);   // v2.0 (climate) + the two household groups
+    if (version === 'v2.1') return Object.assign(paramsFor('v2.0'), HOUSEHOLDS, { ctaxPass: true, ctaxWeightP: 1.7 });   // v2.0 (climate) + the two household groups
     var v = String(version || '').replace(/^v/, '');
     if (v === '2.0') return defaultParams(true, true, true, true);
     if (v === '1.3') return defaultParams(true, true, true);
@@ -557,10 +557,10 @@ var OPENMU = (function () {
             var IMR = p.sR * IM * priceLagF[id];
             var IMV = IMU[id] + xr * IMR;
             var X = c.XR + exportsTo(id, Yof);
-            var YF = Yc - c.AF - r1 * pv.L - (eco ? c.ctaxRate * ci[id] * Yc : 0);
+            var YF = Yc - c.AF - r1 * pv.L - (eco && !p.ctaxPass ? c.ctaxRate * ci[id] * Yc : 0);
             var hh = households(p, ref.countries[id], YF, r1 * (pv.Bh + pv.M) + (cap ? extraInc[id] : 0), c.theta, c.TR, a1 / p.alpha1, pv.VP, pv.VR);
             var YD = hh.YD, CE = hh.CE;
-            var C = cetR ? (1 - c.tauc) * CE - cetR * xr * IMR : (1 - c.tauc) * CE;
+            var C = (cetR ? (1 - c.tauc) * CE - cetR * xr * IMR : (1 - c.tauc) * CE) - (eco && p.ctaxPass ? c.ctaxRate * ci[id] * Yc : 0);
             next[id] = C + c.G + c.I + X - IMV;
           });
           return next;
@@ -593,11 +593,11 @@ var OPENMU = (function () {
           var IM = imBase(id, Y), IMU = IMUf[id], IMR = p.sR * IM * priceLagF[id], IMV = IMU + xr * IMR;
           var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
           var Tc = eco ? c.ctaxRate * ci[id] * Y : 0;      // v2.0: carbon tax, paid by firms on their emissions
-          var YF = Y - c.AF - r1 * pv.L - Tc;
+          var YF = Y - c.AF - r1 * pv.L - (p.ctaxPass ? 0 : Tc);
           var hh = households(p, rc, YF, r1 * (pv.Bh + pv.M) + (cap ? extraInc[id] : 0), c.theta, c.TR, a1 / p.alpha1, pv.VP, pv.VR);
           var base = hh.base, YD = hh.YD, CE = hh.CE;
           var Tcet = cetR ? cetR * xr * IMR : 0;              // §13: common external tariff collected by this member
-          var C = cetR ? (1 - c.tauc) * CE - Tcet : (1 - c.tauc) * CE;
+          var C = (cetR ? (1 - c.tauc) * CE - Tcet : (1 - c.tauc) * CE) - (p.ctaxPass ? Tc : 0);
           var T = cetR ? c.theta * base + c.tauc * CE + Tc + Tcet : c.theta * base + c.tauc * CE + Tc;
           var V = cap ? pv.V + YD - CE + capGain[id] : pv.V + YD - CE;
           var VP = pv.VP + hh.YDP - hh.CEP, VR = V - VP;
@@ -643,7 +643,7 @@ var OPENMU = (function () {
           var pi = p.pistar + p.kappa * gapD + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
           var P = pv.P * (1 + pi / 100);
           var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);   // v1.2: price level relative to the reference path (= world prices, growing at π*)
-          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, VP: VP, VR: VR, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
+          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, CEP: hh.CEP, CER: hh.CER, VP: VP, VR: VR, carbP: p.ctaxPass && Tc ? Tc * p.ctaxWeightP * hh.CEP / (p.ctaxWeightP * hh.CEP + hh.CER) : 0, carbR: p.ctaxPass && Tc ? Tc * hh.CER / (p.ctaxWeightP * hh.CEP + hh.CER) : 0, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
             V: V, Bh: Bh, H: H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
             pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: r,
             I: c.I, K: K, L: L, M: M, Bb: Bb, A: A, AF: c.AF, YF: YF,
@@ -893,10 +893,10 @@ var OPENMU = (function () {
             var IMR = p.sR * imBase(id, Yc) * priceLagF[id];
             var IMV = intraVal(id, Yc) + E[id] * xr * IMR;
             var X = c.XR + exportsTo(id, Yof);
-            var YF = Yc - c.AF - pv.rb * pv.L - (eco ? c.ctaxRate * ci[id] * Yc : 0);
+            var YF = Yc - c.AF - pv.rb * pv.L - (eco && !p.ctaxPass ? c.ctaxRate * ci[id] * Yc : 0);
             var hh = households(p, ref.countries[id], YF, pv.rb * (pv.Bh + pv.M) + extraInc[id], c.theta, c.TR, a1[id] / p.alpha1, pv.VP, pv.VR);
             var YD = hh.YD, CE = hh.CE;
-            var C = (1 - c.tauc) * CE - tariffRev(id, Yc);
+            var C = (1 - c.tauc) * CE - tariffRev(id, Yc) - (eco && p.ctaxPass ? c.ctaxRate * ci[id] * Yc : 0);
             next[id] = C + c.G + c.I + X - IMV;
           });
           return next;
@@ -933,10 +933,10 @@ var OPENMU = (function () {
           var X = c.XR + exportsTo(id, function (j) { return cur[j].Y; });
           var Tc = eco ? c.ctaxRate * ci[id] * Y : 0;
           var Tt = tariffRev(id, Y);
-          var YF = Y - c.AF - pv.rb * pv.L - Tc;
+          var YF = Y - c.AF - pv.rb * pv.L - (p.ctaxPass ? 0 : Tc);
           var hh = households(p, rc, YF, pv.rb * (pv.Bh + pv.M) + extraInc[id], c.theta, c.TR, a1[id] / p.alpha1, pv.VP, pv.VR);
           var base = hh.base, YD = hh.YD, CE = hh.CE;
-          var C = (1 - c.tauc) * CE - Tt;
+          var C = (1 - c.tauc) * CE - Tt - (p.ctaxPass ? Tc : 0);
           var T = c.theta * base + c.tauc * CE + Tc + Tt;
           var V = pv.V + YD - CE + capGain[id];
           var VP = pv.VP + hh.YDP - hh.CEP, VR = V - VP;
@@ -1013,7 +1013,7 @@ var OPENMU = (function () {
           var pi = p.pistar + p.kappa * gapD + p.rho * (c.tau - pv.tau) * 100 + p.omega * dW + (out_ ? omegaU * dE : 0) + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
           var P = pv.P * (1 + pi / 100);
           var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);
-          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, VP: VP, VR: VR, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
+          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, CEP: hh.CEP, CER: hh.CER, VP: VP, VR: VR, carbP: p.ctaxPass && Tc ? Tc * p.ctaxWeightP * hh.CEP / (p.ctaxWeightP * hh.CEP + hh.CER) : 0, carbR: p.ctaxPass && Tc ? Tc * hh.CER / (p.ctaxWeightP * hh.CEP + hh.CER) : 0, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
             V: V, Bh: pf.Bh, H: pf.H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
             pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: rb[id],
             I: c.I, K: K, L: L, M: pf.M, Bb: pf.Bb, A: pf.A, AF: c.AF, YF: YF,

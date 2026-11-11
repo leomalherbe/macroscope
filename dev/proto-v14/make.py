@@ -81,7 +81,7 @@ r("""          function portfolio(rEff) {
             o.Bh = cap ? all - lamF * VR : all;
             o.M = (VR - all) * p.nu; o.H = (VR - all) * (1 - p.nu) + VP;""")
 r("""          year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
-            V: V, Bh: Bh,""", """          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, VP: VP, VR: VR, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
+            V: V, Bh: Bh,""", """          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, CEP: hh.CEP, CER: hh.CER, VP: VP, VR: VR, carbP: p.ctaxPass && Tc ? Tc * p.ctaxWeightP * hh.CEP / (p.ctaxWeightP * hh.CEP + hh.CER) : 0, carbR: p.ctaxPass && Tc ? Tc * hh.CER / (p.ctaxWeightP * hh.CEP + hh.CER) : 0, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
             V: V, Bh: Bh,""")
 r("""          newPrev[id] = { Y: Y, V: V, Bh: Bh,""", """          newPrev[id] = { Y: Y, V: V, VP: VP, VR: VR, Bh: Bh,""")
 
@@ -107,13 +107,29 @@ r("""          function portfolio(rE) {
             var lamF = Math.max(0, Math.min(billsShare(p, rE), rc.lambdaF0 + run + p.lambdaF1 * (rw - rE)));
             var o = { Bf: lamF * VR / (Ei * xr), Bh: all - lamF * VR, M: (VR - all) * p.nu, H: (VR - all) * (1 - p.nu) + VP };""")
 r("""          year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,""",
-"""          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, VP: VP, VR: VR, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,""")
+"""          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, CEP: hh.CEP, CER: hh.CER, VP: VP, VR: VR, carbP: p.ctaxPass && Tc ? Tc * p.ctaxWeightP * hh.CEP / (p.ctaxWeightP * hh.CEP + hh.CER) : 0, carbR: p.ctaxPass && Tc ? Tc * hh.CER / (p.ctaxWeightP * hh.CEP + hh.CER) : 0, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,""")
 r("""          newPrev[id] = { Y: Y, V: V, Bh: pf.Bh,""", """          newPrev[id] = { Y: Y, V: V, VP: VP, VR: VR, Bh: pf.Bh,""")
+
+
+# v2.1: carbon tax passed on to consumer prices (params.ctaxPass) instead of being paid by firms out of the income they distribute.
+# Its burden is split between the two halves by their consumption, the modest's euro of spending weighing ctaxWeightP times
+# more in carbon (energy takes a larger share of a modest budget): carbP / carbR in the results (purchasing-power indicator).
+r("""            var YF = Yc - c.AF - r1 * pv.L - (eco ? c.ctaxRate * ci[id] * Yc : 0);""",
+"""            var YF = Yc - c.AF - r1 * pv.L - (eco && !p.ctaxPass ? c.ctaxRate * ci[id] * Yc : 0);""")
+r("""            var C = cetR ? (1 - c.tauc) * CE - cetR * xr * IMR : (1 - c.tauc) * CE;""",
+"""            var C = (cetR ? (1 - c.tauc) * CE - cetR * xr * IMR : (1 - c.tauc) * CE) - (eco && p.ctaxPass ? c.ctaxRate * ci[id] * Yc : 0);""")
+r("""          var YF = Y - c.AF - r1 * pv.L - Tc;""", """          var YF = Y - c.AF - r1 * pv.L - (p.ctaxPass ? 0 : Tc);""")
+r("""          var C = cetR ? (1 - c.tauc) * CE - Tcet : (1 - c.tauc) * CE;""", """          var C = (cetR ? (1 - c.tauc) * CE - Tcet : (1 - c.tauc) * CE) - (p.ctaxPass ? Tc : 0);""")
+r("""            var YF = Yc - c.AF - pv.rb * pv.L - (eco ? c.ctaxRate * ci[id] * Yc : 0);""",
+"""            var YF = Yc - c.AF - pv.rb * pv.L - (eco && !p.ctaxPass ? c.ctaxRate * ci[id] * Yc : 0);""")
+r("""            var C = (1 - c.tauc) * CE - tariffRev(id, Yc);""", """            var C = (1 - c.tauc) * CE - tariffRev(id, Yc) - (eco && p.ctaxPass ? c.ctaxRate * ci[id] * Yc : 0);""")
+r("""          var YF = Y - c.AF - pv.rb * pv.L - Tc;""", """          var YF = Y - c.AF - pv.rb * pv.L - (p.ctaxPass ? 0 : Tc);""")
+r("""          var C = (1 - c.tauc) * CE - Tt;""", """          var C = (1 - c.tauc) * CE - Tt - (p.ctaxPass ? Tc : 0);""")
 
 # paramsFor('v1.4') = v1.3 + households
 r("""  function paramsFor(version) {""", """  var HOUSEHOLDS = { hetero: true, omegaP: 0.35, wageShare: 0.65, alpha1P: 0.90, alpha1R: 0.60 };   // v1.4 / v2.1 prototype
   function paramsFor(version) {
     if (version === 'v1.4') return Object.assign(paramsFor('v1.3'), HOUSEHOLDS);
-    if (version === 'v2.1') return Object.assign(paramsFor('v2.0'), HOUSEHOLDS);   // v2.0 (climate) + the two household groups""")
+    if (version === 'v2.1') return Object.assign(paramsFor('v2.0'), HOUSEHOLDS, { ctaxPass: true, ctaxWeightP: 1.7 });   // v2.0 (climate) + the two household groups""")
 open(os.path.join(here, 'engine14.js'), 'w', encoding='utf-8').write(s)
 print('engine14.js written')
