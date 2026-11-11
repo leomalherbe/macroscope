@@ -823,6 +823,8 @@ var OPENMU = (function () {
       var tarX = {}; outs.forEach(function (id) { tarX[id] = 1 + Math.max(0, Math.min(20, pol(id, t, 'tariffU'))) / 100; });
       function tf(i, j) { return (!isOut[i] && isOut[j]) ? tar[j] : ((isOut[i] && !isOut[j]) ? tarX[i] : 1); }
       var cetR = Math.max(0, shockAt(shocks, t, 'cet')) / 100, wtR = Math.max(0, shockAt(shocks, t, 'worldTariff')) / 100;
+      /* the rest of the world's tariff on the exports of the countries that left (its own shock: equal to wtR, or not) */
+      var wtX = Math.max(0, shockAt(shocks, t, 'worldTariffOut')) / 100;
       var priceLagF = {}, w = {};
       ids.forEach(function (id) {
         var Pi = prev[id].Prel, Ei = prev[id].E;
@@ -863,7 +865,7 @@ var OPENMU = (function () {
             TR: rc.TR * (1 + pol(id, t, 'benefits') / 100),
             theta: rc.theta * (1 + pol(id, t, 'inctax') / 100),
             tau: tau, tauc: tau / (1 + tau),
-            XR: rc.xR * worldF * Math.pow(E[id] * xr / (ref.union.xr0 * pv.Prel), p.eta) * (wtR && !isOut[id] ? Math.pow(1 + wtR, -p.eta) : 1),
+            XR: rc.xR * worldF * Math.pow(E[id] * xr / (ref.union.xr0 * pv.Prel), p.eta) * (wtR && !isOut[id] ? Math.pow(1 + wtR, -p.eta) : 1) * (wtX && isOut[id] ? Math.pow(1 + wtX, -p.eta) : 1),
             I: rc.I * invF[id], AF: p.delta * rc.K, Y: pv.Y
           };
         });
@@ -1035,7 +1037,7 @@ var OPENMU = (function () {
         year.union = { Y: U.Y, CA: U.CA, R: R, R0: ref.union.R0, xr: xr, r: r, alert: regime === 'fixed' && R < p.alertShare * ref.union.R0,
           months: U.IMRv > 0 ? 12 * R * xr / U.IMRv : Infinity, NWcb: NWcb, sumTB: U.TB, iterations: iter, P: Pu,
           regime: regime, CAp: CAp, primInc: U.prim, KA: U.KA, Bw: U.Bw, Bf: U.Bf, rw: rw, backstop: backstop, sBar: sBar,
-          dxr: 100 * (xr - prevU.xr) / prevU.xr, unabsorbed: U.unabs, excess: excess, members: mem.slice(), exited: outs.slice(), claimsX: U.claims, cet: 100 * cetR, worldTariff: 100 * wtR };
+          dxr: 100 * (xr - prevU.xr) / prevU.xr, unabsorbed: U.unabs, excess: excess, members: mem.slice(), exited: outs.slice(), claimsX: U.claims, cet: 100 * cetR, worldTariff: 100 * wtR, worldTariffOut: 100 * wtX };
         if (eco) {
           var Ew = ref.union.Ew0 * (1 + shockAt(shocks, t, 'worldEmissions') / 100);
           var S = prevU.S + U.E + Ew;
@@ -1213,6 +1215,7 @@ var OPENMU = (function () {
       if (p.eco) { yr.union.Sshare = u.Sshare; yr.union.D = 100 * u.D; yr.union.Erel = u.Erel; yr.union.Ew = u.Ew; yr.union.Eu = u.Eu; }
       if (u.cet) yr.union.cet = u.cet;
       if (u.worldTariff) yr.union.worldTariff = u.worldTariff;
+      if (u.worldTariffOut) yr.union.worldTariffOut = u.worldTariffOut;
       if (u.exited) { yr.union.exited = u.exited; yr.union.members = u.members; yr.union.announced = ids.filter(function (id) { return runAll.years[t].countries[id].announced; }); }
       out.years.push(yr);
     }

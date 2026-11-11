@@ -92,7 +92,7 @@ Specification: `docs/openmu-spec.md` §13. Off by default; can be switched on du
 
 - **Switch on**: *Control → Parameters* → tick **tariffs** → *Save parameters*.
 - **Common external tariff**: each member votes 0, 5, 10 or 20 % with its decisions (in the votes block, the level in force is proposed by default); the median of the votes cast applies to the year; with no vote, the level stays. Shown in the Run preview, the union panel and the board.
-- **The rest of the world answers**: shock *Rest of the world: tariff on union exports* (%) in the shocks editor, to set when the common tariff rises.
+- **The rest of the world answers**: shock *Rest of the world: tariff on union exports* (%) in the shocks editor, to set when the common tariff rises. When leaving the union is allowed, a second shock, *Rest of the world: tariff on the exports of a country out of the union* (%), does the same for the countries that left: set it equal to treat them alike, or differently (0, for instance) for an asymmetric shock.
 - **A country that left**: lever *Tariff on goods from the union* (0–20 %) in its form; a line in its "Your currency" panel.
 - Orders of magnitude: a common tariff of 10 % → revenue ≈ 1.4 % of GDP, public balance +1.2 pt, trade balance +1.1 pt, GDP −0.6 % (households pay it); with a retaliation of 10 % → GDP −2 %. Italy, having left, taxing the union at 10 % → revenue +1.6 pt of GDP, GDP +0.8 %, German GDP −0.6 %.
 

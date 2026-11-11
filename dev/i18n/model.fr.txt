@@ -755,3 +755,5 @@ Revaluation, not a flow: the exchange rate moved from # to # this year, so the c
 => Climat
 | v1 · Trade
 => v1 · Commerce
+| its tariff on the exports of a country that has left the union: a shock of its own, equal to wt or not (asymmetric)
+=> son droit de douane sur les exportations d’un pays sorti de l’union : un choc à part, égal à wt ou non (asymétrique)
