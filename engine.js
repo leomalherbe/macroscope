@@ -824,7 +824,8 @@ var OPENMU = (function () {
       function tf(i, j) { return (!isOut[i] && isOut[j]) ? tar[j] : ((isOut[i] && !isOut[j]) ? tarX[i] : 1); }
       var cetR = Math.max(0, shockAt(shocks, t, 'cet')) / 100, wtR = Math.max(0, shockAt(shocks, t, 'worldTariff')) / 100;
       /* the rest of the world's tariff on the exports of the countries that left (its own shock: equal to wtR, or not) */
-      var wtX = Math.max(0, shockAt(shocks, t, 'worldTariffOut')) / 100;
+      var woX = shocks && shocks[t] ? shocks[t].worldTariffOut : undefined;   /* not set (default): the same as on the union */
+      var wtX = woX === undefined || woX === null || woX === '' ? wtR : Math.max(0, num(woX)) / 100;
       var priceLagF = {}, w = {};
       ids.forEach(function (id) {
         var Pi = prev[id].Prel, Ei = prev[id].E;

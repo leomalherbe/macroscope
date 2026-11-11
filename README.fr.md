@@ -92,7 +92,7 @@ Spécification : `docs/openmu-spec.md` §13. Désactivés par défaut ; activabl
 
 - **Activer** : *Control → Parameters* → cocher **tariffs** → *Save parameters*.
 - **Tarif extérieur commun** : chaque membre vote 0, 5, 10 ou 20 % avec ses décisions (bloc des votes, le niveau en vigueur est proposé par défaut) ; la médiane des votes exprimés s'applique à l'année ; sans vote, le niveau reste. Visible dans l'aperçu du Run, le panneau de l'union et le board.
-- **Riposte du reste du monde** : choc *Rest of the world: tariff on union exports* (%) dans l'éditeur de chocs, à poser quand le TEC monte. Quand la sortie de l'union est autorisée, un second choc, *Rest of the world: tariff on the exports of a country out of the union* (%), fait de même pour les pays sortis : égal au premier pour les traiter pareil, ou différent (0 par exemple) pour un choc asymétrique.
+- **Riposte du reste du monde** : choc *Rest of the world: tariff on union exports* (%) dans l'éditeur de chocs, à poser quand le TEC monte. Quand la sortie de l'union est autorisée, un second choc, *Rest of the world: tariff on the exports of a country out of the union* (%), fait de même pour les pays sortis : vide (par défaut), le reste du monde les traite comme l'union ; une valeur (0 par exemple) crée un choc asymétrique.
 - **Pays sorti** : levier *Tariff on goods from the union* (0–20 %) dans son formulaire ; ligne dans son panneau « Your currency ».
 - Ordres de grandeur : TEC 10 % → recette ≈ 1,4 % du PIB, solde public +1,2 pt, solde commercial +1,1 pt, PIB −0,6 % (les ménages paient) ; avec une riposte de 10 % → PIB −2 %. L'Italie sortie à 10 % sur l'union → recette +1,6 pt de PIB, PIB +0,8 %, PIB allemand −0,6 %.
 
