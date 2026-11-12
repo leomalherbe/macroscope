@@ -992,3 +992,25 @@ Two household groups: modest households (# % of wages and all benefits, no incom
 
 The backend (v#) does not store inequality yet: replace Code.gs and redeploy it (backend v#). The other results are saved as usual.
 => Le backend (v#) n’enregistre pas encore les inégalités : remplacez Code.gs et redéployez-le (backend v#). Les autres résultats sont enregistrés comme d’habitude.
+
+// currency crisis: the peg
+Close the vote: @?
+=> Clore le vote : %1 ?
+. The euro is pegged to the rest of the world from this year on, at a devaluation of # %: the regime is fixed again and the reserves absorb the gaps (they were frozen while floating). Announce it in the communiqué, then open the decisions.
+=> . L’euro est ancré au reste du monde dès cette année, avec une dévaluation de # % : le change redevient fixe et les réserves absorbent les écarts (elles étaient gelées pendant le flottement). Annoncez-le dans le communiqué, puis ouvrez les décisions.
+. The euro is pegged to the rest of the world from this year on, at a revaluation of # %: the regime is fixed again and the reserves absorb the gaps (they were frozen while floating). Announce it in the communiqué, then open the decisions.
+=> . L’euro est ancré au reste du monde dès cette année, avec une réévaluation de # % : le change redevient fixe et les réserves absorbent les écarts (elles étaient gelées pendant le flottement). Annoncez-le dans le communiqué, puis ouvrez les décisions.
+. The euro is pegged to the rest of the world from this year on, at today’s rate: the regime is fixed again and the reserves absorb the gaps (they were frozen while floating). Announce it in the communiqué, then open the decisions.
+=> . L’euro est ancré au reste du monde dès cette année, au cours du jour : le change redevient fixe et les réserves absorbent les écarts (elles étaient gelées pendant le flottement). Annoncez-le dans le communiqué, puis ouvrez les décisions.
+. The median vote wins (defend < peg < let it float); the parity is the median of the peg votes.
+=> . Le vote médian l’emporte (défendre < ancrer < laisser flotter) ; la parité est la médiane des votes « ancrer ».
+it again to the rest of the world at a parity voted with it (fixed rate from this year on), or
+=> la monnaie à nouveau au reste du monde, à une parité votée avec (change fixe dès cette année), ou
+the currency (the central bank raises its rate by # pt this year),
+=> la monnaie (la banque centrale relève son taux de # pt cette année),
+— # of # countries have voted. A country that does not vote does not count; the median vote wins (defend < peg < let it float).
+=> — # pays sur # ont voté. Un pays qui ne vote pas ne compte pas ; le vote médian l’emporte (défendre < ancrer < laisser flotter).
+Currency crisis (depreciation over year #): @.
+=> Crise de change (dépréciation sur l’année #) : %1.
+Currency crisis (depreciation over year #): @ (rate # pt this year).
+=> Crise de change (dépréciation sur l’année #) : %1 (taux # pt cette année).

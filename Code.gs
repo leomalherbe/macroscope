@@ -307,9 +307,23 @@ var MS = (function () {
     return c && typeof c === 'object' && c.status ? c : null;
   }
   /* a country's vote in the reserves-crisis round: payload = {crisis: 'austerity'|'devaluation'} */
+  /* currency crisis (floating rate): defend (vote 'austerity': rate + defendStep this year), peg ('peg': back to a fixed rate
+     against the rest of the world, at a parity voted with it) or let it float ('devaluation'). Parity = change of the price of the
+     world currency in euros, %: + = the euro is pegged lower (devaluation), − = higher */
+  var PEG_PARITIES = [-10, -5, 0, 5, 10, 20];
   function validateCrisisVote(state, payload) {
     var v = payload && payload.crisis;
-    var rec = crisisOf(state, state && state.round), fl = floatVoteOn(state) && !(rec && rec.kind === 'currency');
+    var rec = crisisOf(state, state && state.round);
+    if (rec && rec.kind === 'currency') {
+      if (v === 'peg') {
+        var par = num(payload.parity);
+        if (PEG_PARITIES.indexOf(par) < 0) return { ok: false, errors: ['Choose the parity of the peg: ' + PEG_PARITIES.join(', ') + ' %.'] };
+        return { ok: true, clean: { crisis: 'peg', parity: par, years: [], text: '' }, used: ['crisis:peg'] };
+      }
+      if (v !== 'austerity' && v !== 'devaluation') return { ok: false, errors: ['Vote defend, peg or let it float.'] };
+      return { ok: true, clean: { crisis: v, years: [], text: '' }, used: ['crisis:' + v] };
+    }
+    var fl = floatVoteOn(state);
     if (VOTE_CRISIS.indexOf(v) < 0 || (v === 'float' && !fl)) return { ok: false, errors: [fl ? 'Vote austerity, devaluation or floating.' : 'Vote austerity or devaluation.'] };
     return { ok: true, clean: { crisis: v, years: [], text: '' }, used: ['crisis:' + v] };
   }
@@ -321,6 +335,16 @@ var MS = (function () {
     a += Math.max(0, nPlaying - a - d - f);
     var k = Math.floor((a + d + f - 1) / 2);   /* index of the lower median in the sorted votes */
     return { austerity: a, devaluation: d, float: f, outcome: a + d + f === 0 || k < a ? 'austerity' : (k < a + d ? 'devaluation' : 'float') };
+  }
+  /* tally of a currency-crisis round: choices ordered defend < peg < let it float, the (lower) median of the votes cast wins;
+     the parity of a peg is the (lower) median of the parities of the countries that voted for it */
+  function tallyCurrency(votes) {
+    var a = 0, pg = 0, f = 0, par = [];
+    (votes || []).forEach(function (v) { var c = v && typeof v === 'object' ? v.crisis : v; if (c === 'devaluation') f++; else if (c === 'peg') { pg++; par.push(num(v.parity)); } else a++; });
+    var n = a + pg + f, k = Math.floor((n - 1) / 2);
+    par.sort(function (x, y) { return x - y; });
+    var outcome = n === 0 || k < a ? 'defend' : (k < a + pg ? 'peg' : 'float');
+    return { austerity: a, peg: pg, devaluation: f, outcome: outcome, parity: outcome === 'peg' ? par[Math.floor((par.length - 1) / 2)] : null };
   }
   /* §12 retaliation council against an exited country: each remaining member votes a level per measure; outcome = lower median
      of the playing members' votes (absent = 0); settlement of the TARGET balance by majority */
@@ -566,7 +590,7 @@ var MS = (function () {
     exitModelOk: exitModelOk, MODEL_IDS: MODEL_IDS, modelId: modelId, financeModel: financeModel, climateOn: climateOn, householdsOn: householdsOn, engineModel: engineModel, modelLabel: modelLabel, exitAllowed: exitAllowed, exitYearOf: exitYearOf, isOutIn: isOutIn, leversForCountry: leversForCountry, FX_REGIMES: FX_REGIMES,
     RETAL_TARIFF: RETAL_TARIFF, RETAL_SALE: RETAL_SALE, retaliationOf: retaliationOf, openRetaliation: openRetaliation, retaliationIn: retaliationIn, validateRetaliationVote: validateRetaliationVote, tallyRetaliation: tallyRetaliation,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
-    VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
+    VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, PEG_PARITIES: PEG_PARITIES, tallyCurrency: tallyCurrency, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
 })();
@@ -586,7 +610,7 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.13';
+  var VERSION = '1.14';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;

@@ -363,3 +363,6 @@ footer{border-top:1.5px solid var(--blue);color:var(--muted)}
 .stepper:has(input:disabled) .st-btn{opacity:.35;cursor:default}
 @media (max-width:640px){.stepper input[type=number]{width:62px;padding:7px 6px}.stepper .st-btn{min-width:32px;padding:0 6px}}
 @media print{.stepper .st-btn{display:none}}
+/* the desk's public-debt card: holders as a stacked bar, a colour key before each line */
+.dbar{display:flex;height:16px;border-radius:4px;overflow:hidden;margin:4px 0 10px;background:var(--line)} .dbar i{display:block;height:100%;border-right:2px solid #fff} .dbar i:last-child{border-right:0}
+.dkey{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;vertical-align:baseline}
