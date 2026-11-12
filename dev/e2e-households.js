@@ -150,6 +150,16 @@ const INEQ_W = 'div:has(> label:text-is("− Inequality")) > input';
   must(/Écart de taux avec le reste du monde/.test(appFr), 'French desk: the rate gap in the union panel');
   await stu.click('#guideBtn'); await stu.waitForSelector('#guidePanel:not([hidden])');
   must(/Ménages modestes et aisés\s:\squi reçoit quoi/.test(await stu.textContent('#guidePanel')), 'French guide: the households card');
+  await stu.click('#guidePanel .gp-close');
+  /* the model explorer on the desk: every country (the ranking is published), France ticked at first */
+  await stu.click('details.explore summary'); await stu.waitForSelector('details.explore[open] .xcell svg');
+  const xc = await stu.$$eval('details.explore .xctry input', cs => cs.map(c => c.checked));
+  const xs = await stu.$$eval('details.explore .xcell svg', ss => ss.length);
+  must(xc.length === 7 && xc.filter(Boolean).length === 1 && xs === 2, 'desk: « Explore the model » — the seven countries, France ticked, two charts (GDP, public debt)');
+  await stu.click('details.explore .xvars label:has-text("Inégalités") input'); await stu.waitForTimeout(200);
+  must((await stu.$$('details.explore .xcell svg')).length === 3, 'desk explorer: a third chart once « Inégalités » is ticked');
+  await stu.reload(); await stu.waitForSelector('details.explore[open] .xcell svg');
+  must((await stu.$$('details.explore .xcell svg')).length === 3, 'desk explorer: open and selection kept after a reload');
   await stu.screenshot({ path: OUT + '/h5-desk-fr.png', fullPage: true });
   await admin.goto(BASE + '/admin.html?lang=fr&api=' + encodeURIComponent(API));
   await admin.waitForSelector('#tabs button:has-text("Simulation")');

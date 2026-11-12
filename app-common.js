@@ -393,7 +393,76 @@ var UI = (function () {
     else x = d.extra && d.extra.x ? d.extra.x[v.key || v.id] : undefined;
     return x === undefined || x === null || x === '' || !isFinite(Number(x)) ? null : Number(x);
   }
+  /* the « Explore the model » card (board and teams' page): any published variable, year by year, for the countries ticked.
+     o: {st, results: the countries' result rows, union: the union rows, key: localStorage key of the selection, ctry: the countries
+     ticked at first (default: all), note: a sentence under the charts}. The selection survives the page's refresh (and, per
+     browser, a reload). Not in duels. */
+  var xState = {};
+  function exploreCard(o) {
+    var st = o.st; if (MS.isDuel(st)) return null;
+    var res = (o.results || []).filter(function (r) { return (r.phase === undefined || r.phase === 'game') && r.key && String(r.key).indexOf('UNION') !== 0; });
+    var uRows = (o.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'UNION'; });
+    var years = []; res.concat(uRows).forEach(function (r) { var y = Number(r.year); if (years.indexOf(y) < 0) years.push(y); }); years.sort(function (a, b) { return a - b; });
+    if (!years.length) return null;
+    var sel = xState[o.key];
+    if (!sel) { try { sel = JSON.parse(localStorage.getItem(o.key) || 'null'); } catch (e) { sel = null; } sel = xState[o.key] = sel || { open: false, vars: ['gdp', 'debt'], ctry: null }; }
+    function save() { try { localStorage.setItem(o.key, JSON.stringify(sel)); } catch (e) { /* per-viewer convenience only */ } }
+    var vars = exploreVars(st);
+    var ctrys = []; res.forEach(function (r) { if (ctrys.indexOf(r.key) < 0) ctrys.push(r.key); });
+    ctrys = MS.COUNTRIES.map(function (c) { return c.id; }).filter(function (id) { return ctrys.indexOf(id) >= 0; });
+    if (!sel.ctry) sel.ctry = o.ctry ? o.ctry.filter(function (id) { return ctrys.indexOf(id) >= 0; }) : ctrys.slice();
+    var det = el('details', { class: 'card explore' }); det.open = !!sel.open;
+    det.addEventListener('toggle', function () { sel.open = det.open; save(); });
+    det.appendChild(el('summary', {}, [el('h2', { style: 'display:inline' }, ['Explore the model']), el('span', { class: 'small muted', style: 'margin-left:10px' }, ['any variable, year by year, for the countries you choose'])]));
+    var pick = el('div', { class: 'xpick' });
+    var cRow = el('div', { class: 'xctry' }, [el('b', { class: 'small' }, ['Countries'])]);
+    ctrys.forEach(function (id) {
+      var cb = el('input', { type: 'checkbox' }); cb.checked = sel.ctry.indexOf(id) >= 0;
+      cb.addEventListener('change', function () { var i = sel.ctry.indexOf(id); if (cb.checked && i < 0) sel.ctry.push(id); if (!cb.checked && i >= 0) sel.ctry.splice(i, 1); save(); draw(); });
+      cRow.appendChild(el('label', { class: 'xchip' }, [cb, el('i', { style: 'background:' + raceColor(id) }), ' ' + MS.countryName(id)]));
+    });
+    pick.appendChild(cRow);
+    var vBox = el('div', { class: 'xvars' });
+    EXPLORE_GROUPS.forEach(function (gName) {
+      var gv = vars.filter(function (v) { return v.g === gName; }); if (!gv.length) return;
+      var col = el('div', { class: 'xgroup' }, [el('b', { class: 'small' }, [gName])]);
+      gv.forEach(function (v) {
+        var cb = el('input', { type: 'checkbox' }); cb.checked = sel.vars.indexOf(v.id) >= 0;
+        cb.addEventListener('change', function () { var i = sel.vars.indexOf(v.id); if (cb.checked && i < 0) sel.vars.push(v.id); if (!cb.checked && i >= 0) sel.vars.splice(i, 1); save(); draw(); });
+        col.appendChild(el('label', { class: 'small' }, [cb, ' ' + v.label]));
+      });
+      vBox.appendChild(col);
+    });
+    pick.appendChild(vBox);
+    det.appendChild(pick);
+    var grid = el('div', { class: 'xgrid' }), note = el('p', { class: 'xs muted', style: 'margin:.6em 0 0' });
+    det.appendChild(grid); det.appendChild(note);
+    if (o.note) det.appendChild(el('p', { class: 'xs muted', style: 'margin:.3em 0 0' }, [o.note]));
+    function draw() {
+      grid.innerHTML = '';
+      var chosen = vars.filter(function (v) { return sel.vars.indexOf(v.id) >= 0; });
+      if (!chosen.length) { grid.appendChild(el('p', { class: 'small muted' }, ['Tick one or more variables.'])); note.textContent = ''; return; }
+      var missing = false;
+      chosen.forEach(function (v) {
+        var series;
+        if (v.src === 'u') series = [{ name: 'Union', color: '#0a1670', pts: years.map(function (y) { var r = uRows.filter(function (x) { return Number(x.year) === y; })[0]; return { year: y, v: exploreValue(v, r) }; }) }];
+        else series = ctrys.filter(function (id) { return sel.ctry.indexOf(id) >= 0; }).map(function (id) {
+          return { name: MS.countryName(id), color: raceColor(id), pts: years.map(function (y) { var r = res.filter(function (x) { return x.key === id && Number(x.year) === y; })[0]; return { year: y, v: exploreValue(v, r) }; }) };
+        });
+        series.forEach(function (sr) { sr.pts.forEach(function (p) { if (p.v === null) missing = true; }); });
+        grid.appendChild(el('div', { class: 'xcell' }, [el('div', { html: exploreSvg(v, series, years) }), el('a', { class: 'xs', href: 'model.html#' + v.eq, target: '_blank', rel: 'noopener' }, ['equation →'])]));
+      });
+      note.textContent = 'Deviations from the reference (no decision, no shock): volumes in %, rates and ratios in points; the union’s variables are drawn once for all. Hover a point for its value.' + (missing ? ' Gaps: variables recorded only for the years published since this tool exists (the console can publish a year again).' : '');
+    }
+    draw();
+    return det;
+  }
   /* one small chart: series = [{name, color, pts: [{year, v}]}] over years */
+  /* the hover text of a point, in the page's language */
+  function pointTitle(name, year, val, unit) {
+    var fr = typeof MXL !== 'undefined' && MXL.lang === 'fr';
+    return fr ? name + ' · année ' + year + ' : ' + MXL.num(val) + ' ' + shownLabel(unit) : name + ' · year ' + year + ': ' + val + ' ' + unit;
+  }
   function exploreSvg(v, series, years) {
     var W = 360, H = 190, L = 46, Rg = 12, T = 32, B = 26;
     var vals = []; series.forEach(function (s) { s.pts.forEach(function (p) { if (p.v !== null) vals.push(p.v); }); });
@@ -404,14 +473,14 @@ var UI = (function () {
     var Y = function (val) { return T + (H - T - B) * (hi - val) / (hi - lo); };
     var dec = Math.abs(hi - lo) < 2 ? 2 : 1;
     var g = '<svg class="xchart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(v.label) + '">';
-    g += '<text x="' + L + '" y="14" class="t">' + esc(v.label) + '</text><text x="' + L + '" y="27" class="u"><tspan translate="no">' + esc(v.sym) + '</tspan> · ' + esc(v.unit) + ' vs the reference</text>';
+    g += '<text x="' + L + '" y="14" class="t">' + esc(v.label) + '</text><text x="' + L + '" y="27" class="u"><tspan translate="no">' + esc(v.sym) + '</tspan> · ' + esc(shownLabel(v.unit + ' vs the reference')) + '</text>';
     [hi - pad, 0, lo + pad].forEach(function (tv, k) { if (k !== 1 && Math.abs(tv) < 1e-9) return; g += '<line x1="' + L + '" x2="' + (W - Rg) + '" y1="' + Y(tv) + '" y2="' + Y(tv) + '" class="' + (k === 1 ? 'z' : 'gl') + '"/><text x="' + (L - 6) + '" y="' + (Y(tv) + 4) + '" class="a" text-anchor="end">' + esc(fmt2(tv, dec)) + '</text>'; });
     years.forEach(function (y, k) { if (years.length > 8 && k % 2 && k !== years.length - 1) return; g += '<text x="' + X(y) + '" y="' + (H - 8) + '" class="a" text-anchor="middle">Y' + y + '</text>'; });
     series.forEach(function (s) {
       var path = '', on = false;
       s.pts.forEach(function (p) { if (p.v === null) { on = false; return; } path += (on ? 'L' : 'M') + X(p.year).toFixed(1) + ' ' + Y(p.v).toFixed(1); on = true; });
       if (path) g += '<path d="' + path + '" fill="none" stroke="' + s.color + '" stroke-width="2" stroke-linejoin="round"/>';
-      s.pts.forEach(function (p) { if (p.v === null) return; g += '<circle cx="' + X(p.year).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="3.2" fill="' + s.color + '" stroke="#fff" stroke-width="1.5"><title>' + esc(s.name + ' · year ' + p.year + ': ' + fmt2(p.v, 2) + ' ' + v.unit) + '</title></circle>'; });
+      s.pts.forEach(function (p) { if (p.v === null) return; g += '<circle cx="' + X(p.year).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="3.2" fill="' + s.color + '" stroke="#fff" stroke-width="1.5"><title>' + esc(pointTitle(s.name, p.year, fmt2(p.v, 2), v.unit)) + '</title></circle>'; });
     });
     if (!vals.length) g += '<text x="' + ((W + L) / 2) + '" y="' + (H / 2) + '" class="a" text-anchor="middle">not recorded for these years</text>';
     return g + '</svg>';
@@ -548,5 +617,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

@@ -861,6 +861,14 @@
       }
       box.appendChild(cardL);
     }
+    /* the model explorer of the board: every country when the ranking is published, otherwise this country alone; this country
+       ticked at first */
+    if (!dd) {
+      var pub = st.publishLeaderboard && (data.gameResults || []).length;
+      var xc = UI.exploreCard({ st: st, results: pub ? data.gameResults : mineG, union: data.union, key: 'macroscope.explore.desk.' + data.group.groupId, ctry: [data.group.country],
+        note: pub ? '' : 'The other countries appear here when the administrator publishes the ranking.' });
+      if (xc) box.appendChild(xc);
+    }
   }
   async function postComment(phase, round) {
     var m = $('#commentMsg'), ta = $('#commentText');
