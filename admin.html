@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111203">
-<script src="i18n.js?v=2026111203"></script>
-<script src="i18n/fr-desk.js?v=2026111203"></script>
-<script src="i18n/fr-admin.js?v=2026111203"></script>
-<script src="config.js?v=2026111203"></script>
-<script src="core.js?v=2026111203"></script>
-<script src="app-common.js?v=2026111203"></script>
-<script src="engine.js?v=2026111203"></script>
+<link rel="stylesheet" href="style.css?v=2026111204">
+<script src="i18n.js?v=2026111204"></script>
+<script src="i18n/fr-desk.js?v=2026111204"></script>
+<script src="i18n/fr-admin.js?v=2026111204"></script>
+<script src="config.js?v=2026111204"></script>
+<script src="core.js?v=2026111204"></script>
+<script src="app-common.js?v=2026111204"></script>
+<script src="engine.js?v=2026111204"></script>
 </head>
 <body>
 
@@ -481,11 +481,13 @@
     mOpts.forEach(function (o) { mSel.appendChild(el('option', { value: o[0] }, [o[1]])); });
     mSel.value = mNow === 'v1.3' || mNow === 'v2.0' ? 'v2' : mNow;
     var gClim = el('input', { type: 'checkbox', id: 'climateOn' }); gClim.checked = MS.climateOn(s);
-    function climSync() { var legacy = mSel.value === 'v1.1' || mSel.value === 'v1.2'; gClim.disabled = legacy || isDuel(); if (legacy) gClim.checked = false; }
+    var gHh = el('input', { type: 'checkbox', id: 'householdsOn' }); gHh.checked = MS.householdsOn(s);
+    function climSync() { var legacy = mSel.value === 'v1.1' || mSel.value === 'v1.2'; gClim.disabled = legacy || isDuel(); if (legacy) gClim.checked = false; gHh.disabled = legacy || isDuel(); if (legacy || isDuel()) gHh.checked = false; }
     mSel.addEventListener('change', climSync); climSync();
     if (isDuel()) { mSel.disabled = true; gClim.checked = true; }
     box.appendChild(el('div', { class: 'params' }, [el('div', {}, [el('label', { class: 'small' }, [isDuel() ? 'Duels run on their own engine (two economies, two currencies, capital flows and climate)' : 'Model used by Run for this class (a game in progress should keep its model)']), el('br'), mSel])]));
     box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Emissions, a global pollution stock and a damage function; carbon tax and green investment levers; emissions as a sixth objective dimension (weight 0 until an election). On the Trade or the Finance model.' }, [gClim, ' climate option (emissions and damages, carbon tax, green investment)'])]));
+    box.appendChild(el('div', { class: 'checks', style: 'margin-top:4px' }, [el('label', { title: 'Two household groups: modest households (35 % of wages and all benefits, no income tax, propensity to consume 0.90, wealth held as cash) and wealthy households (the rest of wages and all capital income, all the income tax, propensity 0.60, the financial portfolio). Same reference as one sector; benefits and taxes then act differently. On the Trade or the Finance model; not shown to the players yet.' }, [gHh, ' households option (modest and wealthy households)'])]));
     box.appendChild(el('p', { class: 'muted small' }, ['One country, one vote; a majority of the playing countries is needed (a country without a decision votes hold / austerity). The crisis vote is held only when the union’s reserves ended the previous year below the alert line.']));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Objective function weights']));
     var wInputs = {};
@@ -502,7 +504,7 @@
         warmup: { country: wc.value, years: Math.max(1, Math.min(3, Math.round(MS.num(wy.input.value)) || 3)), allowed: allowed, maxNonZero: Math.round(MS.num(wm.input.value)), minText: Math.round(MS.num(wt.input.value)) },
         game: { allowTariff: false, allowEuro: false, allowTfp: gTfp.checked, maxNonZero: Math.round(MS.num(gm.input.value)), minText: Math.round(MS.num(gt.input.value)) },
         years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w,
-        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15, crisisDepr: MS.num(vDepr.input.value) || 10, defendStep: MS.num(vDef.input.value) || 1, model: isDuel() ? 'v2.0' : mSel.value, climate: climNew, exit: gEu.checked && finNew, tariffs: gTar.checked && !isDuel(), guide: gGuide.checked } }, (gEu.checked && !finNew) ? 'Parameters saved — leaving the union needs the Finance model: left off' : 'Parameters saved');
+        sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15, crisisDepr: MS.num(vDepr.input.value) || 10, defendStep: MS.num(vDef.input.value) || 1, model: isDuel() ? 'v2.0' : mSel.value, climate: climNew, households: gHh.checked && !gHh.disabled, exit: gEu.checked && finNew, tariffs: gTar.checked && !isDuel(), guide: gGuide.checked } }, (gEu.checked && !finNew) ? 'Parameters saved — leaving the union needs the Finance model: left off' : 'Parameters saved');
     } }, ['Save parameters'])]));
     det.appendChild(box); c5.appendChild(det); v.appendChild(c5);
   }
@@ -818,14 +820,14 @@
     try { var d = OPENMU.describe ? OPENMU.describe(p) : null; if (d && d.version) ver = d.version; n = d && d.countries ? Object.keys(d.countries).length : (Array.isArray(p.countries) ? p.countries.length : 0); } catch (e) { n = Array.isArray(p.countries) ? p.countries.length : 0; }
     var fin = MS.financeModel(st());
     return ['engine OPEN-MU v' + ver, 'model ' + MS.modelLabel(st()), fin ? 'capital flows, fixed or floating rate per year, market pressure' : MS.modelId(st()) === 'v1.1' ? 'no price channel, fixed exchange rate' : 'prices in trade, fixed exchange rate']
-      .concat(MS.climateOn(st()) ? ['emissions and damages, carbon tax and green investment'] : [], ['reserves ' + p.reserveMonths + ' months', n + ' members']).join(' · ');
+      .concat(MS.climateOn(st()) ? ['emissions and damages, carbon tax and green investment'] : [], MS.householdsOn(st()) ? ['modest and wealthy households'] : [], ['reserves ' + p.reserveMonths + ' months', n + ' members']).join(' · ');
   }
   /* the model of the class (MS.modelId: 'v1', 'v2', or a former id) and its engine id (with '+climate' when the option is on) */
   function modelOf(s) { return MS.modelId(s || st()); }
   function isCapModel(s) { return MS.financeModel(s || st()); }
   function engineParams() {
     var ov_ = st().sim || {};
-    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, model: 1, climate: 1, crisisDepr: 1, defendStep: 1, exit: 1, tariffs: 1, members: 1, guide: 1 };   // console rules, not engine parameters
+    var rules = { votes: 1, voteStep: 1, austerityCap: 1, devalSize: 1, model: 1, climate: 1, households: 1, crisisDepr: 1, defendStep: 1, exit: 1, tariffs: 1, members: 1, guide: 1 };   // console rules, not engine parameters
     if (isDuel()) { var o = { forcedDeval: gameRules().forcedDeval, rateMax: MS.num(st().bounds.rate) || 2 }; Object.keys(ov_).forEach(function (k) { if (k !== 'countries' && !rules[k]) o[k] = ov_[k]; }); return OPENMU.duelParams(o); }
     rules.forcedDeval = 1;
     var p = OPENMU.paramsFor ? OPENMU.paramsFor(MS.engineModel(st())) : OPENMU.defaultParams();
@@ -833,6 +835,7 @@
     /* §14: the union of this class (2 to 7 members, from its groups); the seven when the class has no list */
     var mem = MS.membersOf(st()).map(function (c) { return c.id; });
     if (mem.length < p.countries.length) p.countries = p.countries.filter(function (c) { return mem.indexOf(c.id) >= 0; });
+    if (MS.householdsOn(st()) && OPENMU.HOUSEHOLDS) Object.keys(OPENMU.HOUSEHOLDS).forEach(function (k) { p[k] = OPENMU.HOUSEHOLDS[k]; });   // households option
     return p;
   }
   /* §14: the size of the union is frozen once a game year has been run and saved (draft or published) */

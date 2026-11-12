@@ -282,7 +282,9 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 " (the currency floats from this year on).":"(la monnaie flotte à partir de cette année).",
 " (no cap; the currency floats from this year).":"(pas de plafond ; la monnaie flotte à partir de cette année).",
 "Rest of the world: tariff on the exports of a country out of the union":"Reste du monde : droit de douane sur les exportations d’un pays sorti de l’union",
-"= union":"= union"},"re":[["Class deleted \\(([+−±-]?\\d+(?:[.,]\\d+)?) rows removed\\)",
+"= union":"= union",
+"households option (modest and wealthy households)":"option Ménages (ménages modestes et aisés)",
+"modest and wealthy households":"ménages modestes et aisés"},"re":[["Class deleted \\(([+−±-]?\\d+(?:[.,]\\d+)?) rows removed\\)",
 "Classe supprimée ($1 lignes retirées)"],
 ["Delete the class « (.+?) » with all its groups, PINs, decisions, results, pledges and analyses\\? This cannot be undone\\. Type the class name to confirm:",
 "Supprimer la classe « $1 » avec tous ses groupes, PIN, décisions, résultats, engagements et analyses ? C’est irréversible. Tapez le nom de la classe pour confirmer :"],
@@ -647,4 +649,6 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 ["the rest of the world taxes the exports of the countries out of the union at ([+−±-]?\\d+(?:[.,]\\d+)?) %\\.",
 "le reste du monde taxe les exportations des pays sortis de l’union à $1 %."],
 ["the rest of the world taxes the exports of the countries out of the union at ([+−±-]?\\d+(?:[.,]\\d+)?) %",
-"le reste du monde taxe les exportations des pays sortis de l’union à $1 %"]],"title":"Macroscope · Administration"});
+"le reste du monde taxe les exportations des pays sortis de l’union à $1 %"],
+["Two household groups: modest households \\(([+−±-]?\\d+(?:[.,]\\d+)?) % of wages and all benefits, no income tax, propensity to consume ([+−±-]?\\d+(?:[.,]\\d+)?), wealth held as cash\\) and wealthy households \\(the rest of wages and all capital income, all the income tax, propensity ([+−±-]?\\d+(?:[.,]\\d+)?), the financial portfolio\\)\\. Same reference as one sector; benefits and taxes then act differently\\. On the Trade or the Finance model; not shown to the players yet\\.",
+"Deux groupes de ménages : les ménages modestes ($1 % des salaires et toutes les prestations, pas d’impôt sur le revenu, propension à consommer $2, patrimoine détenu en monnaie) et les ménages aisés (le reste des salaires et tous les revenus du capital, tout l’impôt sur le revenu, propension $3, le portefeuille financier). Même référence qu’avec un seul secteur ; les prestations et les impôts agissent ensuite différemment. Sur le modèle Commerce ou Finance ; pas encore affiché aux joueurs."]],"title":"Macroscope · Administration"});

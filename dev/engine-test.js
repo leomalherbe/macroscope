@@ -721,5 +721,48 @@ console.log('\n===== MATRICES (model page) =====');
   must(maxRow < 1e-9 && maxCol < 1e-9 && maxChk < 1e-9 && maxNW < 1e-9, 'model page matrices: every row and column of the transactions-flow and balance-sheet matrices sums to zero, net worth = V, −B, K, NWcb (16 seeds × 6 years, v1.1–v2.0; max ' + Math.max(maxRow, maxCol, maxChk, maxNW).toExponential(1) + ' of GDP)');
 }
 
+/* ======================================================================
+   Households option (sim.households): modest and wealthy households
+   ====================================================================== */
+console.log('\n# Households option');
+{
+  const HH = v => Object.assign(OPENMU.paramsFor(v), OPENMU.HOUSEHOLDS);
+  const capOf = v => /^v2/.test(v), ecoOf = v => /climate/.test(v);
+  const strip = o => JSON.stringify(o, (k, v) => k === 'params' ? undefined : v);
+  /* off: hetero false = absent, bit for bit */
+  let same = true;
+  ['v1', 'v2', 'v2+climate'].forEach((v, i) => {
+    const inp = randomInputs(rng(300 + i), 5, 1, capOf(v), ecoOf(v));
+    if (strip(OPENMU.report({ params: OPENMU.paramsFor(v), years: 5, policies: inp.policies, shocks: inp.shocks })) !== strip(OPENMU.report({ params: Object.assign(OPENMU.paramsFor(v), { hetero: false }), years: 5, policies: inp.policies, shocks: inp.shocks }))) same = false;
+  });
+  must(same, 'households option off (hetero false) = one household sector, to the last digit');
+  /* stationarity */
+  let stat = 0;
+  ['v1', 'v2'].forEach(v => { const s = OPENMU.simulate({ params: HH(v), years: 10 }); s.years.forEach(y => Object.keys(y.countries).forEach(id => { const c = y.countries[id], rc = s.ref.countries[id]; stat = Math.max(stat, Math.abs(c.Y / rc.Y - 1), Math.abs(c.VP / rc.VP - 1), Math.abs(c.pi - 2)); })); });
+  must(stat < 1e-9, 'households option: no policy and no shock → the stationary reference, modest households’ wealth included (Trade and Finance)');
+  /* union identities (model page matrices) */
+  const ACC = require('../accounts.js');
+  let mx = 0;
+  for (let seed = 1; seed <= 12; seed++) {
+    const v = ['v1', 'v2', 'v1+climate', 'v2+climate'][seed % 4], inp = randomInputs(rng(seed * 17), 6, 1, capOf(v), ecoOf(v));
+    const s = OPENMU.simulate({ params: HH(v), years: 6, policies: inp.policies, shocks: inp.shocks });
+    for (let t = 0; t < 6; t++) { const a = ACC.accounts(s, t); a.flows.forEach(x => { if (!x.block) mx = Math.max(mx, Math.abs(x.sum) / a.Y); }); Object.keys(a.colFlows).forEach(q => { mx = Math.max(mx, Math.abs(a.colFlows[q]) / a.Y); }); mx = Math.max(mx, a.checks.V / a.Y, a.checks.B / a.Y, a.checks.K / a.Y); }
+  }
+  must(mx < 1e-9, 'households option: transactions-flow and balance-sheet matrices add up under random levers and shocks (' + mx.toExponential(1) + ')');
+  /* exit identities */
+  let maxId = 0, maxSec = 0, fails = 0;
+  for (let seed = 1; seed <= 10; seed++) {
+    const rnd = rng(seed * 37), v = seed % 2 ? 'v2' : 'v2+climate', inp = randomInputs(rnd, 8, 1, true, ecoOf(v));
+    inp.policies.FRA[1].leave = 1; inp.policies.FRA.forEach((y, t) => { if (t > 1) { y.rate = (rnd() - 0.5) * 4; y.peg = rnd() < 0.4 ? 1 : 0; y.pegChange = y.peg && rnd() < 0.3 ? 10 : 0; } });
+    try { const r = OPENMU.simulate({ params: HH(v), years: 8, policies: inp.policies, shocks: inp.shocks }); maxId = Math.max(maxId, r.checks.maxIdentityError); r.years.forEach(y => { maxSec = Math.max(maxSec, y.union.sectorError); }); }
+    catch (e) { fails++; console.log('  seed ' + seed + ': ' + e.message); }
+  }
+  must(fails === 0 && maxId < 1e-9 && maxSec < 1e-9, 'households option: exit identities hold (France leaves, float or peg, devaluations)');
+  /* the modest households spend more of what they get: benefits are a stronger lever */
+  const pol = { FRA: Array(3).fill({ benefits: 10 }) };
+  const g1 = OPENMU.report({ params: HH('v2'), years: 3, policies: pol }).years[0].countries.FRA.gdp, g0 = OPENMU.report({ params: OPENMU.paramsFor('v2'), years: 3, policies: pol }).years[0].countries.FRA.gdp;
+  must(g1 > g0 + 0.1, 'households option: benefits +10 % raise French GDP more (' + g1.toFixed(2) + ' % vs ' + g0.toFixed(2) + ' % with one sector)');
+}
+
 console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' : '\nENGINE OK');
 process.exit(failed ? 1 : 0);
