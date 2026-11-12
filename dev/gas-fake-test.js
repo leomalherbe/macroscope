@@ -14,7 +14,7 @@ function mkSheet(name) {
         setFontWeight() { return this; }, setNumberFormat() { return this; }
       };
     },
-    appendRow(row) { this._v.push(row.slice()); }, clearContents() { this._v = []; }, setFrozenRows() {}, deleteRow(i) { this._v.splice(i - 1, 1); }
+    getLastRow() { return this._v.length; }, appendRow(row) { this._v.push(row.slice()); }, clearContents() { this._v = []; }, setFrozenRows() {}, deleteRow(i) { this._v.splice(i - 1, 1); }
   };
 }
 const ss = { getId() { return 'SSID'; }, getSheetByName(n) { return sheets[n] || null; }, insertSheet(n) { sheets[n] = mkSheet(n); return sheets[n]; }, getSheets() { return Object.values(sheets); }, deleteSheet() {} };
@@ -22,7 +22,15 @@ const props = {};
 global.SpreadsheetApp = { getActiveSpreadsheet: () => ss, openById: () => ss, getUi: () => ({ alert: () => {} }) };
 global.PropertiesService = { getScriptProperties: () => ({ getProperty(k) { return props[k] || null; }, setProperty(k, v) { props[k] = v; } }) };
 global.Logger = { log: (...a) => console.log('[Logger]', ...a) };
-global.LockService = { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) };
+let lockBusy = false;
+global.LockService = { getScriptLock: () => ({ waitLock() { if (lockBusy) throw new Error('timeout'); }, releaseLock() {} }) };
+/* a fake CacheService (string values, as Google's): counts the reads it serves */
+const cacheStore = new Map(); let cacheHits = 0;
+global.CacheService = { getScriptCache: () => ({
+  get(k) { return cacheStore.has(k) ? cacheStore.get(k) : null; },
+  getAll(keys) { const o = {}; keys.forEach(k => { if (cacheStore.has(k)) { o[k] = cacheStore.get(k); cacheHits++; } }); return o; },
+  put(k, v) { cacheStore.set(k, String(v)); }, putAll(o) { Object.keys(o).forEach(k => cacheStore.set(k, String(o[k]))); }, remove(k) { cacheStore.delete(k); }
+}) };
 global.ContentService = { MimeType: { JSON: 'json', JAVASCRIPT: 'js' }, createTextOutput: (b) => ({ _b: b, setMimeType(m) { this._m = m; return this; } }) };
 const gas = new Function(src + '\n; return { setup: setup, doGet: doGet, doPost: doPost };')();
 function must(c, m) { if (!c) throw new Error('FAILED: ' + m); console.log('ok -', m); }
@@ -105,7 +113,7 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
   r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
   const [pF, pD, pI] = r2.groups.map(g => g.pin);
-  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.13', 'backend reports v1.13');
+  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.14', 'backend reports v1.14');
   const dec = (pin, y, votes) => call({ action: 'submit', pin, phase: 'game', round: Number(call({ action: 'state', pin }).state.round), payload: { years: [y], text: 'x'.repeat(130), votes: votes || { rate: 'hold' } } });
   call({ action: 'admin.state.set', key, classId: cx, patch: { phase: 'game', round: 1, status: 'open', sim: { model: 'v1.2', exit: true } } });
   r2 = dec(pF, { levers: {}, euro: 'leave' }); must(!r2.ok && /not available/.test(r2.errors.join(' ')), 'leaving refused in a v1.2 class (no capital account)');
@@ -149,5 +157,26 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   r2 = dec(pF, { levers: { tariffU: 25 } }); must(!r2.ok && /between 0 and 20/.test(r2.errors.join(' ')), 'the exited country′s tariff is bounded at 20 %');
   r2 = dec(pD, { levers: { tariffU: 5 } }); must(!r2.ok, 'a member cannot set the exited-country tariff');
   call({ action: 'admin.class.delete', key, classId: cx, name: 'Exit class' });
+}
+/* backend 1.14: the shared cache of the tabs, one write for a run's rows, « busy » when the lock cannot be had */
+{
+  const cid9 = call({ action: 'admin.class.create', key, name: 'Cache class' }).classId;
+  const pin9 = call({ action: 'admin.groups.set', key, classId: cid9, groups: [{ name: 'F', country: 'FRA' }] }).groups[0].pin;
+  const hits0 = cacheHits;
+  const st1 = call({ action: 'state', pin: pin9 }), st2 = call({ action: 'state', pin: pin9 });
+  must(cacheHits > hits0 && JSON.stringify(st1.myResults) === JSON.stringify(st2.myResults), 'reads are served from the shared cache once a tab has been written (' + (cacheHits - hits0) + ' chunks)');
+  /* a row added behind the backend's back is not seen until the next write through it (the cache is the read path) */
+  const nRes = sheets.Results._v.length;
+  const big = { extra: { pad: 'x'.repeat(200000) } };   /* > 90 kB: the cache splits the tab into chunks */
+  const w = call({ action: 'admin.results.set', key, classId: cid9, phase: 'game', round: 9, rows: [{ key: 'FRA', year: 9, gdp: 1, unemp: 0, infl: 0, pubbal: 0, tradebal: 0, published: true, detail: big }, { key: 'DEU', year: 9, gdp: 2, unemp: 0, infl: 0, pubbal: 0, tradebal: 0, published: true }] });
+  must(w.ok && w.saved === 2 && sheets.Results._v.length === nRes + 2, 'two result rows written in one call');
+  const after = call({ action: 'state', pin: pin9 });
+  must(after.myResults.some(r => Number(r.year) === 9 && String(r.detail).length > 100000 || (r.detail && r.detail.extra && r.detail.extra.pad && r.detail.extra.pad.length === 200000)), 'the new rows are read back after the write, a 200 kB row included (chunked cache)');
+  const keysN = [...cacheStore.keys()].filter(k => /^t:results:/.test(k) && !/:n$/.test(k)).length;
+  must(keysN >= 3, 'the results tab is cached in ' + keysN + ' chunks');
+  lockBusy = true;
+  const b = call({ action: 'submit', pin: pin9, phase: 'game', round: 9, payload: { years: [{ levers: {} }], text: 'x'.repeat(200) } });
+  lockBusy = false;
+  must(!b.ok && /server is busy/.test(b.error), 'a write that cannot get the lock answers « busy » and writes nothing');
 }
 console.log('\nGAS adapter OK');

@@ -22,7 +22,15 @@ var MSApi = (function () {
       document.head.appendChild(s);
     });
   }
+  /* « The server is busy »: the request found the backend's write lock taken and wrote nothing — try again, up to three times */
   async function call(action, params) {
+    for (var attempt = 0; ; attempt++) {
+      var res = await call1(action, params);
+      if (attempt < 3 && res && res.ok === false && /server is busy/i.test(String(res.error || ''))) { await new Promise(function (ok) { setTimeout(ok, 1500 * (attempt + 1)); }); continue; }
+      return res;
+    }
+  }
+  async function call1(action, params) {
     var base = apiUrl();
     if (!base) throw new Error('No backend URL is configured (config.js).');
     var body = JSON.stringify(Object.assign({ action: action }, params || {}));

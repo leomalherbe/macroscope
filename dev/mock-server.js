@@ -24,6 +24,7 @@ function memoryStorage() {
     listGroups: () => groups.map(g => Object.assign({}, g)),
     replaceGroups: (classId, list) => { groups = groups.filter(g => g.classId !== classId).concat(list.map(g => Object.assign({}, g))); },
     appendRow: (t, o) => { tables[t].push(JSON.parse(JSON.stringify(o))); },
+    appendRows: (t, list) => { list.forEach(o => tables[t].push(JSON.parse(JSON.stringify(o)))); },
     readRows: (t) => tables[t].map(r => Object.assign({}, r)),
     deleteConfig: (k) => { delete config[k]; },
     deleteRows: (t, pred) => { const before = tables[t].length; tables[t] = tables[t].filter(r => !pred(r)); return before - tables[t].length; },
