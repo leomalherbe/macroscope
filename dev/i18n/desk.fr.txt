@@ -612,6 +612,8 @@ Each bar stacks the contributions of the five dimensions to R for the year (weig
 => Chaque barre empile les contributions des cinq dimensions au R de l’année (poids × écart ; chômage et inflation comptent négativement) : au-dessus de zéro ce qui a aidé, en dessous ce qui a nui. La ligne en pointillés est R lui-même.
 Each bar stacks the contributions of the dimensions to R for the year (weight × deviation; unemployment, inflation and emissions count negatively). The dashed line is R.
 => Chaque barre empile les contributions des dimensions au R de l’année (poids × écart ; chômage, inflation et émissions comptent négativement). La ligne en pointillés est R.
+Each bar stacks the contributions of the dimensions to R for the year (weight × deviation; GDP and the two balances count positively, the others negatively): above zero what helped, below zero what hurt. The dashed line is R itself.
+=> Chaque barre empile les contributions des dimensions au R de l’année (poids × écart ; le PIB et les deux soldes comptent positivement, les autres négativement) : au-dessus de zéro ce qui a aidé, en dessous ce qui a nui. La ligne en pointillés est R lui-même.
 year #: # to R (GDP # %)
 => année # : # au R (PIB # %)
 year #: # to R (# pt)
@@ -1112,3 +1114,29 @@ Board
 => Board
 Rest of the world’s tariff on the exports of the countries out of the union
 => Droit de douane du reste du monde sur les exportations des pays sortis de l’union
+
+// households option (modest and wealthy households) and its inequality indicator
+Inequality
+=> Inégalités
+Equality: inequality first
+=> Égalité : les inégalités d’abord
+Equality: inequality first — Ineq #
+=> Égalité : les inégalités d’abord — Inég. #
+Ineq #
+=> Inég. #
+% of income
+=> % du revenu
+the wealthy half’s share of disposable income (reference # %)
+=> la part de la moitié aisée dans le revenu disponible (référence # %)
+two halves of the population: social benefits go to the modest half, who spend # % of their income; the income tax is paid by the wealthy half, who spend # %. Inequality is the wealthy half’s share of disposable income (# % at the reference), as a gap in points: it counts against R only if the administrator or an election gives it a weight
+=> deux moitiés de la population : les prestations sociales vont à la moitié modeste, qui dépense # % de son revenu ; l’impôt sur le revenu est payé par la moitié aisée, qui en dépense # %. Les inégalités sont la part de la moitié aisée dans le revenu disponible (# % à la référence), en écart en points : elles ne comptent contre R que si l’administrateur ou une élection leur donne un poids
+(no vote: unchanged)
+=> (pas de vote : inchangé)
+(no vote: unchanged).
+=> (pas de vote : inchangé).
+
+// − / + buttons of the number fields
+decrease
+=> diminuer
+increase
+=> augmenter

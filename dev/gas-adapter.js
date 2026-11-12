@@ -6,7 +6,7 @@ var SHEETS = {
   config:    { name: 'Config',    header: ['key', 'value'] },
   groups:    { name: 'Groups',    header: ['classId', 'groupId', 'name', 'pin', 'country', 'members'] },
   decisions: { name: 'Decisions', header: null },   // built in decisionsHeader()
-  results:   { name: 'Results',   header: ['ts', 'classId', 'phase', 'round', 'key', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'detail', 'emis'] },   // emis appended last (v1.7) so older sheets stay aligned
+  results:   { name: 'Results',   header: ['ts', 'classId', 'phase', 'round', 'key', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'detail', 'emis', 'ineq'] },   // emis (v1.7) and ineq (v1.13) appended last so older sheets stay aligned
   pledges:   { name: 'Pledges',   header: ['ts', 'classId', 'round', 'groupId', 'country', 'text', 'payload'] },
   comments:  { name: 'Comments',  header: ['ts', 'classId', 'phase', 'round', 'groupId', 'text'] },
   log:       { name: 'Log',       header: ['ts', 'action', 'classId', 'who', 'details'] }

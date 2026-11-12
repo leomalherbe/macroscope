@@ -6,7 +6,7 @@
 <title>Macroscope · The model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111204">
+<link rel="stylesheet" href="style.css?v=2026111205">
 <style>
 table.eq{width:100%;border-collapse:collapse;background:#faf8f1;border:1px solid var(--line);border-radius:10px;margin:8px 0;font-size:.86rem}
 table.eq td{padding:4px 10px;vertical-align:top;border-bottom:1px solid #efebe0}
@@ -63,10 +63,10 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
 .part{margin:34px 0 12px;font-size:1.15rem;font-weight:700;color:var(--accent,#1a3cff);border-bottom:2px solid currentColor;padding-bottom:4px}
 .part .pill{margin-right:8px;vertical-align:2px}
 </style>
-<script src="i18n.js?v=2026111204"></script>
-<script src="i18n/fr-model.js?v=2026111204"></script>
-<script src="engine.js?v=2026111204"></script>
-<script src="accounts.js?v=2026111204"></script>
+<script src="i18n.js?v=2026111205"></script>
+<script src="i18n/fr-model.js?v=2026111205"></script>
+<script src="engine.js?v=2026111205"></script>
+<script src="accounts.js?v=2026111205"></script>
 </head>
 <body>
 <header class="topbar"><div class="wrap">
@@ -76,7 +76,7 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
     <h1>OPEN-MU · the model behind Macroscope</h1>
     <p class="sub">Every equation the engine solves, with the parameters it uses — so that you can anticipate what a decision does before you take it.</p>
     <div class="toc">
-      <a href="#models">Models &amp; options</a><a href="#notation">Notation</a><a href="#accounts">The accounts</a><a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#capital">Finance: capital flows &amp; exchange rate</a><a href="#eco">Climate option</a><a href="#tariffs">Tariffs</a><a href="#exit">Leaving the union</a><a href="#duel">Duel mode</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
+      <a href="#models">Models &amp; options</a><a href="#notation">Notation</a><a href="#accounts">The accounts</a><a href="#levers">Levers &amp; shocks</a><a href="#households">Households</a><a href="#firms">Firms &amp; banks</a><a href="#gov">Government &amp; central bank</a><a href="#trade">Trade</a><a href="#union">The union &amp; the reserves</a><a href="#thermo">Unemployment &amp; inflation</a><a href="#capital">Finance: capital flows &amp; exchange rate</a><a href="#eco">Climate option</a><a href="#hh">Households option</a><a href="#tariffs">Tariffs</a><a href="#exit">Leaving the union</a><a href="#duel">Duel mode</a><a href="#rules">Votes &amp; crisis rules</a><a href="#params">Parameters</a><a href="#expect">What to expect</a>
     </div>
   </div>
   <div class="who"><a href="desk.html">← Policy desk</a> · <a href="index.html">About Macroscope</a></div>
@@ -99,6 +99,7 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
       <tr><td><b>v1 · Trade</b></td><td>the monetary union: households, firms and banks, governments, trade and relative prices, a fixed exchange rate with the rest of the world, common reserves</td><td>model</td></tr>
       <tr><td><b>v2 · Finance</b></td><td>Trade + capital flows, a floating rate if the administrator chooses it, risk premia on public debt, the central bank’s backstop</td><td>model</td></tr>
       <tr><td><b>Climate</b></td><td>emissions, a carbon stock, damages; carbon tax and green investment; emissions in the objective</td><td>option · Trade or Finance</td></tr>
+      <tr><td><b>Households</b></td><td>two halves of the population, modest and wealthy: who receives the benefits, who pays the income tax, who spends what; inequality in the objective</td><td>option · Trade or Finance</td></tr>
       <tr><td><b>Tariffs</b></td><td>a common external tariff voted by the members; the rest of the world’s tariff</td><td>option · Trade or Finance</td></tr>
       <tr><td><b>Leaving the union</b></td><td>a member may leave: its own currency, central bank and rate; the others may retaliate</td><td>option · Finance only</td></tr>
       <tr><td><b>Duel mode</b></td><td>a separate kind of class: two countries with their own currencies, the Finance economy with the climate option</td><td>separate mode</td></tr>
@@ -327,6 +328,27 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
       <table class="eq"><tr><td class="e" translate="no">E = ci·Y</td><td class="c">emissions of a member (reference carbon intensity ci* = 1, so E* = Y*)</td></tr><tr><td class="e" translate="no">E_w = E_w*·(1 + worldEmissions/100)</td><td class="c">rest of the world: as much as the union at the reference, exogenous</td></tr><tr><td class="e" translate="no">S = S₋₁ + Σ E + E_w</td><td class="c">global pollution stock, no natural decay; S₀ = 50 years of reference emissions (2 % a year)</td></tr><tr><td class="e" translate="no">D = min(0.25, 0.5·(S₋₁ − S₀)/S₀ + disaster/100)</td><td class="c">damage of the year from the stock accumulated so far (+ a disaster shock): ≈ 1 point a year under business as usual</td></tr><tr><td class="e" translate="no">ci = max(0.3, ci₋₁·(1 − 0.04·ctax₋₁ − 0.05·green₋₁/(1 + green₋₁/5)))</td><td class="c">carbon intensity falls persistently with last year's levers, floor 30 % of the reference; the green lever has diminishing returns (2 units −7 %, 5 units −12.5 %, 10 units −17 % a year)</td></tr><tr><td class="e" translate="no">u = u* + 0.4·100·D − β·gap</td><td class="c">structural unemployment rises with the damage</td></tr><tr><td class="e" translate="no">π = π* + κ·gap_D + … + 0.15·Δctax</td><td class="c">inflation on the damaged potential Y*(1 − D), plus the carbon-tax pass-through</td></tr><tr><td class="e" translate="no">GREEN = 0.002·green·Y* ;  IM_green = (0.60 − μ)·GREEN</td><td class="c">green investment: public spending (demand, deficit) with a 60 % import content — the excess over the economy's propensity (30 %) leaks abroad at once (to partners and the rest of the world)</td></tr><tr><td class="e" translate="no">Tc = 0.002·ctax·E</td><td class="c">carbon-tax revenue, paid by firms out of distributed income (1 point ≈ 0.2 % of GDP)</td></tr></table>
     </div>
     <div class="note"><strong>Compressed time.</strong> The reference path is no longer stationary: with nobody acting, the stock grows, the damage reaches 5 % of potential output in year 6 and 7 % in year 8 — structural unemployment +2 pt (+2.3 with Okun), inflation +1.3 pt for every member; the extra inflation erodes competitiveness, so GDP drifts down slowly (−0.9 % by year 6). The report isolates it in a fourth part of the split, « of which the climate ».<br><br><strong>Two levers, one public good.</strong> A carbon tax of 5 points everywhere cuts the union's emissions by 70 % within five years and the year-8 damage from 7 to 5.5 %; it costs 0.6 pt of inflation and 0.7 % of GDP in the first year and brings 0.4 pt of revenue. Green investment is a relaunch with a trade-off: 60 % of it is imported equipment and its gain on the carbon intensity shrinks as you raise it. France alone at 10 units (2 pt of GDP): GDP +1.7 % in year 1 against +2.4 % for public demand +10, trade balance −1.1 against −0.7 pt, public balance −1.3 pt, emissions −15 % in year 2, −52 % by year 5. Everywhere at once, the intra-union leak comes back as partners' exports (union GDP +2.4 %) and the rest-of-the-world share still leaks. A member acting alone pays the whole cost and gets a seventh of the benefit — the rest of the world emits as much as the union, so even a united union only slows the stock.<br><br><strong>Shocks.</strong> <em>World emissions</em> (%, the rest of the world's flow) and <em>climate disaster</em> (one-off extra damage, in points of potential output).</div>
+  </div>
+</details>
+
+<details class="card ver" id="hh">
+  <summary><h2>Modest and wealthy households <span class="pill">option · Trade or Finance</span></h2></summary>
+  <p class="small muted">An option of the class (Control → Parameters), on the Trade or the Finance model, not in duels. The households of each member are split into two halves of the population. The reference path does not change — same consumption, wealth, public debt and balanced budgets as with one household sector — only the response to policies and shocks does. Inequality becomes a dimension of the objective, with a weight of 0 until an election (preset « Equality ») or the administrator gives it one.</p>
+  <div class="block">
+    <div>
+      <table class="eq">
+        <tr><td class="e" translate="no">wP = 0.35 × 0.65 = 0.2275</td><td class="c">share of the income distributed by firms that goes to the modest half: 35 % of the wages, the wages being 65 % of it (the rest, the profits, goes to the wealthy half)</td></tr>
+        <tr><td class="e" translate="no">YD_P = wP·YF + TR</td><td class="c">disposable income of the modest half: their wages and all the social benefits; no income tax</td></tr>
+        <tr><td class="e" translate="no">YD_R = (1 − wP)·YF + r₋₁·(Bh₋₁ + M₋₁) − T_inc</td><td class="c">disposable income of the wealthy half: the rest of the wages, the profits and all the interest</td></tr>
+        <tr><td class="e" translate="no">T_inc = θ·((1 − wP)·YF + r₋₁·(Bh₋₁ + M₋₁))</td><td class="c">the whole income tax, paid by the wealthy half (θ = 41.3 % at the reference, which keeps the budgets balanced)</td></tr>
+        <tr><td class="e" translate="no">CE_P = α1P·(1 + confidence/100)·YD_P + α2·V_P₋₁</td><td class="c">the modest half spends 90 % of its income (α1P = 0.90)</td></tr>
+        <tr><td class="e" translate="no">CE_R = α1R·(1 + confidence/100)·YD_R + α2R·V_R₋₁</td><td class="c">the wealthy half spends 60 % (α1R = 0.60); α2R ≈ 0.098 keeps the reference of one sector</td></tr>
+        <tr><td class="e" translate="no">V_P = V_P₋₁ + YD_P − CE_P</td><td class="c">the modest half’s wealth, held as cash (18 % of household wealth at the reference)</td></tr>
+        <tr><td class="e" translate="no">V_R = V − V_P</td><td class="c">the wealthy half holds the financial portfolio: bills, deposits and, in Finance, foreign bills</td></tr>
+        <tr><td class="e" translate="no">ineq = 100·YD_R / (YD_P + YD_R) − 54.8</td><td class="c">inequality, in points: the wealthy half’s share of disposable income, 54.8 % at the reference; it counts negatively in R</td></tr>
+      </table>
+    </div>
+    <div class="note"><strong>Who receives, who spends</strong> (France alone, a measure costing 1 % of GDP, GDP in year 1 and year 5). Benefits: +0.95 % and +0.61 % (one household sector: +0.82 % and +0.57 %), inequality −0.6 pt. A cut in the income tax: +0.64 % and +0.52 % (one sector: +0.85 % and +0.59 %), inequality +0.65 pt. Public demand: +1.17 % and +0.71 %, inequality +0.1 pt (wages and profits grow, benefits do not). Benefits paid for by the income tax, with no deficit: GDP +0.32 %, public balance +0.14 pt, inequality −1.3 pt. A union rate kept 1 pt higher: inequality +0.3 pt from the second year — the interest goes to the wealthy half.</div>
   </div>
 </details>
 

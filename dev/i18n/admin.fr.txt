@@ -663,6 +663,8 @@ Trade + Climate
 => Commerce + Climat
 Finance + Climate
 => Finance + Climat
+Finance
+=> Finance
 Trade (former v#: no price channel)
 => Commerce (ancienne v# : sans canal des prix)
 Trade (former v#: reserves # months)
@@ -976,5 +978,17 @@ households option (modest and wealthy households)
 modest and wealthy households
 => ménages modestes et aisés
 
-Two household groups: modest households (# % of wages and all benefits, no income tax, propensity to consume #, wealth held as cash) and wealthy households (the rest of wages and all capital income, all the income tax, propensity #, the financial portfolio). Same reference as one sector; benefits and taxes then act differently. On the Trade or the Finance model; not shown to the players yet.
-=> Deux groupes de ménages : les ménages modestes (# % des salaires et toutes les prestations, pas d’impôt sur le revenu, propension à consommer #, patrimoine détenu en monnaie) et les ménages aisés (le reste des salaires et tous les revenus du capital, tout l’impôt sur le revenu, propension #, le portefeuille financier). Même référence qu’avec un seul secteur ; les prestations et les impôts agissent ensuite différemment. Sur le modèle Commerce ou Finance ; pas encore affiché aux joueurs.
+− Inequality
+=> − Inégalités
+
+Ineq. (pt)
+=> Inég. (pt)
+
+Inequality (households option) also counts negatively: the gap, in points, of the wealthy half’s share of disposable income from the reference (# %). Weight # by default, activated by an election — preset « Equality » — or here.
+=> Les inégalités (option Ménages) comptent aussi négativement : l’écart, en points, de la part de la moitié aisée dans le revenu disponible par rapport à la référence (# %). Poids # par défaut, activé par une élection — préréglage « Égalité » — ou ici.
+
+Two household groups: modest households (# % of wages and all benefits, no income tax, propensity to consume #, wealth held as cash) and wealthy households (the rest of wages and all capital income, all the income tax, propensity #, the financial portfolio). Same reference as one sector; benefits and taxes then act differently. On the Trade or the Finance model. Inequality (the wealthy half’s share of disposable income, # % at the reference) becomes a dimension of the objective, with a weight of # until an election (preset « Equality ») or the weights below give it one.
+=> Deux groupes de ménages : les ménages modestes (# % des salaires et toutes les prestations, pas d’impôt sur le revenu, propension à consommer #, patrimoine détenu en monnaie) et les ménages aisés (le reste des salaires et tous les revenus du capital, tout l’impôt sur le revenu, propension #, le portefeuille financier). Même référence qu’avec un seul secteur ; les prestations et les impôts agissent ensuite différemment. Sur le modèle Commerce ou Finance. Les inégalités (part de la moitié aisée dans le revenu disponible, # % à la référence) deviennent une dimension de l’objectif, avec un poids de # tant qu’une élection (préréglage « Égalité ») ou les poids ci-dessous ne leur en donnent pas.
+
+The backend (v#) does not store inequality yet: replace Code.gs and redeploy it (backend v#). The other results are saved as usual.
+=> Le backend (v#) n’enregistre pas encore les inégalités : remplacez Code.gs et redéployez-le (backend v#). Les autres résultats sont enregistrés comme d’habitude.

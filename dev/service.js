@@ -12,7 +12,7 @@
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.12';
+  var VERSION = '1.13';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -28,12 +28,12 @@ var MSService = (function () {
   function setState(st, classId, state) { st.setConfig('state:' + classId, JSON.stringify(state)); }
   function classExists(st, classId) { return getClasses(st).some(function (c) { return c.id === classId; }); }
 
-  /* ---------- row helpers: append-only tables, latest row wins ---------- */
+  /* ---------- row helpers: append-only tables, latest row wins (rows come in append order: on equal timestamps, the later one) ---------- */
   function latestBy(rows, keyFn) {
     var map = {};
     rows.forEach(function (r) {
       var k = keyFn(r);
-      if (!map[k] || String(r.ts) > String(map[k].ts)) map[k] = r;
+      if (!map[k] || String(r.ts) >= String(map[k].ts)) map[k] = r;
     });
     return Object.keys(map).map(function (k) { return map[k]; });
   }

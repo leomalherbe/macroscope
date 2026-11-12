@@ -7,10 +7,10 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111204">
-<script src="config.js?v=2026111204"></script>
-<script src="core.js?v=2026111204"></script>
-<script src="app-common.js?v=2026111204"></script>
+<link rel="stylesheet" href="style.css?v=2026111205">
+<script src="config.js?v=2026111205"></script>
+<script src="core.js?v=2026111205"></script>
+<script src="app-common.js?v=2026111205"></script>
 </head>
 <body class="board">
 
@@ -264,8 +264,8 @@
           tc.appendChild(el('h3', { style: 'margin-top:14px' }, ['What made each score']));
         }
         tc.appendChild(tg);
-        tc.appendChild(el('div', { html: UI.trajectoryLegendHtml(MS.isEcoModel(st)) }));
-        tc.appendChild(el('p', { class: 'trajcap' }, ['Each bar stacks the contributions of the five dimensions to R for the year (weight × deviation; unemployment and inflation count negatively): above zero what helped, below zero what hurt. The dashed line is R itself.']));
+        tc.appendChild(el('div', { html: UI.trajectoryLegendHtml(MS.isEcoModel(st), MS.householdsOn(st)) }));
+        tc.appendChild(el('p', { class: 'trajcap' }, [UI.trajCaption(st)]));
         trajCard = tc;
       }
       if (!lb.length || !st.publishLeaderboard) rankCard = c;
@@ -316,15 +316,15 @@
             var ch = UI.yearChips(yy); return '<span class="muted">Y' + (k + 1) + '</span> ' + (ch.length ? ch.map(function (c) { return esc(c.label) + ' <b>' + esc(MS.fmt(c.value, 1, true)) + esc(c.unit || '') + '</b>'; }).join(', ') : '<span class="muted">no change</span>');
           }).join(' &nbsp;·&nbsp; ') + '</div>' : '';
           var last = byG[r.key][lastY];
-          var SHORT = { gdp: 'GDP', unemp: 'U', infl: 'π', pubbal: 'PB', tradebal: 'TB', emis: 'Emis' };
+          var SHORT = { gdp: 'GDP', unemp: 'U', infl: 'π', pubbal: 'PB', tradebal: 'TB', emis: 'Emis', ineq: 'Ineq' };
           var lastHtml = last ? '<div class="small muted" style="margin-top:3px">year ' + lastY + ': ' + MS.indicatorsFor(st).map(function (ind) { return esc(SHORT[ind.id] || ind.label) + ' <span class="' + UI.signedClass(ind.sign * MS.num(last[ind.id])) + '">' + esc(MS.fmt(last[ind.id], 2, true)) + '</span>'; }).join(' · ') + '</div>' : '';
           hw += '<tr><td class="rank">' + (i + 1) + '</td><td><b>' + esc(groupName(r.key)) + '</b>' + planHtml + lastHtml + '</td>' + r.rs.map(function (x) { return '<td class="num ' + UI.signedClass(x) + '">' + esc(MS.fmt(x, 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(r.avg) + '"><b>' + esc(MS.fmt(r.avg, 3, true)) + '</b></td></tr>';
         });
         wc.appendChild(el('h3', { style: 'margin-top:12px' }, ['Debrief · all groups'])); wc.appendChild(el('div', { html: hw + '</tbody></table></div>' }));
         var tgw = el('div', { class: 'trajgrid', style: 'margin-top:12px' });
         rows.forEach(function (r) { tgw.appendChild(el('div', { html: UI.trajectorySvg(years.map(function (yy) { return byG[r.key][yy]; }).filter(function (x) { return !!x; }), { weights: st.weights, title: groupName(r.key), height: 250, legend: false, fontScale: 1.6 }) })); });
-        wc.appendChild(el('h3', { style: 'margin-top:14px' }, ['The objective, year by year'])); wc.appendChild(tgw); wc.appendChild(el('div', { html: UI.trajectoryLegendHtml(MS.isEcoModel(st)) }));
-        wc.appendChild(el('p', { class: 'trajcap' }, ['Each bar stacks the contributions of the five dimensions to R for the year (weight × deviation; unemployment and inflation count negatively): above zero what helped, below zero what hurt. The dashed line is R itself.']));
+        wc.appendChild(el('h3', { style: 'margin-top:14px' }, ['The objective, year by year'])); wc.appendChild(tgw); wc.appendChild(el('div', { html: UI.trajectoryLegendHtml(MS.isEcoModel(st), MS.householdsOn(st)) }));
+        wc.appendChild(el('p', { class: 'trajcap' }, [UI.trajCaption(st)]));
         wc.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['Ranked by the cumulative R, the sum of the yearly scores over the plan (R weighs the year’s deviations from the reference path: GDP in %, the rest in points). Each group governed ' + MS.countryName(st.warmup.country) + ' alone, under the same shocks.']));
       }
       warmCard = wc;
