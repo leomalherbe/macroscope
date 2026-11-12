@@ -1232,3 +1232,11 @@ Climate damage
 => Dommages climatiques
 pt of potential
 => pt du potentiel
+
+// export of the team's own game
+Export our game
+=> Exporter notre partie
+Download (CSV)
+=> Télécharger (CSV)
+Your decisions, votes and justifications, your results and score, your pledges and analyses, year by year — for a spreadsheet or a report. Only your own country.
+=> Vos décisions, votes et justifications, vos résultats et votre score, vos engagements et analyses, année par année — pour un tableur ou un rapport. Seulement votre pays.

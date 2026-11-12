@@ -23,7 +23,7 @@ const INEQ_W = 'div:has(> label:text-is("− Inequality")) > input';
     'core: inequality is a dimension of the objective with the households option only (weight 0 by default)');
   await api({ action: '__reset' });
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
   const errors = [];
   const admin = await ctx.newPage();
   admin.on('pageerror', e => errors.push('admin: ' + e.message));
@@ -119,6 +119,12 @@ const INEQ_W = 'div:has(> label:text-is("− Inequality")) > input';
   const app = await stu.textContent('#app'), tile = (await stu.textContent('.fact[data-key="ineq"]')).replace(/\s+/g, ' ').trim();
   must(/Inequality/.test(app) && /5[34]\.\d/.test(tile), 'desk: inequality in the results table and the fact sheet (' + tile + ')');
   await stu.screenshot({ path: OUT + '/h2-desk.png', fullPage: true });
+  /* the team's export: its own game only */
+  const [dl] = await Promise.all([stu.waitForEvent('download'), stu.click('#exportBtn')]);
+  const csvEn = fs.readFileSync(await dl.path(), 'utf8').replace(/^\ufeff/, '').split('\r\n');
+  const hEn = csvEn[0].split(','), g1 = csvEn.find(l => /^game,1,/.test(l));
+  must(/^macroscope_FRA_/.test(dl.suggestedFilename()) && hEn.includes('Social benefits') && hEn.includes('Inequality (pt)') && hEn.includes('cumulative R') && g1 && /,10,/.test(g1) && /France raises benefits/.test(g1) && /,1\.43,/.test(g1) && !csvEn.some(l => /Germany|DEU/.test(l)),
+    'desk: « Export our game » downloads France’s own year 1 (benefits 10, justification, GDP 1.43, inequality, R) and nothing of the others');
 
   /* the board */
   const board = await ctx.newPage();
@@ -151,6 +157,9 @@ const INEQ_W = 'div:has(> label:text-is("− Inequality")) > input';
   await stu.click('#guideBtn'); await stu.waitForSelector('#guidePanel:not([hidden])');
   must(/Ménages modestes et aisés\s:\squi reçoit quoi/.test(await stu.textContent('#guidePanel')), 'French guide: the households card');
   await stu.click('#guidePanel .gp-close');
+  const [dlFr] = await Promise.all([stu.waitForEvent('download'), stu.click('#exportBtn')]);
+  const csvFr = fs.readFileSync(await dlFr.path(), 'utf8').replace(/^\ufeff/, '').split('\r\n');
+  must(csvFr[0].split(';').includes('Prestations sociales') && csvFr[0].split(';').includes('R cumulé') && /^partie;1;10;;statu quo;/.test(csvFr[1]) && /;1,43;/.test(csvFr[1]), 'French export: « ; », French headers, decimal commas');
   /* the model explorer on the desk: every country (the ranking is published), France ticked at first */
   await stu.click('details.explore summary'); await stu.waitForSelector('details.explore[open] .xcell svg');
   const xc = await stu.$$eval('details.explore .xctry input', cs => cs.map(c => c.checked));
