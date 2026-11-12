@@ -114,7 +114,7 @@
     renderClassBar();
     if (classId) await refresh(); else renderNoClass();
     clearInterval(pollTimer);
-    pollTimer = setInterval(function () { if (!document.hidden && classId && (tab === 'control' || tab === 'entry' || tab === 'council')) refresh(true); }, 20000);
+    pollTimer = setInterval(async function () { if (!document.hidden && classId && (tab === 'control' || tab === 'entry' || tab === 'council') && await MSApi.due('admin', 120000, 20000)) refresh(true); }, 8000);
   }
   function renderClassBar() {
     var bar = $('#classbar'); bar.innerHTML = '';

@@ -190,6 +190,11 @@ function makeStorage_(ss) {
       written(k);
     },
     readRows: function (k) { return readAll(k); },
+    /* the versions of every tab (a missing one is created: data cached under it is always read after it is set) */
+    stamp: function () {
+      var C = xcache_(); if (!C) return null;
+      try { return Object.keys(SHEETS).map(function (k) { var v = C.get('v:' + k); if (!v) { xbump_(k); v = C.get('v:' + k); } return v || '?'; }).join('.'); } catch (e) { return null; }
+    },
     deleteConfig: function (key) {
       var sh = sheet('config');
       var values = sh.getDataRange().getValues();

@@ -174,6 +174,10 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   must(after.myResults.some(r => Number(r.year) === 9 && String(r.detail).length > 100000 || (r.detail && r.detail.extra && r.detail.extra.pad && r.detail.extra.pad.length === 200000)), 'the new rows are read back after the write, a 200 kB row included (chunked cache)');
   const keysN = [...cacheStore.keys()].filter(k => /^t:results:/.test(k) && !/:n$/.test(k)).length;
   must(keysN >= 3, 'the results tab is cached in ' + keysN + ' chunks');
+  const sA = call({ action: 'stamp' }).stamp, sB = call({ action: 'stamp' }).stamp;
+  call({ action: 'admin.state.set', key, classId: cid9, patch: { status: 'open' } });
+  const sC = call({ action: 'stamp' }).stamp;
+  must(sA && sA === sB && sC !== sB, 'stamp: stable between reads, changed by a write');
   lockBusy = true;
   const b = call({ action: 'submit', pin: pin9, phase: 'game', round: 9, payload: { years: [{ levers: {} }], text: 'x'.repeat(200) } });
   lockBusy = false;

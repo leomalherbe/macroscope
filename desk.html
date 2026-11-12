@@ -948,7 +948,13 @@
 
   /* ---------------- timers ---------------- */
   tick = setInterval(updateCountdown, 1000);
-  pollTimer = setInterval(function () { if (!document.hidden && pin) load(true); }, 30000);
+  /* every 10 s, a tiny « anything new? »; the state is reloaded only when something was written (or every 2 min, or when the
+     deadline has just passed) */
+  pollTimer = setInterval(async function () {
+    if (document.hidden || !pin) return;
+    var late = data && data.roundOpen && data.state && data.state.deadline && Date.parse(data.state.deadline) <= Date.now() + offset;
+    if (late || await MSApi.due('desk', 120000, 30000)) load(true);
+  }, 10000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden && pin) load(true); });
   load();
 })();

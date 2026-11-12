@@ -987,7 +987,9 @@ var MSService = (function () {
   }
 
   /* ---------- dispatcher ---------- */
-  var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard };
+  /* stamp: a short string that changes with every write to the data — the pages ask for it often and reload the whole state only
+     when it changed (a cheap request: nothing is read from the Sheet) */
+  var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, stamp: function (st) { return { ok: true, stamp: st.stamp ? st.stamp() : null }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard };
   var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename, 'admin.class.delete': actAdminClassDelete,
     'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.results.set': actAdminResultsSet };
 
@@ -1201,6 +1203,11 @@ function makeStorage_(ss) {
       written(k);
     },
     readRows: function (k) { return readAll(k); },
+    /* the versions of every tab (a missing one is created: data cached under it is always read after it is set) */
+    stamp: function () {
+      var C = xcache_(); if (!C) return null;
+      try { return Object.keys(SHEETS).map(function (k) { var v = C.get('v:' + k); if (!v) { xbump_(k); v = C.get('v:' + k); } return v || '?'; }).join('.'); } catch (e) { return null; }
+    },
     deleteConfig: function (key) {
       var sh = sheet('config');
       var values = sh.getDataRange().getValues();

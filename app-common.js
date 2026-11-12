@@ -44,7 +44,20 @@ var MSApi = (function () {
     } catch (e) { /* fall back to JSONP */ }
     return jsonp(base, body);
   }
-  return { call: call, apiUrl: apiUrl, setApiUrl: setApiUrl };
+  /* polling without rereading: ask the backend's stamp (it changes with every write) and say whether the page must reload its
+     data — when the stamp changed, or after maxAge ms anyway (deadlines pass without a write). A backend without stamps (before
+     1.14) gets the former rhythm: a reload every `every` ms. */
+  var stamps = {};
+  async function due(key, maxAge, every) {
+    var now = Date.now(), st = stamps[key] || (stamps[key] = { s: undefined, t: 0, none: false });
+    if (st.none) { if (now - st.t >= every) { st.t = now; return true; } return false; }
+    var r = null; try { r = await call1('stamp', {}); } catch (e) { r = null; }
+    if (r && r.ok === false && /unknown action/i.test(String(r.error || ''))) { st.none = true; st.t = now; return true; }
+    var s = r && r.ok ? r.stamp : null;
+    if (s === null || s !== st.s || now - st.t >= maxAge) { st.s = s; st.t = now; return true; }
+    return false;
+  }
+  return { call: call, due: due, apiUrl: apiUrl, setApiUrl: setApiUrl };
 })();
 
 var UI = (function () {

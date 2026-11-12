@@ -341,7 +341,7 @@
     c.textContent = (t.late ? 'time is up ' : '') + t.text; c.classList.toggle('late', t.late);
   }
   setInterval(updateCountdown, 1000);
-  setInterval(load, 15000);
+  setInterval(async function () { if (await MSApi.due('board', 60000, 15000)) load(); }, 8000);   /* reload only when something new was written */
   load();
 })();
 </script>
