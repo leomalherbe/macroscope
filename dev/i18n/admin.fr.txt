@@ -969,3 +969,12 @@ the rest of the world taxes the exports of the countries out of the union at # %
 => le reste du monde taxe les exportations des pays sortis de l’union à # %.
 the rest of the world taxes the exports of the countries out of the union at # %
 => le reste du monde taxe les exportations des pays sortis de l’union à # %
+
+households option (modest and wealthy households)
+=> option Ménages (ménages modestes et aisés)
+
+modest and wealthy households
+=> ménages modestes et aisés
+
+Two household groups: modest households (# % of wages and all benefits, no income tax, propensity to consume #, wealth held as cash) and wealthy households (the rest of wages and all capital income, all the income tax, propensity #, the financial portfolio). Same reference as one sector; benefits and taxes then act differently. On the Trade or the Finance model; not shown to the players yet.
+=> Deux groupes de ménages : les ménages modestes (# % des salaires et toutes les prestations, pas d’impôt sur le revenu, propension à consommer #, patrimoine détenu en monnaie) et les ménages aisés (le reste des salaires et tous les revenus du capital, tout l’impôt sur le revenu, propension #, le portefeuille financier). Même référence qu’avec un seul secteur ; les prestations et les impôts agissent ensuite différemment. Sur le modèle Commerce ou Finance ; pas encore affiché aux joueurs.

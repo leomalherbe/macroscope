@@ -47,6 +47,8 @@ var MS = (function () {
     var m = modelId(state), lab = (financeModel(state) ? 'v2 · Finance' : 'v1 · Trade') + (climateOn(state) ? ' + Climate' : '');
     return lab + (m === 'v1.1' ? ' (former v1.1: no price channel)' : m === 'v1.2' ? ' (former v1.2: reserves 1.5 months)' : '');
   }
+  /* households option (sim.households): modest and wealthy households in the engine (OPENMU.HOUSEHOLDS), Trade or Finance, not the duel */
+  function householdsOn(state) { var m = modelId(state); return !isDuel(state) && (m === 'v1' || m === 'v2') && !!(state && state.sim && state.sim.households); }
   function isEcoModel(state) { return climateOn(state); }
   function leversFor(state) { var eco = isEcoModel(state), duel = isDuel(state); return LEVERS.filter(function (l) { return !l.exitOnly && (!l.eco || eco) && (!l.duel || duel); }); }
   /* §13 tariffs: the common external tariff voted by the members and the tariff of a country out of the union (sim.tariffs) */
@@ -559,7 +561,7 @@ var MS = (function () {
     num: num, round2: round2, round3: round3, fmt: fmt, pad: pad,
     scoreR: scoreR, isDuel: isDuel, duelOf: duelOf, ELECTION_PRESETS: ELECTION_PRESETS, electionsUpTo: electionsUpTo, weightsInfo: weightsInfo, weightsFor: weightsFor, sameWeights: sameWeights, emptyYear: emptyYear, usedInstruments: usedInstruments, validateDecision: validateDecision, isEcoModel: isEcoModel, leversFor: leversFor, crisisOf: crisisOf, validateCrisisVote: validateCrisisVote, tallyCrisis: tallyCrisis,
     tariffsOn: tariffsOn, CET_LEVELS: CET_LEVELS,
-    exitModelOk: exitModelOk, MODEL_IDS: MODEL_IDS, modelId: modelId, financeModel: financeModel, climateOn: climateOn, engineModel: engineModel, modelLabel: modelLabel, exitAllowed: exitAllowed, exitYearOf: exitYearOf, isOutIn: isOutIn, leversForCountry: leversForCountry, FX_REGIMES: FX_REGIMES,
+    exitModelOk: exitModelOk, MODEL_IDS: MODEL_IDS, modelId: modelId, financeModel: financeModel, climateOn: climateOn, householdsOn: householdsOn, engineModel: engineModel, modelLabel: modelLabel, exitAllowed: exitAllowed, exitYearOf: exitYearOf, isOutIn: isOutIn, leversForCountry: leversForCountry, FX_REGIMES: FX_REGIMES,
     RETAL_TARIFF: RETAL_TARIFF, RETAL_SALE: RETAL_SALE, retaliationOf: retaliationOf, openRetaliation: openRetaliation, retaliationIn: retaliationIn, validateRetaliationVote: validateRetaliationVote, tallyRetaliation: tallyRetaliation,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
