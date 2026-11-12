@@ -353,7 +353,8 @@ MXL.add('fr', {"str":{"Macroscope · Policy desk":"Macroscope · Bureau des déc
 "(no vote: unchanged)":"(pas de vote : inchangé)",
 "(no vote: unchanged).":"(pas de vote : inchangé).",
 "decrease":"diminuer",
-"increase":"augmenter"},"re":[["The model: equations (.+?) notation ↗",
+"increase":"augmenter",
+"Rate gap with the rest of the world (union rate − world rate)":"Écart de taux avec le reste du monde (taux de l’union − taux mondial)"},"re":[["The model: equations (.+?) notation ↗",
 "Le modèle : équations et notations (en anglais) ↗"],
 ["Macroscope · runs on OPEN-MU, a stock-flow consistent model of a monetary union after Godley (.+?) Lavoie ·",
 "Macroscope · fonctionne avec OPEN-MU, un modèle stock-flux cohérent d’union monétaire d’après Godley et Lavoie ·"],
@@ -732,4 +733,6 @@ MXL.add('fr', {"str":{"Macroscope · Policy desk":"Macroscope · Bureau des déc
 ["the wealthy half’s share of disposable income \\(reference ([+−±-]?\\d+(?:[.,]\\d+)?) %\\)",
 "la part de la moitié aisée dans le revenu disponible (référence $1 %)"],
 ["two halves of the population: social benefits go to the modest half, who spend ([+−±-]?\\d+(?:[.,]\\d+)?) % of their income; the income tax is paid by the wealthy half, who spend ([+−±-]?\\d+(?:[.,]\\d+)?) %\\. Inequality is the wealthy half’s share of disposable income \\(([+−±-]?\\d+(?:[.,]\\d+)?) % at the reference\\), as a gap in points: it counts against R only if the administrator or an election gives it a weight",
-"deux moitiés de la population : les prestations sociales vont à la moitié modeste, qui dépense $1 % de son revenu ; l’impôt sur le revenu est payé par la moitié aisée, qui en dépense $2 %. Les inégalités sont la part de la moitié aisée dans le revenu disponible ($3 % à la référence), en écart en points : elles ne comptent contre R que si l’administrateur ou une élection leur donne un poids"]],"title":"Macroscope · Bureau des décisions"});
+"deux moitiés de la population : les prestations sociales vont à la moitié modeste, qui dépense $1 % de son revenu ; l’impôt sur le revenu est payé par la moitié aisée, qui en dépense $2 %. Les inégalités sont la part de la moitié aisée dans le revenu disponible ($3 % à la référence), en écart en points : elles ne comptent contre R que si l’administrateur ou une élection leur donne un poids"],
+["([+−±-]?\\d+(?:[.,]\\d+)?) pt",
+"$1 pt"]],"title":"Macroscope · Bureau des décisions"});

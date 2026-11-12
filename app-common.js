@@ -230,6 +230,8 @@ var UI = (function () {
     if (!u || !u.regime) return '';
     var isFloat = u.regime === 'float', h = '';
     h += '<div class="urow"><span>Exchange-rate regime</span><span class="num">' + (isFloat ? 'floating' : 'fixed') + (u.backstop === false ? ' · <span class="pill closed">no central-bank backstop</span>' : '') + '</span></div>';
+    /* the pull of the union's bills on capital: its rate against the rest of the world's (Finance rows carry both) */
+    if (u.rate !== undefined && u.rw !== undefined && u.rate !== null && u.rw !== null) h += '<div class="urow"><span>Rate gap with the rest of the world (union rate − world rate)</span><span class="num">' + esc(MS.fmt(100 * u.rate, 2)) + ' % − ' + esc(MS.fmt(100 * u.rw, 2)) + ' % = <b>' + esc(MS.fmt(100 * (u.rate - u.rw), 2, true)) + ' pt</b></span></div>';
     if (u.dxr !== undefined) h += '<div class="urow"><span>Change of the exchange rate over the year (+ = depreciation)</span><span class="num ' + (u.dxr > 0 ? 'neg' : (u.dxr < 0 ? 'pos' : '')) + '">' + esc(MS.fmt(u.dxr, 1, true)) + ' %</span></div>';
     if (u.KA !== undefined) h += '<div class="urow"><span>Capital flows (net inflows from the rest of the world)</span><span class="num ' + UI.signedClass(u.KA) + '">' + esc(MS.fmt(u.KA, 2, true)) + '</span></div>';
     if (u.pressured && u.pressured.length) h += '<div class="urow"><span>Members under market pressure (public debt above 110 % of GDP)</span><span class="num neg">' + esc(u.pressured.map(function (c) { return MS.countryName(c); }).join(', ')) + '</span></div>';
@@ -499,6 +501,30 @@ var UI = (function () {
     }
     return (label ? label + ' — ' : '') + txt;
   }
+  /* the split of a result row into its parts — own policy, the other countries' policies, shocks, climate — with the R of each
+     part: stored with the row (detail.R) or rebuilt from the parts of the indicators with the row's weights (R is linear) */
+  var SPLIT_PARTS = ['nat', 'foreign', 'shock', 'climate'];
+  function rowSplit(r, st, weights) {
+    var d = r && r.detail, out = {}; if (!d || typeof d !== 'object') return out;
+    var w = d.weights || weights || (st && st.weights);
+    SPLIT_PARTS.forEach(function (p) {
+      var ind = {}, has = false;
+      MS.indicatorsFor(st).forEach(function (i) { var x = d[i.id] ? d[i.id][p] : undefined; if (x !== undefined && x !== null && x !== '') { ind[i.id] = Number(x); has = true; } });
+      var Rp = d.R && d.R[p] !== undefined && d.R[p] !== null ? Number(d.R[p]) : (has ? MS.scoreR(ind, w) : null);
+      if (has || Rp !== null) out[p] = { ind: ind, R: Rp };
+    });
+    return out;
+  }
+  /* the lines « of which … » under a country's row of a results table (board); nExtra: empty cells that close each line */
+  function splitRowsHtml(r, st, weights, nExtra) {
+    var sp = rowSplit(r, st, weights);
+    var lab = { nat: '↳ own policy', foreign: MS.isDuel(st) ? '↳ partner’s policy' : '↳ other countries', shock: '↳ shocks', climate: '↳ climate' };
+    return SPLIT_PARTS.filter(function (p) { return sp[p]; }).map(function (p) {
+      var s = sp[p];
+      return '<tr class="bd"><td class="small muted" style="padding-left:1.6em;white-space:nowrap">' + esc(lab[p]) + '</td>' + MS.indicatorsFor(st).map(function (i) { var x = s.ind[i.id]; return '<td class="num small ' + (x === undefined ? '' : signedClass(i.sign * x)) + '">' + esc(x === undefined ? '' : MS.fmt(x, 3, true)) + '</td>'; }).join('') +
+        '<td class="num small ' + (s.R === null ? '' : signedClass(s.R)) + '">' + esc(s.R === null ? '' : MS.fmt(s.R, 3, true)) + '</td>' + new Array((nExtra || 0) + 1).join('<td></td>') + '</tr>';
+    }).join('');
+  }
   /* the caption under the objective charts: the five dimensions, or more with the climate or the households option */
   function trajCaption(st) {
     if (MS.climateOn(st) || MS.householdsOn(st)) return 'Each bar stacks the contributions of the dimensions to R for the year (weight × deviation; GDP and the two balances count positively, the others negatively): above zero what helped, below zero what hurt. The dashed line is R itself.';
@@ -522,5 +548,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

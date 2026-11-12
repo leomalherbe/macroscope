@@ -126,13 +126,28 @@ const INEQ_W = 'div:has(> label:text-is("− Inequality")) > input';
   await board.goto(BASE + '/board.html?class=' + cid + '&api=' + encodeURIComponent(API));
   await board.waitForTimeout(1500);
   must(/Inequality/.test(await board.textContent('body')), 'board: inequality shown');
+  const bodyB = (await board.textContent('body')).replace(/\s+/g, ' ');
+  must(/Rate gap with the rest of the world \(union rate − world rate\) ?3\.00 % − 3\.00 % = 0\.00 pt/.test(bodyB), 'board, monetary union: the rate gap with the rest of the world (3.00 % − 3.00 % = 0.00 pt)');
+  /* the split « of which » of a country, then of every country; kept through a reload */
+  must((await board.$$('#app tr.bd')).length === 0 && (await board.$$('.splitbtn')).length === 7, 'board: every country row has its « of which » toggle, all closed');
+  await board.click('.splitbtn[data-split="FRA"]'); await board.waitForTimeout(200);
+  const own = await board.$$eval('#app tr.bd', trs => trs.map(t => t.textContent.replace(/\s+/g, ' ').trim()));
+  must(own.length >= 2 && /^↳ own policy ?\+1\.430/.test(own[0]) && own.some(t => /^↳ other countries/.test(t)) && own.some(t => /^↳ shocks/.test(t)), 'board: France’s split opens (' + own[0] + ')');
+  await board.reload(); await board.waitForSelector('.splitbtn'); await board.waitForTimeout(800);
+  must((await board.$$('#app tr.bd')).length === own.length && /hide/.test(await board.textContent('.splitbtn[data-split="FRA"]')), 'board: the open split survives a reload');
+  await board.click('#splitAll'); await board.waitForTimeout(200);
+  const nAll = (await board.$$('#app tr.bd')).length;
+  must(nAll >= 14 && /Close every split/.test(await board.textContent('#splitAll')), 'board: « Open every split » opens the seven (' + nAll + ' lines)');
   await board.screenshot({ path: OUT + '/h3-board.png', fullPage: true });
+  await board.click('#splitAll'); await board.waitForTimeout(200);
+  must((await board.$$('#app tr.bd')).length === 0, 'board: « Close every split » closes them');
 
   /* French pages */
   await stu.goto(BASE + '/desk.html?lang=fr&api=' + encodeURIComponent(API) + '&pin=' + pins.FRA);
   await stu.waitForSelector('.fact[data-key="ineq"]'); await stu.waitForTimeout(300);
   const appFr = await stu.textContent('#app');
   must(/Inégalités/.test(appFr) && !/Inequality/.test(appFr), 'French desk: « Inégalités », no English left for it');
+  must(/Écart de taux avec le reste du monde/.test(appFr), 'French desk: the rate gap in the union panel');
   await stu.click('#guideBtn'); await stu.waitForSelector('#guidePanel:not([hidden])');
   must(/Ménages modestes et aisés\s:\squi reçoit quoi/.test(await stu.textContent('#guidePanel')), 'French guide: the households card');
   await stu.screenshot({ path: OUT + '/h5-desk-fr.png', fullPage: true });

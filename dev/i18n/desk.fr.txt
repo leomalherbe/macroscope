@@ -1140,3 +1140,9 @@ decrease
 => diminuer
 increase
 => augmenter
+
+// union panel (Finance): the rate gap with the rest of the world
+Rate gap with the rest of the world (union rate − world rate)
+=> Écart de taux avec le reste du monde (taux de l’union − taux mondial)
+# pt
+=> # pt

@@ -251,6 +251,8 @@ body.board{font-size:17px}
 .facttable .v{font-family:var(--mono);white-space:nowrap}
 .facttable .unit{font-weight:400;text-transform:none;letter-spacing:0;font-size:.8em;color:var(--muted)}
 .facttable td.neg .v{color:var(--red)}
+/* board: the toggle of a country's split « of which » */
+.splitbtn{border:0;background:none;padding:3px 0 0;font:500 .78rem/1 Inter,sans-serif;color:var(--accent,#122ddb);cursor:pointer;white-space:nowrap} .splitbtn:hover{text-decoration:underline}
 /* ten indicators or more (Finance with the households option): tighter cells, headers may wrap, names do not */
 .facttable.dense th, .facttable.dense td{padding-left:6px;padding-right:6px} .facttable.dense th.num{white-space:normal} .facttable.dense td:first-child b{white-space:nowrap}
 .grid2 > *{min-width:0}
