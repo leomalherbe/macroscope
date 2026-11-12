@@ -1129,7 +1129,10 @@ var OPENMU = (function () {
   /* ---------- report: deviations from the stationary reference, decomposed ---------- */
   var INDIC = ['gdp', 'unemp', 'infl', 'pubbal', 'tradebal'];
   var INDIC_ECO = INDIC.concat(['emis']);   // v2.0: sixth dimension, emissions in % of the reference
-  function indicList(p) { return p.eco ? INDIC_ECO : INDIC; }
+  /* households option (p.hetero): one more dimension, inequality = the wealthy half's share of disposable income, deviation in points */
+  function indicList(p) { var l = p.eco ? INDIC_ECO : INDIC; return p.hetero ? l.concat(['ineq']) : l; }
+  /* the wealthy half's share of the households' disposable income, % (54.8 at the reference); YDP: modest half, YDR: wealthy half */
+  function topShare(c) { var t = c.YDP + c.YDR; return t > 0 ? 100 * c.YDR / t : 0; }
   function indicators(cy, rc, p) {
     var o = {
       gdp: 100 * (cy.Y / rc.Y - 1),
@@ -1139,6 +1142,7 @@ var OPENMU = (function () {
       tradebal: cy.tb      // reference trade balance is 0
     };
     if (p.eco) o.emis = p.ci0 > 0 ? 100 * (cy.E / (p.ci0 * rc.Y) - 1) : 0;   // emissions vs the reference, %
+    if (p.hetero) o.ineq = topShare(cy) - topShare(rc);   // inequality vs the reference, points of disposable income
     return o;
   }
   function diff(a, b, p) { var d = {}; indicList(p).forEach(function (k) { d[k] = a[k] - b[k]; }); return d; }
@@ -1201,6 +1205,11 @@ var OPENMU = (function () {
           T: pctV(cy.T, rc.T), X: pctV(cy.X, rc.X), IM: pctV(cy.IMV, rc.IMV), debt: ptsY(cy.B, rc.B), Bcb: ptsY(cy.Bcb, rc.Bcb) };
         if (p.capital) detail.x.Bf = 100 * (runAll.years[t].union.xr * cy.Bf / cy.Y - (rc.Bf || 0) / rc.Y);
         if (p.eco) detail.x.ci = 100 * (cy.ci / p.ci0 - 1);
+        if (p.hetero) {
+          /* households option: disposable income and wealth of each half (% vs the reference), and the shares of disposable income (levels, %) */
+          detail.x.YDP = pctV(cy.YDP, rc.YDP); detail.x.YDR = pctV(cy.YDR, rc.YDR); detail.x.VP = pctV(cy.VP, rc.VP);
+          detail.extra.shareP = 100 - topShare(cy); detail.extra.shareR = topShare(cy);
+        }
         if (cy.exited !== undefined) {
           /* §12: exit fields (present only in runs where a member leaves) */
           var ex = detail.extra;

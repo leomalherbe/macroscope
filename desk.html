@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111204">
-<script src="i18n.js?v=2026111204"></script>
-<script src="i18n/fr-desk.js?v=2026111204"></script>
-<script src="guide.js?v=2026111204"></script>
-<script src="config.js?v=2026111204"></script>
-<script src="core.js?v=2026111204"></script>
-<script src="app-common.js?v=2026111204"></script>
+<link rel="stylesheet" href="style.css?v=2026111205">
+<script src="i18n.js?v=2026111205"></script>
+<script src="i18n/fr-desk.js?v=2026111205"></script>
+<script src="guide.js?v=2026111205"></script>
+<script src="config.js?v=2026111205"></script>
+<script src="core.js?v=2026111205"></script>
+<script src="app-common.js?v=2026111205"></script>
 </head>
 <body>
 
@@ -39,7 +39,7 @@
   var $ = UI.$, el = UI.el, esc = UI.esc;
   MXL.apply(); MXL.watch(document.body);
   /* the beginners' guide (guide.js): which card a lever's ⓘ opens */
-  var LEVER_GUIDE = { pubdem: 'demand', benefits: 'demand', inctax: 'demand', vat: 'vat', ctax: 'climate', green: 'climate', rate: 'rate?', tariffU: 'exit' };
+  var LEVER_GUIDE = { pubdem: 'demand', benefits: 'demand households', inctax: 'demand households', vat: 'vat', ctax: 'climate', green: 'climate', rate: 'rate?', tariffU: 'exit' };
   var cfg = window.MACSIM_CONFIG || {};
   $('#courseLabel').textContent = cfg.COURSE_LABEL || 'Macroscope';
   $('#homeLink').href = cfg.COURSE_HOME || '#';
@@ -156,6 +156,7 @@
       nYears: isWarm ? st.warmup.years : 1,
       levers: avail.filter(function (l) { return allowed.indexOf(l.id) >= 0; }),
       eco: MS.isEcoModel(st),
+      hh: MS.householdsOn(st),
       tariff: isWarm ? allowed.indexOf('tariff') >= 0 : st.game.allowTariff !== false,
       euro: !isWarm && MS.exitAllowed(st) && MS.exitYearOf(st, ctryF) === null,   /* §12: the exit announcement */
       out: !isWarm && MS.isOutIn(st, ctryF, st.round),                          /* §12: exchange-rate decisions of an exited country */
@@ -318,6 +319,7 @@
     var rules = [];
     rules.push('every value is a relative variation, in %, of your country’s reference level (public demand +5 = 5 % more public spending; income tax +5 = a tax rate 5 % higher, e.g. from 20 % to 21 %)');
     if (f.eco) rules.push('the carbon tax and green investment are levels, from 0 to ' + (f.bounds.eco || 10) + ': they cut your carbon intensity from next year on, the tax lifts prices at once. Green investment supports demand like public spending, but 60 % of it is imported equipment (about a third less effect on your GDP than public demand, and a worse trade balance) and its gain on your carbon intensity shrinks as you raise it.');
+    if (f.hh) rules.push('two halves of the population: social benefits go to the modest half, who spend 90 % of their income; the income tax is paid by the wealthy half, who spend 60 %. Inequality is the wealthy half’s share of disposable income (54.8 % at the reference), as a gap in points: it counts against R only if the administrator or an election gives it a weight');
     if (f.out) rules.push('your policy rate is yours to set, in points around 3 % (±' + (f.bounds.rate || 2) + '): it moves investment next year, the cost of your debt and the capital flows — a lower rate depreciates your currency (imported inflation) when it floats, or drains your reserves when it is pegged');
     if (MS.isDuel(st)) rules.push('the policy rate is yours to set, in points around 3 % (±' + (f.bounds.rate || 2) + '): it moves investment next year, your debt service and the capital flows with your partner — a higher rate appreciates your currency');
     rules.push('each variation between −' + f.bounds.lever + ' % and +' + f.bounds.lever + ' %');
@@ -754,7 +756,7 @@
     var card = el('div', { class: 'card' });
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'score' }, [title || 'Your objective, year by year']), el('span', { class: 'small muted' }, ['deviation from the reference, year by year'])]));
     card.appendChild(el('div', { id: 'trajectory', html: UI.trajectorySvg(rows, { weights: data.state.weights }) }));
-    card.appendChild(el('p', { class: 'trajcap' }, ['Each bar stacks the contributions of the five dimensions to R for the year (weight × deviation; unemployment and inflation count negatively): above zero what helped, below zero what hurt. The dashed line is R itself.']));
+    card.appendChild(el('p', { class: 'trajcap' }, [UI.trajCaption(data.state)]));
     return card;
   }
   function renderResults() {

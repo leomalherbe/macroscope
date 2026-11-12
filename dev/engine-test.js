@@ -762,6 +762,23 @@ console.log('\n# Households option');
   const pol = { FRA: Array(3).fill({ benefits: 10 }) };
   const g1 = OPENMU.report({ params: HH('v2'), years: 3, policies: pol }).years[0].countries.FRA.gdp, g0 = OPENMU.report({ params: OPENMU.paramsFor('v2'), years: 3, policies: pol }).years[0].countries.FRA.gdp;
   must(g1 > g0 + 0.1, 'households option: benefits +10 % raise French GDP more (' + g1.toFixed(2) + ' % vs ' + g0.toFixed(2) + ' % with one sector)');
+
+  /* the inequality indicator: the wealthy half's share of disposable income, deviation from the reference in points */
+  const fr = (v, pol, hh) => OPENMU.report({ params: hh === false ? OPENMU.paramsFor(v) : HH(v), years: 3, policies: pol ? { FRA: Array(3).fill(pol) } : {} }).years[0].countries.FRA;
+  const off = fr('v2', { benefits: 10 }, false), on0 = fr('v2', null);
+  must(off.ineq === undefined && off.detail.ineq === undefined && Math.abs(on0.ineq) < 1e-12 && Math.abs(on0.detail.extra.shareP - 45.19) < 0.01 && Math.abs(on0.detail.extra.shareP + on0.detail.extra.shareR - 100) < 1e-9,
+    'inequality: reported only with the households option; 0 at the reference, where the modest half gets ' + on0.detail.extra.shareP.toFixed(1) + ' % of disposable income');
+  const ben = fr('v2', { benefits: 10 }), cut = fr('v2', { inctax: -10 }), hike = fr('v1', { inctax: 10 });
+  must(ben.ineq < -0.5 && cut.ineq > 1 && hike.ineq < -1 && ben.detail.x.YDP > ben.detail.x.YDR,
+    'inequality: benefits +10 % ' + ben.ineq.toFixed(2) + ' pt, income tax −10 % +' + cut.ineq.toFixed(2) + ' pt, income tax +10 % (Trade) ' + hike.ineq.toFixed(2) + ' pt; the modest half’s income rises more with benefits');
+  let errD = 0;
+  for (let seed = 1; seed <= 8; seed++) {
+    const rnd = rng(seed * 41), v = ['v1', 'v2', 'v1+climate', 'v2+climate'][seed % 4], inp = randomInputs(rnd, 5, 1, capOf(v), ecoOf(v));
+    if (seed % 2 === 0 && capOf(v)) inp.policies.ITA[1].leave = 1;
+    const rep = OPENMU.report({ params: HH(v), years: 5, policies: inp.policies, shocks: inp.shocks });
+    rep.years.forEach(y => IDS.forEach(id => { const c = y.countries[id], d = c.detail.ineq; errD = Math.max(errD, Math.abs(d.shock + d.nat + d.foreign + (d.climate || 0) - c.ineq)); }));
+  }
+  must(errD < 1e-9, 'inequality: shock + own + foreign (+ climate) parts add up to the total, union and exit (max ' + errD.toExponential(1) + ')');
 }
 
 console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' : '\nENGINE OK');

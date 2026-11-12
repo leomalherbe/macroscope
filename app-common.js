@@ -156,6 +156,8 @@ var UI = (function () {
     else if (n(ctx.xr) !== null) add('xr', 'Exchange rate', '€ per world unit', n(ctx.xr), n(ctx.xrPrev), 3, 0, false, 'up = the euro depreciates');
     add('debt', 'Public debt', '% of GDP', n(x.debt), px ? n(px.debt) : null, 1, -1);
     if (n(x.spread) !== null) add('spread', 'Risk premium', 'pt', n(x.spread), px ? n(px.spread) : null, 2, -1, false, x.pressured ? 'under market pressure' : (n(x.spread) > 0 ? 'debt above 110 % of GDP' : 'none below 110 % of debt'));
+    /* households option: the wealthy half's share of disposable income (54.8 % at the reference) */
+    if (n(x.shareR) !== null) add('ineq', 'Inequality', '% of income', n(x.shareR), px ? n(px.shareR) : null, 1, -1, false, 'the wealthy half’s share of disposable income (reference 54.8 %)');
     return out;
   }
   function factDeltaHtml(it, prevYear) {
@@ -176,12 +178,12 @@ var UI = (function () {
   function factTableHtml(items) {
     var cols = [];
     items.forEach(function (o) { factItems(o.row, o.prev, o.ctx).forEach(function (it) { if (!cols.some(function (c) { return c.key === it.key; })) cols.push({ key: it.key, label: it.label, unit: it.unit }); }); });
-    var order = ['gdp', 'pi', 'u', 'pb', 'ca', 'compet', 'xr', 'debt', 'spread'];
+    var order = ['gdp', 'pi', 'u', 'pb', 'ca', 'compet', 'xr', 'debt', 'spread', 'ineq'];
     cols.sort(function (a, b) { return order.indexOf(a.key) - order.indexOf(b.key); });
     /* the exchange-rate column: the members' unit in the header, another unit (a country out of the union, its own currency) in the cell */
     var xrUnit = null; items.forEach(function (o) { factItems(o.row, o.prev, o.ctx).forEach(function (it) { if (it.key === 'xr' && !(o.row.detail && o.row.detail.extra && o.row.detail.extra.exited) && !xrUnit) xrUnit = it.unit; }); });
     cols.forEach(function (c) { if (c.key === 'xr' && xrUnit) c.unit = xrUnit; });
-    var h = '<div class="tablewrap"><table class="facttable"><thead><tr><th>Country</th>' + cols.map(function (c) { return '<th class="num">' + esc(c.label) + '<br><span class="unit">' + esc(c.unit) + '</span></th>'; }).join('') + '</tr></thead><tbody>';
+    var h = '<div class="tablewrap"><table class="facttable' + (cols.length >= 10 ? ' dense' : '') + '"><thead><tr><th>Country</th>' + cols.map(function (c) { return '<th class="num">' + esc(c.label) + '<br><span class="unit">' + esc(c.unit) + '</span></th>'; }).join('') + '</tr></thead><tbody>';
     items.forEach(function (o) {
       var its = factItems(o.row, o.prev, o.ctx);
       h += '<tr><td><b>' + esc(o.name) + '</b>' + (o.badge ? ' ' + o.badge : '') + (o.sub ? '<br><span class="small muted">' + esc(o.sub) + '</span>' : '') + '</td>' + cols.map(function (c) {
@@ -284,12 +286,14 @@ var UI = (function () {
     { id: 'infl', label: 'Inflation', color: '#ff7a59', sign: -1 },
     { id: 'pubbal', label: 'Public balance', color: '#ffc2ad', sign: 1 },
     { id: 'tradebal', label: 'Trade balance', color: '#cfd5ea', sign: 1 },
-    { id: 'emis', label: 'Emissions', color: '#5aa58c', sign: -1, eco: true }   // sixth dimension (v2.0), drawn only when the rows carry it
+    { id: 'emis', label: 'Emissions', color: '#5aa58c', sign: -1, eco: true },   // climate option, drawn only when the rows carry it
+    { id: 'ineq', label: 'Inequality', color: '#b0418f', sign: -1, hh: true }     // households option, drawn only when the rows carry it
   ];
-  /* the series present in a set of rows: the five, plus emissions when any row has a value for it */
+  /* the series present in a set of rows: the five, plus emissions and inequality when any row has a value for them */
   function trajSeriesFor(rows) {
-    var hasEmis = (rows || []).some(function (r) { return r && r.emis !== undefined && r.emis !== null && r.emis !== ''; });
-    return TRAJ_SERIES.filter(function (s) { return !s.eco || hasEmis; });
+    var has = function (k) { return (rows || []).some(function (r) { return r && r[k] !== undefined && r[k] !== null && r[k] !== ''; }); };
+    var hasEmis = has('emis'), hasIneq = has('ineq');
+    return TRAJ_SERIES.filter(function (s) { return (!s.eco || hasEmis) && (!s.hh || hasIneq); });
   }
   var R_SERIES = { id: 'R', label: 'R (total)', color: '#0a1670', dash: true };
   function trajWeights(w) { var d = MS.defaultState().weights; return Object.assign({}, d, w || {}); }
@@ -348,6 +352,9 @@ var UI = (function () {
     { id: 'C', g: 'Households', label: 'Consumption', sym: 'C', unit: '%', src: 'x', eq: 'households' },
     { id: 'YD', g: 'Households', label: 'Disposable income', sym: 'YD', unit: '%', src: 'x', eq: 'households' },
     { id: 'V', g: 'Households', label: 'Wealth', sym: 'V', unit: '%', src: 'x', eq: 'households' },
+    { id: 'ineq', g: 'Households', label: 'Inequality', sym: 'sR', unit: 'pt', src: 'row', eq: 'hh', need: 'hh' },
+    { id: 'YDP', g: 'Households', label: 'Disposable income, modest half', sym: 'YDP', unit: '%', src: 'x', eq: 'hh', need: 'hh' },
+    { id: 'YDR', g: 'Households', label: 'Disposable income, wealthy half', sym: 'YDR', unit: '%', src: 'x', eq: 'hh', need: 'hh' },
     { id: 'I', g: 'Firms', label: 'Investment', sym: 'I', unit: '%', src: 'x', eq: 'firms' },
     { id: 'G', g: 'Government', label: 'Public demand', sym: 'G', unit: '%', src: 'x', eq: 'levers' },
     { id: 'TR', g: 'Government', label: 'Social benefits', sym: 'TR', unit: '%', src: 'x', eq: 'levers' },
@@ -371,7 +378,7 @@ var UI = (function () {
     { id: 'D', g: 'Climate', label: 'Climate damage', sym: 'D', unit: 'pt of potential', src: 'extra', eq: 'eco', need: 'eco' }
   ];
   function exploreVars(st) {
-    var has = { prices: MS.modelId(st) !== 'v1.1', capital: MS.financeModel(st), eco: MS.climateOn(st) };
+    var has = { prices: MS.modelId(st) !== 'v1.1', capital: MS.financeModel(st), eco: MS.climateOn(st), hh: MS.householdsOn(st) };
     return EXPLORE_VARS.filter(function (v) { return !v.need || has[v.need]; });
   }
   /* the value of variable v in a result row (country) or a union row; null when the row does not carry it */
@@ -476,11 +483,11 @@ var UI = (function () {
     return h;
   }
   /* compact text of a set of objective weights: 'GDP 0.15 · U 0.40 · π 0.15 · PB 0.15 · TB 0.15' (equal weights collapse) */
-  var W_SHORT = { gdp: 'GDP', unemp: 'U', infl: 'π', pubbal: 'PB', tradebal: 'TB' , emis: 'Emis' };
+  var W_SHORT = { gdp: 'GDP', unemp: 'U', infl: 'π', pubbal: 'PB', tradebal: 'TB' , emis: 'Emis', ineq: 'Ineq' };
   function weightsLine(w, label) {
     w = w || {};
-    /* the sixth dimension (emissions) is listed only when it carries a weight */
-    var ids = MS.INDICATORS.filter(function (i) { return !i.eco || MS.num(w[i.id]) > 0; }).map(function (i) { return i.id; });
+    /* the option dimensions (emissions, inequality) are listed only when they carry a weight */
+    var ids = MS.INDICATORS.filter(function (i) { return (!i.eco && !i.hh) || MS.num(w[i.id]) > 0; }).map(function (i) { return i.id; });
     var vals = ids.map(function (id) { return MS.num(w[id]); });
     var txt;
     if (vals.every(function (v) { return Math.abs(v - vals[0]) < 1e-9; })) txt = MS.fmt(vals[0], 2) + ' everywhere';
@@ -492,8 +499,13 @@ var UI = (function () {
     }
     return (label ? label + ' — ' : '') + txt;
   }
-  function trajectoryLegendHtml(withEmis) {
-    var items = TRAJ_SERIES.filter(function (s) { return !s.eco || withEmis; }).concat([R_SERIES]);
+  /* the caption under the objective charts: the five dimensions, or more with the climate or the households option */
+  function trajCaption(st) {
+    if (MS.climateOn(st) || MS.householdsOn(st)) return 'Each bar stacks the contributions of the dimensions to R for the year (weight × deviation; GDP and the two balances count positively, the others negatively): above zero what helped, below zero what hurt. The dashed line is R itself.';
+    return 'Each bar stacks the contributions of the five dimensions to R for the year (weight × deviation; unemployment and inflation count negatively): above zero what helped, below zero what hurt. The dashed line is R itself.';
+  }
+  function trajectoryLegendHtml(withEmis, withIneq) {
+    var items = TRAJ_SERIES.filter(function (s) { return (!s.eco || withEmis) && (!s.hh || withIneq); }).concat([R_SERIES]);
     return '<div class="trajlegend">' + items.map(function (s) { return '<span><i style="' + (s.dash ? 'background:repeating-linear-gradient(90deg,' + s.color + ' 0 6px,transparent 6px 10px)' : 'background:' + s.color + ';height:10px') + '"></i>' + esc(s.label) + '</span>'; }).join('') + '</div>';
   }
   function download(filename, text, mime) {
@@ -510,5 +522,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

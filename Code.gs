@@ -116,10 +116,11 @@ var MS = (function () {
     { id: 'infl',     label: 'Inflation rate',    unit: 'pt',        sign: -1 },
     { id: 'pubbal',   label: 'Public balance',    unit: 'pt of GDP', sign: +1 },
     { id: 'tradebal', label: 'Trade balance',     unit: 'pt of GDP', sign: +1 },
-    { id: 'emis',     label: 'Emissions',         unit: '% of ref.', sign: -1, eco: true }   // sixth dimension, v2.0 classes only (class weight 0 by default)
+    { id: 'emis',     label: 'Emissions',         unit: '% of ref.', sign: -1, eco: true },   // sixth dimension, climate option only (class weight 0 by default)
+    { id: 'ineq',     label: 'Inequality',        unit: 'pt',        sign: -1, hh: true }     // households option only: the wealthy half's share of disposable income (class weight 0 by default)
   ];
-  /* the objective dimensions of a class: five for v1.x, six (with emissions) for v2.0 */
-  function indicatorsFor(state) { var eco = isEcoModel(state); return INDICATORS.filter(function (i) { return !i.eco || eco; }); }
+  /* the objective dimensions of a class: the five, plus emissions with the climate option and inequality with the households option */
+  function indicatorsFor(state) { var eco = isEcoModel(state), hh = householdsOn(state); return INDICATORS.filter(function (i) { return (!i.eco || eco) && (!i.hh || hh); }); }
 
   function countryById(id) {
     if (id === 'ROW') return ROW;
@@ -164,7 +165,7 @@ var MS = (function () {
         maxNonZero: 0,            // 0 = no limit
         minText: 100
       },
-      weights: { gdp: 0.2, unemp: 0.2, infl: 0.2, pubbal: 0.2, tradebal: 0.2, emis: 0 },   // emis: sixth dimension (v2.0), 0 unless an election or the administrator activates it
+      weights: { gdp: 0.2, unemp: 0.2, infl: 0.2, pubbal: 0.2, tradebal: 0.2, emis: 0, ineq: 0 },   // emis (climate option) and ineq (households option): 0 unless an election or the administrator activates them
       /* OPEN-MU engine inputs. `shocks`: key = year as a string ('1', '2', …), value =
          {world, rate, confidence, imports, deval} (world/confidence/imports/deval in %, rate in points).
          A patch of `shocks` replaces the WHOLE object (mergeState merges one level deep only),
@@ -226,6 +227,7 @@ var MS = (function () {
     { id: 'left', label: 'Left: unemployment first', weights: { gdp: 0.15, unemp: 0.4, infl: 0.15, pubbal: 0.15, tradebal: 0.15 } },
     { id: 'right', label: 'Right: public finances first', weights: { gdp: 0.15, unemp: 0.15, infl: 0.15, pubbal: 0.4, tradebal: 0.15 } },
     { id: 'green', label: 'Green: emissions first', weights: { gdp: 0.12, unemp: 0.12, infl: 0.12, pubbal: 0.12, tradebal: 0.12, emis: 0.4 }, eco: true },
+    { id: 'equality', label: 'Equality: inequality first', weights: { gdp: 0.12, unemp: 0.12, infl: 0.12, pubbal: 0.12, tradebal: 0.12, ineq: 0.4 }, hh: true },
     { id: 'reset', label: 'Back to the class weights', weights: null }
   ];
   function electionsUpTo(state, year) {
@@ -584,7 +586,7 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.12';
+  var VERSION = '1.13';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -600,12 +602,12 @@ var MSService = (function () {
   function setState(st, classId, state) { st.setConfig('state:' + classId, JSON.stringify(state)); }
   function classExists(st, classId) { return getClasses(st).some(function (c) { return c.id === classId; }); }
 
-  /* ---------- row helpers: append-only tables, latest row wins ---------- */
+  /* ---------- row helpers: append-only tables, latest row wins (rows come in append order: on equal timestamps, the later one) ---------- */
   function latestBy(rows, keyFn) {
     var map = {};
     rows.forEach(function (r) {
       var k = keyFn(r);
-      if (!map[k] || String(r.ts) > String(map[k].ts)) map[k] = r;
+      if (!map[k] || String(r.ts) >= String(map[k].ts)) map[k] = r;
     });
     return Object.keys(map).map(function (k) { return map[k]; });
   }
@@ -1013,7 +1015,7 @@ var SHEETS = {
   config:    { name: 'Config',    header: ['key', 'value'] },
   groups:    { name: 'Groups',    header: ['classId', 'groupId', 'name', 'pin', 'country', 'members'] },
   decisions: { name: 'Decisions', header: null },   // built in decisionsHeader()
-  results:   { name: 'Results',   header: ['ts', 'classId', 'phase', 'round', 'key', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'detail', 'emis'] },   // emis appended last (v1.7) so older sheets stay aligned
+  results:   { name: 'Results',   header: ['ts', 'classId', 'phase', 'round', 'key', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'detail', 'emis', 'ineq'] },   // emis (v1.7) and ineq (v1.13) appended last so older sheets stay aligned
   pledges:   { name: 'Pledges',   header: ['ts', 'classId', 'round', 'groupId', 'country', 'text', 'payload'] },
   comments:  { name: 'Comments',  header: ['ts', 'classId', 'phase', 'round', 'groupId', 'text'] },
   log:       { name: 'Log',       header: ['ts', 'action', 'classId', 'who', 'details'] }
