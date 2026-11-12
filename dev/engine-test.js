@@ -721,5 +721,89 @@ console.log('\n===== MATRICES (model page) =====');
   must(maxRow < 1e-9 && maxCol < 1e-9 && maxChk < 1e-9 && maxNW < 1e-9, 'model page matrices: every row and column of the transactions-flow and balance-sheet matrices sums to zero, net worth = V, −B, K, NWcb (16 seeds × 6 years, v1.1–v2.0; max ' + Math.max(maxRow, maxCol, maxChk, maxNW).toExponential(1) + ' of GDP)');
 }
 
+/* ======================================================================
+   Prototype: flat segment of the Phillips curve (phillipsBand = h)
+   ====================================================================== */
+console.log('\n# Phillips band (prototype)');
+{
+  const MODELS = ['v1.0', 'v1.1', 'v1.2', 'v1.3', 'v2.0', 'v1', 'v2', 'v1+climate', 'v2+climate'];
+  const capOf = v => /^v(1\.3|2\.0|2)/.test(v), ecoOf = v => /climate|2\.0/.test(v);
+  const strip = o => JSON.stringify(o, (k, v) => k === 'params' ? undefined : v);
+  /* 1. h = 0 is the linear curve, bit for bit (explicit 0 = absent), in the union, exit and duel paths */
+  let same = true;
+  MODELS.forEach((v, i) => {
+    const rnd = rng(100 + i), inp = randomInputs(rnd, 5, 1, capOf(v), ecoOf(v));
+    const a = OPENMU.report({ params: OPENMU.paramsFor(v), years: 5, policies: inp.policies, shocks: inp.shocks });
+    const b = OPENMU.report({ params: Object.assign(OPENMU.paramsFor(v), { phillipsBand: 0 }), years: 5, policies: inp.policies, shocks: inp.shocks });
+    if (strip(a) !== strip(b)) same = false;
+    if (v === 'v2' || v === 'v2+climate') {
+      const pol = JSON.parse(JSON.stringify(inp.policies)); pol.FRA[0].leave = 1; pol.ITA[2].leave = 1; pol.ITA[3].peg = 1;
+      const c = OPENMU.report({ params: OPENMU.paramsFor(v), years: 5, policies: pol, shocks: inp.shocks });
+      const d = OPENMU.report({ params: Object.assign(OPENMU.paramsFor(v), { phillipsBand: 0 }), years: 5, policies: pol, shocks: inp.shocks });
+      if (strip(c) !== strip(d)) same = false;
+    }
+  });
+  const duelPol = { A: [{ pubdem: 4 }, { rate: 1 }, {}], B: [{ vat: 2 }, {}, { pubdem: -3 }] }, duelSh = [{ regime: 'float' }, { regime: 'float' }, {}];
+  if (strip(OPENMU.reportDuel({ years: 3, policies: duelPol, shocks: duelSh })) !== strip(OPENMU.reportDuel({ years: 3, policies: duelPol, shocks: duelSh, params: { phillipsBand: 0 } }))) same = false;
+  must(same, 'phillipsBand = 0 replays every model (v1.0 … v2+climate), the exit path and the duel to the last digit');
+
+  /* 2. stationarity with a band (models without the climate block: with it, the business-as-usual damage moves the economy) */
+  let stat = 0;
+  MODELS.filter(v => !ecoOf(v)).forEach(v => {
+    const s = OPENMU.simulate({ params: Object.assign(OPENMU.paramsFor(v), { phillipsBand: 1 }), years: 8 });
+    s.years.forEach(y => Object.keys(y.countries).forEach(id => { const cy = y.countries[id]; stat = Math.max(stat, Math.abs(cy.gap), Math.abs(cy.pi - 2), Math.abs(cy.Y / s.ref.countries[id].Y - 1)); }));
+  });
+  must(stat < 1e-9, 'phillipsBand = 1: no policy and no shock → the stationary reference (gap 0, π = π*), every model without climate (max ' + stat.toExponential(1) + ')');
+
+  /* 3. identities with a band (model page matrices, random levers and shocks) */
+  const ACC = require('../accounts.js');
+  let maxRow = 0, maxChk = 0;
+  for (let seed = 1; seed <= 12; seed++) {
+    const rnd = rng(seed * 13), v = ['v1.1', 'v1', 'v2', 'v2+climate'][seed % 4], inp = randomInputs(rnd, 6, 1, capOf(v), ecoOf(v));
+    const sim = OPENMU.simulate({ params: Object.assign(OPENMU.paramsFor(v), { phillipsBand: 1 }), years: 6, policies: inp.policies, shocks: inp.shocks });
+    for (let t = 0; t < 6; t++) {
+      const a = ACC.accounts(sim, t), Y = a.Y;
+      a.flows.forEach(r => { if (!r.block) maxRow = Math.max(maxRow, Math.abs(r.sum) / Y); });
+      Object.keys(a.colFlows).forEach(k => { maxRow = Math.max(maxRow, Math.abs(a.colFlows[k]) / Y); });
+      maxChk = Math.max(maxChk, a.checks.V / Y, a.checks.B / Y, a.checks.K / Y);
+    }
+  }
+  must(maxRow < 1e-9 && maxChk < 1e-9, 'phillipsBand = 1: transactions-flow and balance-sheet matrices still add up under random levers and shocks');
+
+  /* 4. inside the band, π = π* + costs (VAT, exchange rate, carbon tax); outside, the demand term is κ (gap − sign · h) */
+  const h = 1;
+  let errIn = 0, errOut = 0, nIn = 0, nOut = 0;
+  const gD = (cy, Y0) => cy.D ? 100 * (cy.Y / (Y0 * (1 - cy.D)) - 1) : cy.gap;
+  ['v1', 'v2', 'v1+climate', 'v2+climate'].forEach((v, i) => {
+    const p = Object.assign(OPENMU.paramsFor(v), { phillipsBand: h });
+    for (let seed = 0; seed < 4; seed++) {
+      const rnd = rng(500 + 10 * i + seed), inp = randomInputs(rnd, 6, 1, capOf(v), ecoOf(v));
+      IDS.forEach(id => inp.policies[id].forEach(y => { y.pubdem /= 8; y.benefits /= 8; y.inctax /= 8; }));   // small levers: many years in the band
+      inp.shocks.forEach(s => { s.world /= 8; s.confidence /= 8; s.imports /= 8; });
+      const sim = OPENMU.simulate({ params: p, years: 6, policies: inp.policies, shocks: inp.shocks });
+      sim.years.forEach((y, t) => IDS.forEach(id => {
+        const cy = y.countries[id], pv = t ? sim.years[t - 1].countries[id] : null, rc = sim.ref.countries[id];
+        const xrPrev = t ? sim.years[t - 1].union.xr : sim.ref.union.xr0;
+        const costs = p.rho * (cy.tau - (pv ? pv.tau : rc.tau)) * 100 + p.omega * 100 * (y.union.xr - xrPrev) / xrPrev + (p.eco ? p.rhoC * (cy.ctax - (pv ? pv.ctax : 0)) : 0);
+        const g = gD(cy, rc.Y), dem = cy.pi - p.pistar - costs;
+        if (Math.abs(g) <= h) { nIn++; errIn = Math.max(errIn, Math.abs(dem)); } else { nOut++; errOut = Math.max(errOut, Math.abs(dem - p.kappa * (g - Math.sign(g) * h))); }
+      }));
+    }
+  });
+  /* duel: same check, own exchange rate */
+  for (let seed = 0; seed < 4; seed++) {
+    const rnd = rng(900 + seed), pol = { A: [], B: [] }, sh = [];
+    for (let t = 0; t < 6; t++) { ['A', 'B'].forEach(s => pol[s].push({ pubdem: (rnd() * 2 - 1) * 2, vat: (rnd() * 2 - 1) * 2, ctax: rnd() < 0.3 ? rnd() * 5 : 0 })); sh.push({ regime: rnd() < 0.5 ? 'float' : 'fixed' }); }
+    const sim = OPENMU.simulateDuel({ years: 6, policies: pol, shocks: sh, params: { phillipsBand: h } }), p = OPENMU.duelParams({ phillipsBand: h });
+    sim.years.forEach((y, t) => ['A', 'B'].forEach(id => {
+      const cy = y.countries[id], pv = t ? sim.years[t - 1].countries[id] : null, rc = sim.ref.countries[id];
+      const xrPrev = pv ? pv.xr : 1, costs = p.rho * (cy.tau - (pv ? pv.tau : rc.tau)) * 100 + p.omega * 100 * (cy.xr - xrPrev) / xrPrev + p.rhoC * (cy.ctax - (pv ? pv.ctax : 0));
+      const g = gD(cy, rc.Y), dem = cy.pi - p.pistar - costs;
+      if (Math.abs(g) <= h) { nIn++; errIn = Math.max(errIn, Math.abs(dem)); } else { nOut++; errOut = Math.max(errOut, Math.abs(dem - p.kappa * (g - Math.sign(g) * h))); }
+    }));
+  }
+  must(nIn > 50 && nOut > 50 && errIn < 1e-9 && errOut < 1e-9, 'phillipsBand = 1: |gap| ≤ h → π = π* + costs (' + nIn + ' country-years, max error ' + errIn.toExponential(1) + '); |gap| > h → demand term κ (gap − sign · h) (' + nOut + ', ' + errOut.toExponential(1) + '); union v1/v2 ± climate and duel');
+}
+
 console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' : '\nENGINE OK');
 process.exit(failed ? 1 : 0);

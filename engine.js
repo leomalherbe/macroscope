@@ -85,6 +85,7 @@ var OPENMU = (function () {
       /* thermometers (reported, not fed back) */
       ustar: 7,  beta: 0.4,
       pistar: 2, kappa: 0.3, rho: 0.6, omega: 0.15,
+      phillipsBand: 0,  // prototype: flat segment of the Phillips curve, half-width h in points of output gap: the demand term is kappa · s(gap), s(g) = sign(g) · max(0, |g| − h); cost terms (VAT, exchange rate, carbon tax) unchanged. 0 = linear (all models)
       /* v1.3: capital flows and market pressure */
       rw: 0.03,         // rest-of-the-world bill rate at the reference (= r*)
       bwShare: 0.30,    // RoW holdings of union bills at the reference, share of union GDP (= households' foreign bills: primary income balanced); 0.15 from v1.3 on (see below)
@@ -134,6 +135,8 @@ var OPENMU = (function () {
   }
 
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
+  /* Phillips-curve demand term with a flat segment of half-width h = p.phillipsBand (points of output gap); h = 0 returns g unchanged */
+  function phSeg(p, g) { var h = num(p.phillipsBand); return h > 0 ? (g > 0 ? 1 : -1) * Math.max(0, Math.abs(g) - h) : g; }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function mergeParams(params) {
     var p = defaultParams(!(params && params.firms === false), !!(params && params.prices === true), !!(params && params.capital === true), !!(params && params.eco === true));
@@ -404,7 +407,7 @@ var OPENMU = (function () {
         var TB = X - IMV;
         var gap = 100 * (Y / rc.Y - 1);
         var u = p.ustar - p.beta * gap;
-        var pi = p.pistar + p.kappa * gap + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr;
+        var pi = p.pistar + p.kappa * phSeg(p, gap) + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr;
         var P = pv.P * (1 + pi / 100);
         year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
           V: V, Bh: Bh, H: H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
@@ -627,7 +630,7 @@ var OPENMU = (function () {
           var gap = 100 * (Y / rc.Y - 1);
           var gapD = eco ? 100 * (Y / (rc.Y * (1 - D)) - 1) : gap;   // v2.0: gap on the damaged potential
           var u = p.ustar + (eco ? p.chiU * 100 * D : 0) - p.beta * gap;
-          var pi = p.pistar + p.kappa * gapD + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
+          var pi = p.pistar + p.kappa * phSeg(p, gapD) + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
           var P = pv.P * (1 + pi / 100);
           var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);   // v1.2: price level relative to the reference path (= world prices, growing at π*)
           year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
@@ -1001,7 +1004,7 @@ var OPENMU = (function () {
           var gapD = eco ? 100 * (Y / (rc.Y * (1 - D)) - 1) : gap;
           var u = p.ustar + (eco ? p.chiU * 100 * D : 0) - p.beta * gap;
           var dW = 100 * (Ei * xr - pv.E * prevU.xr) / (pv.E * prevU.xr), dE = 100 * (Ei - pv.E) / pv.E;
-          var pi = p.pistar + p.kappa * gapD + p.rho * (c.tau - pv.tau) * 100 + p.omega * dW + (out_ ? omegaU * dE : 0) + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
+          var pi = p.pistar + p.kappa * phSeg(p, gapD) + p.rho * (c.tau - pv.tau) * 100 + p.omega * dW + (out_ ? omegaU * dE : 0) + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
           var P = pv.P * (1 + pi / 100);
           var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);
           year.countries[id] = { Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
@@ -1428,7 +1431,7 @@ var OPENMU = (function () {
           CApS[id] = CAp; KAS[id] = KA; excess[id] = CAp + KA;
           var gap = 100 * (a.Y / rc.Y - 1), gapD = 100 * (a.Y / (rc.Y * (1 - D)) - 1);
           var u = p.ustar + p.chiU * 100 * D - p.beta * gap;
-          var pi = p.pistar + p.kappa * gapD + p.rho * (a.c.tau - pv.tau) * 100 + p.omega * 100 * (xr[id] - xrPrev[id]) / xrPrev[id] + p.rhoC * (ctaxNow[id] - pv.ctax);
+          var pi = p.pistar + p.kappa * phSeg(p, gapD) + p.rho * (a.c.tau - pv.tau) * 100 + p.omega * 100 * (xr[id] - xrPrev[id]) / xrPrev[id] + p.rhoC * (ctaxNow[id] - pv.ctax);
           var P = pv.P * (1 + pi / 100), Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);
           var E = ci[id] * a.Y; sumE += E;
           year.countries[id] = { Y: a.Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: a.C, CE: a.CE, G: a.c.G, TR: a.c.TR, theta: a.c.theta, tau: a.c.tau, T: a.T, YD: a.YD,
