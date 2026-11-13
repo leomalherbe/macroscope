@@ -43,8 +43,13 @@ const MS = require('../core.js');
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { phase: 'game', round: 1, status: 'open', years: 3, communique: 'World demand falls by 2 % this year.' } });
   await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(500);
   await admin.click('#tabs button:has-text("Control")');
-  await admin.click('label:has-text("Guided strategy") input');
-  await admin.waitForSelector('.toast.show:has-text("Guided strategy on")');
+  must(!(await admin.isVisible('label:has-text("guided strategy") input')), 'the guided strategy is no longer in the communication card');
+  await admin.click('summary:has-text("Parameters")');
+  must(!(await admin.isVisible('label:has-text("forecasts required")')), 'Parameters: its settings show only once it is ticked');
+  await admin.check('#strategyOn');
+  must(await admin.isVisible('label:has-text("forecasts required")') && await admin.isDisabled('xpath=//label[contains(.,"Min. characters, justification")]/following-sibling::input'), 'Parameters → Game: guided strategy beside the minimum length, which it replaces (greyed)');
+  await admin.click('button:has-text("Save parameters")');
+  await admin.waitForSelector('.toast.show:has-text("Parameters saved")');
   let s = (await api({ action: 'admin.overview', key: KEY, classId: cid })).state;
   must(s.strategy.on && !s.strategy.gridsRequired && s.strategy.minPart === 30, 'guided strategy on, forecasts optional, 30 characters a part');
 

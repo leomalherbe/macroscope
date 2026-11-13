@@ -1188,3 +1188,11 @@ Team download closed
 // Parameters: the options of the game side by side
 Options of the game (each one adds its levers, panels, guide cards and indicators):
 => Options de la partie (chacune ajoute ses leviers, panneaux, fiches du guide et indicateurs) :
+
+// guided strategy in Parameters; the communication card
+guided strategy (five parts instead of a free text)
+=> stratégie guidée (cinq rubriques au lieu d’un texte libre)
+Communication between teams and visibility
+=> Communication entre équipes et visibilité
+Replaced by the guided strategy (minimum length per part)
+=> Remplacé par la stratégie guidée (longueur minimale par rubrique)
