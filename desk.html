@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111206">
-<script src="i18n.js?v=2026111206"></script>
-<script src="i18n/fr-desk.js?v=2026111206"></script>
-<script src="guide.js?v=2026111206"></script>
-<script src="config.js?v=2026111206"></script>
-<script src="core.js?v=2026111206"></script>
-<script src="app-common.js?v=2026111206"></script>
+<link rel="stylesheet" href="style.css?v=2026111310">
+<script src="i18n.js?v=2026111310"></script>
+<script src="i18n/fr-desk.js?v=2026111310"></script>
+<script src="guide.js?v=2026111310"></script>
+<script src="config.js?v=2026111310"></script>
+<script src="core.js?v=2026111310"></script>
+<script src="app-common.js?v=2026111310"></script>
 </head>
 <body>
 
@@ -948,7 +948,13 @@
 
   /* ---------------- timers ---------------- */
   tick = setInterval(updateCountdown, 1000);
-  pollTimer = setInterval(function () { if (!document.hidden && pin) load(true); }, 30000);
+  /* every 10 s, a tiny « anything new? »; the state is reloaded only when something was written (or every 2 min, or when the
+     deadline has just passed) */
+  pollTimer = setInterval(async function () {
+    if (document.hidden || !pin) return;
+    var late = data && data.roundOpen && data.state && data.state.deadline && Date.parse(data.state.deadline) <= Date.now() + offset;
+    if (late || await MSApi.due('desk', 120000, 30000)) load(true);
+  }, 10000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden && pin) load(true); });
   load();
 })();

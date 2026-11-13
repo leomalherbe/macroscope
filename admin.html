@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111206">
-<script src="i18n.js?v=2026111206"></script>
-<script src="i18n/fr-desk.js?v=2026111206"></script>
-<script src="i18n/fr-admin.js?v=2026111206"></script>
-<script src="config.js?v=2026111206"></script>
-<script src="core.js?v=2026111206"></script>
-<script src="app-common.js?v=2026111206"></script>
-<script src="engine.js?v=2026111206"></script>
+<link rel="stylesheet" href="style.css?v=2026111310">
+<script src="i18n.js?v=2026111310"></script>
+<script src="i18n/fr-desk.js?v=2026111310"></script>
+<script src="i18n/fr-admin.js?v=2026111310"></script>
+<script src="config.js?v=2026111310"></script>
+<script src="core.js?v=2026111310"></script>
+<script src="app-common.js?v=2026111310"></script>
+<script src="engine.js?v=2026111310"></script>
 </head>
 <body>
 
@@ -114,7 +114,7 @@
     renderClassBar();
     if (classId) await refresh(); else renderNoClass();
     clearInterval(pollTimer);
-    pollTimer = setInterval(function () { if (!document.hidden && classId && (tab === 'control' || tab === 'entry' || tab === 'council')) refresh(true); }, 20000);
+    pollTimer = setInterval(async function () { if (!document.hidden && classId && (tab === 'control' || tab === 'entry' || tab === 'council') && await MSApi.due('admin', 120000, 20000)) refresh(true); }, 8000);
   }
   function renderClassBar() {
     var bar = $('#classbar'); bar.innerHTML = '';
