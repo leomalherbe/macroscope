@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111318">
-<script src="i18n.js?v=2026111318"></script>
-<script src="i18n/fr-desk.js?v=2026111318"></script>
-<script src="i18n/fr-admin.js?v=2026111318"></script>
-<script src="config.js?v=2026111318"></script>
-<script src="core.js?v=2026111318"></script>
-<script src="app-common.js?v=2026111318"></script>
-<script src="engine.js?v=2026111318"></script>
+<link rel="stylesheet" href="style.css?v=2026111319">
+<script src="i18n.js?v=2026111319"></script>
+<script src="i18n/fr-desk.js?v=2026111319"></script>
+<script src="i18n/fr-admin.js?v=2026111319"></script>
+<script src="config.js?v=2026111319"></script>
+<script src="core.js?v=2026111319"></script>
+<script src="app-common.js?v=2026111319"></script>
+<script src="engine.js?v=2026111319"></script>
 </head>
 <body>
 
@@ -412,7 +412,7 @@
 
     /* council & visibility */
     var c4 = el('div', { class: 'card' });
-    c4.appendChild(el('h2', {}, [isDuel() ? 'Visibility' : 'Council of ministers and visibility']));
+    c4.appendChild(el('h2', {}, [isDuel() ? 'Visibility' : 'Communication between teams and visibility']));
     var r4 = el('div', { class: 'btnrow' });
     if (isGame && isDuel()) r4.appendChild(el('span', { class: 'muted small' }, ['Duels have no council: decisions are revealed to the partner once the round is closed.']));
     else if (isGame) {
@@ -435,21 +435,6 @@
       fr.appendChild(selN); fr.appendChild(selL);
       c4.appendChild(fr);
       c4.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['Open all game long: each country posts its proposals (engagement with a counterpart, joint proposal, vote call); every country supports or rejects them by name. The forum of a year freezes when you close its submissions; its proposals are then compared with the decisions, in public. You can hide a proposal afterwards (Council tab).']));
-      /* guided strategy: the justification in five parts with forecasts */
-      var sc = MS.strategyConf(s), sr = el('div', { class: 'checks', style: 'margin-top:12px' });
-      var cbS = el('input', { type: 'checkbox' }); cbS.checked = sc.on;
-      cbS.addEventListener('change', function () { patch({ strategy: { on: cbS.checked } }, cbS.checked ? 'Guided strategy on' : 'Guided strategy off'); });
-      sr.appendChild(el('label', {}, [cbS, ' Guided strategy (five parts instead of a free text)']));
-      if (sc.on) {
-        var cbG = el('input', { type: 'checkbox' }); cbG.checked = sc.gridsRequired;
-        cbG.addEventListener('change', function () { patch({ strategy: { gridsRequired: cbG.checked } }, 'Guided strategy updated'); });
-        sr.appendChild(el('label', {}, [cbG, ' forecasts required']));
-        var selM = el('select', { onchange: function () { patch({ strategy: { minPart: Number(selM.value) } }, 'Guided strategy updated'); } });
-        [0, 30, 60, 100].forEach(function (n) { selM.appendChild(el('option', { value: n }, [n ? n + ' characters a part at least' : 'no minimum length'])); }); selM.value = sc.minPart;
-        sr.appendChild(selM);
-      }
-      c4.appendChild(sr);
-      c4.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['The shock and the votes of the year, the other countries, our own policy (each with a forecast ↑ ≈ ↓ per indicator, compared after the run with the matching part of the split), priorities and sacrifices among the dimensions of R, the long-term project (kept or revised each year). Replaces the minimum length of the free text; the warm-up has no forecasts and no "other countries" part.']));
       /* diplomatic telegrams: private, from country to country; the send window is yours */
       var tc = MS.telegramConf(s), tr = el('div', { class: 'checks', style: 'margin-top:12px' });
       var cbT = el('input', { type: 'checkbox' }); cbT.checked = tc.on;
@@ -515,6 +500,19 @@
     var gTfp = el('input', { type: 'checkbox' }); gTfp.checked = !!s.game.allowTfp;
     var gGuide = el('input', { type: 'checkbox', id: 'guideOn' }); gGuide.checked = !(s.sim && s.sim.guide === false);
     box.appendChild(el('div', { class: 'params' }, [gy.el, gm.el, gt.el]));
+    /* guided strategy: the justification (and the warm-up strategy) in five parts with forecasts; replaces the minimum length of the free text */
+    var sc = MS.strategyConf(s);
+    var gStr = el('input', { type: 'checkbox', id: 'strategyOn' }); gStr.checked = sc.on;
+    var gStrG = el('input', { type: 'checkbox', id: 'strategyGrids' }); gStrG.checked = sc.gridsRequired;
+    var gStrM = el('select', { id: 'strategyMin' }); [0, 30, 60, 100].forEach(function (n) { gStrM.appendChild(el('option', { value: n }, [n ? n + ' characters a part at least' : 'no minimum length'])); }); gStrM.value = sc.minPart;
+    var strSub = el('span', { class: 'inline' }, [el('label', {}, [gStrG, ' forecasts required']), gStrM]);
+    function strSync() { strSub.style.display = gStr.checked ? '' : 'none'; gt.input.disabled = wt.input.disabled = gStr.checked; gt.input.title = wt.input.title = gStr.checked ? 'Replaced by the guided strategy (minimum length per part)' : ''; }
+    gStr.addEventListener('change', strSync);
+    if (!isDuel()) {
+      box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', {}, [gStr, ' guided strategy (five parts instead of a free text)']), strSub]));
+      box.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['The shock and the votes of the year, the other countries, our own policy (each with a forecast ↑ ≈ ↓ per indicator, compared after the run with the matching part of the split), priorities and sacrifices among the dimensions of R, the long-term project (kept or revised each year). Replaces the minimum length of the free text; the warm-up has no forecasts and no "other countries" part.']));
+    }
+    strSync();
     box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', {}, [gTfp, ' TFP shock allowed'])]));
     box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', { title: 'Short cards on the mechanisms at work (direction of effects only), and a glossary; the cards shown follow the model version and the options of the class.' }, [gGuide, ' beginners’ guide on the desk (« How it works? » panel and ⓘ buttons)'])]));
     box.appendChild(el('h3', { style: 'margin-top:14px' }, ['Union votes (game)']));
@@ -558,6 +556,7 @@
         warmup: { country: wc.value, years: Math.max(1, Math.min(3, Math.round(MS.num(wy.input.value)) || 3)), allowed: allowed, maxNonZero: Math.round(MS.num(wm.input.value)), minText: Math.round(MS.num(wt.input.value)) },
         game: { allowTariff: false, allowEuro: false, allowTfp: gTfp.checked, maxNonZero: Math.round(MS.num(gm.input.value)), minText: Math.round(MS.num(gt.input.value)) },
         years: Math.max(1, Math.round(MS.num(gy.input.value)) || 5), weights: w,
+        strategy: { on: gStr.checked && !isDuel(), gridsRequired: gStrG.checked, minPart: Number(gStrM.value) },
         sim: { votes: vOn.checked, voteStep: MS.num(vStep.input.value) || 0.5, austerityCap: MS.num(vCap.input.value), devalSize: MS.num(vDev.input.value) || 10, forcedDeval: MS.num(vForced.input.value) || 15, crisisDepr: MS.num(vDepr.input.value) || 10, defendStep: MS.num(vDef.input.value) || 1, model: isDuel() ? 'v2.0' : mSel.value, climate: climNew, households: gHh.checked && !gHh.disabled, exit: gEu.checked && finNew, tariffs: gTar.checked && !isDuel(), guide: gGuide.checked } }, (gEu.checked && !finNew) ? 'Parameters saved — leaving the union needs the Finance model: left off' : 'Parameters saved');
     } }, ['Save parameters'])]));
     det.appendChild(box); c5.appendChild(det); v.appendChild(c5);
