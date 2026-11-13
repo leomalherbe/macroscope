@@ -7,10 +7,10 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111321">
-<script src="config.js?v=2026111321"></script>
-<script src="core.js?v=2026111321"></script>
-<script src="app-common.js?v=2026111321"></script>
+<link rel="stylesheet" href="style.css?v=2026111322">
+<script src="config.js?v=2026111322"></script>
+<script src="core.js?v=2026111322"></script>
+<script src="app-common.js?v=2026111322"></script>
 </head>
 <body class="board">
 
@@ -160,7 +160,9 @@
       if (!st.publishLeaderboard) c.appendChild(el('p', { class: 'muted' }, ['The ranking is hidden for now.']));
       else if (!lb.length) c.appendChild(el('p', { class: 'muted' }, ['The ranking appears after the first simulated year.']));
       else {
-        var maxAbs = Math.max.apply(null, lb.map(function (r) { return Math.abs(r.cumR || 0); }).concat([0.01]));
+        /* the bar: cumulative R split into the team's play and the other countries' policies (scale covers both) */
+        var othC = {}; lb.forEach(function (r) { othC[r.key] = MS.isDuel(st) ? null : UI.othersCum(st, data.gameResults, r.key); });
+        var maxAbs = Math.max.apply(null, lb.map(function (r) { return Math.max(Math.abs(r.cumR || 0), othC[r.key] === null ? 0 : Math.abs((r.cumR || 0) - othC[r.key])); }).concat([0.01]));
         var yrs = {}; lb.forEach(function (r) { Object.keys(r.years).forEach(function (y) { yrs[y] = true; }); });
         var yl = Object.keys(yrs).map(Number).sort(function (a, b) { return a - b; });
         var h = '<div class="tablewrap"><table><thead><tr><th>#</th><th>Country</th>' + yl.map(function (y) { return '<th class="num">R · y' + y + '</th>'; }).join('') + '<th class="num">Cumulative R</th><th></th></tr></thead><tbody>';
@@ -169,9 +171,10 @@
           var pct = Math.abs(cr || 0) / maxAbs * 50;
           h += '<tr><td class="rank">' + r.rank + '</td><td><b>' + esc(MS.countryName(r.key)) + '</b><br><span class="small muted">' + esc(groupName(((data.groups || []).filter(function (g) { return g.country === r.key; })[0] || {}).groupId)) + '</span></td>' +
             yl.map(function (y) { var e = r.years[y]; return '<td class="num ' + (e ? UI.signedClass(e.R) : '') + '">' + esc(e ? MS.fmt(e.R, 3, true) : '—') + '</td>'; }).join('') +
-            '<td class="num ' + UI.signedClass(cr) + '"><b>' + esc(MS.fmt(cr, 3, true)) + '</b></td><td><div class="bar"><i class="' + ((cr || 0) < 0 ? 'neg' : '') + '" style="left:' + ((cr || 0) < 0 ? 50 - pct : 50) + '%;width:' + pct + '%"></i></div></td></tr>';
+            '<td class="num ' + UI.signedClass(cr) + '"><b>' + esc(MS.fmt(cr, 3, true)) + '</b></td><td>' + UI.rBarHtml(cr, othC[r.key], maxAbs) + '</td></tr>';
         });
         c.appendChild(el('div', { html: h + '</tbody></table></div>' }));
+        if (Object.keys(othC).some(function (k) { return othC[k] !== null; })) c.appendChild(el('div', { html: UI.rBarLegendHtml() }));
         var elec = (data.groups || []).filter(function (g) { return g.country; }).map(function (g) { return { c: g.country, wi: MS.weightsInfo(st, st.round, g.country) }; }).filter(function (x) { return x.wi.elected; });
         if (elec.length) c.appendChild(el('p', { class: 'small', style: 'margin:.4em 0 0', html: '<b>Elections</b> — objective weights in force in year ' + esc(st.round) + ': ' + elec.map(function (x) { return esc(MS.countryName(x.c)) + ' · ' + esc(UI.weightsLine(x.wi.weights, x.wi.label)); }).join(' ; ') }));
         c.appendChild(el('p', { class: 'muted small' }, [(MS.isDuel(st) ? 'Every player of every pair. ' : '') + 'R is the score of each year: ' + st.weights.gdp + '·ΔGDP − ' + st.weights.unemp + '·Δunemployment − ' + st.weights.infl + '·Δinflation + ' + st.weights.pubbal + '·Δpublic balance + ' + st.weights.tradebal + '·Δtrade balance (deviations from the reference path). Countries are ranked by the cumulative R, the sum of their yearly scores.']));

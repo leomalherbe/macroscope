@@ -1670,3 +1670,33 @@ Your priorities this year:
 => Vos priorités cette année :
 · accepted to worsen:
 => · accepté de dégrader :
+Effect of the others
+=> Effet des autres
+helped
+=> a aidé
+cost
+=> a coûté
+Effect of the others = cumulative R − cumulative R net of the others: what the other countries’ policies added to your score (+) or took from it (−).
+=> Effet des autres = R cumulé − R cumulé net des autres : ce que les politiques des autres pays ont ajouté à votre score (+) ou lui ont retiré (−).
+Net of the others, you are
+=> Net des autres, vous êtes
+; the other countries’ policies
+=> ; les politiques des autres pays
+added
+=> vous ont apporté
+cost you
+=> vous ont coûté
+of cumulative R (you are
+=> de R cumulé (vous êtes
+in all).
+=> au total).
+your play: own policy and the shocks you answered
+=> votre jeu : votre politique et les chocs auxquels vous avez répondu
+the other countries’ policies helped
+=> les politiques des autres pays ont aidé
+they cost you
+=> elles vous ont coûté
+cumulative R
+=> R cumulé
+Net of the others # · the other countries # · cumulative R #
+=> Net des autres # · les autres pays # · R cumulé #

@@ -327,6 +327,30 @@ var UI = (function () {
     if (v.crisis) h += '<span class="chip vote">Will vote: ' + esc(crisisWord(v.crisis)) + '</span>';
     return '<div class="chips">' + (h || '<span class="chip zero">words only</span>') + '</div>';
   }
+  /* ---------- the ranking's bar: cumulative R split into the team's play (own policy + shocks) and the other countries' policies ---------- */
+  /* cumulative part of R due to the other countries' policies, from the published split (null when no row carries it) */
+  function othersCum(st, rows, key) {
+    var sum = 0, any = false;
+    (rows || []).forEach(function (r) { if (r.phase !== 'game' || r.key !== key) return; var f = rowSplit(r, st, st.weights).foreign; if (f && f.R !== null && f.R !== undefined) { sum += Number(f.R); any = true; } });
+    return any ? sum : null;
+  }
+  /* bar from the centre: solid = net of the others, hatched = the others' policies (green: helped, orange: cost), tick = cumulative R */
+  function rBarHtml(total, others, maxAbs) {
+    var X = function (v) { return Math.max(0, Math.min(100, 50 + v / maxAbs * 50)); };
+    if (total === null || total === undefined) return '<div class="bar"></div>';
+    if (others === null || others === undefined) {
+      var pct = Math.abs(total) / maxAbs * 50;
+      return '<div class="bar"><i class="' + (total < 0 ? 'neg' : '') + '" style="left:' + (total < 0 ? 50 - pct : 50) + '%;width:' + pct + '%"></i></div>';
+    }
+    var net = total - others, a = X(0), b = X(net), c = X(total);
+    var tip = 'Net of the others ' + MS.fmt(net, 3, true) + ' · the other countries ' + MS.fmt(others, 3, true) + ' · cumulative R ' + MS.fmt(total, 3, true);
+    return '<div class="bar rbar" title="' + esc(tip) + '"><i class="' + (net < 0 ? 'neg' : '') + '" style="left:' + Math.min(a, b) + '%;width:' + Math.abs(b - a) + '%"></i>' +
+      '<em class="' + (others >= 0 ? 'help' : 'cost') + '" style="left:' + Math.min(b, c) + '%;width:' + Math.abs(c - b) + '%"></em><b style="left:' + c + '%"></b></div>';
+  }
+  function rBarLegendHtml() {
+    return '<div class="xs muted rbarleg"><span><i></i> <span>your play: own policy and the shocks you answered</span></span> <span><em class="help"></em> <span>the other countries’ policies helped</span></span> <span><em class="cost"></em> <span>they cost you</span></span> <span><b></b> <span>cumulative R</span></span></div>';
+  }
+
   /* ---------- ranking by dimension ----------
      rank of each country on each dimension of R (sign applied: less unemployment, inflation, emissions or inequality is better),
      no weights inside a dimension; three views: cumulative (sum over the years published), the last year, net of the other
@@ -376,16 +400,18 @@ var UI = (function () {
       seg.innerHTML = '';
       DIM_VIEWS.forEach(function (v) { seg.appendChild(el('span', { class: v[0] === view ? 'on' : '', onclick: function () { view = v[0]; if (o.store) store(o.store, view); draw(); } }, [v[0] === 'year' ? 'Year ' + d.last : v[1]])); });
       var cols = d.inds.concat([{ id: 'R', label: view === 'net' ? 'Cumulative R, net of the others' : view === 'year' ? 'R' : 'Cumulative R', sign: 1 }]);
-      var h = '<div class="tablewrap"><table class="rk"><thead><tr><th>Country</th>' + cols.map(function (i) { return '<th' + (i.id === 'R' ? ' class="rcum"' : '') + '>' + esc(i.label) + '</th>'; }).join('') + '</tr></thead><tbody>';
+      var withOthers = view === 'net';
+      var h = '<div class="tablewrap"><table class="rk"><thead><tr><th>Country</th>' + cols.map(function (i) { return '<th' + (i.id === 'R' ? ' class="rcum"' : '') + '>' + esc(i.label) + '</th>'; }).join('') + (withOthers ? '<th>Effect of the others</th>' : '') + '</tr></thead><tbody>';
       d.keys.forEach(function (k) {
         h += '<tr' + (k === o.me ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(k)) + '</b></td>' + cols.map(function (i) {
           var r = d.rank[i.id][k], v = d.val[k][i.id], n = d.rank[i.id]._n;
           if (!r) return '<td class="' + (i.id === 'R' ? 'rcum' : '') + '"><span class="muted">—</span></td>';
           if (d.rank[i.id]._flat) return '<td class="' + (i.id === 'R' ? 'rcum' : '') + '"><span class="r">=</span><span class="v">' + esc(MS.fmt(v, i.id === 'R' ? 3 : 2, true) + unitOf(i)) + '</span></td>';
           return '<td class="' + (r === 1 ? 'g1' : (r === n && n > 1 ? 'gl' : '')) + (i.id === 'R' ? ' rcum' : '') + '"><span class="r">' + ordinal(r) + '</span><span class="v">' + esc(MS.fmt(v, i.id === 'R' ? 3 : 2, true) + unitOf(i)) + '</span></td>';
-        }).join('') + '</tr>';
+        }).join('') + (withOthers ? (function () { var oc = othersCum(st, o.rows, k); return '<td>' + (oc === null ? '<span class="muted">—</span>' : '<span class="oth ' + (oc >= 0 ? 'help' : 'cost') + '">' + esc(MS.fmt(oc, 3, true)) + '</span><span class="v">' + (oc >= 0 ? 'helped' : 'cost') + '</span>') + '</td>'; })() : '') + '</tr>';
       });
       h += '</tbody></table></div>';
+      if (withOthers) h += '<p class="xs muted" style="margin:4px 0 0">Effect of the others = cumulative R − cumulative R net of the others: what the other countries’ policies added to your score (+) or took from it (−).</p>';
       if (o.me && d.rank.R[o.me]) {
         var firsts = d.inds.filter(function (i) { return !d.rank[i.id]._flat && d.rank[i.id][o.me] === 1; }).map(function (i) { return i.label; });
         var lasts = d.inds.filter(function (i) { var n = d.rank[i.id]._n; return n > 1 && !d.rank[i.id]._flat && d.rank[i.id][o.me] === n; }).map(function (i) { return i.label; });
@@ -394,7 +420,12 @@ var UI = (function () {
         if (lasts.length) parts.push('<span>last on</span> ' + lasts.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join(', '));
         if (!parts.length) parts.push('<span>neither first nor last on any dimension</span>');
         var pr = o.prio && o.prio.up && o.prio.up.length ? '<div class="small" style="margin-top:3px"><span class="muted">Your priorities this year:</span> ' + o.prio.up.map(function (id) { var i = d.inds.filter(function (x) { return x.id === id; })[0]; return '<span>' + esc(i ? i.label : id) + '</span>'; }).join(', ') + (o.prio.down && o.prio.down.length ? ' <span class="muted">· accepted to worsen:</span> ' + o.prio.down.map(function (id) { var i = d.inds.filter(function (x) { return x.id === id; })[0]; return '<span>' + esc(i ? i.label : id) + '</span>'; }).join(', ') : '') + '</div>' : '';
-        h += '<div class="sumrk"><b>' + esc(MS.countryName(o.me)) + '</b> · ' + parts.join(' · ') + pr + '</div>';
+        var net2 = '';
+        if (withOthers) {
+          var oc2 = othersCum(st, o.rows, o.me), dc = dimRanking(st, o.rows, 'cum');
+          if (oc2 !== null && Math.abs(oc2) >= 0.005) net2 = '<div class="small" style="margin-top:3px"><span>Net of the others, you are</span> <b>' + ordinal(d.rank.R[o.me]) + '</b><span>; the other countries’ policies</span> <b>' + (oc2 >= 0 ? '<span>added</span> ' : '<span>cost you</span> ') + esc(MS.fmt(Math.abs(oc2), 3)) + '</b> <span>of cumulative R (you are</span> <b>' + ordinal(dc.rank.R[o.me]) + '</b> <span>in all).</span></div>';
+        }
+        h += '<div class="sumrk"><b>' + esc(MS.countryName(o.me)) + '</b> · ' + parts.join(' · ') + net2 + pr + '</div>';
       }
       body.innerHTML = h;
     }
@@ -824,5 +855,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { dimRankCard: dimRankCard, dimRanking: dimRanking, exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { othersCum: othersCum, rBarHtml: rBarHtml, rBarLegendHtml: rBarLegendHtml, dimRankCard: dimRankCard, dimRanking: dimRanking, exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();
