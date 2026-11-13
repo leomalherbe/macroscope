@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111317">
-<script src="i18n.js?v=2026111317"></script>
-<script src="i18n/fr-desk.js?v=2026111317"></script>
-<script src="i18n/fr-admin.js?v=2026111317"></script>
-<script src="config.js?v=2026111317"></script>
-<script src="core.js?v=2026111317"></script>
-<script src="app-common.js?v=2026111317"></script>
-<script src="engine.js?v=2026111317"></script>
+<link rel="stylesheet" href="style.css?v=2026111318">
+<script src="i18n.js?v=2026111318"></script>
+<script src="i18n/fr-desk.js?v=2026111318"></script>
+<script src="i18n/fr-admin.js?v=2026111318"></script>
+<script src="config.js?v=2026111318"></script>
+<script src="core.js?v=2026111318"></script>
+<script src="app-common.js?v=2026111318"></script>
+<script src="engine.js?v=2026111318"></script>
 </head>
 <body>
 
@@ -118,7 +118,7 @@
   }
   function renderClassBar() {
     var bar = $('#classbar'); bar.innerHTML = '';
-    var sel = el('select', { onchange: function () { classId = sel.value; UI.store('macsim.classId', classId); refresh(); } });
+    var sel = el('select', { onchange: function () { classId = sel.value; UI.store('macsim.classId', classId); renderClassBar(); refresh(); } });   /* the bar again: its links (board, student page) carry the class */
     classes.forEach(function (c) { sel.appendChild(el('option', { value: c.id }, [c.name])); });
     sel.value = classId;
     bar.appendChild(el('span', { class: 'muted small' }, ['Class']));
@@ -126,8 +126,8 @@
     bar.appendChild(el('button', { class: 'btn sm ghost', onclick: createClass }, ['+ New class']));
     bar.appendChild(el('span', { class: 'spacer' }));
     if (classId) {
-      bar.appendChild(el('a', { class: 'btn sm ghost', href: boardUrl(), target: '_blank' }, ['Open the board ↗']));
-      bar.appendChild(el('a', { class: 'btn sm ghost', href: studentUrl(), target: '_blank' }, ['Student page ↗']));
+      bar.appendChild(el('a', { class: 'btn sm ghost', href: boardUrl(), target: '_blank', onclick: function (e) { e.currentTarget.href = boardUrl(); } }, ['Open the board ↗']));
+      bar.appendChild(el('a', { class: 'btn sm ghost', href: studentUrl(), target: '_blank', onclick: function (e) { e.currentTarget.href = studentUrl(); } }, ['Student page ↗']));
       bar.appendChild(el('a', { class: 'btn sm ghost', href: 'model.html', target: '_blank' }, ['The model ↗']));
     }
     if (classId) bar.appendChild(el('button', { class: 'btn sm danger', onclick: deleteClass }, ['Delete class…']));
