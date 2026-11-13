@@ -1646,12 +1646,12 @@ Ranking by dimension
 => Classement par dimension
 Cumulative
 => Cumulé
-Your own policy only
-=> Votre politique seulement
-Rank of each country on each dimension of R, without weights: the gap from the reference, added up over the years (or the last year alone); less unemployment, inflation, emissions or inequality is better. « Your own policy only » keeps the part due to each country’s own decisions: the shocks and the other countries’ policies are taken out.
-=> Rang de chaque pays sur chaque dimension de R, sans pondération : l’écart à la référence, additionné sur les années (ou la dernière année seule) ; moins de chômage, d’inflation, d’émissions ou d’inégalités, c’est mieux. « Votre politique seulement » garde la part due aux décisions propres de chaque pays : les chocs et les politiques des autres pays sont retirés.
-R, own policy
-=> R, politique propre
+Net of the other countries
+=> Net des autres pays
+Rank of each country on each dimension of R, without weights: the gap from the reference, added up over the years (or the last year alone); less unemployment, inflation, emissions or inequality is better. « Net of the other countries » takes out the part due to the other countries’ policies: what is left is your own policy and the shocks you answered — the fair comparison of how each team played.
+=> Rang de chaque pays sur chaque dimension de R, sans pondération : l’écart à la référence, additionné sur les années (ou la dernière année seule) ; moins de chômage, d’inflation, d’émissions ou d’inégalités, c’est mieux. « Net des autres pays » retire la part due aux politiques des autres pays : il reste votre propre politique et les chocs auxquels vous avez répondu — la comparaison juste de la façon dont chaque équipe a joué.
+Cumulative R, net of the others
+=> R cumulé, net des autres
 1st
 => 1er
 #nd

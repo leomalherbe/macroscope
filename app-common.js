@@ -329,9 +329,9 @@ var UI = (function () {
   }
   /* ---------- ranking by dimension ----------
      rank of each country on each dimension of R (sign applied: less unemployment, inflation, emissions or inequality is better),
-     no weights inside a dimension; three views: cumulative (sum over the years published), the last year, own policy only
-     (the part of each indicator due to the country's own policy, cumulative). The last column: R in the same view. */
-  var DIM_VIEWS = [['cum', 'Cumulative'], ['year', 'Year'], ['own', 'Your own policy only']];
+     no weights inside a dimension; three views: cumulative (sum over the years published), the last year, net of the other
+     countries (cumulative, without the part due to the other countries' policies: own policy + the shocks it answers). The last column: R in the same view. */
+  var DIM_VIEWS = [['cum', 'Cumulative'], ['year', 'Year'], ['net', 'Net of the other countries']];
   function ordinal(n) { return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'); }
   function dimRanking(st, rows, view) {
     var inds = MS.indicatorsFor(st), by = {}, last = 0;
@@ -343,7 +343,11 @@ var UI = (function () {
         var sum = 0, any = false;
         use.forEach(function (r) {
           var x = null;
-          if (view === 'own') { var sp = rowSplit(r, st, st.weights).nat; x = sp ? (i.id === 'R' ? sp.R : sp.ind[i.id]) : null; }
+          if (view === 'net') {
+            /* net of the other players: the total minus the part due to the other countries' policies (own policy + shocks, climate included) */
+            var fo = rowSplit(r, st, st.weights).foreign, tot = r[i.id], fx = fo ? (i.id === 'R' ? fo.R : fo.ind[i.id]) : null;
+            x = (fx === null || fx === undefined || tot === null || tot === undefined || tot === '' || isNaN(Number(tot))) ? null : Number(tot) - Number(fx);
+          }
           else x = r[i.id];
           if (x !== null && x !== undefined && x !== '' && !isNaN(Number(x))) { sum += Number(x); any = true; }
         });
@@ -371,7 +375,7 @@ var UI = (function () {
       var d = dimRanking(st, o.rows, view), unitOf = function (i) { return i.id === 'gdp' ? ' %' : (i.id === 'R' ? '' : ' pt'); };
       seg.innerHTML = '';
       DIM_VIEWS.forEach(function (v) { seg.appendChild(el('span', { class: v[0] === view ? 'on' : '', onclick: function () { view = v[0]; if (o.store) store(o.store, view); draw(); } }, [v[0] === 'year' ? 'Year ' + d.last : v[1]])); });
-      var cols = d.inds.concat([{ id: 'R', label: view === 'own' ? 'R, own policy' : view === 'year' ? 'R' : 'Cumulative R', sign: 1 }]);
+      var cols = d.inds.concat([{ id: 'R', label: view === 'net' ? 'Cumulative R, net of the others' : view === 'year' ? 'R' : 'Cumulative R', sign: 1 }]);
       var h = '<div class="tablewrap"><table class="rk"><thead><tr><th>Country</th>' + cols.map(function (i) { return '<th' + (i.id === 'R' ? ' class="rcum"' : '') + '>' + esc(i.label) + '</th>'; }).join('') + '</tr></thead><tbody>';
       d.keys.forEach(function (k) {
         h += '<tr' + (k === o.me ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(k)) + '</b></td>' + cols.map(function (i) {
@@ -395,7 +399,7 @@ var UI = (function () {
       body.innerHTML = h;
     }
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'score' }, ['Ranking by dimension']), seg]));
-    card.appendChild(el('p', { class: 'muted small' }, ['Rank of each country on each dimension of R, without weights: the gap from the reference, added up over the years (or the last year alone); less unemployment, inflation, emissions or inequality is better. « Your own policy only » keeps the part due to each country’s own decisions: the shocks and the other countries’ policies are taken out.']));
+    card.appendChild(el('p', { class: 'muted small' }, ['Rank of each country on each dimension of R, without weights: the gap from the reference, added up over the years (or the last year alone); less unemployment, inflation, emissions or inequality is better. « Net of the other countries » takes out the part due to the other countries’ policies: what is left is your own policy and the shocks you answered — the fair comparison of how each team played.']));
     card.appendChild(body);
     draw();
     return card;

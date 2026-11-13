@@ -47,12 +47,12 @@ const KEY = 'TESTKEY';
   must(/1st on GDP volume, Unemployment rate/.test(sum) && /last on Inflation rate, Public balance, Trade balance/.test(sum) && /Your priorities this year: GDP volume, Unemployment rate/.test(sum) && /accepted to worsen: Public balance/.test(sum), 'summary of France with its priorities');
   await fra.click(card + ' .seg2 span:has-text("Year 2")');
   must(await cell('France', 2) === '1st' && /1\.20 %/.test(await fra.textContent(card + ' tr.me')), 'last year: France′s GDP of year 2 (+1.20 %)');
-  await fra.click(card + ' .seg2 span:has-text("own policy")');
-  must(await cell('Italy', 2) === '2nd' && await cell('Germany', 2) === '3rd' && /1\.30 %/.test(await fra.textContent(card + ' tr.me')), 'own policy only: France +1.30 % of GDP from its own decisions, Germany last');
+  await fra.click(card + ' .seg2 span:has-text("Net of the other")');
+  must(await cell('France', 2) === '1st' && await cell('Italy', 2) === '2nd' && await cell('Germany', 2) === '3rd' && /1\.30 %/.test(await fra.textContent(card + ' tr.me')) && /0\.10 %/.test(await fra.textContent(card + ' tr:has(td:first-child:has-text("Germany"))')), 'net of the other countries: France +1.30 % of GDP once the others′ policies are taken out, Germany +0.10 %');
   await fra.screenshot({ path: OUT + '/d1-desk.png', fullPage: true });
   await (await fra.$(card)).screenshot({ path: OUT + '/d1-card.png' });
   await fra.reload(); await fra.waitForSelector(card);
-  must(/on/.test(await fra.getAttribute(card + ' .seg2 span:has-text("own policy")', 'class')), 'the view chosen is remembered');
+  must(/on/.test(await fra.getAttribute(card + ' .seg2 span:has-text("Net of the other")', 'class')), 'the view chosen is remembered');
 
   const board = await ctx.newPage(); board.on('pageerror', e => errors.push('board: ' + e.message));
   await board.goto(BASE + '/board.html?class=' + cid + '&api=' + encodeURIComponent(API));
