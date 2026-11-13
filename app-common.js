@@ -327,6 +327,80 @@ var UI = (function () {
     if (v.crisis) h += '<span class="chip vote">Will vote: ' + esc(crisisWord(v.crisis)) + '</span>';
     return '<div class="chips">' + (h || '<span class="chip zero">words only</span>') + '</div>';
   }
+  /* ---------- ranking by dimension ----------
+     rank of each country on each dimension of R (sign applied: less unemployment, inflation, emissions or inequality is better),
+     no weights inside a dimension; three views: cumulative (sum over the years published), the last year, own policy only
+     (the part of each indicator due to the country's own policy, cumulative). The last column: R in the same view. */
+  var DIM_VIEWS = [['cum', 'Cumulative'], ['year', 'Year'], ['own', 'Your own policy only']];
+  function ordinal(n) { return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'); }
+  function dimRanking(st, rows, view) {
+    var inds = MS.indicatorsFor(st), by = {}, last = 0;
+    (rows || []).forEach(function (r) { if (r.phase !== 'game') return; (by[r.key] = by[r.key] || []).push(r); if (Number(r.year) > last) last = Number(r.year); });
+    var keys = Object.keys(by), val = {};
+    keys.forEach(function (k) {
+      var o = {}, use = view === 'year' ? by[k].filter(function (r) { return Number(r.year) === last; }) : by[k];
+      inds.concat([{ id: 'R', sign: 1 }]).forEach(function (i) {
+        var sum = 0, any = false;
+        use.forEach(function (r) {
+          var x = null;
+          if (view === 'own') { var sp = rowSplit(r, st, st.weights).nat; x = sp ? (i.id === 'R' ? sp.R : sp.ind[i.id]) : null; }
+          else x = r[i.id];
+          if (x !== null && x !== undefined && x !== '' && !isNaN(Number(x))) { sum += Number(x); any = true; }
+        });
+        o[i.id] = any ? sum : null;
+      });
+      val[k] = o;
+    });
+    var rank = {};
+    inds.concat([{ id: 'R', sign: 1 }]).forEach(function (i) {
+      var list = keys.filter(function (k) { return val[k][i.id] !== null; }).map(function (k) { return { k: k, v: i.sign * val[k][i.id] }; }).sort(function (a, b) { return b.v - a.v; });
+      rank[i.id] = {}; list.forEach(function (x, j) { rank[i.id][x.k] = j > 0 && Math.abs(x.v - list[j - 1].v) < 1e-9 ? rank[i.id][list[j - 1].k] : j + 1; });
+      rank[i.id]._n = list.length;
+      rank[i.id]._flat = list.length > 1 && Math.abs(list[0].v - list[list.length - 1].v) < 1e-9;   /* everyone equal: no rank on this dimension */
+    });
+    keys.sort(function (a, b) { return (rank.R[a] || 99) - (rank.R[b] || 99) || (MS.countryName(a) < MS.countryName(b) ? -1 : 1); });
+    return { inds: inds, keys: keys, val: val, rank: rank, last: last };
+  }
+  /* the card; o: {st, rows, me, prio: {up, down} (the team's priorities, desk), store: key to remember the view} */
+  function dimRankCard(o) {
+    var st = o.st, view = (o.store && read(o.store)) || 'cum';
+    if (!(o.rows || []).some(function (r) { return r.phase === 'game'; })) return null;
+    var card = el('div', { class: 'card' }), body = el('div');
+    var seg = el('span', { class: 'seg2' });
+    function draw() {
+      var d = dimRanking(st, o.rows, view), unitOf = function (i) { return i.id === 'gdp' ? ' %' : (i.id === 'R' ? '' : ' pt'); };
+      seg.innerHTML = '';
+      DIM_VIEWS.forEach(function (v) { seg.appendChild(el('span', { class: v[0] === view ? 'on' : '', onclick: function () { view = v[0]; if (o.store) store(o.store, view); draw(); } }, [v[0] === 'year' ? 'Year ' + d.last : v[1]])); });
+      var cols = d.inds.concat([{ id: 'R', label: view === 'own' ? 'R, own policy' : view === 'year' ? 'R' : 'Cumulative R', sign: 1 }]);
+      var h = '<div class="tablewrap"><table class="rk"><thead><tr><th>Country</th>' + cols.map(function (i) { return '<th' + (i.id === 'R' ? ' class="rcum"' : '') + '>' + esc(i.label) + '</th>'; }).join('') + '</tr></thead><tbody>';
+      d.keys.forEach(function (k) {
+        h += '<tr' + (k === o.me ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(k)) + '</b></td>' + cols.map(function (i) {
+          var r = d.rank[i.id][k], v = d.val[k][i.id], n = d.rank[i.id]._n;
+          if (!r) return '<td class="' + (i.id === 'R' ? 'rcum' : '') + '"><span class="muted">—</span></td>';
+          if (d.rank[i.id]._flat) return '<td class="' + (i.id === 'R' ? 'rcum' : '') + '"><span class="r">=</span><span class="v">' + esc(MS.fmt(v, i.id === 'R' ? 3 : 2, true) + unitOf(i)) + '</span></td>';
+          return '<td class="' + (r === 1 ? 'g1' : (r === n && n > 1 ? 'gl' : '')) + (i.id === 'R' ? ' rcum' : '') + '"><span class="r">' + ordinal(r) + '</span><span class="v">' + esc(MS.fmt(v, i.id === 'R' ? 3 : 2, true) + unitOf(i)) + '</span></td>';
+        }).join('') + '</tr>';
+      });
+      h += '</tbody></table></div>';
+      if (o.me && d.rank.R[o.me]) {
+        var firsts = d.inds.filter(function (i) { return !d.rank[i.id]._flat && d.rank[i.id][o.me] === 1; }).map(function (i) { return i.label; });
+        var lasts = d.inds.filter(function (i) { var n = d.rank[i.id]._n; return n > 1 && !d.rank[i.id]._flat && d.rank[i.id][o.me] === n; }).map(function (i) { return i.label; });
+        var parts = [];
+        if (firsts.length) parts.push('<span>1st on</span> ' + firsts.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join(', '));
+        if (lasts.length) parts.push('<span>last on</span> ' + lasts.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join(', '));
+        if (!parts.length) parts.push('<span>neither first nor last on any dimension</span>');
+        var pr = o.prio && o.prio.up && o.prio.up.length ? '<div class="small" style="margin-top:3px"><span class="muted">Your priorities this year:</span> ' + o.prio.up.map(function (id) { var i = d.inds.filter(function (x) { return x.id === id; })[0]; return '<span>' + esc(i ? i.label : id) + '</span>'; }).join(', ') + (o.prio.down && o.prio.down.length ? ' <span class="muted">· accepted to worsen:</span> ' + o.prio.down.map(function (id) { var i = d.inds.filter(function (x) { return x.id === id; })[0]; return '<span>' + esc(i ? i.label : id) + '</span>'; }).join(', ') : '') + '</div>' : '';
+        h += '<div class="sumrk"><b>' + esc(MS.countryName(o.me)) + '</b> · ' + parts.join(' · ') + pr + '</div>';
+      }
+      body.innerHTML = h;
+    }
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'score' }, ['Ranking by dimension']), seg]));
+    card.appendChild(el('p', { class: 'muted small' }, ['Rank of each country on each dimension of R, without weights: the gap from the reference, added up over the years (or the last year alone); less unemployment, inflation, emissions or inequality is better. « Your own policy only » keeps the part due to each country’s own decisions: the shocks and the other countries’ policies are taken out.']));
+    card.appendChild(body);
+    draw();
+    return card;
+  }
+
   /* ---------- forum of the union (permanent council) ---------- */
   var FORUM_TYPE_LABEL = { engagement: 'Engagement', joint: 'Joint proposal', vote: 'Vote call' };
   var FORUM_STATUS = { kept: '<span class="kept">✓ kept</span>', broken: '<span class="broken">✗ not kept</span>', words: '<span class="muted">words only</span>', nodecision: '<span class="muted">no decision</span>' };
@@ -746,5 +820,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { dimRankCard: dimRankCard, dimRanking: dimRanking, exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

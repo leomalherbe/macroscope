@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111319">
-<script src="i18n.js?v=2026111319"></script>
-<script src="i18n/fr-desk.js?v=2026111319"></script>
-<script src="guide.js?v=2026111319"></script>
-<script src="config.js?v=2026111319"></script>
-<script src="core.js?v=2026111319"></script>
-<script src="app-common.js?v=2026111319"></script>
+<link rel="stylesheet" href="style.css?v=2026111320">
+<script src="i18n.js?v=2026111320"></script>
+<script src="i18n/fr-desk.js?v=2026111320"></script>
+<script src="guide.js?v=2026111320"></script>
+<script src="config.js?v=2026111320"></script>
+<script src="core.js?v=2026111320"></script>
+<script src="app-common.js?v=2026111320"></script>
 </head>
 <body>
 
@@ -1214,6 +1214,12 @@
         cardL.appendChild(el('p', { class: 'small muted', style: 'margin:.4em 0 0' }, [(dd ? 'Every player of every pair, ranked' : 'Ranked') + ' by the cumulative R: the sum of the yearly scores since year 1.']));
       }
       box.appendChild(cardL);
+      /* ranking by dimension (not in duels): this country highlighted, with its priorities of the latest year (guided strategy) */
+      if (!dd && lb.length) {
+        var lastS = (data.myDecisions || []).filter(function (x) { return x.phase === 'game' && x.payload && x.payload.strategy && x.payload.strategy.prio; }).sort(function (a, b) { return b.round - a.round; })[0];
+        var dk = UI.dimRankCard({ st: st, rows: data.gameResults, me: data.group.country, prio: lastS ? lastS.payload.strategy.prio : null, store: 'macroscope.dimrank.desk' });
+        if (dk) box.appendChild(dk);
+      }
     }
     /* the model explorer of the board: every country when the ranking is published, otherwise this country alone; this country
        ticked at first */
