@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111302">
-<script src="i18n.js?v=2026111302"></script>
-<script src="i18n/fr-desk.js?v=2026111302"></script>
-<script src="i18n/fr-admin.js?v=2026111302"></script>
-<script src="config.js?v=2026111302"></script>
-<script src="core.js?v=2026111302"></script>
-<script src="app-common.js?v=2026111302"></script>
-<script src="engine.js?v=2026111302"></script>
+<link rel="stylesheet" href="style.css?v=2026111313">
+<script src="i18n.js?v=2026111313"></script>
+<script src="i18n/fr-desk.js?v=2026111313"></script>
+<script src="i18n/fr-admin.js?v=2026111313"></script>
+<script src="config.js?v=2026111313"></script>
+<script src="core.js?v=2026111313"></script>
+<script src="app-common.js?v=2026111313"></script>
+<script src="engine.js?v=2026111313"></script>
 </head>
 <body>
 
@@ -114,7 +114,7 @@
     renderClassBar();
     if (classId) await refresh(); else renderNoClass();
     clearInterval(pollTimer);
-    pollTimer = setInterval(function () { if (!document.hidden && classId && (tab === 'control' || tab === 'entry' || tab === 'council')) refresh(true); }, 20000);
+    pollTimer = setInterval(async function () { if (!document.hidden && classId && (tab === 'control' || tab === 'entry' || tab === 'council') && await MSApi.due('admin', 120000, 20000)) refresh(true); }, 8000);
   }
   function renderClassBar() {
     var bar = $('#classbar'); bar.innerHTML = '';
@@ -244,20 +244,24 @@
          'austerity' = defend (rate + defendStep this year), 'devaluation' = let it float. Absent groups do not count. */
       var playingC = ov.groups.filter(function (g) { return !!g.country && !isOutY(g.country, N); });
       if (rec && rec.status === 'closed') {
-        card.appendChild(el('p', { html: 'Vote closed: <b>' + rec.austerity + ' defend · ' + rec.devaluation + ' let it float → ' + (rec.outcome === 'float' ? 'let it float' : 'defend') + '</b>. ' + (rec.outcome === 'float' ? 'Nothing is done: the currency keeps floating.' : 'The central bank raises its rate by ' + MS.fmt(rules.defendStep || 1, 1) + ' pt this year (on top of the votes and shocks).') + ' Announce it in the communiqué, then open the decisions.' }));
+        card.appendChild(el('p', { html: 'Vote closed: <b>' + UI.currencyTally(rec) + '</b>. ' + (rec.outcome === 'peg' ? 'The euro is pegged to the rest of the world from this year on, at ' + (MS.num(rec.parity) ? (rec.parity > 0 ? 'a devaluation of ' : 'a revaluation of ') + MS.fmt(Math.abs(rec.parity), 0) + ' %' : 'today’s rate') + ': the regime is fixed again and the reserves absorb the gaps (they were frozen while floating).' : rec.outcome === 'float' ? 'Nothing is done: the currency keeps floating.' : 'The central bank raises its rate by ' + MS.fmt(rules.defendStep || 1, 1) + ' pt this year (on top of the votes and shocks).') + ' Announce it in the communiqué, then open the decisions.' }));
         card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn ghost sm', onclick: function () { if (confirm('Reopen the currency-crisis vote of year ' + N + '?')) patch({ crisis: setCrisis({ status: 'open', kind: 'currency' }), status: 'closed' }, 'Vote reopened'); } }, ['Reopen the vote'])]));
       } else if (rec && rec.status === 'open') {
         var votesC = decisionsFor('crisis', N);
-        card.appendChild(el('p', { html: '<b>Vote in progress</b> — ' + votesC.length + ' of ' + playingC.length + ' countries have voted. A country that does not vote counts as defend; letting the currency float needs more than half of the playing countries.' }));
-        card.appendChild(el('div', { class: 'chips', html: playingC.map(function (g) { var d = votesC.filter(function (x) { return x.groupId === g.groupId; })[0]; return '<span class="chip' + (d ? ' vote' : ' zero') + '">' + esc(MS.countryName(g.country)) + (d ? ': ' + (d.payload.crisis === 'devaluation' ? 'let it float' : 'defend') : ': —') + '</span>'; }).join('') }));
+        card.appendChild(el('p', { html: '<b>Vote in progress</b> — ' + votesC.length + ' of ' + playingC.length + ' countries have voted. A country that does not vote does not count; the median vote wins (defend < peg < let it float).' }));
+        card.appendChild(el('div', { class: 'chips', html: playingC.map(function (g) { var d = votesC.filter(function (x) { return x.groupId === g.groupId; })[0]; return '<span class="chip' + (d ? ' vote' : ' zero') + '">' + esc(MS.countryName(g.country)) + (d ? ': ' + (d.payload.crisis === 'devaluation' ? 'let it float' : d.payload.crisis === 'peg' ? 'peg (' + MS.fmt(d.payload.parity, 0, true) + ' %)' : 'defend') : ': —') + '</span>'; }).join('') }));
         card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () {
-          var castC = playingC.map(function (g) { var d = votesC.filter(function (x) { return x.groupId === g.groupId; })[0]; return d ? d.payload.crisis : null; }).filter(function (v) { return !!v; });
-          var t = MS.tallyCrisis(castC, castC.length);   /* majority of the voters; a group that did not vote does not count */
-          if (!confirm('Close the vote: ' + t.austerity + ' defend · ' + t.devaluation + ' let it float → ' + (t.outcome === 'devaluation' ? 'let it float' : 'defend') + '?')) return;
-          patch({ crisis: setCrisis({ status: 'closed', kind: 'currency', austerity: t.austerity, devaluation: t.devaluation, outcome: t.outcome === 'devaluation' ? 'float' : 'defend' }) }, 'Currency-crisis vote closed');
+          var castC = playingC.map(function (g) { var d = votesC.filter(function (x) { return x.groupId === g.groupId; })[0]; return d ? d.payload : null; }).filter(function (v) { return !!v; });
+          var t = MS.tallyCurrency(castC);   /* median of the voters along defend < peg < let it float; a group that did not vote does not count */
+          var recC = { status: 'closed', kind: 'currency', austerity: t.austerity, peg: t.peg, devaluation: t.devaluation, outcome: t.outcome, parity: t.parity };
+          if (!confirm('Close the vote: ' + UI.currencyTally(recC) + '?')) return;
+          var pt = { crisis: setCrisis(recC) };
+          /* a peg: the regime is fixed from this year on (the year's shocks say so, and the next years follow them) */
+          if (t.outcome === 'peg') { var shs = Object.assign({}, s.shocks || {}), kN = shockKey(N, 'game'); shs[kN] = Object.assign({}, shs[kN] || {}, { regime: 'fixed' }); pt.shocks = shs; }
+          patch(pt, 'Currency-crisis vote closed');
         } }, ['■ Close the vote and announce'])]));
       } else {
-        card.appendChild(el('p', { html: '<span class="neg"><b>The currency fell by ' + esc(MS.fmt(need.dxr, 1)) + ' %</b></span> over year ' + (N - 1) + ' (threshold ' + esc(MS.fmt(rules.crisisDepr || 10, 0)) + ' %). Before the decisions of year ' + N + ', the council votes: <b>defend</b> the currency (the central bank raises its rate by ' + MS.fmt(rules.defendStep || 1, 1) + ' pt this year) or <b>let it float</b>.' }));
+        card.appendChild(el('p', { html: '<span class="neg"><b>The currency fell by ' + esc(MS.fmt(need.dxr, 1)) + ' %</b></span> over year ' + (N - 1) + ' (threshold ' + esc(MS.fmt(rules.crisisDepr || 10, 0)) + ' %). Before the decisions of year ' + N + ', the council votes: <b>defend</b> the currency (the central bank raises its rate by ' + MS.fmt(rules.defendStep || 1, 1) + ' pt this year), <b>peg</b> it again to the rest of the world at a parity voted with it (fixed rate from this year on), or <b>let it float</b>. The median vote wins (defend < peg < let it float); the parity is the median of the peg votes.' }));
         card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', onclick: function () { patch({ crisis: setCrisis({ status: 'open', kind: 'currency' }), status: 'closed', deadline: null }, 'Currency-crisis vote open'); } }, ['▶ Open the vote'])]));
       }
       return card;
@@ -1198,7 +1202,12 @@
       var capped = [];
       if (rec && rec.kind === 'currency') {
         /* v1.3 floating regime: 'austerity' = defend the currency (rate + defendStep this year), 'devaluation' = let it float */
-        if (rec.status === 'closed') { crisis.active = true; crisis.outcome = rec.outcome === 'float' ? 'float' : 'defend'; if (crisis.outcome === 'defend') shock.rate = Math.max(-rStar, Math.min(10 - rStar, shock.rate + (rules.defendStep || 1))); }
+        if (rec.status === 'closed') {
+          crisis.active = true; crisis.outcome = rec.outcome === 'float' || rec.outcome === 'peg' ? rec.outcome : 'defend'; crisis.peg = rec.peg || 0;
+          if (crisis.outcome === 'defend') shock.rate = Math.max(-rStar, Math.min(10 - rStar, shock.rate + (rules.defendStep || 1)));
+          /* a peg: fixed regime this year, the euro moved to the voted parity (deval > 0 = devaluation) */
+          if (crisis.outcome === 'peg') { shock.regime = 'fixed'; shock.deval = (shock.deval || 0) + MS.num(rec.parity); crisis.parity = MS.num(rec.parity); }
+        }
       }
       else if (rec && rec.status === 'forced') { shock.deval = (shock.deval || 0) + rules.forcedDeval; crisis.outcome = 'forced'; }
       else if (rec && rec.status === 'closed') {
@@ -1324,7 +1333,7 @@
       else lines.push('<b>Votes disabled</b> (Control → Parameters).');
       if (t.cet) lines.push('Common external tariff: ' + MS.CET_LEVELS.map(function (l, i) { return t.cet.levels[i] + ' × ' + l + ' %'; }).join(' · ') + ' (' + t.cet.votes + ' vote(s)) → <b>' + esc(MS.fmt(t.cet.level, 0)) + ' %</b>' + (t.cet.votes ? ' (median)' : ' (no vote: unchanged)') + (MS.num(sh.worldTariff) ? ' · the rest of the world taxes the union’s exports at ' + esc(MS.fmt(sh.worldTariff, 0)) + ' %' : '') + (runPreview.exits && Object.keys(runPreview.exits).length && (sh.worldTariffOut !== null && sh.worldTariffOut !== undefined ? MS.num(sh.worldTariffOut) !== MS.num(sh.worldTariff) : false) ? ' · the rest of the world taxes the exports of the countries out of the union at ' + esc(MS.fmt(sh.worldTariffOut, 0)) + ' %' : '') + '.');
       if (cr.outcome === 'forced') lines.push('<span class="neg">Reserves exhausted at the end of year ' + (runPreview.round - 1) + ' with the current account still in deficit: forced devaluation of ' + esc(MS.fmt(gameRules().forcedDeval, 0)) + ' %.</span>');
-      else if (cr.active && cr.kind === 'currency') lines.push('Currency crisis (depreciation over year ' + (runPreview.round - 1) + '): ' + cr.austerity + ' defend · ' + cr.devaluation + ' let it float → <b>' + (cr.outcome === 'float' ? 'let it float' : 'defend: rate +' + esc(MS.fmt(gameRules().defendStep || 1, 1)) + ' pt this year') + '</b>.');
+      else if (cr.active && cr.kind === 'currency') lines.push('Currency crisis (depreciation over year ' + (runPreview.round - 1) + '): ' + esc(UI.currencyTally(cr)) + (cr.outcome === 'defend' ? ' (rate +' + esc(MS.fmt(gameRules().defendStep || 1, 1)) + ' pt this year)' : '') + '.');
       else if (cr.active) lines.push('Reserves crisis (alert at the end of year ' + (runPreview.round - 1) + '): ' + esc(UI.crisisTally(cr)) + ' → <b>' + esc(UI.crisisWord(cr.outcome)) + '</b>' + (cr.outcome === 'devaluation' ? ' (' + esc(MS.fmt(gameRules().devalSize, 0)) + ' % devaluation applied)' : cr.outcome === 'float' ? ' (no cap; the currency floats from this year)' : (runPreview.caps && runPreview.caps.length ? ' — public demand and benefits capped at ' + esc(MS.fmt(gameRules().austerityCap, 0)) + ' % for: ' + esc(runPreview.caps.map(MS.countryName).join(', ')) : ' — nobody above the cap')) + '.');
       else lines.push(runPreview.shock && runPreview.shock.regime === 'float' ? 'No currency crisis this year (floating regime).' : 'No reserves crisis this year.');
       if (MS.num(sh.deval)) lines.push('Devaluation applied this year: ' + esc(MS.fmt(sh.deval, 1)) + ' %.');

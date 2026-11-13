@@ -504,7 +504,7 @@ var MSService = (function () {
     if (!classExists(st, p.classId)) return fail('Unknown class.');
     var state = getState(st, p.classId);
     var ts = iso(st.now());
-    var n = 0;
+    var n = 0, out = [];
     (p.rows || []).forEach(function (r) {
       if (!r.key) return;
       var dev = {};
@@ -514,10 +514,12 @@ var MSService = (function () {
       var R = (r.R !== '' && r.R !== null && r.R !== undefined && !isNaN(Rgiven)) ? MS.round3(Rgiven) : (hasAny ? MS.scoreR(dev, state.weights) : '');
       var detail = r.detail ? (typeof r.detail === 'string' ? r.detail : JSON.stringify(r.detail)) : '';
       if (!hasAny && R === '' && !detail) return;          // a UNION row carries only a detail
-      st.appendRow('results', Object.assign({ ts: ts, classId: p.classId, phase: p.phase, round: Number(p.round), key: r.key, year: Number(r.year),
+      out.push(Object.assign({ ts: ts, classId: p.classId, phase: p.phase, round: Number(p.round), key: r.key, year: Number(r.year),
         R: R, published: !!r.published, detail: detail }, dev));
       n++;
     });
+    /* one write for all the rows (the lock is held for a moment, not once per country) */
+    if (st.appendRows) st.appendRows('results', out); else out.forEach(function (o) { st.appendRow('results', o); });
     log(st, 'results.set', p.classId, 'admin', p.phase + ' r' + p.round + ' ' + n + ' rows');
     return { ok: true, saved: n, results: resultsOf(st, p.classId) };
   }
@@ -534,8 +536,7 @@ var MSService = (function () {
   }
 
   /* ---------- dispatcher ---------- */
-  var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard,
-    'forum.post': actForumPost, 'forum.react': actForumReact, 'forum.withdraw': actForumWithdraw };
+  var VERSION = '1.16';
   var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename, 'admin.class.delete': actAdminClassDelete,
     'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.results.set': actAdminResultsSet,
     'admin.forum.hide': actAdminForumHide };

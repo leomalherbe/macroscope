@@ -79,11 +79,44 @@ function setup() {
   return key;
 }
 
+/* ---------- a shared cache of the tabs between requests (CacheService), so that the pages' polling does not reread the Sheet.
+   Each tab has a version, changed after every write to it (writes run under the script lock); a tab is cached under its version,
+   in chunks of 30 000 characters (CacheService keeps 100 kB per key). No version known (nothing written for 6 h): read the Sheet, cache nothing.
+   Any failure of the cache falls back on the Sheet. ---------- */
+var XCHUNK = 30000, XTTL = 21600;   /* 30 000 characters ≤ 90 kB in UTF-8 */
+function xcache_() { try { return typeof CacheService !== 'undefined' ? CacheService.getScriptCache() : null; } catch (e) { return null; } }
+function xget_(k) {
+  var C = xcache_(); if (!C) return null;
+  try {
+    var ver = C.get('v:' + k); if (!ver) return null;
+    var n = Number(C.get('t:' + k + ':' + ver + ':n')); if (!(n > 0)) return { ver: ver, rows: null };
+    var keys = []; for (var i = 0; i < n; i++) keys.push('t:' + k + ':' + ver + ':' + i);
+    var got = C.getAll(keys), str = '';
+    for (var j = 0; j < n; j++) { if (got[keys[j]] === undefined || got[keys[j]] === null) return { ver: ver, rows: null }; str += got[keys[j]]; }
+    return { ver: ver, rows: JSON.parse(str) };
+  } catch (e) { return null; }
+}
+function xput_(k, ver, rows) {
+  var C = xcache_(); if (!C || !ver) return;
+  try {
+    var str = JSON.stringify(rows), parts = {}, n = Math.max(1, Math.ceil(str.length / XCHUNK));
+    if (n > 600) return;   /* too big to be worth it */
+    for (var i = 0; i < n; i++) parts['t:' + k + ':' + ver + ':' + i] = str.slice(i * XCHUNK, (i + 1) * XCHUNK);
+    C.putAll(parts, XTTL); C.put('t:' + k + ':' + ver + ':n', String(n), XTTL);
+  } catch (e) { /* the Sheet stays the truth */ }
+}
+function xbump_(k) {
+  var C = xcache_(); if (!C) return;
+  try { C.put('v:' + k, String(Date.now()) + Math.floor(Math.random() * 1e6), XTTL); } catch (e) { try { C.remove('v:' + k); } catch (e2) { /* nothing */ } }
+}
+
 function makeStorage_(ss) {
-  var cache = {};
-  function sheet(k) { return getSheet_(ss, SHEETS[k]); }
+  var cache = {}, sheets = {};
+  function sheet(k) { return sheets[k] || (sheets[k] = getSheet_(ss, SHEETS[k])); }
   function readAll(k) {
     if (cache[k]) return cache[k];
+    var hit = xget_(k);
+    if (hit && hit.rows) { cache[k] = hit.rows; return hit.rows; }
     var sh = sheet(k);
     var values = sh.getDataRange().getValues();
     var header = SHEETS[k].header;
@@ -96,8 +129,10 @@ function makeStorage_(ss) {
       rows.push(o);
     }
     cache[k] = rows;
+    if (hit && hit.ver) xput_(k, hit.ver, rows);
     return rows;
   }
+  function written(k) { cache[k] = null; xbump_(k); }
   function toRow(k, obj) {
     var header = SHEETS[k].header;
     var o = Object.assign({}, obj);
@@ -126,10 +161,10 @@ function makeStorage_(ss) {
       var sh = sheet('config');
       var values = sh.getDataRange().getValues();
       for (var i = 1; i < values.length; i++) {
-        if (String(values[i][0]) === key) { sh.getRange(i + 1, 2).setValue(cellSafe_(value)); cache.config = null; return; }
+        if (String(values[i][0]) === key) { sh.getRange(i + 1, 2).setValue(cellSafe_(value)); written('config'); return; }
       }
       sh.appendRow([key, cellSafe_(value)]);
-      cache.config = null;
+      written('config');
     },
     listGroups: function () {
       return readAll('groups').map(function (g) { return { classId: String(g.classId), groupId: String(g.groupId), name: String(g.name), pin: String(g.pin), country: String(g.country || ''), members: String(g.members || '') }; });
@@ -143,18 +178,30 @@ function makeStorage_(ss) {
       sh.getRange(1, 1, data.length, header.length).setValues(data);
       sh.getRange(1, 1, 1, header.length).setFontWeight('bold');
       sh.getRange(2, 4, Math.max(data.length - 1, 1), 1).setNumberFormat('@');
-      cache.groups = null;
+      written('groups');
     },
     appendRow: function (k, obj) {
       sheet(k).appendRow(toRow(k, obj));
-      cache[k] = null;
+      written(k);
+    },
+    /* several rows in one write (the results of a run: one call instead of one per country) */
+    appendRows: function (k, objs) {
+      if (!objs || !objs.length) return;
+      var sh = sheet(k), rows = objs.map(function (o) { return toRow(k, o); });
+      sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+      written(k);
     },
     readRows: function (k) { return readAll(k); },
+    /* the versions of every tab (a missing one is created: data cached under it is always read after it is set) */
+    stamp: function () {
+      var C = xcache_(); if (!C) return null;
+      try { return Object.keys(SHEETS).map(function (k) { var v = C.get('v:' + k); if (!v) { xbump_(k); v = C.get('v:' + k); } return v || '?'; }).join('.'); } catch (e) { return null; }
+    },
     deleteConfig: function (key) {
       var sh = sheet('config');
       var values = sh.getDataRange().getValues();
       for (var i = values.length - 1; i >= 1; i--) if (String(values[i][0]) === key) sh.deleteRow(i + 1);
-      cache.config = null;
+      written('config');
     },
     /* rewrites the tab without the rows matching pred (append-only tabs, so this is the only destructive operation) */
     deleteRows: function (k, pred) {
@@ -175,7 +222,7 @@ function makeStorage_(ss) {
         sh.getRange(1, 1, keep.length, keep[0].length).setValues(keep);
         sh.getRange(1, 1, 1, header.length).setFontWeight('bold');
       }
-      cache[k] = null;
+      written(k);
       return removed;
     }
   };
@@ -198,7 +245,7 @@ function run_(params) {
   if (typeof p.groups === 'string') { try { p.groups = JSON.parse(p.groups); } catch (e) { /* keep */ } }
   var isWrite = ['submit', 'comment', 'pledge', 'forum.post', 'forum.react', 'forum.withdraw'].indexOf(action) >= 0 || (action && action.indexOf('admin.') === 0 && action !== 'admin.login' && action !== 'admin.overview');
   var lock = null;
-  if (isWrite) { lock = LockService.getScriptLock(); try { lock.waitLock(15000); } catch (e) { return { ok: false, error: 'The server is busy, try again in a few seconds.' }; } }
+  if (isWrite) { lock = LockService.getScriptLock(); try { lock.waitLock(30000); } catch (e) { return { ok: false, error: 'The server is busy, try again in a few seconds.' }; } }
   try {
     return MSService.handle(action, p, makeStorage_(getSpreadsheet_()));
   } finally {

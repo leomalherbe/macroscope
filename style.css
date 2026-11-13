@@ -85,7 +85,7 @@ main{padding:26px 0 56px}
 .pill.closed{background:var(--red-soft);color:var(--red);border-color:#e9bcbc}
 .pill.gold{background:var(--gold-soft);color:#7a5f12;border-color:#e4d4a0}
 .pill.blue{background:var(--blue-soft);color:var(--blue);border-color:#c7d7ef}
-.countdown{font-family:var(--mono);font-size:1rem;font-weight:600;padding:3px 10px;border-radius:8px;background:#fff;border:1px solid var(--line)}
+.countdown{font-family:var(--mono);font-size:1rem;font-weight:600;padding:3px 10px;border-radius:8px;background:#fff;border:1px solid var(--line);color:#111}   /* dark digits on its white chip, also on the board's blue header */
 .countdown.late{color:var(--red);border-color:#e9bcbc}
 .spacer{flex:1}
 
@@ -266,6 +266,8 @@ body.board{font-size:17px}
 .facttable .v{font-family:var(--mono);white-space:nowrap}
 .facttable .unit{font-weight:400;text-transform:none;letter-spacing:0;font-size:.8em;color:var(--muted)}
 .facttable td.neg .v{color:var(--red)}
+/* board: the toggle of a country's split « of which » */
+.splitbtn{border:0;background:none;padding:3px 0 0;font:500 .78rem/1 Inter,sans-serif;color:var(--accent,#122ddb);cursor:pointer;white-space:nowrap} .splitbtn:hover{text-decoration:underline}
 /* ten indicators or more (Finance with the households option): tighter cells, headers may wrap, names do not */
 .facttable.dense th, .facttable.dense td{padding-left:6px;padding-right:6px} .facttable.dense th.num{white-space:normal} .facttable.dense td:first-child b{white-space:nowrap}
 .grid2 > *{min-width:0}
@@ -310,6 +312,7 @@ h1,h2,h3,h4,.strip .big,.entry .head b,.rank{font-family:var(--display);font-wei
 .topbar h1{font-weight:800;letter-spacing:-.045em;color:#fff}
 .topbar .kicker{color:rgba(255,255,255,.8)}
 .topbar .sub,.topbar a,.topbar .who{color:rgba(255,255,255,.88)}
+.topbar a.guide-btn{color:var(--navy);text-decoration:none}   /* the « Board » link of the teams' page: a white chip, dark text */
 .card{border-radius:0;box-shadow:none;border:1px solid var(--line);border-top:1.5px solid var(--blue)}
 .card.tint{background:var(--gold-soft);border-color:var(--line);border-top-color:var(--coral)}
 .card.alert{background:var(--amber-soft);border-color:var(--line);border-top-color:var(--coral)}
@@ -378,3 +381,6 @@ footer{border-top:1.5px solid var(--blue);color:var(--muted)}
 .stepper:has(input:disabled) .st-btn{opacity:.35;cursor:default}
 @media (max-width:640px){.stepper input[type=number]{width:62px;padding:7px 6px}.stepper .st-btn{min-width:32px;padding:0 6px}}
 @media print{.stepper .st-btn{display:none}}
+/* the desk's public-debt card: holders as a stacked bar, a colour key before each line */
+.dbar{display:flex;height:16px;border-radius:4px;overflow:hidden;margin:4px 0 10px;background:var(--line)} .dbar i{display:block;height:100%;border-right:2px solid #fff} .dbar i:last-child{border-right:0}
+.dkey{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;vertical-align:baseline}
