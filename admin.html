@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111303">
-<script src="i18n.js?v=2026111303"></script>
-<script src="i18n/fr-desk.js?v=2026111303"></script>
-<script src="i18n/fr-admin.js?v=2026111303"></script>
-<script src="config.js?v=2026111303"></script>
-<script src="core.js?v=2026111303"></script>
-<script src="app-common.js?v=2026111303"></script>
-<script src="engine.js?v=2026111303"></script>
+<link rel="stylesheet" href="style.css?v=2026111304">
+<script src="i18n.js?v=2026111304"></script>
+<script src="i18n/fr-desk.js?v=2026111304"></script>
+<script src="i18n/fr-admin.js?v=2026111304"></script>
+<script src="config.js?v=2026111304"></script>
+<script src="core.js?v=2026111304"></script>
+<script src="app-common.js?v=2026111304"></script>
+<script src="engine.js?v=2026111304"></script>
 </head>
 <body>
 
@@ -431,6 +431,21 @@
       fr.appendChild(selN); fr.appendChild(selL);
       c4.appendChild(fr);
       c4.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['Open all game long: each country posts its proposals (engagement with a counterpart, joint proposal, vote call); every country supports or rejects them by name. The forum of a year freezes when you close its submissions; its proposals are then compared with the decisions, in public. You can hide a proposal afterwards (Council tab).']));
+      /* guided strategy: the justification in five parts with forecasts */
+      var sc = MS.strategyConf(s), sr = el('div', { class: 'checks', style: 'margin-top:12px' });
+      var cbS = el('input', { type: 'checkbox' }); cbS.checked = sc.on;
+      cbS.addEventListener('change', function () { patch({ strategy: { on: cbS.checked } }, cbS.checked ? 'Guided strategy on' : 'Guided strategy off'); });
+      sr.appendChild(el('label', {}, [cbS, ' Guided strategy (five parts instead of a free text)']));
+      if (sc.on) {
+        var cbG = el('input', { type: 'checkbox' }); cbG.checked = sc.gridsRequired;
+        cbG.addEventListener('change', function () { patch({ strategy: { gridsRequired: cbG.checked } }, 'Guided strategy updated'); });
+        sr.appendChild(el('label', {}, [cbG, ' forecasts required']));
+        var selM = el('select', { onchange: function () { patch({ strategy: { minPart: Number(selM.value) } }, 'Guided strategy updated'); } });
+        [0, 30, 60, 100].forEach(function (n) { selM.appendChild(el('option', { value: n }, [n ? n + ' characters a part at least' : 'no minimum length'])); }); selM.value = sc.minPart;
+        sr.appendChild(selM);
+      }
+      c4.appendChild(sr);
+      c4.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['The shock and the votes of the year, the other countries, our own policy (each with a forecast ↑ ≈ ↓ per indicator, compared after the run with the matching part of the split), priorities and sacrifices among the dimensions of R, the long-term project (kept or revised each year). Replaces the minimum length of the free text; the warm-up has no forecasts and no "other countries" part.']));
       /* diplomatic telegrams: private, from country to country; the send window is yours */
       var tc = MS.telegramConf(s), tr = el('div', { class: 'checks', style: 'margin-top:12px' });
       var cbT = el('input', { type: 'checkbox' }); cbT.checked = tc.on;
@@ -1460,6 +1475,19 @@
     c.appendChild(el('p', { class: 'muted small' }, ['Everything also lives in the Google Sheet (tabs Decisions, Results, Pledges, Forum, Reactions, Telegrams, Comments, Log). These exports are the latest version of each item for this class.']));
     var cls = classes.filter(function (x) { return x.id === classId; })[0]; var tag = (cls ? cls.name : classId).replace(/[^a-z0-9]+/gi, '_');
     var decRows = ov.decisions.map(function (d) { var g = groupById(d.groupId); var o = { ts: d.ts, phase: d.phase, round: d.round, group: g ? g.name : d.groupId, country: MS.countryName(d.country), used: d.used, text: d.text }; d.payload.years.forEach(function (y, i) { MS.LEVERS.forEach(function (l) { o['y' + (i + 1) + '_' + l.id] = y.levers[l.id] || 0; }); o['y' + (i + 1) + '_tariffs'] = Object.keys(y.tariffs || {}).map(function (k) { return k + ':' + y.tariffs[k]; }).join(' '); o['y' + (i + 1) + '_euro'] = y.euro; o['y' + (i + 1) + '_tfp'] = y.tfp || 0; }); return o; });
+    /* guided strategy: one column per part, the forecasts and their score against the published row */
+    ov.decisions.forEach(function (d, k) {
+      var sg = d.payload && d.payload.strategy; if (!sg) return;
+      var o = decRows[k];
+      ['shock', 'others', 'own', 'prio', 'project'].forEach(function (id) { if (sg[id]) { o['s_' + id] = sg[id].text; if (sg[id].expect) o['s_' + id + '_expect'] = Object.keys(sg[id].expect).map(function (i) { return i + ':' + sg[id].expect[i]; }).join(' '); } });
+      if (sg.prio) { o.s_prio_up = (sg.prio.up || []).join(' '); o.s_prio_down = (sg.prio.down || []).join(' '); }
+      if (sg.project) { o.s_project_status = sg.project.status; o.s_project_why = sg.project.why || ''; }
+      if (d.phase === 'game') {
+        var rowOf = function (y) { return ov.results.filter(function (r) { return r.phase === 'game' && r.key === d.country && Number(r.year) === y && r.published; })[0] || null; };
+        var fc = MS.forecastCheck(st(), sg, rowOf(Number(d.round)), rowOf(Number(d.round) - 1));
+        if (fc.n) { o.forecast_hits = fc.hits; o.forecast_n = fc.n; }
+      }
+    });
     var decCols = decRows.length ? Object.keys(decRows.reduce(function (a, r) { Object.keys(r).forEach(function (k) { a[k] = 1; }); return a; }, {})) : [];
     var resRows = ov.results.map(function (r) { var g = r.phase === 'warmup' ? groupById(r.key) : groupByCountry(r.key); return Object.assign({}, r, { who: r.phase === 'warmup' ? (g ? g.name : r.key) : MS.countryName(r.key) + (g ? ' (' + g.name + ')' : '') }); });
     var cmRows = ov.comments.map(function (x) { var g = groupById(x.groupId); return Object.assign({}, x, { group: g ? g.name : x.groupId }); });

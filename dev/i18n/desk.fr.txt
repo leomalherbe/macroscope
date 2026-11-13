@@ -1400,3 +1400,91 @@ The telegraph office is closed: the administrator opens it.
 => Le bureau du télégraphe est fermé : l’administrateur l’ouvre.
 Your country has sent its # telegrams for year #.
 => Votre pays a envoyé ses # télégrammes de l’année #.
+
+// guided strategy
+Your strategy for year #
+=> Votre stratégie pour l’année #
+Each part: # characters at least.
+=> Chaque rubrique : # caractères au moins.
+The arrows are your forecasts for each indicator itself (unemployment ↑ = more unemployment); after the run they are compared with what each source actually did.
+=> Les flèches sont vos prévisions pour chaque indicateur lui-même (chômage ↑ = plus de chômage) ; après le calcul, elles sont comparées à ce que chaque source a réellement produit.
+Optional, but that is how you learn.
+=> Facultatif, mais c’est ainsi qu’on apprend.
+The shock and the votes of the year
+=> Le choc et les votes de l’année
+The other countries of the union
+=> Les autres pays de l’union
+Our own policy
+=> Notre propre politique
+Priorities and sacrifices
+=> Priorités et sacrifices
+Our long-term project
+=> Notre projet de long terme
+What do the shock of the year and the votes (rate, crisis, councils) do to your country?
+=> Que font le choc de l’année et les votes (taux, crise, conseils) à votre pays ?
+Read the administrator’s communiqué and the panel of the union.
+=> Lisez le communiqué de l’administrateur et le panneau de l’union.
+What will the other countries of the union do, and what will it do to you?
+=> Que vont faire les autres pays de l’union, et qu’est-ce que cela vous fera ?
+Their spending leaks into your exports; their austerity too. Think of the large countries first.
+=> Leurs dépenses se diffusent dans vos exportations ; leur austérité aussi. Pensez d’abord aux grands pays.
+Which levers, through which mechanism of the model, for which effects?
+=> Quels leviers, par quel mécanisme du modèle, pour quels effets ?
+Say what you expect on each indicator, and what it costs.
+=> Dites ce que vous attendez sur chaque indicateur, et ce que cela coûte.
+What comes first this year, and what do you accept to see worsen?
+=> Qu’est-ce qui passe d’abord cette année, et qu’acceptez-vous de voir se dégrader ?
+R weighs every dimension; you cannot improve them all at once.
+=> R pèse toutes les dimensions ; on ne peut pas toutes les améliorer à la fois.
+Where do you want your country, and the union, to be at the end of the game?
+=> Où voulez-vous que votre pays, et l’union, en soient à la fin de la partie ?
+Keep it, or revise it when the results, the others or an election change the picture.
+=> Gardez-le, ou révisez-le quand les résultats, les autres ou une élection changent la donne.
+Communiqué:
+=> Communiqué :
+On the forum:
+=> Sur le forum :
+Weights of R in force:
+=> Poids de R en vigueur :
+# everywhere
+=> # partout
+Improve first (2 at most)
+=> Améliorer d’abord (2 au plus)
+Accept to see worsen (2 at most)
+=> Accepter de voir se dégrader (2 au plus)
+Your project in year #:
+=> Votre projet en année # :
+We keep it
+=> Nous le gardons
+We revise it
+=> Nous le révisons
+Why we revise it
+=> Pourquoi nous le révisons
+An election changed your weights this year (@): time to look at your project again.
+=> Une élection a changé vos poids cette année (@) : le moment de réexaminer votre projet.
+Expected effect of the shocks this year
+=> Effet attendu des chocs cette année
+Expected effect of the other countries’ policies this year
+=> Effet attendu des politiques des autres pays cette année
+Expected effect of your own policy this year
+=> Effet attendu de votre propre politique cette année
+@: at least # characters (# so far).
+=> @ : au moins # caractères (# pour l’instant).
+@: choose at least one priority.
+=> @ : choisissez au moins une priorité.
+@: say why you revise it.
+=> @ : dites pourquoi vous le révisez.
+@: give your forecast for every indicator.
+=> @ : donnez votre prévision pour chaque indicateur.
+Your forecasts vs what happened
+=> Vos prévisions face à ce qui s’est passé
+# / # right over the game
+=> # / # justes sur la partie
+Year # · # / # right
+=> Année # · # / # justes
+Earlier years
+=> Années précédentes
+For each part of your strategy: the direction you expected (left) and the direction the matching source actually gave over the year (right): the shocks, the other countries’ policies, your own policy. ≈ means a change of less than #.
+=> Pour chaque rubrique de votre stratégie : le sens attendu (à gauche) et le sens que la source correspondante a réellement donné sur l’année (à droite) : les chocs, les politiques des autres pays, votre propre politique. ≈ signifie une variation de moins de #.
+Please fix the following:
+=> À corriger :

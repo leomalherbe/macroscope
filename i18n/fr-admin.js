@@ -341,7 +341,14 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 "hidden":"masqué",
 "Telegram hidden":"Télégramme masqué",
 "Telegram shown again":"Télégramme de nouveau visible",
-"Telegrams (CSV)":"Télégrammes (CSV)"},"re":[["Class deleted \\(([+−±-]?\\d+(?:[.,]\\d+)?) rows removed\\)",
+"Telegrams (CSV)":"Télégrammes (CSV)",
+"Guided strategy (five parts instead of a free text)":"Stratégie guidée (cinq rubriques au lieu d’un texte libre)",
+"Guided strategy on":"Stratégie guidée activée",
+"Guided strategy off":"Stratégie guidée désactivée",
+"Guided strategy updated":"Stratégie guidée mise à jour",
+"forecasts required":"prévisions obligatoires",
+"no minimum length":"pas de longueur minimale",
+"The shock and the votes of the year, the other countries, our own policy (each with a forecast ↑ ≈ ↓ per indicator, compared after the run with the matching part of the split), priorities and sacrifices among the dimensions of R, the long-term project (kept or revised each year). Replaces the minimum length of the free text; the warm-up has no forecasts and no \"other countries\" part.":"Le choc et les votes de l’année, les autres pays, notre propre politique (chacune avec une prévision ↑ ≈ ↓ par indicateur, comparée après le calcul à la part correspondante de la décomposition), priorités et sacrifices entre les dimensions de R, le projet de long terme (gardé ou révisé chaque année). Remplace la longueur minimale du texte libre ; le warm-up n’a ni prévisions ni rubrique « autres pays »."},"re":[["Class deleted \\(([+−±-]?\\d+(?:[.,]\\d+)?) rows removed\\)",
 "Classe supprimée ($1 lignes retirées)"],
 ["Delete the class « (.+?) » with all its groups, PINs, decisions, results, pledges and analyses\\? This cannot be undone\\. Type the class name to confirm:",
 "Supprimer la classe « $1 » avec tous ses groupes, PIN, décisions, résultats, engagements et analyses ? C’est irréversible. Tapez le nom de la classe pour confirmer :"],
@@ -744,4 +751,6 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 ["([+−±-]?\\d+(?:[.,]\\d+)?) telegram a year",
 "$1 télégramme par an"],
 ["([+−±-]?\\d+(?:[.,]\\d+)?) telegrams a year",
-"$1 télégrammes par an"]],"title":"Macroscope · Administration"});
+"$1 télégrammes par an"],
+["([+−±-]?\\d+(?:[.,]\\d+)?) characters a part at least",
+"$1 caractères par rubrique au moins"]],"title":"Macroscope · Administration"});
