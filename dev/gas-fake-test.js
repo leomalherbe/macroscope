@@ -113,7 +113,8 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
   r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
   const [pF, pD, pI] = r2.groups.map(g => g.pin);
-  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.16', 'backend reports v1.16');
+  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.17', 'backend reports v1.17');
+
 
   const dec = (pin, y, votes) => call({ action: 'submit', pin, phase: 'game', round: Number(call({ action: 'state', pin }).state.round), payload: { years: [y], text: 'x'.repeat(130), votes: votes || { rate: 'hold' } } });
   call({ action: 'admin.state.set', key, classId: cx, patch: { phase: 'game', round: 1, status: 'open', sim: { model: 'v1.2', exit: true } } });
@@ -204,6 +205,36 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   must(pv.hidden && pv.text === '' && !pv.reactions.length, 'hidden proposal emptied for students');
   must(call({ action: 'admin.overview', key, classId: cf }).forum.proposals.filter(x => x.propId === pid)[0].text.length > 0, 'the administrator still reads it');
   f = call({ action: 'admin.class.delete', key, classId: cf, name: 'Forum class' }); must(f.ok && f.removed > 0, 'forum rows removed with the class');
+}
+
+/* diplomatic telegrams (backend 1.17): private, bilateral, send window opened by the administrator, 3 a year, 280 characters */
+{
+  let t = call({ action: 'admin.class.create', key, name: 'Telegram class' }); const ct = t.classId;
+  t = call({ action: 'admin.groups.set', key, classId: ct, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
+  const [tF, tD, tI] = t.groups.map(g => g.pin);
+  call({ action: 'admin.state.set', key, classId: ct, patch: { phase: 'game', round: 1, status: 'closed', years: 3 } });
+  const send = (pin, to, text) => call({ action: 'tg.send', pin, to, text });
+  must(!send(tF, 'DEU', 'Shall we coordinate on VAT?').ok && call({ action: 'state', pin: tF }).telegrams === null, 'telegrams off by default');
+  call({ action: 'admin.state.set', key, classId: ct, patch: { telegrams: { on: true } } });
+  t = send(tF, 'DEU', 'Shall we coordinate on VAT?'); must(!t.ok && /closed/.test(t.error), 'nothing goes while the telegraph office is closed');
+  call({ action: 'admin.state.set', key, classId: ct, patch: { telegrams: { open: true } } });
+  must(!send(tF, 'FRA', 'A note to ourselves.').ok && !send(tF, 'ESP', 'Spain is not in this class.').ok, 'only to another country of the class');
+  must(!send(tF, 'DEU', 'x'.repeat(281)).ok, '280 characters at most');
+  must(send(tF, 'DEU', 'Shall we coordinate on VAT?').ok && send(tF, 'DEU', 'We hold public demand.').ok && send(tF, 'ITA', 'Rome, are you with us?').ok, 'three telegrams sent');
+  t = send(tF, 'ITA', 'A fourth one.'); must(!t.ok && /3 telegrams for year 1/.test(t.error), 'three a year');
+  let sD = call({ action: 'state', pin: tD }).telegrams, sI = call({ action: 'state', pin: tI }).telegrams, sF = call({ action: 'state', pin: tF }).telegrams;
+  must(sD.inbox.length === 2 && sI.inbox.length === 1 && sF.sent.length === 3 && sF.used === 3 && !sD.inbox.some(x => x.to !== 'DEU'), 'each country reads only what it received; the sender sees what it sent');
+  must(!JSON.stringify(call({ action: 'board', classId: ct })).includes('coordinate on VAT'), 'nothing on the board');
+  call({ action: 'admin.state.set', key, classId: ct, patch: { round: 2 } });
+  must(send(tF, 'ITA', 'New year, new quota.').ok, 'the quota starts again each year');
+  const tid = call({ action: 'admin.overview', key, classId: ct }).telegrams[0].tgId;
+  must(call({ action: 'admin.overview', key, classId: ct }).telegrams.length === 4, 'the administrator reads every telegram');
+  must(call({ action: 'admin.tg.hide', key, classId: ct, tgId: tid, hidden: true }).ok, 'administrator hides a telegram');
+  sD = call({ action: 'state', pin: tD }).telegrams; must(sD.inbox.filter(x => x.tgId === tid)[0].hidden && sD.inbox.filter(x => x.tgId === tid)[0].text === '', 'hidden telegram emptied for its reader');
+  must(call({ action: 'admin.overview', key, classId: ct }).telegrams.filter(x => x.tgId === tid)[0].text.length > 0, 'the administrator still reads it');
+  call({ action: 'admin.state.set', key, classId: ct, patch: { telegrams: { open: false } } });
+  must(!send(tF, 'DEU', 'After the close.').ok, 'closing the office stops the telegrams');
+  t = call({ action: 'admin.class.delete', key, classId: ct, name: 'Telegram class' }); must(t.ok && t.removed > 0, 'telegrams removed with the class');
 }
 
 /* backend 1.14: the shared cache of the tabs, one write for a run's rows, « busy » when the lock cannot be had */

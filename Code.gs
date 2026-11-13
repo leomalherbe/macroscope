@@ -182,6 +182,8 @@ var MS = (function () {
       /* forum of the union (permanent council): on, proposals per country and year, characters per proposal,
          frozen = last year whose forum is frozen (set when the submissions of that year close) */
       forum: { on: false, perYear: 1, maxLen: 280, frozen: 0 },
+      /* diplomatic telegrams: private, from country to country; the administrator opens and closes the send window */
+      telegrams: { on: false, open: false, perYear: 3, maxLen: 280 },
       sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15, crisisDepr: 10, defendStep: 1, exit: false, tariffs: false }
     };
   }
@@ -672,6 +674,21 @@ var MS = (function () {
     return out;
   }
 
+  /* ---------- Diplomatic telegrams: private, bilateral, a quota per country and year ---------- */
+  function telegramConf(state) {
+    var t = (state && state.telegrams) || {};
+    return { on: !!t.on, open: !!t.open, perYear: Math.max(1, Math.round(num(t.perYear)) || 3), maxLen: Math.max(80, Math.round(num(t.maxLen)) || 280) };
+  }
+  function telegramsOn(state) { return telegramConf(state).on && !!state && state.phase === 'game' && !isDuel(state); }
+  function validateTelegram(state, from, to, text, countries) {
+    var c = telegramConf(state), errors = [];
+    text = String(text || '').trim();
+    if (!to || to === from || (countries || []).indexOf(to) < 0) errors.push('Choose the country you write to.');
+    if (text.length < 5) errors.push('Your telegram is empty.');
+    if (text.length > c.maxLen) errors.push('Too long: ' + text.length + ' characters, ' + c.maxLen + ' at most.');
+    return { ok: !errors.length, errors: errors, clean: { to: to, text: text } };
+  }
+
   /* ---------- Misc ---------- */
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function newId(prefix) {
@@ -700,6 +717,7 @@ var MS = (function () {
     RETAL_TARIFF: RETAL_TARIFF, RETAL_SALE: RETAL_SALE, retaliationOf: retaliationOf, openRetaliation: openRetaliation, retaliationIn: retaliationIn, validateRetaliationVote: validateRetaliationVote, tallyRetaliation: tallyRetaliation,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     FORUM_TYPES: FORUM_TYPES, forumConf: forumConf, forumOn: forumOn, forumFrozenThrough: forumFrozenThrough, forumYear: forumYear, validateProposal: validateProposal, forumCheck: forumCheck, forumBalance: forumBalance,
+    telegramConf: telegramConf, telegramsOn: telegramsOn, validateTelegram: validateTelegram,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, PEG_PARITIES: PEG_PARITIES, tallyCurrency: tallyCurrency, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
@@ -714,13 +732,13 @@ var MS = (function () {
      getConfig(key) -> string|null ; setConfig(key, value)
      listGroups() -> [{classId, groupId, name, pin, country, members}]
      replaceGroups(classId, groups)
-     appendRow(table, obj) ; readRows(table) -> [obj]      tables: decisions, results, pledges, comments, proposals, reactions, log
+     appendRow(table, obj) ; readRows(table) -> [obj]      tables: decisions, results, pledges, comments, proposals, reactions, telegrams, log
      deleteRows(table, predicate) -> number removed ; deleteConfig(key)
      now() -> Date
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.16';
+  var VERSION = '1.17';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -824,6 +842,27 @@ var MSService = (function () {
     var used = opts.groupId ? props.filter(function (p) { return p.groupId === opts.groupId && p.round === year; }).length : 0;
     return { on: f.on && state.phase === 'game', year: year, frozenThrough: frozen, perYear: f.perYear, maxLen: f.maxLen, used: used,
       open: state.phase === 'game' && year <= Number(state.years || 0), proposals: out };
+  }
+
+  /* ---------- diplomatic telegrams: append-only events per tgId (send | hide | show) ---------- */
+  function telegramsOf(st, classId) {
+    var map = {}, order = [];
+    st.readRows('telegrams').filter(function (r) { return r.classId === classId; }).forEach(function (r) {
+      var id = String(r.tgId);
+      if (r.kind === 'send') { if (map[id]) return; map[id] = { tgId: id, ts: r.ts, round: Number(r.round), groupId: r.groupId, from: r.from, to: r.to, text: r.text, hidden: false }; order.push(id); }
+      else if (map[id]) { if (r.kind === 'hide') map[id].hidden = true; if (r.kind === 'show') map[id].hidden = false; }
+    });
+    return order.map(function (id) { return map[id]; });
+  }
+  /* a group's view: what it received and what it sent; hidden telegrams lose their text */
+  function telegramView(st, state, g) {
+    if (!MS.telegramsOn(state) || !g.country) return null;
+    var c = MS.telegramConf(state), all = telegramsOf(st, g.classId), round = Number(state.round);
+    var strip = function (t) { return { tgId: t.tgId, ts: t.ts, round: t.round, from: t.from, to: t.to, text: t.hidden ? '' : t.text, hidden: t.hidden }; };
+    return { on: true, open: c.open, perYear: c.perYear, maxLen: c.maxLen, round: round,
+      used: all.filter(function (t) { return t.groupId === g.groupId && t.round === round; }).length,
+      inbox: all.filter(function (t) { return t.to === g.country && t.groupId !== g.groupId; }).map(strip),
+      sent: all.filter(function (t) { return t.groupId === g.groupId; }).map(strip) };
   }
 
   function log(st, action, classId, who, details) {
@@ -937,7 +976,8 @@ var MSService = (function () {
       reveals: reveals,
       decisionsAll: closedRoundDecisions(state, decisions),
       warmupPlans: warmupPlans(state, decisions),
-      forum: forumView(st, state, g.classId, now, { groupId: g.groupId })
+      forum: forumView(st, state, g.classId, now, { groupId: g.groupId }),
+      telegrams: telegramView(st, state, g)
     };
   }
 
@@ -1077,6 +1117,25 @@ var MSService = (function () {
     return { ok: true, ts: row.ts };
   }
 
+  /* ---------- diplomatic telegrams ---------- */
+  function actTelegramSend(st, p) {
+    var g = groupByPin(st, p.pin);
+    if (!g) return fail('Unknown PIN.');
+    var state = getState(st, g.classId), c = MS.telegramConf(state);
+    if (!MS.telegramsOn(state)) return fail('Diplomatic telegrams are not in use.');
+    if (!c.open) return fail('The telegraph office is closed: the administrator opens it.');
+    if (!g.country) return fail('No country is assigned to your group yet.');
+    var round = Number(state.round), all = telegramsOf(st, g.classId);
+    if (all.filter(function (t) { return t.groupId === g.groupId && t.round === round; }).length >= c.perYear) return fail('Your country has sent its ' + c.perYear + ' telegrams for year ' + round + '.');
+    var countries = st.listGroups().filter(function (x) { return x.classId === g.classId && x.country; }).map(function (x) { return x.country; });
+    var v = MS.validateTelegram(state, g.country, p.to, p.text, countries);
+    if (!v.ok) return { ok: false, error: 'Your telegram was not sent.', errors: v.errors };
+    var row = { ts: iso(st.now()), classId: g.classId, round: round, tgId: MS.newId('t'), groupId: g.groupId, from: g.country, to: v.clean.to, kind: 'send', text: v.clean.text };
+    st.appendRow('telegrams', row);
+    log(st, 'tg.send', g.classId, g.name, g.country + '→' + v.clean.to + ' y' + round);
+    return { ok: true, ts: row.ts, tgId: row.tgId };
+  }
+
   function actBoard(st, p) {
     var classId = String(p.classId || '');
     if (!classExists(st, classId)) return fail('Unknown class.');
@@ -1156,7 +1215,7 @@ var MSService = (function () {
     st.deleteConfig('state:' + id);
     st.replaceGroups(id, []);
     var n = 0;
-    ['decisions', 'results', 'pledges', 'comments', 'proposals', 'reactions', 'log'].forEach(function (t) { n += st.deleteRows(t, function (r) { return String(r.classId) === id; }); });
+    ['decisions', 'results', 'pledges', 'comments', 'proposals', 'reactions', 'telegrams', 'log'].forEach(function (t) { n += st.deleteRows(t, function (r) { return String(r.classId) === id; }); });
     log(st, 'class.delete', '', 'admin', cls.name + ' (' + n + ' rows removed)');
     return { ok: true, classes: getClasses(st), removed: n };
   }
@@ -1205,7 +1264,8 @@ var MSService = (function () {
       results: resultsOf(st, p.classId),
       pledges: pledgesOf(st, p.classId),
       comments: commentsOf(st, p.classId),
-      forum: forumView(st, state, p.classId, st.now(), { admin: true })
+      forum: forumView(st, state, p.classId, st.now(), { admin: true }),
+      telegrams: telegramsOf(st, p.classId)
     };
   }
   function actAdminResultsSet(st, p) {
@@ -1243,14 +1303,23 @@ var MSService = (function () {
     return { ok: true, forum: forumView(st, state, p.classId, st.now(), { admin: true }) };
   }
 
+  function actAdminTelegramHide(st, p) {
+    if (!classExists(st, p.classId)) return fail('Unknown class.');
+    var t = telegramsOf(st, p.classId).filter(function (x) { return x.tgId === String(p.tgId || ''); })[0];
+    if (!t) return fail('Unknown telegram.');
+    st.appendRow('telegrams', { ts: iso(st.now()), classId: p.classId, round: t.round, tgId: t.tgId, groupId: t.groupId, from: t.from, to: t.to, kind: p.hidden ? 'hide' : 'show', text: '' });
+    log(st, p.hidden ? 'tg.hide' : 'tg.show', p.classId, 'admin', t.tgId);
+    return { ok: true, telegrams: telegramsOf(st, p.classId) };
+  }
+
   /* ---------- dispatcher ---------- */
   /* stamp: a short string that changes with every write to the data — the pages ask for it often and reload the whole state only
      when it changed (a cheap request: nothing is read from the Sheet) */
   var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, stamp: function (st) { return { ok: true, stamp: st.stamp ? st.stamp() : null }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard,
-    'forum.post': actForumPost, 'forum.react': actForumReact, 'forum.withdraw': actForumWithdraw };
+    'forum.post': actForumPost, 'forum.react': actForumReact, 'forum.withdraw': actForumWithdraw, 'tg.send': actTelegramSend };
   var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename, 'admin.class.delete': actAdminClassDelete,
     'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.results.set': actAdminResultsSet,
-    'admin.forum.hide': actAdminForumHide };
+    'admin.forum.hide': actAdminForumHide, 'admin.tg.hide': actAdminTelegramHide };
 
   function handle(action, params, storage) {
     params = params || {};
@@ -1282,6 +1351,7 @@ var SHEETS = {
   pledges:   { name: 'Pledges',   header: ['ts', 'classId', 'round', 'groupId', 'country', 'text', 'payload'] },
   comments:  { name: 'Comments',  header: ['ts', 'classId', 'phase', 'round', 'groupId', 'text'] },
   proposals: { name: 'Forum',     header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'kind', 'type', 'text', 'payload'] },   // v1.16: forum of the union (kind: post | withdraw | hide | show)
+  telegrams: { name: 'Telegrams', header: ['ts', 'classId', 'round', 'tgId', 'groupId', 'from', 'to', 'kind', 'text'] },   // v1.17: diplomatic telegrams (kind: send | hide | show)
   reactions: { name: 'Reactions', header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'value'] },
   log:       { name: 'Log',       header: ['ts', 'action', 'classId', 'who', 'details'] }
 };
@@ -1515,7 +1585,7 @@ function run_(params) {
   if (typeof p.patch === 'string') { try { p.patch = JSON.parse(p.patch); } catch (e) { /* keep */ } }
   if (typeof p.rows === 'string') { try { p.rows = JSON.parse(p.rows); } catch (e) { /* keep */ } }
   if (typeof p.groups === 'string') { try { p.groups = JSON.parse(p.groups); } catch (e) { /* keep */ } }
-  var isWrite = ['submit', 'comment', 'pledge', 'forum.post', 'forum.react', 'forum.withdraw'].indexOf(action) >= 0 || (action && action.indexOf('admin.') === 0 && action !== 'admin.login' && action !== 'admin.overview');
+  var isWrite = ['submit', 'comment', 'pledge', 'forum.post', 'forum.react', 'forum.withdraw', 'tg.send'].indexOf(action) >= 0 || (action && action.indexOf('admin.') === 0 && action !== 'admin.login' && action !== 'admin.overview');
   var lock = null;
   if (isWrite) { lock = LockService.getScriptLock(); try { lock.waitLock(30000); } catch (e) { return { ok: false, error: 'The server is busy, try again in a few seconds.' }; } }
   try {

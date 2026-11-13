@@ -619,4 +619,10 @@ Activation par classe : `sim.tariffs` (Control → Parameters → « tariffs »)
 - **Words vs acts** (`MS.forumBalance`, public once frozen): the author against its own ranges (kept if the decision lies within them, tolerance 0.05); for an engagement, each country asked for the counterpart (marked 👍 if it supported); for a joint proposal or a vote call, each supporter against the same numbers. Statuses: kept / not kept / words only / no decision (`forumCheck`; votes through `pledgeVerdict`). Record per country over the frozen years: own word kept, support followed by acts.
 - **Administrator**: hides a proposal afterwards (`admin.forum.hide`, reversible, no prior validation); the Council tab shows everything, hidden proposals included; export `Forum (CSV)`.
 - Pages: desk card « Forum of the union » (composer, this year's proposals with reactions, earlier years with words vs acts), board card, console. Tests: `dev/gas-fake-test.js` (forum block), `dev/e2e-forum.js`.
-- Next stage (not built): diplomatic telegrams, private and bilateral (see the project backlog).
+
+## 19. Diplomatic telegrams (13/11, backend 1.17)
+
+- **Option** `state.telegrams = {on, open, perYear: 3, maxLen: 280}` (Control, not in duels). The administrator opens and closes the **telegraph office** (`open`); nothing is sent while it is closed.
+- **Private and bilateral**: written from the group's desk (whoever types), to one other country of the class; read by that country only (« Received ») and by the sender (« Sent »). Nothing on the board, nothing revealed to the class. `perYear` telegrams per country and game year (`state.round`), `maxLen` characters each.
+- Tab `Telegrams` of the Sheet (append-only events per `tgId`: `send`, `hide`, `show`). The administrator reads every telegram (Council tab), can **hide** one afterwards (reversible, no prior validation; its reader sees « hidden by the administrator »), exports them (`Telegrams (CSV)`). Unread telegrams are flagged on the desk (per browser) and counted in its strip.
+- Tests: `dev/gas-fake-test.js` (telegram block), `dev/e2e-telegrams.js`.

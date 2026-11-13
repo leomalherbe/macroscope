@@ -1030,8 +1030,8 @@ Show again
 => Réafficher
 Forum (CSV)
 => Forum (CSV)
-Everything also lives in the Google Sheet (tabs Decisions, Results, Pledges, Forum, Reactions, Comments, Log). These exports are the latest version of each item for this class.
-=> Tout est aussi dans la Google Sheet (onglets Decisions, Results, Pledges, Forum, Reactions, Comments, Log). Ces exports donnent la dernière version de chaque élément pour cette classe.
+Everything also lives in the Google Sheet (tabs Decisions, Results, Pledges, Forum, Reactions, Telegrams, Comments, Log). These exports are the latest version of each item for this class.
+=> Tout est aussi dans la Google Sheet (onglets Decisions, Results, Pledges, Forum, Reactions, Telegrams, Comments, Log). Ces exports donnent la dernière version de chaque élément pour cette classe.
 Engagement
 => Engagement
 Joint proposal
@@ -1096,6 +1096,46 @@ Only measurable words count: numbers or votes attached to a proposal, compared w
 => @ ≤ #
 @ # to #
 => @ de # à #
+
+// diplomatic telegrams
+Diplomatic telegrams
+=> Télégrammes diplomatiques
+# telegram a year
+=> # télégramme par an
+# telegrams a year
+=> # télégrammes par an
+Open the telegraph office
+=> Ouvrir le bureau du télégraphe
+Close the telegraph office
+=> Fermer le bureau du télégraphe
+Diplomatic telegrams on
+=> Télégrammes diplomatiques activés
+Diplomatic telegrams off
+=> Télégrammes diplomatiques désactivés
+Telegraph office open
+=> Bureau du télégraphe ouvert
+Telegraph office closed
+=> Bureau du télégraphe fermé
+Telegrams updated
+=> Télégrammes mis à jour
+Private messages from country to country, written from the desk; only the recipient reads them, and you (Council tab), where you can hide one afterwards. Nothing on the board.
+=> Messages privés de pays à pays, écrits depuis le desk ; seuls le destinataire et vous les lisez (onglet Conseil), où vous pouvez en masquer un après coup. Rien sur le board.
+office open
+=> bureau ouvert
+office closed
+=> bureau fermé
+Every telegram, hidden ones included; only you and the recipient read them. Hiding removes the text from the recipient′s desk; it can be undone.
+=> Tous les télégrammes, masqués compris ; seuls vous et le destinataire les lisez. Masquer retire le texte du desk du destinataire ; c’est réversible.
+No telegram yet.
+=> Pas encore de télégramme.
+hidden
+=> masqué
+Telegram hidden
+=> Télégramme masqué
+Telegram shown again
+=> Télégramme de nouveau visible
+Telegrams (CSV)
+=> Télégrammes (CSV)
 
 // currency crisis: the peg
 Close the vote: @?

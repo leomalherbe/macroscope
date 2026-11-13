@@ -173,6 +173,8 @@ var MS = (function () {
       /* forum of the union (permanent council): on, proposals per country and year, characters per proposal,
          frozen = last year whose forum is frozen (set when the submissions of that year close) */
       forum: { on: false, perYear: 1, maxLen: 280, frozen: 0 },
+      /* diplomatic telegrams: private, from country to country; the administrator opens and closes the send window */
+      telegrams: { on: false, open: false, perYear: 3, maxLen: 280 },
       sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15, crisisDepr: 10, defendStep: 1, exit: false, tariffs: false }
     };
   }
@@ -663,6 +665,21 @@ var MS = (function () {
     return out;
   }
 
+  /* ---------- Diplomatic telegrams: private, bilateral, a quota per country and year ---------- */
+  function telegramConf(state) {
+    var t = (state && state.telegrams) || {};
+    return { on: !!t.on, open: !!t.open, perYear: Math.max(1, Math.round(num(t.perYear)) || 3), maxLen: Math.max(80, Math.round(num(t.maxLen)) || 280) };
+  }
+  function telegramsOn(state) { return telegramConf(state).on && !!state && state.phase === 'game' && !isDuel(state); }
+  function validateTelegram(state, from, to, text, countries) {
+    var c = telegramConf(state), errors = [];
+    text = String(text || '').trim();
+    if (!to || to === from || (countries || []).indexOf(to) < 0) errors.push('Choose the country you write to.');
+    if (text.length < 5) errors.push('Your telegram is empty.');
+    if (text.length > c.maxLen) errors.push('Too long: ' + text.length + ' characters, ' + c.maxLen + ' at most.');
+    return { ok: !errors.length, errors: errors, clean: { to: to, text: text } };
+  }
+
   /* ---------- Misc ---------- */
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function newId(prefix) {
@@ -691,6 +708,7 @@ var MS = (function () {
     RETAL_TARIFF: RETAL_TARIFF, RETAL_SALE: RETAL_SALE, retaliationOf: retaliationOf, openRetaliation: openRetaliation, retaliationIn: retaliationIn, validateRetaliationVote: validateRetaliationVote, tallyRetaliation: tallyRetaliation,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     FORUM_TYPES: FORUM_TYPES, forumConf: forumConf, forumOn: forumOn, forumFrozenThrough: forumFrozenThrough, forumYear: forumYear, validateProposal: validateProposal, forumCheck: forumCheck, forumBalance: forumBalance,
+    telegramConf: telegramConf, telegramsOn: telegramsOn, validateTelegram: validateTelegram,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, PEG_PARITIES: PEG_PARITIES, tallyCurrency: tallyCurrency, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };

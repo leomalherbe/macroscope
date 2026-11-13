@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111313">
-<script src="i18n.js?v=2026111313"></script>
-<script src="i18n/fr-desk.js?v=2026111313"></script>
-<script src="i18n/fr-admin.js?v=2026111313"></script>
-<script src="config.js?v=2026111313"></script>
-<script src="core.js?v=2026111313"></script>
-<script src="app-common.js?v=2026111313"></script>
-<script src="engine.js?v=2026111313"></script>
+<link rel="stylesheet" href="style.css?v=2026111314">
+<script src="i18n.js?v=2026111314"></script>
+<script src="i18n/fr-desk.js?v=2026111314"></script>
+<script src="i18n/fr-admin.js?v=2026111314"></script>
+<script src="config.js?v=2026111314"></script>
+<script src="core.js?v=2026111314"></script>
+<script src="app-common.js?v=2026111314"></script>
+<script src="engine.js?v=2026111314"></script>
 </head>
 <body>
 
@@ -435,6 +435,21 @@
       fr.appendChild(selN); fr.appendChild(selL);
       c4.appendChild(fr);
       c4.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['Open all game long: each country posts its proposals (engagement with a counterpart, joint proposal, vote call); every country supports or rejects them by name. The forum of a year freezes when you close its submissions; its proposals are then compared with the decisions, in public. You can hide a proposal afterwards (Council tab).']));
+      /* diplomatic telegrams: private, from country to country; the send window is yours */
+      var tc = MS.telegramConf(s), tr = el('div', { class: 'checks', style: 'margin-top:12px' });
+      var cbT = el('input', { type: 'checkbox' }); cbT.checked = tc.on;
+      cbT.addEventListener('change', function () { patch({ telegrams: { on: cbT.checked } }, cbT.checked ? 'Diplomatic telegrams on' : 'Diplomatic telegrams off'); });
+      tr.appendChild(el('label', {}, [cbT, ' Diplomatic telegrams']));
+      if (tc.on) {
+        tr.appendChild(el('button', { class: 'btn sm ' + (tc.open ? 'danger' : 'primary'), onclick: function () { patch({ telegrams: { open: !tc.open } }, tc.open ? 'Telegraph office closed' : 'Telegraph office open'); } }, [tc.open ? 'Close the telegraph office' : 'Open the telegraph office']));
+        var selT = el('select', { onchange: function () { patch({ telegrams: { perYear: Number(selT.value) } }, 'Telegrams updated'); } });
+        [1, 2, 3, 4, 5].forEach(function (n) { selT.appendChild(el('option', { value: n }, [n + ' telegram' + (n > 1 ? 's' : '') + ' a year'])); }); selT.value = tc.perYear;
+        var selTL = el('select', { onchange: function () { patch({ telegrams: { maxLen: Number(selTL.value) } }, 'Telegrams updated'); } });
+        [140, 280, 500].forEach(function (n) { selTL.appendChild(el('option', { value: n }, [n + ' characters'])); }); selTL.value = tc.maxLen;
+        tr.appendChild(selT); tr.appendChild(selTL);
+      }
+      c4.appendChild(tr);
+      c4.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['Private messages from country to country, written from the desk; only the recipient reads them, and you (Council tab), where you can hide one afterwards. Nothing on the board.']));
     }
     if (isGame && !isDuel()) {
       var rv = el('div', { class: 'checks', style: 'margin-top:10px' });
@@ -1395,8 +1410,31 @@
         if (r.ok) { ov.forum = r.forum; UI.toast(hide ? 'Proposal hidden' : 'Proposal shown again'); renderCouncil(); } else b.disabled = false;
       });
       v.appendChild(cf);
-      if (!ov.pledges.length) return;
     }
+    var tgs = ov.telegrams || [];
+    if (MS.telegramConf(s).on || tgs.length) {
+      var ct = el('div', { class: 'card' });
+      ct.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Diplomatic telegrams']), el('span', { class: 'pill ' + (MS.telegramConf(s).open ? 'gold' : '') }, [MS.telegramConf(s).open ? 'office open' : 'office closed'])]));
+      ct.appendChild(el('p', { class: 'muted small' }, ['Every telegram, hidden ones included; only you and the recipient read them. Hiding removes the text from the recipient′s desk; it can be undone.']));
+      if (!tgs.length) ct.appendChild(el('p', { class: 'muted' }, ['No telegram yet.']));
+      var ty = tgs.map(function (t) { return t.round; }).filter(function (y, i, a) { return a.indexOf(y) === i; }).sort(function (a, b) { return b - a; });
+      ty.forEach(function (y) {
+        ct.appendChild(el('h3', { style: 'margin-top:14px' }, ['Year ' + y]));
+        ct.appendChild(el('div', { html: tgs.filter(function (t) { return t.round === y; }).map(function (t) {
+          return '<div class="tg" data-tg="' + esc(t.tgId) + '"><div class="tghead"><b><span>' + esc(MS.countryName(t.from)) + '</span> → <span>' + esc(MS.countryName(t.to)) + '</span></b> <span class="muted small">' + esc(UI.fmtDateTime(t.ts)) + '</span>' + (t.hidden ? ' <span class="pill">hidden</span>' : '') +
+            ' <button class="btn ghost sm" data-act="tghide" data-v="' + (t.hidden ? 0 : 1) + '">' + (t.hidden ? 'Show again' : 'Hide') + '</button></div><div class="tgtext"><span translate="no">' + esc(t.text) + '</span></div></div>';
+        }).join('') }));
+      });
+      ct.addEventListener('click', async function (e) {
+        var b = e.target.closest('button[data-act="tghide"]'); if (!b) return;
+        var id = b.closest('[data-tg]').getAttribute('data-tg'), hide = b.getAttribute('data-v') === '1';
+        b.disabled = true;
+        var r = await admin('admin.tg.hide', { tgId: id, hidden: hide });
+        if (r.ok) { ov.telegrams = r.telegrams; UI.toast(hide ? 'Telegram hidden' : 'Telegram shown again'); renderCouncil(); } else b.disabled = false;
+      });
+      v.appendChild(ct);
+    }
+    if ((fo && (MS.forumConf(s).on || fo.proposals.length)) || tgs.length || MS.telegramConf(s).on) { if (!ov.pledges.length) return; }
     var c = el('div', { class: 'card' });
     c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Council of ministers']), el('span', { class: 'pill ' + (s.councilOpen ? 'gold' : '') }, [s.councilOpen ? 'in session · year ' + s.round : 'adjourned'])]));
     var rounds = {}; ov.pledges.forEach(function (p) { rounds[p.round] = true; });
@@ -1428,7 +1466,7 @@
     var v = $('#view'); v.innerHTML = '';
     var c = el('div', { class: 'card' });
     c.appendChild(el('h2', {}, ['Export']));
-    c.appendChild(el('p', { class: 'muted small' }, ['Everything also lives in the Google Sheet (tabs Decisions, Results, Pledges, Forum, Reactions, Comments, Log). These exports are the latest version of each item for this class.']));
+    c.appendChild(el('p', { class: 'muted small' }, ['Everything also lives in the Google Sheet (tabs Decisions, Results, Pledges, Forum, Reactions, Telegrams, Comments, Log). These exports are the latest version of each item for this class.']));
     var cls = classes.filter(function (x) { return x.id === classId; })[0]; var tag = (cls ? cls.name : classId).replace(/[^a-z0-9]+/gi, '_');
     var decRows = ov.decisions.map(function (d) { var g = groupById(d.groupId); var o = { ts: d.ts, phase: d.phase, round: d.round, group: g ? g.name : d.groupId, country: MS.countryName(d.country), used: d.used, text: d.text }; d.payload.years.forEach(function (y, i) { MS.LEVERS.forEach(function (l) { o['y' + (i + 1) + '_' + l.id] = y.levers[l.id] || 0; }); o['y' + (i + 1) + '_tariffs'] = Object.keys(y.tariffs || {}).map(function (k) { return k + ':' + y.tariffs[k]; }).join(' '); o['y' + (i + 1) + '_euro'] = y.euro; o['y' + (i + 1) + '_tfp'] = y.tfp || 0; }); return o; });
     var decCols = decRows.length ? Object.keys(decRows.reduce(function (a, r) { Object.keys(r).forEach(function (k) { a[k] = 1; }); return a; }, {})) : [];
@@ -1451,6 +1489,10 @@
           author_acts: b ? b.author.status : '', counterpart_acts: b ? (b.counterpart || []).map(function (k) { return k.country + ':' + k.status; }).join(' ') : '', supporters_acts: b ? (b.supporters || []).map(function (k) { return k.country + ':' + k.status; }).join(' ') : '' };
       });
       row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macroscope_' + tag + '_forum.csv', csv(foRows, ['ts', 'year', 'group', 'country', 'type', 'text', 'values', 'ask_from', 'ask_text', 'ask_values', 'support', 'reject', 'withdrawn', 'hidden', 'author_acts', 'counterpart_acts', 'supporters_acts']), 'text/csv'); } }, ['Forum (CSV)']));
+    }
+    if ((ov.telegrams || []).length) {
+      var tgRows = ov.telegrams.map(function (t) { var g = groupById(t.groupId); return { ts: t.ts, year: t.round, group: g ? g.name : t.groupId, from: MS.countryName(t.from), to: MS.countryName(t.to), text: t.text, hidden: t.hidden ? 'yes' : '' }; });
+      row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macroscope_' + tag + '_telegrams.csv', csv(tgRows, ['ts', 'year', 'group', 'from', 'to', 'text', 'hidden']), 'text/csv'); } }, ['Telegrams (CSV)']));
     }
     row.appendChild(el('button', { class: 'btn ghost', onclick: function () { UI.download('macroscope_' + tag + '_all.json', JSON.stringify(ov, null, 2), 'application/json'); } }, ['Everything (JSON)']));
     c.appendChild(row);

@@ -157,6 +157,8 @@ tr.bd + tr:not(.bd) td{border-top:1px solid var(--line)}
 .franges{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:4px 16px}
 .frange{padding:6px 0;border-bottom:1px solid var(--line)} .fbounds{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
 .fbound{display:flex;align-items:center;gap:6px;font-weight:400;margin:0} .fbound > span:first-child{min-width:56px} .fbound input{width:72px}
+.tg{border-left:3px solid var(--line);padding:6px 10px;margin:6px 0;background:#fff;border-radius:0 6px 6px 0} .tg.new{border-left-color:var(--gold);background:#fffdf3} .tg.out{background:#f6f9fd}
+.tg .tghead b{color:var(--navy)} .tg .tgtext{margin-top:3px}
 .freact{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px}
 .freact .rbtn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .fbal{margin-top:6px;padding:6px 8px;background:#f3f1ea;border-radius:6px;font-size:.88rem}
