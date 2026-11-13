@@ -648,7 +648,7 @@ var OPENMU = (function () {
           var pi = p.pistar + p.kappa * gapD + p.rho * (c.tau - pv.tau) * 100 + p.omega * 100 * (xr - prevU.xr) / prevU.xr + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
           var P = pv.P * (1 + pi / 100);
           var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);   // v1.2: price level relative to the reference path (= world prices, growing at π*)
-          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, CEP: hh.CEP, CER: hh.CER, VP: VP, VR: VR, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
+          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, CEP: hh.CEP, CER: hh.CER, VP: VP, VR: VR, govInt: govInt, intRate: pv.B ? govInt / pv.B : 0, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
             V: V, Bh: Bh, H: H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
             pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: r,
             I: c.I, K: K, L: L, M: M, Bb: Bb, A: A, AF: c.AF, YF: YF,
@@ -1021,7 +1021,7 @@ var OPENMU = (function () {
           var pi = p.pistar + p.kappa * gapD + p.rho * (c.tau - pv.tau) * 100 + p.omega * dW + (out_ ? omegaU * dE : 0) + (eco ? p.rhoC * (ctaxNow[id] - pv.ctax) : 0);
           var P = pv.P * (1 + pi / 100);
           var Prel = pv.Prel * (1 + pi / 100) / (1 + p.pistar / 100);
-          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, CEP: hh.CEP, CER: hh.CER, VP: VP, VR: VR, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
+          year.countries[id] = { YDP: hh.YDP, YDR: hh.YDR, CEP: hh.CEP, CER: hh.CER, VP: VP, VR: VR, govInt: govInt, intRate: pv.B ? govInt / pv.B : 0, Y: Y, gap: gap, u: u, pi: pi, P: P, Prel: Prel, C: C, CE: CE, G: c.G, TR: c.TR, theta: c.theta, tau: c.tau, T: T, YD: YD,
             V: V, Bh: pf.Bh, H: pf.H, B: B, Bcb: Bcb, Fcb: Fcb, X: X, XR: c.XR, IM: IM, IMU: IMU, IMR: IMR, IMV: IMV, PB: PB, TB: TB,
             pb: 100 * PB / Y, tb: 100 * TB / Y, saving: YD - CE, r: rb[id],
             I: c.I, K: K, L: L, M: pf.M, Bb: pf.Bb, A: pf.A, AF: c.AF, YF: YF,
@@ -1205,6 +1205,13 @@ var OPENMU = (function () {
           T: pctV(cy.T, rc.T), X: pctV(cy.X, rc.X), IM: pctV(cy.IMV, rc.IMV), debt: ptsY(cy.B, rc.B), Bcb: ptsY(cy.Bcb, rc.Bcb) };
         if (p.capital) detail.x.Bf = 100 * (runAll.years[t].union.xr * cy.Bf / cy.Y - (rc.Bf || 0) / rc.Y);
         if (p.eco) detail.x.ci = 100 * (cy.ci / p.ci0 - 1);
+        if (cy.govInt !== undefined && cy.Bh !== undefined) {
+          /* who holds the public debt (points of GDP; the central banks are the remainder: the union's, and the country's own once
+             out of the union) and what it costs: interest paid over last year's debt, interest bill in % of GDP */
+          var Bw_ = cy.Bw || 0, Bb_ = cy.Bb || 0;
+          detail.extra.holders = { hh: 100 * cy.Bh / cy.Y, banks: 100 * Bb_ / cy.Y, cb: 100 * (cy.B - cy.Bh - Bb_ - Bw_) / cy.Y, row: 100 * Bw_ / cy.Y };
+          detail.extra.intRate = 100 * cy.intRate; detail.extra.intBill = 100 * cy.govInt / cy.Y;
+        }
         if (p.hetero) {
           /* households option: disposable income and wealth of each half (% vs the reference), and the shares of disposable income (levels, %) */
           detail.x.YDP = pctV(cy.YDP, rc.YDP); detail.x.YDR = pctV(cy.YDR, rc.YDR); detail.x.VP = pctV(cy.VP, rc.VP);

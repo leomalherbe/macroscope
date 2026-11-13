@@ -138,6 +138,33 @@ var UI = (function () {
     if (opts && opts.crisis && v.crisis) h += '<span class="chip vote">' + esc(VOTE_LABEL[v.crisis] || v.crisis) + '</span>';
     return '<div class="chips">' + h + '</div>';
   }
+  /* who holds a country's public debt (points of GDP, from the published detail) and what it costs: a stacked bar, one line per
+     holder with its change since the year before, then the average rate paid and the interest bill. u: the union row of the year */
+  var HOLDERS = [['hh', 'Households', '#122ddb'], ['banks', 'Banks', '#7f8ff2'], ['cb', 'Central bank', '#ff7a59'], ['row', 'Rest of the world', '#5aa58c']];
+  function debtHoldersHtml(x, px, u) {
+    var h = x && x.holders; if (!h) return '';
+    var tot = 0; HOLDERS.forEach(function (k) { tot += Math.max(0, MS.num(h[k[0]])); });
+    if (!(tot > 0)) return '';
+    var shown = HOLDERS.filter(function (k) { return Math.abs(MS.num(h[k[0]])) > 0.05; });
+    var bar = '<div class="dbar" role="img" aria-label="' + esc(shown.map(function (k) { return k[1] + ' ' + MS.fmt(h[k[0]], 1) + ' % of GDP'; }).join(', ')) + '">' + shown.map(function (k) { var w = 100 * Math.max(0, MS.num(h[k[0]])) / tot; return '<i style="width:' + w.toFixed(2) + '%;background:' + k[2] + '"></i>'; }).join('') + '</div>';
+    var rows = shown.map(function (k) {
+      var v = MS.num(h[k[0]]), pv = px && px.holders ? MS.num(px.holders[k[0]]) : null;
+      return '<div class="urow"><span><i class="dkey" style="background:' + k[2] + '"></i>' + esc(k[1]) + '</span><span class="num">' + esc(MS.fmt(v, 1)) + ' % of GDP · ' + esc(MS.fmt(100 * v / tot, 0)) + ' % of the debt' + (pv === null ? '' : ' <span class="small muted">(' + esc(MS.fmt(v - pv, 1, true)) + ' pt)</span>') + '</span></div>';
+    }).join('');
+    var rate = '';
+    if (x.intRate !== undefined) {
+      rate = '<div class="urow"><span>Average rate paid on the debt this year</span><span class="num"><b>' + esc(MS.fmt(x.intRate, 2)) + ' %</b>' +
+        ' <span class="small muted">(last year’s central-bank rate' + (x.spread !== undefined ? ', plus the risk premium on the bills held by the market' : '') + ')</span></span></div>' +
+        '<div class="urow"><span>Interest bill</span><span class="num">' + esc(MS.fmt(x.intBill, 2)) + ' % of GDP</span></div>';
+    }
+    return '<div class="union">' + bar + rows + '<div class="urow"><span><b>Public debt</b></span><span class="num"><b>' + esc(MS.fmt(tot, 1)) + ' % of GDP</b></span></div>' + rate + '</div>' +
+      '<p class="xs muted" style="margin:.5em 0 0">The interest paid to the central bank comes back to the government with its profits. Households and banks hold bills at the common rate (plus the risk premium in Finance); the rest of the world, in Finance, buys or sells them as rates and risk change.</p>';
+  }
+  /* the result of a currency-crisis vote: « 2 defend · 3 peg · 1 let it float → peg, devaluation of 5 % » */
+  function currencyTally(c) {
+    var o = c.outcome === 'float' || c.outcome === 'devaluation' ? 'let it float' : c.outcome === 'peg' ? 'peg' + (MS.num(c.parity) ? (c.parity > 0 ? ', devaluation of ' : ', revaluation of ') + MS.fmt(Math.abs(c.parity), 0) + ' %' : ' at today’s rate') : 'defend';
+    return (c.austerity || 0) + ' defend · ' + (c.peg || 0) + ' peg · ' + (c.devaluation || 0) + ' let it float → ' + o;
+  }
   function voteLinesHtml(u) {
     var v = u && u.votes; if (!v) return '';
     var r = v.rate, h = '';
@@ -148,7 +175,7 @@ var UI = (function () {
     if (r) h += '<div class="urow"><span>Vote on the central bank’s rate</span><span class="num">' + esc(r.cut) + ' cut · ' + esc(r.hold) + ' hold · ' + esc(r.hike) + ' hike → ' + (r.outcome ? esc(MS.fmt(r.outcome, 2, true)) + ' pt' : 'unchanged') + ' · rate ' + esc(MS.fmt(r.level, 2)) + ' %</span></div>';
     var c = v.crisis || {};
     if (c.outcome === 'forced') h += '<div class="urow"><span>Reserves exhausted</span><span class="num neg">forced devaluation</span></div>';
-    else if (c.active && c.kind === 'currency') h += '<div class="urow"><span>Currency crisis · vote</span><span class="num">' + esc(c.austerity) + ' defend · ' + esc(c.devaluation) + ' let it float → <b>' + (c.outcome === 'float' ? 'let it float' : 'defend (rate raised)') + '</b></span></div>';
+    else if (c.active && c.kind === 'currency') h += '<div class="urow"><span>Currency crisis · vote</span><span class="num">' + esc(currencyTally(c)) + '</span></div>';
     else if (c.active) h += '<div class="urow"><span>Reserves crisis · vote</span><span class="num">' + esc(crisisTally(c)) + ' → <b>' + esc(crisisWord(c.outcome)) + '</b>' + (c.outcome === 'austerity' && u.caps && u.caps.length ? ' (capped: ' + esc(u.caps.join(', ')) + ')' : '') + '</span></div>';
     return h;
   }
@@ -638,5 +665,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

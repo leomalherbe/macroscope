@@ -7,10 +7,10 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111311">
-<script src="config.js?v=2026111311"></script>
-<script src="core.js?v=2026111311"></script>
-<script src="app-common.js?v=2026111311"></script>
+<link rel="stylesheet" href="style.css?v=2026111312">
+<script src="config.js?v=2026111312"></script>
+<script src="core.js?v=2026111312"></script>
+<script src="app-common.js?v=2026111312"></script>
 </head>
 <body class="board">
 
@@ -88,7 +88,7 @@
     var cur = rec.kind === 'currency', lab = cur ? 'Currency-crisis vote' : 'Crisis vote';
     if (rec.status === 'open') return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num"><span class="pill open">in progress</span> ' + esc(data.crisisVotesIn || 0) + ' of ' + playing + ' countries have voted</span></div>';
     if (rec.status === 'forced') return '<div class="urow"><span>Year ' + esc(st.round) + '</span><span class="num neg">reserves exhausted → forced devaluation</span></div>';
-    if (cur) return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num">' + esc(rec.austerity) + ' defend · ' + esc(rec.devaluation) + ' let it float → <b>' + (rec.outcome === 'float' ? 'let it float' : 'defend') + '</b></span></div>';
+    if (cur) return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num">' + esc(UI.currencyTally(rec)) + '</span></div>';
     return '<div class="urow"><span>Crisis vote · year ' + esc(st.round) + '</span><span class="num">' + esc(UI.crisisTally(rec)) + ' → <b>' + esc(UI.crisisWord(rec.outcome)) + '</b></span></div>';
   }
   /* §12: the councils on retaliation of the current year */
