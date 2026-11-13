@@ -847,8 +847,6 @@ cumulative R: sum of the yearly scores
 => R cumulé : somme des scores annuels
 Save
 => Enregistrer
-Everything also lives in the Google Sheet (tabs Decisions, Results, Pledges, Comments, Log). These exports are the latest version of each item for this class.
-=> Tout se trouve aussi dans la Google Sheet (onglets Decisions, Results, Pledges, Comments, Log). Ces exports donnent la dernière version de chaque élément pour cette classe.
 Decisions (CSV)
 => Décisions (CSV)
 Results (CSV)
@@ -992,3 +990,91 @@ Two household groups: modest households (# % of wages and all benefits, no incom
 
 The backend (v#) does not store inequality yet: replace Code.gs and redeploy it (backend v#). The other results are saved as usual.
 => Le backend (v#) n’enregistre pas encore les inégalités : remplacez Code.gs et redéployez-le (backend v#). Les autres résultats sont enregistrés comme d’habitude.
+
+// forum of the union (permanent council)
+Forum of the union (permanent council)
+=> Forum de l’union (conseil permanent)
+# proposal a year
+=> # proposition par an
+# proposals a year
+=> # propositions par an
+# characters
+=> # caractères
+Open all game long: each country posts its proposals (engagement with a counterpart, joint proposal, vote call); every country supports or rejects them by name. The forum of a year freezes when you close its submissions; its proposals are then compared with the decisions, in public. You can hide a proposal afterwards (Council tab).
+=> Ouvert toute la partie : chaque pays publie ses propositions (engagement avec contrepartie, proposition commune, appel de vote) ; chaque pays les soutient ou les rejette nominativement. Le forum d’une année est gelé quand vous clôturez ses soumissions ; ses propositions sont alors comparées aux décisions, en public. Vous pouvez masquer une proposition après coup (onglet Conseil).
+Forum of the union open
+=> Forum de l’union ouvert
+Forum of the union closed
+=> Forum de l’union fermé
+Forum updated
+=> Forum mis à jour
+Forum of the union
+=> Forum de l’union
+open · proposals for year #
+=> ouvert · propositions pour l’année #
+Everything the groups posted, hidden proposals included. Hiding removes the text and its reactions from the desks and the board; it can be undone.
+=> Tout ce que les groupes ont publié, propositions masquées comprises. Masquer retire le texte et ses réactions des desks et du board ; c’est réversible.
+No proposal yet.
+=> Pas encore de proposition.
+Year # · frozen
+=> Année # · gelée
+Words vs acts, frozen years
+=> Paroles et actes, années gelées
+Proposal hidden
+=> Proposition masquée
+Proposal shown again
+=> Proposition de nouveau visible
+Hide
+=> Masquer
+Show again
+=> Réafficher
+Forum (CSV)
+=> Forum (CSV)
+Everything also lives in the Google Sheet (tabs Decisions, Results, Pledges, Forum, Reactions, Comments, Log). These exports are the latest version of each item for this class.
+=> Tout est aussi dans la Google Sheet (onglets Decisions, Results, Pledges, Forum, Reactions, Comments, Log). Ces exports donnent la dernière version de chaque élément pour cette classe.
+Engagement
+=> Engagement
+Joint proposal
+=> Proposition commune
+Vote call
+=> Appel de vote
+We will
+=> Nous ferons
+Vote called
+=> Vote appelé
+Everyone
+=> Tous
+In return
+=> En retour
+from
+=> de la part de
+all the other members
+=> tous les autres membres
+withdrawn
+=> retirée
+hidden by the administrator
+=> masquée par l’administrateur
+Words vs acts
+=> Paroles et actes
+Counterpart
+=> Contrepartie
+Supporters
+=> Soutiens
+none
+=> aucun
+✓ kept
+=> ✓ tenu
+✗ not kept
+=> ✗ non tenu
+words only
+=> paroles seulement
+no decision
+=> pas de décision
+Country
+=> Pays
+Own word kept
+=> Parole tenue
+Support followed by acts
+=> Soutien suivi d’actes
+Only measurable words count: numbers or votes attached to a proposal, compared with the decisions of the same year.
+=> Seule la parole mesurable compte : chiffres ou votes joints à une proposition, comparés aux décisions de la même année.

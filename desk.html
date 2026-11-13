@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111205">
-<script src="i18n.js?v=2026111205"></script>
-<script src="i18n/fr-desk.js?v=2026111205"></script>
-<script src="guide.js?v=2026111205"></script>
-<script src="config.js?v=2026111205"></script>
-<script src="core.js?v=2026111205"></script>
-<script src="app-common.js?v=2026111205"></script>
+<link rel="stylesheet" href="style.css?v=2026111301">
+<script src="i18n.js?v=2026111301"></script>
+<script src="i18n/fr-desk.js?v=2026111301"></script>
+<script src="guide.js?v=2026111301"></script>
+<script src="config.js?v=2026111301"></script>
+<script src="core.js?v=2026111301"></script>
+<script src="app-common.js?v=2026111301"></script>
 </head>
 <body>
 
@@ -36,7 +36,7 @@
 <script>
 (function () {
   'use strict';
-  var $ = UI.$, el = UI.el, esc = UI.esc;
+  var $ = UI.$, $$ = UI.$$, el = UI.el, esc = UI.esc;
   MXL.apply(); MXL.watch(document.body);
   /* the beginners' guide (guide.js): which card a lever's ⓘ opens */
   var LEVER_GUIDE = { pubdem: 'demand', benefits: 'demand households', inctax: 'demand households', vat: 'vat', ctax: 'climate', green: 'climate', rate: 'rate?', tariffU: 'exit' };
@@ -50,6 +50,7 @@
   var offset = 0;             // server time − client time (ms)
   var formKey = null;         // phase|round of the form currently built
   var councilKey = null;
+  var forumKey = null;        // year|quota left of the forum composer currently built
   var pollTimer = null, tick = null;
 
   /* ---------------- login ---------------- */
@@ -108,6 +109,7 @@
       app.appendChild(el('div', { id: 'strip', class: 'strip' }));
       app.appendChild(el('div', { id: 'communique' }));
       app.appendChild(el('div', { id: 'council' }));
+      app.appendChild(el('div', { id: 'forum' }));
       app.appendChild(el('div', { id: 'form' }));
       app.appendChild(el('div', { id: 'results' }));
       app.appendChild(el('div', { id: 'reveals' }));
@@ -121,6 +123,7 @@
     if (formKey !== key) { buildForm(); formKey = key; }
     else updateFormStatus();
     renderCouncil();
+    renderForum();
     renderResults();
     renderReveals();
     renderAllDecisions();
@@ -135,6 +138,7 @@
     strip.appendChild(el('span', { class: 'pill ' + (data.roundOpen ? 'open' : 'closed') }, [data.roundOpen ? 'Submissions open' : 'Submissions closed']));
     if (st.deadline && data.roundOpen) strip.appendChild(el('span', { class: 'countdown', id: 'countdown' }, ['–:––']));
     if (st.phase === 'game' && st.councilOpen) strip.appendChild(el('span', { class: 'pill gold' }, ['Council in session']));
+    if (data.forum && data.forum.on) { var nf = data.forum.proposals.filter(function (p) { return p.round === data.forum.year && !p.withdrawn && !p.hidden; }).length; strip.appendChild(el('a', { class: 'pill gold', href: '#forum' }, ['Forum: ' + nf + ' proposal' + (nf === 1 ? '' : 's')])); }
     strip.appendChild(el('span', { class: 'spacer' }));
     strip.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { load(); UI.toast('Refreshed'); } }, ['↻ Refresh']));
     updateCountdown();
@@ -588,6 +592,138 @@
       if (!r.ok) { m.innerHTML = '<div class="err">' + esc(r.error) + '</div>'; return; }
       m.innerHTML = '<div class="ok">Pledge posted at ' + esc(UI.fmtTime(r.ts)) + '.</div>'; UI.toast('Pledge posted'); load(true);
     } catch (e) { m.innerHTML = '<div class="err">Network error: ' + esc(e.message) + '</div>'; }
+  }
+
+  /* ---------------- forum of the union (permanent council) ---------------- */
+  function forumLeverTable(prefix, title) {
+    var st = data.state, tt = el('table'), tb = el('tbody');
+    MS.leversFor(st).forEach(function (l) {
+      if (l.id === 'tariffU') return;
+      var inp = el('input', { type: 'number', name: prefix + l.id, step: l.eco ? 0.5 : 0.1, min: l.eco ? 0 : -st.bounds.lever, max: l.eco ? (st.bounds.eco || 10) : st.bounds.lever, value: 0 });
+      inp.addEventListener('input', function () { inp.classList.toggle('nz', !!MS.num(inp.value)); });
+      tb.appendChild(el('tr', {}, [el('td', {}, [l.n + '. ' + l.label]), el('td', { class: 'unit' }, [l.eco ? l.unit : '% of ref.']), el('td', { class: 'num' }, [inp])]));
+    });
+    tt.appendChild(tb);
+    return el('div', { class: 'field' }, [el('label', { class: 'small' }, [title]), el('div', { class: 'tablewrap' }, [tt])]);
+  }
+  function forumVoteSelects(prefix, title) {
+    var vc = votesConfig(); if (!vc.on) return null;
+    var box = el('div', { class: 'field' }, [el('label', { class: 'small' }, [title])]);
+    var selR = el('select', { id: prefix + 'rate' }); [['', 'no vote on the rate'], ['cut', 'vote CUT'], ['hold', 'vote HOLD'], ['hike', 'vote HIKE']].forEach(function (o) { selR.appendChild(el('option', { value: o[0] }, [o[1]])); });
+    box.appendChild(selR);
+    return box;
+  }
+  function forumYearOf(prefix) {
+    var y = MS.emptyYear();
+    MS.LEVERS.forEach(function (l) { var i = $('#forum [name="' + prefix + l.id + '"]'); if (i && MS.num(i.value)) y.levers[l.id] = i.value; });
+    return y;
+  }
+  function forumVotesOf(prefix) { var v = {}, sr = $('#' + prefix + 'rate'); if (sr && sr.value) v.rate = sr.value; return v; }
+  /* text set in an attribute after the page is translated (placeholders of text areas are not walked by i18n.js) */
+  function trAttr(s) { var L = window.MXL; if (!L || L.lang === 'en' || !L.lookup) return s; var t = L.lookup(L.lang, s, true); return t === null ? s : t; }
+  function renderForum() {
+    var box = $('#forum'), f = data.forum, me = data.group.country;
+    if (!f || !f.on || !me) { box.innerHTML = ''; forumKey = null; return; }
+    var left = Math.max(0, f.perYear - f.used), key = f.year + '|' + left + '|' + f.open;
+    if (forumKey !== key) {
+      box.innerHTML = '';
+      var card = el('div', { class: 'card tint' });
+      card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'coop' }, ['Forum of the union · proposals for year ' + f.year]),
+        el('span', { class: 'small muted' }, [f.open ? (left ? left + ' proposal' + (left === 1 ? '' : 's') + ' left this year' : 'your proposal is posted') : 'the game is over'])]));
+      card.appendChild(el('p', { class: 'muted small' }, ['A public forum, open all game long. Each country posts ' + (f.perYear === 1 ? 'one proposal' : f.perYear + ' proposals') + ' a year (' + f.maxLen + ' characters); every country can support 👍 or reject 👎 the others’ proposals, by name, as often as it likes. When the submissions of the year close, its forum is frozen and its proposals are compared with the decisions: words vs acts, in public.']));
+      if (f.open && left) card.appendChild(forumComposer(f));
+      card.appendChild(el('h3', { style: 'margin-top:16px' }, ['On the table · year ' + f.year]));
+      card.appendChild(el('div', { id: 'forumList' }));
+      card.appendChild(el('div', { id: 'forumPast' }));
+      card.addEventListener('click', forumClick);
+      box.appendChild(card);
+      forumKey = key;
+    }
+    var cur = f.proposals.filter(function (p) { return p.round === f.year; }).sort(function (a, b) { return String(a.ts) < String(b.ts) ? 1 : -1; });
+    $('#forumList').innerHTML = cur.length ? cur.map(function (p) { return UI.forumPostHtml(p, { me: me, react: true, withdraw: true }); }).join('') : '<p class="muted">No proposal yet for year ' + f.year + '.</p>';
+    var past = f.proposals.filter(function (p) { return p.round < f.year; });
+    var pb = $('#forumPast'), wasOpen = pb.querySelector('details') && pb.querySelector('details').open;
+    if (!past.length) { pb.innerHTML = ''; return; }
+    var years = past.map(function (p) { return p.round; }).filter(function (y, i, a) { return a.indexOf(y) === i; }).sort(function (a, b) { return b - a; });
+    pb.innerHTML = '<details' + (wasOpen ? ' open' : '') + ' style="margin-top:14px"><summary>Earlier years: proposals and words vs acts</summary>' + UI.forumRecordHtml(f, me) +
+      years.map(function (y) { return '<h3 style="margin-top:12px">Year ' + y + '</h3>' + past.filter(function (p) { return p.round === y; }).map(function (p) { return UI.forumPostHtml(p, { me: me }); }).join(''); }).join('') + '</details>';
+  }
+  function forumComposer(f) {
+    var me = data.group.country, st = data.state;
+    var wrap = el('details', { open: true }, [el('summary', {}, ['Post our proposal for year ' + f.year])]);
+    var types = el('div', { class: 'ftypes' }), type = 'engagement';
+    var DESC = { engagement: ['Engagement', 'We commit to something, and say what we ask in return.'], joint: ['Joint proposal', 'Everyone does the same thing.'], vote: ['Vote call', 'We call the members to vote one way at the central bank.'] };
+    if (!votesConfig().on) delete DESC.vote;
+    Object.keys(DESC).forEach(function (t) {
+      var r = el('input', { type: 'radio', name: 'ftype', value: t }); if (t === type) r.checked = true;
+      var lab = el('label', { class: t === type ? 'on' : '' }, [r, el('span', {}, [el('b', {}, [DESC[t][0]]), el('br'), el('span', { class: 'xs muted' }, [DESC[t][1]])])]);
+      r.addEventListener('change', function () { type = t; $$('#forum .ftypes label').forEach(function (x) { x.classList.toggle('on', x === lab); }); show(); });
+      types.appendChild(lab);
+    });
+    wrap.appendChild(types);
+    var ta = el('textarea', { id: 'fText', style: 'min-height:60px', placeholder: '' });
+    var tLab = el('label', { for: 'fText' }, ['']);
+    wrap.appendChild(el('div', { class: 'field' }, [tLab, ta]));
+    var askBox = el('div', { class: 'field' });
+    var askTa = el('textarea', { id: 'fAsk', style: 'min-height:50px', placeholder: trAttr('e.g. "Germany and the Netherlands raise public demand by 0.5 pt."') });
+    askBox.appendChild(el('label', { for: 'fAsk' }, ['In return, we ask']));
+    askBox.appendChild(askTa);
+    var from = el('div', { class: 'chips', style: 'margin-top:6px' });
+    var others = (data.groups || []).map(function (g) { return g.country; }).filter(function (c, i, a) { return c && c !== me && a.indexOf(c) === i; });
+    [['ALL', 'all the other members']].concat(others.map(function (c) { return [c, MS.countryName(c)]; })).forEach(function (o) {
+      var cb = el('input', { type: 'checkbox', value: o[0], class: 'fFrom' });
+      cb.addEventListener('change', function () { if (o[0] === 'ALL' && cb.checked) $$('#forum .fFrom').forEach(function (x) { if (x !== cb) x.checked = false; }); else if (cb.checked) { var a = $('#forum .fFrom[value="ALL"]'); if (a) a.checked = false; } });
+      from.appendChild(el('label', { class: 'small', style: 'display:flex;gap:4px;align-items:center;font-weight:400' }, [cb, o[1]]));
+    });
+    askBox.appendChild(el('div', { class: 'small muted', style: 'margin-top:6px' }, ['From:']));
+    askBox.appendChild(from);
+    wrap.appendChild(askBox);
+    var count = el('div', { class: 'fcount' });
+    wrap.appendChild(count);
+    function upd() { var n = ta.value.trim().length + (type === 'engagement' ? askTa.value.trim().length : 0); count.textContent = n + ' / ' + f.maxLen + ' characters'; count.classList.toggle('over', n > f.maxLen); }
+    ta.addEventListener('input', upd); askTa.addEventListener('input', upd);
+    var voteBox = el('div', {}); var vs = forumVoteSelects('fV_', 'The vote we call for'); if (vs) voteBox.appendChild(vs);
+    wrap.appendChild(voteBox);
+    var det = el('details', {}, [el('summary', {}, ['Attach numbers (optional: they make the words verifiable)'])]);
+    var ownT = forumLeverTable('fO_', ''), askT = forumLeverTable('fA_', 'Asked in return'), ownV = forumVoteSelects('fOV_', 'Our vote on the rate'), askV = forumVoteSelects('fAV_', 'Vote asked in return');
+    det.appendChild(ownT); if (ownV) det.appendChild(ownV); det.appendChild(askT); if (askV) det.appendChild(askV);
+    wrap.appendChild(det);
+    wrap.appendChild(el('div', { id: 'forumMsg' }));
+    wrap.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', id: 'forumBtn', onclick: function () { postProposal(type); } }, ['Post our proposal']), el('span', { class: 'small muted' }, ['Public at once. It can be withdrawn until the year closes, but the withdrawal does not give the proposal back.'])]));
+    function show() {
+      tLab.textContent = type === 'engagement' ? 'We commit to' : type === 'joint' ? 'We propose that every country' : 'Our call';
+      ta.placeholder = trAttr(type === 'engagement' ? 'e.g. "We raise public demand by 0.5 pt of GDP."' : type === 'joint' ? 'e.g. "…cuts its VAT by 1 pt next year."' : 'e.g. "Vote CUT: unemployment is rising everywhere."');
+      askBox.hidden = type !== 'engagement'; voteBox.hidden = type !== 'vote'; det.hidden = type === 'vote';
+      askT.hidden = type !== 'engagement'; if (askV) askV.hidden = type !== 'engagement';
+      ownT.querySelector('label').textContent = type === 'engagement' ? 'What we will do' : 'What every country does';
+      upd();
+    }
+    show();
+    return wrap;
+  }
+  async function postProposal(type) {
+    var payload = { type: type, text: $('#fText').value };
+    if (type === 'vote') payload.votes = forumVotesOf('fV_');
+    else { payload.year = forumYearOf('fO_'); payload.votes = forumVotesOf('fOV_'); }
+    if (type === 'engagement') payload = Object.assign(payload, { askText: $('#fAsk').value, ask: { from: $$('#forum .fFrom').filter(function (x) { return x.checked; }).map(function (x) { return x.value; }), year: forumYearOf('fA_'), votes: forumVotesOf('fAV_') } });
+    var m = $('#forumMsg'), btn = $('#forumBtn'); btn.disabled = true;
+    try {
+      var r = await MSApi.call('forum.post', { pin: pin, payload: payload });
+      if (!r.ok) { m.innerHTML = '<div class="err"><b>' + esc(r.error) + '</b>' + (r.errors ? '<ul>' + r.errors.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') + '</div>'; btn.disabled = false; return; }
+      UI.toast('Proposal posted'); forumKey = null; await load(true);
+    } catch (e) { m.innerHTML = '<div class="err">Network error: ' + esc(e.message) + '</div>'; btn.disabled = false; }
+  }
+  async function forumClick(e) {
+    var b = e.target.closest('button[data-act]'); if (!b) return;
+    var prop = b.closest('[data-prop]'); if (!prop) return;
+    var id = prop.getAttribute('data-prop'), act = b.getAttribute('data-act');
+    if (act === 'withdraw' && !confirm('Withdraw this proposal? It stays visible as withdrawn, and your country cannot post another one this year.')) return;
+    b.disabled = true;
+    try {
+      var r = act === 'react' ? await MSApi.call('forum.react', { pin: pin, propId: id, value: Number(b.getAttribute('data-v')) }) : await MSApi.call('forum.withdraw', { pin: pin, propId: id });
+      if (!r.ok) { UI.toast(r.error || 'Error', 5000); b.disabled = false; return; }
+      await load(true);
+    } catch (err) { UI.toast('Network error: ' + err.message, 5000); b.disabled = false; }
   }
 
   /* ---------------- results ---------------- */

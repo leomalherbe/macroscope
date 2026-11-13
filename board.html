@@ -7,10 +7,10 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111205">
-<script src="config.js?v=2026111205"></script>
-<script src="core.js?v=2026111205"></script>
-<script src="app-common.js?v=2026111205"></script>
+<link rel="stylesheet" href="style.css?v=2026111301">
+<script src="config.js?v=2026111301"></script>
+<script src="core.js?v=2026111301"></script>
+<script src="app-common.js?v=2026111301"></script>
 </head>
 <body class="board">
 
@@ -276,6 +276,21 @@
         if (!pl.length) cc.appendChild(el('p', { class: 'muted' }, ['No pledge on the table yet.']));
         pl.forEach(function (p) { cc.appendChild(el('div', { class: 'pledge', html: '<b>' + esc(MS.countryName(p.country)) + '</b> <span class="muted small">' + esc(UI.fmtTime(p.ts)) + '</span><br>' + esc(p.text) + '<div class="vals">' + UI.pledgeChipsHtml(p.payload) + '</div>' })); });
         councilCard = cc;
+      }
+      /* forum of the union (permanent council): this year's proposals, then words vs acts of the last frozen year */
+      var fo = data.forum;
+      if (fo && fo.on) {
+        var fcard = el('div', { class: 'card tint' });
+        fcard.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Forum of the union · proposals for year ' + fo.year]), el('span', { class: 'small muted' }, [fo.perYear + ' proposal' + (fo.perYear > 1 ? 's' : '') + ' per country and year · 👍 / 👎 by name'])]));
+        var fcur = fo.proposals.filter(function (p) { return p.round === fo.year; }).sort(function (a, b) { return String(a.ts) < String(b.ts) ? 1 : -1; });
+        fcard.appendChild(el('div', { html: fcur.length ? fcur.map(function (p) { return UI.forumPostHtml(p); }).join('') : '<p class="muted">No proposal yet for year ' + fo.year + '.</p>' }));
+        var lastF = fo.proposals.filter(function (p) { return p.balance; }).map(function (p) { return p.round; }).sort(function (a, b) { return b - a; })[0];
+        if (lastF) {
+          fcard.appendChild(el('h3', { style: 'margin-top:14px' }, ['Words vs acts']));
+          fcard.appendChild(el('div', { html: UI.forumRecordHtml(fo) }));
+          fcard.appendChild(el('details', { style: 'margin-top:8px', open: !!window.MX_FORUM_OPEN, ontoggle: function (e) { window.MX_FORUM_OPEN = e.target.open; } }, [el('summary', {}, ['Proposals of year ' + lastF + ' and what followed']), el('div', { html: fo.proposals.filter(function (p) { return p.round === lastF; }).map(function (p) { return UI.forumPostHtml(p); }).join('') })]));
+        }
+        councilCard = councilCard ? el('div', {}, [councilCard, fcard]) : fcard;
       }
       /* everyone's decisions once the round is over */
       var dl = (data.decisionsAll || []).slice().sort(function (a, b) { return b.round - a.round; })[0];

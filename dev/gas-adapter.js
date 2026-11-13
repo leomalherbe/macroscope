@@ -9,6 +9,8 @@ var SHEETS = {
   results:   { name: 'Results',   header: ['ts', 'classId', 'phase', 'round', 'key', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'detail', 'emis', 'ineq'] },   // emis (v1.7) and ineq (v1.13) appended last so older sheets stay aligned
   pledges:   { name: 'Pledges',   header: ['ts', 'classId', 'round', 'groupId', 'country', 'text', 'payload'] },
   comments:  { name: 'Comments',  header: ['ts', 'classId', 'phase', 'round', 'groupId', 'text'] },
+  proposals: { name: 'Forum',     header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'kind', 'type', 'text', 'payload'] },   // v1.14: forum of the union (kind: post | withdraw | hide | show)
+  reactions: { name: 'Reactions', header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'value'] },
   log:       { name: 'Log',       header: ['ts', 'action', 'classId', 'who', 'details'] }
 };
 var MAX_YEARS = 3;
@@ -194,7 +196,7 @@ function run_(params) {
   if (typeof p.patch === 'string') { try { p.patch = JSON.parse(p.patch); } catch (e) { /* keep */ } }
   if (typeof p.rows === 'string') { try { p.rows = JSON.parse(p.rows); } catch (e) { /* keep */ } }
   if (typeof p.groups === 'string') { try { p.groups = JSON.parse(p.groups); } catch (e) { /* keep */ } }
-  var isWrite = ['submit', 'comment', 'pledge'].indexOf(action) >= 0 || (action && action.indexOf('admin.') === 0 && action !== 'admin.login' && action !== 'admin.overview');
+  var isWrite = ['submit', 'comment', 'pledge', 'forum.post', 'forum.react', 'forum.withdraw'].indexOf(action) >= 0 || (action && action.indexOf('admin.') === 0 && action !== 'admin.login' && action !== 'admin.overview');
   var lock = null;
   if (isWrite) { lock = LockService.getScriptLock(); try { lock.waitLock(15000); } catch (e) { return { ok: false, error: 'The server is busy, try again in a few seconds.' }; } }
   try {

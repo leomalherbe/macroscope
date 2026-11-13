@@ -148,6 +148,18 @@ tr.bd + tr:not(.bd) td{border-top:1px solid var(--line)}
 .pledge{border-left:3px solid var(--gold);padding:8px 12px;margin:8px 0;background:#fffdf7}
 .pledge b{color:var(--navy)}
 .pledge .vals{font-family:var(--mono);font-size:.85rem;color:var(--muted)}
+.fprop{border-left:3px solid var(--gold);padding:8px 12px;margin:8px 0;background:#fffdf7;border-radius:0 6px 6px 0}
+.fprop.ftype-joint{border-left-color:var(--navy)} .fprop.ftype-vote{border-left-color:#7a5aa6}
+.fprop.mine{background:#f6f9fd} .fprop.withdrawn{opacity:.6} .fprop.withdrawn .ftext{text-decoration:line-through}
+.fprop .fhead b{color:var(--navy)} .fprop .ftype{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;font-weight:700;color:var(--muted)}
+.fprop .ftext{margin:4px 0} .fprop .fask{margin:4px 0;padding-left:10px;border-left:2px dotted var(--line)}
+.fprop .vals{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:3px 0} .fprop .flabel{font-size:.78rem;color:var(--muted)}
+.freact{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.freact .rbtn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.fbal{margin-top:6px;padding:6px 8px;background:#f3f1ea;border-radius:6px;font-size:.88rem}
+.fcount{font-family:var(--mono);font-size:.8rem;color:var(--muted)} .fcount.over{color:var(--red);font-weight:700}
+.ftypes{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0} .ftypes label{display:flex;gap:6px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;flex:1 1 180px;font-weight:400}
+.ftypes label.on{border-color:var(--navy);background:#f6f9fd}
 .kept{color:var(--green);font-weight:700} .broken{color:var(--red);font-weight:700}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-family:var(--mono);font-size:.82rem;background:var(--gold-soft);border:1px solid #e4d4a0;border-radius:6px;padding:2px 8px}

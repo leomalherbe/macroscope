@@ -179,6 +179,9 @@ var MS = (function () {
          both replaced as whole objects by a patch, like `shocks` */
       exits: {},
       retaliation: {},
+      /* forum of the union (permanent council): on, proposals per country and year, characters per proposal,
+         frozen = last year whose forum is frozen (set when the submissions of that year close) */
+      forum: { on: false, perYear: 1, maxLen: 280, frozen: 0 },
       sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15, crisisDepr: 10, defendStep: 1, exit: false, tariffs: false }
     };
   }
@@ -539,6 +542,88 @@ var MS = (function () {
     return out;
   }
 
+  /* ---------- Forum of the union (permanent council) ----------
+     Each country posts a limited number of proposals a year; every country reacts (support / reject) for free,
+     by name. The forum of year N freezes when the submissions of year N close; proposals posted afterwards
+     belong to year N+1. Once frozen, a year's proposals are compared with the decisions (words vs acts). */
+  var FORUM_TYPES = ['engagement', 'joint', 'vote'];
+  function forumConf(state) {
+    var f = (state && state.forum) || {};
+    return { on: !!f.on, perYear: Math.max(1, Math.round(num(f.perYear)) || 1), maxLen: Math.max(80, Math.round(num(f.maxLen)) || 280), frozen: Math.max(0, Math.round(num(f.frozen)) || 0) };
+  }
+  function forumOn(state) { return forumConf(state).on && !!state && state.phase === 'game'; }
+  /* last frozen year: every year before the current one, the years closed by the administrator, the current one once its timer ran out */
+  function forumFrozenThrough(state, now) {
+    var cur = Number(state.round) || 1, t = Math.max(forumConf(state).frozen, cur - 1);
+    if (state.status === 'open' && state.deadline && now) {
+      var dl = Date.parse(state.deadline);
+      if (!isNaN(dl) && now.getTime() > dl + 60 * 1000) t = Math.max(t, cur);
+    }
+    return t;
+  }
+  /* the year new proposals are about */
+  function forumYear(state, now) { var cur = Number(state.round) || 1; return forumFrozenThrough(state, now) >= cur ? cur + 1 : cur; }
+  function cleanPledgeYear(year) {
+    year = year || {};
+    var cy = emptyYear();
+    LEVERS.forEach(function (l) { var v = num(year.levers ? year.levers[l.id] : 0); if (!isNaN(v) && v) cy.levers[l.id] = round2(v); });
+    Object.keys(year.tariffs || {}).forEach(function (k) { var v = num(year.tariffs[k]); if (!isNaN(v) && v && countryById(k)) cy.tariffs[k] = round2(v); });
+    return cy;
+  }
+  function cleanAnnounced(v) {
+    v = v || {}; var out = {};
+    if (VOTE_RATE.indexOf(v.rate) >= 0) out.rate = v.rate;
+    if (VOTE_CRISIS.indexOf(v.crisis) >= 0) out.crisis = v.crisis;
+    return out;
+  }
+  function hasContent(year, votes) {
+    return !!(year && (Object.keys(year.levers || {}).length || Object.keys(year.tariffs || {}).length)) || !!(votes && (votes.rate || votes.crisis));
+  }
+  /* {ok, errors, clean}: clean = {type, text, askText?, year, votes, ask?: {from: ['ALL'] | [country…], year, votes}} */
+  function validateProposal(state, author, payload) {
+    payload = payload || {};
+    var f = forumConf(state), errors = [];
+    var type = payload.type;
+    if (FORUM_TYPES.indexOf(type) < 0) errors.push('Choose the kind of proposal.');
+    var text = String(payload.text || '').trim(), askText = type === 'engagement' ? String(payload.askText || '').trim() : '';
+    var len = text.length + askText.length;
+    if (text.length < 10) errors.push('State your proposal in a sentence (10 characters minimum).');
+    if (type === 'engagement' && askText.length < 5) errors.push('Say what you ask in return.');
+    if (len > f.maxLen) errors.push('Too long: ' + len + ' characters, ' + f.maxLen + ' at most.');
+    var clean = { type: type, text: text, year: cleanPledgeYear(payload.year), votes: cleanAnnounced(payload.votes) };
+    if (type === 'vote') { clean.year = emptyYear(); if (!clean.votes.rate && !clean.votes.crisis) errors.push('Choose the vote you call for.'); }
+    if (type === 'engagement') {
+      var a = payload.ask || {}, from = Array.isArray(a.from) ? a.from : [];
+      var members = membersOf(state).map(function (c) { return c.id; });
+      var list = from.indexOf('ALL') >= 0 ? ['ALL'] : from.filter(function (c, i) { return c !== author && members.indexOf(c) >= 0 && from.indexOf(c) === i; });
+      if (!list.length) errors.push('Say from which countries you ask the counterpart.');
+      clean.askText = askText;
+      clean.ask = { from: list, year: cleanPledgeYear(a.year), votes: cleanAnnounced(a.votes) };
+    }
+    return { ok: !errors.length, errors: errors, clean: clean };
+  }
+  /* words vs acts of one country against what it was to do ({year, votes}); decision payload or null */
+  function forumCheck(country, what, decision) {
+    if (!hasContent(what.year, what.votes)) return { country: country, status: 'words', items: [] };
+    if (!decision) return { country: country, status: 'nodecision', items: [] };
+    var v = pledgeVerdict(what, decision);
+    return { country: country, status: !v.items.length ? 'words' : (v.kept ? 'kept' : 'broken'), items: v.items };
+  }
+  /* balance of a proposal: decOf = {country: decision payload of that year}; others = the other members (for 'ALL') */
+  function forumBalance(prop, reactions, decOf, others) {
+    var pay = prop.payload || {}, own = { year: pay.year, votes: pay.votes };
+    var sup = (reactions || []).filter(function (r) { return Number(r.value) > 0; }).map(function (r) { return r.country; });
+    var out = { author: forumCheck(prop.country, own, decOf[prop.country] || null), counterpart: [], supporters: [] };
+    if (prop.type === 'engagement') {
+      var ask = pay.ask || {}, what = { year: ask.year, votes: ask.votes };
+      var from = (ask.from || []).indexOf('ALL') >= 0 ? (others || []).filter(function (c) { return c !== prop.country; }) : (ask.from || []);
+      out.counterpart = from.map(function (c) { var k = forumCheck(c, what, decOf[c] || null); k.supported = sup.indexOf(c) >= 0; return k; });
+    } else {
+      out.supporters = sup.map(function (c) { return forumCheck(c, own, decOf[c] || null); });
+    }
+    return out;
+  }
+
   /* ---------- Misc ---------- */
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function newId(prefix) {
@@ -566,6 +651,7 @@ var MS = (function () {
     exitModelOk: exitModelOk, MODEL_IDS: MODEL_IDS, modelId: modelId, financeModel: financeModel, climateOn: climateOn, householdsOn: householdsOn, engineModel: engineModel, modelLabel: modelLabel, exitAllowed: exitAllowed, exitYearOf: exitYearOf, isOutIn: isOutIn, leversForCountry: leversForCountry, FX_REGIMES: FX_REGIMES,
     RETAL_TARIFF: RETAL_TARIFF, RETAL_SALE: RETAL_SALE, retaliationOf: retaliationOf, openRetaliation: openRetaliation, retaliationIn: retaliationIn, validateRetaliationVote: validateRetaliationVote, tallyRetaliation: tallyRetaliation,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
+    FORUM_TYPES: FORUM_TYPES, forumConf: forumConf, forumOn: forumOn, forumFrozenThrough: forumFrozenThrough, forumYear: forumYear, validateProposal: validateProposal, forumCheck: forumCheck, forumBalance: forumBalance,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
@@ -580,13 +666,13 @@ var MS = (function () {
      getConfig(key) -> string|null ; setConfig(key, value)
      listGroups() -> [{classId, groupId, name, pin, country, members}]
      replaceGroups(classId, groups)
-     appendRow(table, obj) ; readRows(table) -> [obj]      tables: decisions, results, pledges, comments, log
+     appendRow(table, obj) ; readRows(table) -> [obj]      tables: decisions, results, pledges, comments, proposals, reactions, log
      deleteRows(table, predicate) -> number removed ; deleteConfig(key)
      now() -> Date
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.13';
+  var VERSION = '1.16';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -639,6 +725,59 @@ var MSService = (function () {
     return latestBy(st.readRows('comments').filter(function (r) { return r.classId === classId; }),
       function (r) { return r.phase + '|' + r.round + '|' + r.groupId; });
   }
+  /* ---------- forum of the union (permanent council) ----------
+     proposals: append-only events per propId (kind post | withdraw | hide | show); reactions: latest per proposal and group */
+  function proposalsOf(st, classId) {
+    var map = {}, order = [];
+    st.readRows('proposals').filter(function (r) { return r.classId === classId; }).forEach(function (r) {
+      var id = String(r.propId);
+      if (r.kind === 'post') {
+        if (map[id]) return;
+        map[id] = { propId: id, ts: r.ts, round: Number(r.round), groupId: r.groupId, country: r.country, type: r.type, text: r.text,
+          payload: typeof r.payload === 'string' ? parseJSON(r.payload, {}) : (r.payload || {}), withdrawn: null, hidden: false };
+        order.push(id);
+      } else if (map[id]) {
+        if (r.kind === 'withdraw' && !map[id].withdrawn) map[id].withdrawn = r.ts;
+        if (r.kind === 'hide') map[id].hidden = true;
+        if (r.kind === 'show') map[id].hidden = false;
+      }
+    });
+    return order.map(function (id) { return map[id]; });
+  }
+  function reactionsOf(st, classId) {
+    return latestBy(st.readRows('reactions').filter(function (r) { return r.classId === classId; }),
+      function (r) { return r.propId + '|' + r.groupId; })
+      .map(function (r) { return { propId: String(r.propId), round: Number(r.round), groupId: r.groupId, country: r.country, value: Number(r.value), ts: r.ts }; })
+      .filter(function (r) { return r.value === 1 || r.value === -1; });
+  }
+  /* the forum as a page sees it: every proposal with its reactions (by name) and, once its year is frozen, its words-vs-acts balance */
+  function forumView(st, state, classId, now, opts) {
+    opts = opts || {};
+    var f = MS.forumConf(state);
+    if (!opts.admin && !MS.forumOn(state)) return null;
+    var frozen = MS.forumFrozenThrough(state, now), year = MS.forumYear(state, now);
+    var props = proposalsOf(st, classId), reacts = reactionsOf(st, classId);
+    var groups = st.listGroups().filter(function (x) { return x.classId === classId && x.country; });
+    var decisions = null;
+    var out = props.map(function (p) {
+      var rs = reacts.filter(function (r) { return r.propId === p.propId; }).map(function (r) { return { country: r.country, groupId: r.groupId, value: r.value, ts: r.ts }; });
+      var o = { propId: p.propId, ts: p.ts, round: p.round, groupId: p.groupId, country: p.country, type: p.type, text: p.text,
+        payload: p.payload, withdrawn: p.withdrawn, hidden: p.hidden, frozen: p.round <= frozen, reactions: rs };
+      if (o.frozen && !p.withdrawn && (!p.hidden || opts.admin)) {
+        if (!decisions) decisions = decisionsOf(st, classId).filter(function (d) { return d.phase === 'game'; });
+        var decOf = {};
+        decisions.forEach(function (d) { if (Number(d.round) === p.round) decOf[d.country] = d.payload; });
+        var others = groups.map(function (g) { return g.country; }).filter(function (c, i, a) { return a.indexOf(c) === i && !MS.isOutIn(state, c, p.round); });
+        o.balance = MS.forumBalance(p, rs, decOf, others);
+      }
+      if (p.hidden && !opts.admin) { o.text = ''; o.payload = {}; o.reactions = []; }
+      return o;
+    });
+    var used = opts.groupId ? props.filter(function (p) { return p.groupId === opts.groupId && p.round === year; }).length : 0;
+    return { on: f.on && state.phase === 'game', year: year, frozenThrough: frozen, perYear: f.perYear, maxLen: f.maxLen, used: used,
+      open: state.phase === 'game' && year <= Number(state.years || 0), proposals: out };
+  }
+
   function log(st, action, classId, who, details) {
     try { st.appendRow('log', { ts: iso(st.now()), action: action, classId: classId || '', who: who || '', details: typeof details === 'string' ? details : JSON.stringify(details || '') }); } catch (e) { /* logging must never break a request */ }
   }
@@ -749,7 +888,8 @@ var MSService = (function () {
       pledges: visiblePledges,
       reveals: reveals,
       decisionsAll: closedRoundDecisions(state, decisions),
-      warmupPlans: warmupPlans(state, decisions)
+      warmupPlans: warmupPlans(state, decisions),
+      forum: forumView(st, state, g.classId, now, { groupId: g.groupId })
     };
   }
 
@@ -838,6 +978,57 @@ var MSService = (function () {
     return { ok: true, ts: row.ts };
   }
 
+  /* ---------- forum of the union ---------- */
+  function forumContext(st, p) {
+    var g = groupByPin(st, p.pin);
+    if (!g) return { err: fail('Unknown PIN.') };
+    var state = getState(st, g.classId);
+    if (!MS.forumOn(state)) return { err: fail('The forum of the union is closed.') };
+    if (!g.country) return { err: fail('No country is assigned to your group yet.') };
+    return { g: g, state: state, now: st.now() };
+  }
+  function actForumPost(st, p) {
+    var c = forumContext(st, p); if (c.err) return c.err;
+    var g = c.g, state = c.state, year = MS.forumYear(state, c.now), f = MS.forumConf(state);
+    if (year > Number(state.years || 0)) return fail('The game is over: the forum takes no more proposals.');
+    var mine = proposalsOf(st, g.classId).filter(function (x) { return x.groupId === g.groupId && x.round === year; }).length;
+    if (mine >= f.perYear) return fail(f.perYear === 1 ? 'Your country has already posted its proposal for year ' + year + '.' : 'Your country has already posted its ' + f.perYear + ' proposals for year ' + year + '.');
+    var v = MS.validateProposal(state, g.country, p.payload || {});
+    if (!v.ok) return { ok: false, error: 'Your proposal was not posted.', errors: v.errors };
+    var row = { ts: iso(c.now), classId: g.classId, round: year, propId: MS.newId('p'), groupId: g.groupId, country: g.country,
+      kind: 'post', type: v.clean.type, text: v.clean.text, payload: JSON.stringify(v.clean) };
+    st.appendRow('proposals', row);
+    log(st, 'forum.post', g.classId, g.name, 'y' + year + ' ' + v.clean.type);
+    return { ok: true, ts: row.ts, propId: row.propId, round: year };
+  }
+  function findProposal(st, classId, propId) {
+    return proposalsOf(st, classId).filter(function (x) { return x.propId === String(propId || ''); })[0] || null;
+  }
+  function actForumReact(st, p) {
+    var c = forumContext(st, p); if (c.err) return c.err;
+    var g = c.g, pr = findProposal(st, g.classId, p.propId);
+    if (!pr || pr.hidden) return fail('Unknown proposal.');
+    if (pr.groupId === g.groupId) return fail('You cannot react to your own proposal.');
+    if (pr.withdrawn) return fail('This proposal has been withdrawn.');
+    if (pr.round <= MS.forumFrozenThrough(c.state, c.now)) return fail('The forum of year ' + pr.round + ' is closed: reactions are frozen.');
+    var value = Number(p.value); if ([1, -1, 0].indexOf(value) < 0) return fail('Invalid reaction.');
+    var row = { ts: iso(c.now), classId: g.classId, round: pr.round, propId: pr.propId, groupId: g.groupId, country: g.country, value: value };
+    st.appendRow('reactions', row);
+    log(st, 'forum.react', g.classId, g.name, pr.propId + ' ' + value);
+    return { ok: true, ts: row.ts };
+  }
+  function actForumWithdraw(st, p) {
+    var c = forumContext(st, p); if (c.err) return c.err;
+    var g = c.g, pr = findProposal(st, g.classId, p.propId);
+    if (!pr || pr.groupId !== g.groupId) return fail('Unknown proposal.');
+    if (pr.withdrawn) return fail('This proposal is already withdrawn.');
+    if (pr.round <= MS.forumFrozenThrough(c.state, c.now)) return fail('The forum of year ' + pr.round + ' is closed: the proposal can no longer be withdrawn.');
+    var row = { ts: iso(c.now), classId: g.classId, round: pr.round, propId: pr.propId, groupId: g.groupId, country: g.country, kind: 'withdraw', type: pr.type, text: '', payload: '' };
+    st.appendRow('proposals', row);
+    log(st, 'forum.withdraw', g.classId, g.name, pr.propId);
+    return { ok: true, ts: row.ts };
+  }
+
   function actBoard(st, p) {
     var classId = String(p.classId || '');
     if (!classExists(st, classId)) return fail('Unknown class.');
@@ -871,7 +1062,8 @@ var MSService = (function () {
       pledges: state.councilOpen ? pledges.filter(function (x) { return x.round === Number(state.round); }) : [],
       reveals: reveals,
       decisionsAll: closedRoundDecisions(state, decisions),
-      warmupPlans: warmupPlans(state, decisions)
+      warmupPlans: warmupPlans(state, decisions),
+      forum: forumView(st, state, classId, now)
     };
   }
 
@@ -916,13 +1108,18 @@ var MSService = (function () {
     st.deleteConfig('state:' + id);
     st.replaceGroups(id, []);
     var n = 0;
-    ['decisions', 'results', 'pledges', 'comments', 'log'].forEach(function (t) { n += st.deleteRows(t, function (r) { return String(r.classId) === id; }); });
+    ['decisions', 'results', 'pledges', 'comments', 'proposals', 'reactions', 'log'].forEach(function (t) { n += st.deleteRows(t, function (r) { return String(r.classId) === id; }); });
     log(st, 'class.delete', '', 'admin', cls.name + ' (' + n + ' rows removed)');
     return { ok: true, classes: getClasses(st), removed: n };
   }
   function actAdminStateSet(st, p) {
     if (!classExists(st, p.classId)) return fail('Unknown class.');
-    var state = MS.mergeState(getState(st, p.classId), p.patch || {});
+    var prev = getState(st, p.classId);
+    var state = MS.mergeState(prev, p.patch || {});
+    /* forum: the year whose submissions close is frozen for good (a new game starts with an empty slate) */
+    if (prev.phase !== 'game' && state.phase === 'game') state.forum = Object.assign({}, state.forum, { frozen: 0 });
+    else if (prev.phase === 'game' && prev.status === 'open' && (state.status !== 'open' || Number(state.round) !== Number(prev.round)))
+      state.forum = Object.assign({}, state.forum, { frozen: Math.max(MS.forumConf(prev).frozen, Number(prev.round)) });
     if (p.patch && p.patch.deadlineMinutes !== undefined) {
       var m = Number(p.patch.deadlineMinutes);
       state.deadline = (m > 0) ? new Date(st.now().getTime() + m * 60000).toISOString() : null;
@@ -959,7 +1156,8 @@ var MSService = (function () {
       decisions: decisionsOf(st, p.classId),
       results: resultsOf(st, p.classId),
       pledges: pledgesOf(st, p.classId),
-      comments: commentsOf(st, p.classId)
+      comments: commentsOf(st, p.classId),
+      forum: forumView(st, state, p.classId, st.now(), { admin: true })
     };
   }
   function actAdminResultsSet(st, p) {
@@ -984,10 +1182,23 @@ var MSService = (function () {
     return { ok: true, saved: n, results: resultsOf(st, p.classId) };
   }
 
+  function actAdminForumHide(st, p) {
+    if (!classExists(st, p.classId)) return fail('Unknown class.');
+    var pr = findProposal(st, p.classId, p.propId);
+    if (!pr) return fail('Unknown proposal.');
+    st.appendRow('proposals', { ts: iso(st.now()), classId: p.classId, round: pr.round, propId: pr.propId, groupId: pr.groupId, country: pr.country,
+      kind: p.hidden ? 'hide' : 'show', type: pr.type, text: '', payload: '' });
+    log(st, p.hidden ? 'forum.hide' : 'forum.show', p.classId, 'admin', pr.propId);
+    var state = getState(st, p.classId);
+    return { ok: true, forum: forumView(st, state, p.classId, st.now(), { admin: true }) };
+  }
+
   /* ---------- dispatcher ---------- */
-  var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard };
+  var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard,
+    'forum.post': actForumPost, 'forum.react': actForumReact, 'forum.withdraw': actForumWithdraw };
   var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename, 'admin.class.delete': actAdminClassDelete,
-    'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.results.set': actAdminResultsSet };
+    'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.results.set': actAdminResultsSet,
+    'admin.forum.hide': actAdminForumHide };
 
   function handle(action, params, storage) {
     params = params || {};
@@ -1018,6 +1229,8 @@ var SHEETS = {
   results:   { name: 'Results',   header: ['ts', 'classId', 'phase', 'round', 'key', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'detail', 'emis', 'ineq'] },   // emis (v1.7) and ineq (v1.13) appended last so older sheets stay aligned
   pledges:   { name: 'Pledges',   header: ['ts', 'classId', 'round', 'groupId', 'country', 'text', 'payload'] },
   comments:  { name: 'Comments',  header: ['ts', 'classId', 'phase', 'round', 'groupId', 'text'] },
+  proposals: { name: 'Forum',     header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'kind', 'type', 'text', 'payload'] },   // v1.14: forum of the union (kind: post | withdraw | hide | show)
+  reactions: { name: 'Reactions', header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'value'] },
   log:       { name: 'Log',       header: ['ts', 'action', 'classId', 'who', 'details'] }
 };
 var MAX_YEARS = 3;
@@ -1203,7 +1416,7 @@ function run_(params) {
   if (typeof p.patch === 'string') { try { p.patch = JSON.parse(p.patch); } catch (e) { /* keep */ } }
   if (typeof p.rows === 'string') { try { p.rows = JSON.parse(p.rows); } catch (e) { /* keep */ } }
   if (typeof p.groups === 'string') { try { p.groups = JSON.parse(p.groups); } catch (e) { /* keep */ } }
-  var isWrite = ['submit', 'comment', 'pledge'].indexOf(action) >= 0 || (action && action.indexOf('admin.') === 0 && action !== 'admin.login' && action !== 'admin.overview');
+  var isWrite = ['submit', 'comment', 'pledge', 'forum.post', 'forum.react', 'forum.withdraw'].indexOf(action) >= 0 || (action && action.indexOf('admin.') === 0 && action !== 'admin.login' && action !== 'admin.overview');
   var lock = null;
   if (isWrite) { lock = LockService.getScriptLock(); try { lock.waitLock(15000); } catch (e) { return { ok: false, error: 'The server is busy, try again in a few seconds.' }; } }
   try {

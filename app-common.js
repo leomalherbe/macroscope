@@ -277,6 +277,74 @@ var UI = (function () {
     if (v.crisis) h += '<span class="chip vote">Will vote: ' + esc(crisisWord(v.crisis)) + '</span>';
     return '<div class="chips">' + (h || '<span class="chip zero">words only</span>') + '</div>';
   }
+  /* ---------- forum of the union (permanent council) ---------- */
+  var FORUM_TYPE_LABEL = { engagement: 'Engagement', joint: 'Joint proposal', vote: 'Vote call' };
+  var FORUM_STATUS = { kept: '<span class="kept">✓ kept</span>', broken: '<span class="broken">✗ not kept</span>', words: '<span class="muted">words only</span>', nodecision: '<span class="muted">no decision</span>' };
+  function forumHasContent(year, votes) { return !!(year && (Object.keys(year.levers || {}).length || Object.keys(year.tariffs || {}).length)) || !!(votes && (votes.rate || votes.crisis)); }
+  function forumChips(year, votes) { return forumHasContent(year, votes) ? pledgeChipsHtml({ year: year, votes: votes }) : ''; }
+  function forumNames(list) { return list.map(function (c) { return '<span>' + esc(MS.countryName(c)) + '</span>'; }).join(', '); }
+  /* one proposal; opts: {me: my country, react: true to show the reaction buttons, withdraw: true for the author's button, admin: true} */
+  function forumPostHtml(p, opts) {
+    opts = opts || {};
+    var pay = p.payload || {}, mine = opts.me && p.country === opts.me;
+    var cls = 'fprop ftype-' + esc(p.type) + (mine ? ' mine' : '') + (p.withdrawn ? ' withdrawn' : '') + (p.hidden ? ' hiddenp' : '');
+    var h = '<div class="' + cls + '" data-prop="' + esc(p.propId) + '"><div class="fhead"><span class="ftype">' + esc(FORUM_TYPE_LABEL[p.type] || p.type) + '</span> <b>' + esc(MS.countryName(p.country)) + '</b> <span class="muted small">' + esc(fmtDateTime(p.ts)) + '</span>' +
+      (p.withdrawn ? ' <span class="pill">withdrawn</span>' : '') + (p.hidden ? ' <span class="pill">hidden by the administrator</span>' : '') + '</div>';
+    if (p.hidden && !opts.admin) return h + '</div>';
+    h += '<div class="ftext"><span translate="no">' + esc(p.text) + '</span></div>';
+    var own = forumChips(pay.year, pay.votes);
+    if (own) h += '<div class="vals"><span class="flabel">' + (p.type === 'engagement' ? 'We will' : p.type === 'vote' ? 'Vote called' : 'Everyone') + '</span>' + own + '</div>';
+    if (p.type === 'engagement' && pay.ask) {
+      var from = (pay.ask.from || []).indexOf('ALL') >= 0 ? '<span>all the other members</span>' : forumNames(pay.ask.from || []);
+      h += '<div class="fask"><b>In return</b> <span class="muted small"><span>from</span> ' + from + '</span> · <span translate="no">' + esc(pay.askText || '') + '</span>' +
+        (forumHasContent(pay.ask.year, pay.ask.votes) ? '<div class="vals">' + forumChips(pay.ask.year, pay.ask.votes) + '</div>' : '') + '</div>';
+    }
+    var ups = (p.reactions || []).filter(function (r) { return r.value > 0; }).map(function (r) { return r.country; });
+    var downs = (p.reactions || []).filter(function (r) { return r.value < 0; }).map(function (r) { return r.country; });
+    var myR = opts.me ? ((p.reactions || []).filter(function (r) { return r.country === opts.me; })[0] || {}).value || 0 : 0;
+    h += '<div class="freact">';
+    if (opts.react && !mine && !p.withdrawn && !p.frozen) {
+      h += '<button class="btn sm rbtn' + (myR > 0 ? ' on' : '') + '" data-act="react" data-v="' + (myR > 0 ? 0 : 1) + '">👍 Support</button>' +
+        '<button class="btn sm rbtn' + (myR < 0 ? ' on' : '') + '" data-act="react" data-v="' + (myR < 0 ? 0 : -1) + '">👎 Reject</button>';
+    }
+    h += '<span class="small"><span>👍 ' + ups.length + '</span>' + (ups.length ? ' <span class="muted">' + forumNames(ups) + '</span>' : '') + '</span>' +
+      '<span class="small"><span>👎 ' + downs.length + '</span>' + (downs.length ? ' <span class="muted">' + forumNames(downs) + '</span>' : '') + '</span>';
+    if (opts.withdraw && mine && !p.withdrawn && !p.frozen) h += '<button class="btn ghost sm" data-act="withdraw">Withdraw</button>';
+    if (opts.admin) h += '<button class="btn ghost sm" data-act="hide" data-v="' + (p.hidden ? 0 : 1) + '">' + (p.hidden ? 'Show again' : 'Hide') + '</button>';
+    h += '</div>';
+    if (p.balance) h += forumBalanceHtml(p);
+    return h + '</div>';
+  }
+  function forumBalanceHtml(p) {
+    var b = p.balance, nm = function (c) { return '<span>' + esc(MS.countryName(c)) + '</span>'; };
+    var h = '<div class="fbal"><div><b>Words vs acts</b></div><div>' + nm(p.country) + ' ' + FORUM_STATUS[b.author.status] + '</div>';
+    if (p.type === 'engagement') {
+      h += '<div><span class="flabel">Counterpart</span> ' + (b.counterpart.length ? b.counterpart.map(function (k) { return nm(k.country) + (k.supported ? ' (👍)' : '') + ' ' + FORUM_STATUS[k.status]; }).join(' · ') : '—') + '</div>';
+    } else {
+      h += '<div><span class="flabel">Supporters</span> ' + (b.supporters.length ? b.supporters.map(function (k) { return nm(k.country) + ' ' + FORUM_STATUS[k.status]; }).join(' · ') : '<span class="muted">none</span>') + '</div>';
+    }
+    return h + '</div>';
+  }
+  /* words vs acts over the frozen years, per country: its own proposals kept, and the proposals it supported followed by acts */
+  function forumRecord(forum) {
+    var rec = {};
+    function add(c, k, st) { if (st !== 'kept' && st !== 'broken') return; var r = rec[c] = rec[c] || { country: c, own: 0, ownKept: 0, sup: 0, supKept: 0 }; r[k]++; if (st === 'kept') r[k + 'Kept']++; }
+    (forum && forum.proposals || []).forEach(function (p) {
+      if (!p.balance) return;
+      add(p.country, 'own', p.balance.author.status);
+      (p.balance.supporters || []).forEach(function (k) { add(k.country, 'sup', k.status); });
+      (p.balance.counterpart || []).forEach(function (k) { if (k.supported) add(k.country, 'sup', k.status); });
+    });
+    return Object.keys(rec).map(function (k) { return rec[k]; }).sort(function (a, b) { return MS.countryName(a.country) < MS.countryName(b.country) ? -1 : 1; });
+  }
+  function forumRecordHtml(forum, me) {
+    var rows = forumRecord(forum);
+    if (!rows.length) return '';
+    return '<div class="tablewrap"><table class="frec"><thead><tr><th>Country</th><th class="num">Own word kept</th><th class="num">Support followed by acts</th></tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr' + (r.country === me ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(r.country)) + '</b></td><td class="num">' + (r.own ? r.ownKept + ' / ' + r.own : '—') + '</td><td class="num">' + (r.sup ? r.supKept + ' / ' + r.sup : '—') + '</td></tr>'; }).join('') +
+      '</tbody></table></div><p class="xs muted">Only measurable words count: numbers or votes attached to a proposal, compared with the decisions of the same year.</p>';
+  }
+
   /* trajectory of the objective: for each year, the contribution of the five dimensions to R as stacked bars
      (positive contributions above zero, negative below), the total R as a dashed line. Inline SVG, no library.
      rows: result rows of one country/group sorted by year; opts: {weights, title, height, legend, fontScale} */
@@ -522,5 +590,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();
