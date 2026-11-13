@@ -1184,3 +1184,7 @@ Teams can download their game
 => Les groupes peuvent télécharger leur partie
 Team download closed
 => Téléchargement des groupes fermé
+
+// Parameters: the options of the game side by side
+Options of the game (each one adds its levers, panels, guide cards and indicators):
+=> Options de la partie (chacune ajoute ses leviers, panneaux, fiches du guide et indicateurs) :
