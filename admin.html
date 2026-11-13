@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111315">
-<script src="i18n.js?v=2026111315"></script>
-<script src="i18n/fr-desk.js?v=2026111315"></script>
-<script src="i18n/fr-admin.js?v=2026111315"></script>
-<script src="config.js?v=2026111315"></script>
-<script src="core.js?v=2026111315"></script>
-<script src="app-common.js?v=2026111315"></script>
-<script src="engine.js?v=2026111315"></script>
+<link rel="stylesheet" href="style.css?v=2026111316">
+<script src="i18n.js?v=2026111316"></script>
+<script src="i18n/fr-desk.js?v=2026111316"></script>
+<script src="i18n/fr-admin.js?v=2026111316"></script>
+<script src="config.js?v=2026111316"></script>
+<script src="core.js?v=2026111316"></script>
+<script src="app-common.js?v=2026111316"></script>
+<script src="engine.js?v=2026111316"></script>
 </head>
 <body>
 
@@ -485,6 +485,8 @@
     if (!isDuel()) vis.appendChild(el('label', {}, [cbW, ' show every group’s warm-up results and plans to everyone (debrief)']));
     var cbD = el('input', { type: 'checkbox' }); cbD.checked = s.showDecisionsWhenClosed !== false; cbD.addEventListener('change', function () { patch({ showDecisionsWhenClosed: cbD.checked }); });
     vis.appendChild(el('label', {}, [cbD, ' once a round is closed, show everyone’s decisions for that round (never while it is open)']));
+    var cbX = el('input', { type: 'checkbox' }); cbX.checked = !!(s.game && s.game.teamExport); cbX.addEventListener('change', function () { patch({ game: { teamExport: cbX.checked } }, cbX.checked ? 'Teams can download their game' : 'Team download closed'); });
+    vis.appendChild(el('label', {}, [cbX, ' let each team download its own game (CSV) — at the end of the game: no file to paste into a chatbot while playing']));
     c4.appendChild(vis);
     v.appendChild(c4);
 

@@ -1176,3 +1176,11 @@ Currency crisis (depreciation over year #): @.
 => Crise de change (dépréciation sur l’année #) : %1.
 Currency crisis (depreciation over year #): @ (rate # pt this year).
 => Crise de change (dépréciation sur l’année #) : %1 (taux # pt cette année).
+
+// team download, opened by the administrator at the end of the game
+let each team download its own game (CSV) — at the end of the game: no file to paste into a chatbot while playing
+=> laisser chaque groupe télécharger sa partie (CSV) — en fin de partie : pas de fichier à coller dans un chatbot pendant le jeu
+Teams can download their game
+=> Les groupes peuvent télécharger leur partie
+Team download closed
+=> Téléchargement des groupes fermé

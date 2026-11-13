@@ -71,6 +71,12 @@ const KEY = 'TESTKEY';
   await board.goto(BASE + '/board.html?class=' + cid + '&api=' + encodeURIComponent(API)); await board.waitForTimeout(1200);
   must(!/Berlin|Rome/.test(await board.textContent('body')), 'nothing on the board');
 
+  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { game: { teamExport: true } } });
+  await deu.reload(); await deu.waitForSelector('#exportBtn');
+  const [dlD] = await Promise.all([deu.waitForEvent('download'), deu.click('#exportBtn')]);
+  const dCsv = fs.readFileSync(await dlD.path(), 'utf8');
+  must(/telegrams received/.test(dCsv) && /← France: Berlin: we will not raise VAT/.test(dCsv), 'team CSV: the telegrams received');
+
   await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(400);
   await admin.click('#tabs button:has-text("Council")');
   await admin.waitForSelector('h2:has-text("Diplomatic telegrams")');

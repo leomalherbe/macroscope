@@ -163,7 +163,8 @@ var MS = (function () {
         allowEuro: false,
         allowTfp: false,
         maxNonZero: 0,            // 0 = no limit
-        minText: 100
+        minText: 100,
+        teamExport: false         // the teams may download their own game as a CSV: the administrator allows it at the end of the game (inside `game`: no backend change)
       },
       weights: { gdp: 0.2, unemp: 0.2, infl: 0.2, pubbal: 0.2, tradebal: 0.2, emis: 0, ineq: 0 },   // emis (climate option) and ineq (households option): 0 unless an election or the administrator activates them
       /* OPEN-MU engine inputs. `shocks`: key = year as a string ('1', '2', …), value =

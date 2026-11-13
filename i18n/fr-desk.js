@@ -532,7 +532,7 @@ MXL.add('fr', {"str":{"Macroscope · Policy desk":"Macroscope · Bureau des déc
 "pt of potential":"pt du potentiel",
 "Export our game":"Exporter notre partie",
 "Download (CSV)":"Télécharger (CSV)",
-"Your decisions, votes and justifications, your results and score, your pledges and analyses, year by year — for a spreadsheet or a report. Only your own country.":"Vos décisions, votes et justifications, vos résultats et votre score, vos engagements et analyses, année par année — pour un tableur ou un rapport. Seulement votre pays."},"re":[["The model: equations (.+?) notation ↗",
+"Your decisions, votes and strategy, your results and score, your forecasts, your forum proposals and the reactions, your telegrams, your analyses, year by year — for a spreadsheet or a report. Only your own country.":"Vos décisions, votes et stratégie, vos résultats et votre score, vos prévisions, vos propositions au forum et les réactions, vos télégrammes, vos analyses, année par année — pour un tableur ou un rapport. Votre pays seulement."},"re":[["The model: equations (.+?) notation ↗",
 "Le modèle : équations et notations (en anglais) ↗"],
 ["Macroscope · runs on OPEN-MU, a stock-flow consistent model of a monetary union after Godley (.+?) Lavoie ·",
 "Macroscope · fonctionne avec OPEN-MU, un modèle stock-flux cohérent d’union monétaire d’après Godley et Lavoie ·"],

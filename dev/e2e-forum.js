@@ -125,6 +125,13 @@ const KEY = 'TESTKEY';
   must(/every country cuts its income tax/.test(bt) && /Words vs acts/.test(bt) && !(await board.$('button[data-act]')), 'board: this year′s forum, words vs acts, no buttons');
   await board.screenshot({ path: OUT + '/f3-board.png', fullPage: true });
 
+  /* the team download (allowed by the administrator): France's proposals, who supported or rejected them, its word */
+  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { game: { teamExport: true } } });
+  await fra.reload(); await fra.waitForSelector('#exportBtn');
+  const [dlF] = await Promise.all([fra.waitForEvent('download'), fra.click('#exportBtn')]);
+  const fCsv = fs.readFileSync(await dlF.path(), 'utf8');
+  must(/forum: our proposal/.test(fCsv) && /We raise public demand/.test(fCsv) && /Germany cuts its VAT/.test(fCsv) && /forum: supported by/.test(fCsv) && /,kept,/.test(fCsv.replace(/"[^"]*"/g, 'Q')), 'team CSV: our proposal, its counterpart, the reactions, our word kept');
+
   /* administrator: hide, export */
   await admin.click('#tabs button:has-text("Council")');
   await admin.waitForSelector('h2:has-text("Forum of the union")');
