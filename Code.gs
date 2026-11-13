@@ -314,9 +314,23 @@ var MS = (function () {
     return c && typeof c === 'object' && c.status ? c : null;
   }
   /* a country's vote in the reserves-crisis round: payload = {crisis: 'austerity'|'devaluation'} */
+  /* currency crisis (floating rate): defend (vote 'austerity': rate + defendStep this year), peg ('peg': back to a fixed rate
+     against the rest of the world, at a parity voted with it) or let it float ('devaluation'). Parity = change of the price of the
+     world currency in euros, %: + = the euro is pegged lower (devaluation), − = higher */
+  var PEG_PARITIES = [-10, -5, 0, 5, 10, 20];
   function validateCrisisVote(state, payload) {
     var v = payload && payload.crisis;
-    var rec = crisisOf(state, state && state.round), fl = floatVoteOn(state) && !(rec && rec.kind === 'currency');
+    var rec = crisisOf(state, state && state.round);
+    if (rec && rec.kind === 'currency') {
+      if (v === 'peg') {
+        var par = num(payload.parity);
+        if (PEG_PARITIES.indexOf(par) < 0) return { ok: false, errors: ['Choose the parity of the peg: ' + PEG_PARITIES.join(', ') + ' %.'] };
+        return { ok: true, clean: { crisis: 'peg', parity: par, years: [], text: '' }, used: ['crisis:peg'] };
+      }
+      if (v !== 'austerity' && v !== 'devaluation') return { ok: false, errors: ['Vote defend, peg or let it float.'] };
+      return { ok: true, clean: { crisis: v, years: [], text: '' }, used: ['crisis:' + v] };
+    }
+    var fl = floatVoteOn(state);
     if (VOTE_CRISIS.indexOf(v) < 0 || (v === 'float' && !fl)) return { ok: false, errors: [fl ? 'Vote austerity, devaluation or floating.' : 'Vote austerity or devaluation.'] };
     return { ok: true, clean: { crisis: v, years: [], text: '' }, used: ['crisis:' + v] };
   }
@@ -328,6 +342,16 @@ var MS = (function () {
     a += Math.max(0, nPlaying - a - d - f);
     var k = Math.floor((a + d + f - 1) / 2);   /* index of the lower median in the sorted votes */
     return { austerity: a, devaluation: d, float: f, outcome: a + d + f === 0 || k < a ? 'austerity' : (k < a + d ? 'devaluation' : 'float') };
+  }
+  /* tally of a currency-crisis round: choices ordered defend < peg < let it float, the (lower) median of the votes cast wins;
+     the parity of a peg is the (lower) median of the parities of the countries that voted for it */
+  function tallyCurrency(votes) {
+    var a = 0, pg = 0, f = 0, par = [];
+    (votes || []).forEach(function (v) { var c = v && typeof v === 'object' ? v.crisis : v; if (c === 'devaluation') f++; else if (c === 'peg') { pg++; par.push(num(v.parity)); } else a++; });
+    var n = a + pg + f, k = Math.floor((n - 1) / 2);
+    par.sort(function (x, y) { return x - y; });
+    var outcome = n === 0 || k < a ? 'defend' : (k < a + pg ? 'peg' : 'float');
+    return { austerity: a, peg: pg, devaluation: f, outcome: outcome, parity: outcome === 'peg' ? par[Math.floor((par.length - 1) / 2)] : null };
   }
   /* §12 retaliation council against an exited country: each remaining member votes a level per measure; outcome = lower median
      of the playing members' votes (absent = 0); settlement of the TARGET balance by majority */
@@ -782,7 +806,7 @@ var MS = (function () {
     FORUM_TYPES: FORUM_TYPES, forumConf: forumConf, forumOn: forumOn, forumFrozenThrough: forumFrozenThrough, forumYear: forumYear, validateProposal: validateProposal, forumCheck: forumCheck, forumBalance: forumBalance,
     telegramConf: telegramConf, telegramsOn: telegramsOn, validateTelegram: validateTelegram,
     STRAT_PARTS: STRAT_PARTS, strategyConf: strategyConf, strategyOn: strategyOn, strategyParts: strategyParts, validateStrategy: validateStrategy, strategyText: strategyText, forecastCheck: forecastCheck,
-    VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
+    VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, PEG_PARITIES: PEG_PARITIES, tallyCurrency: tallyCurrency, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
 })();
@@ -1336,7 +1360,7 @@ var MSService = (function () {
     if (!classExists(st, p.classId)) return fail('Unknown class.');
     var state = getState(st, p.classId);
     var ts = iso(st.now());
-    var n = 0;
+    var n = 0, out = [];
     (p.rows || []).forEach(function (r) {
       if (!r.key) return;
       var dev = {};
@@ -1346,10 +1370,12 @@ var MSService = (function () {
       var R = (r.R !== '' && r.R !== null && r.R !== undefined && !isNaN(Rgiven)) ? MS.round3(Rgiven) : (hasAny ? MS.scoreR(dev, state.weights) : '');
       var detail = r.detail ? (typeof r.detail === 'string' ? r.detail : JSON.stringify(r.detail)) : '';
       if (!hasAny && R === '' && !detail) return;          // a UNION row carries only a detail
-      st.appendRow('results', Object.assign({ ts: ts, classId: p.classId, phase: p.phase, round: Number(p.round), key: r.key, year: Number(r.year),
+      out.push(Object.assign({ ts: ts, classId: p.classId, phase: p.phase, round: Number(p.round), key: r.key, year: Number(r.year),
         R: R, published: !!r.published, detail: detail }, dev));
       n++;
     });
+    /* one write for all the rows (the lock is held for a moment, not once per country) */
+    if (st.appendRows) st.appendRows('results', out); else out.forEach(function (o) { st.appendRow('results', o); });
     log(st, 'results.set', p.classId, 'admin', p.phase + ' r' + p.round + ' ' + n + ' rows');
     return { ok: true, saved: n, results: resultsOf(st, p.classId) };
   }
@@ -1375,7 +1401,9 @@ var MSService = (function () {
   }
 
   /* ---------- dispatcher ---------- */
-  var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard,
+  /* stamp: a short string that changes with every write to the data — the pages ask for it often and reload the whole state only
+     when it changed (a cheap request: nothing is read from the Sheet) */
+  var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, stamp: function (st) { return { ok: true, stamp: st.stamp ? st.stamp() : null }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard,
     'forum.post': actForumPost, 'forum.react': actForumReact, 'forum.withdraw': actForumWithdraw, 'tg.send': actTelegramSend };
   var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename, 'admin.class.delete': actAdminClassDelete,
     'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.results.set': actAdminResultsSet,
@@ -1410,7 +1438,7 @@ var SHEETS = {
   results:   { name: 'Results',   header: ['ts', 'classId', 'phase', 'round', 'key', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'detail', 'emis', 'ineq'] },   // emis (v1.7) and ineq (v1.13) appended last so older sheets stay aligned
   pledges:   { name: 'Pledges',   header: ['ts', 'classId', 'round', 'groupId', 'country', 'text', 'payload'] },
   comments:  { name: 'Comments',  header: ['ts', 'classId', 'phase', 'round', 'groupId', 'text'] },
-  proposals: { name: 'Forum',     header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'kind', 'type', 'text', 'payload'] },   // v1.14: forum of the union (kind: post | withdraw | hide | show)
+  proposals: { name: 'Forum',     header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'kind', 'type', 'text', 'payload'] },   // v1.16: forum of the union (kind: post | withdraw | hide | show)
   telegrams: { name: 'Telegrams', header: ['ts', 'classId', 'round', 'tgId', 'groupId', 'from', 'to', 'kind', 'text'] },   // v1.17: diplomatic telegrams (kind: send | hide | show)
   reactions: { name: 'Reactions', header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'value'] },
   log:       { name: 'Log',       header: ['ts', 'action', 'classId', 'who', 'details'] }
@@ -1481,11 +1509,44 @@ function setup() {
   return key;
 }
 
+/* ---------- a shared cache of the tabs between requests (CacheService), so that the pages' polling does not reread the Sheet.
+   Each tab has a version, changed after every write to it (writes run under the script lock); a tab is cached under its version,
+   in chunks of 30 000 characters (CacheService keeps 100 kB per key). No version known (nothing written for 6 h): read the Sheet, cache nothing.
+   Any failure of the cache falls back on the Sheet. ---------- */
+var XCHUNK = 30000, XTTL = 21600;   /* 30 000 characters ≤ 90 kB in UTF-8 */
+function xcache_() { try { return typeof CacheService !== 'undefined' ? CacheService.getScriptCache() : null; } catch (e) { return null; } }
+function xget_(k) {
+  var C = xcache_(); if (!C) return null;
+  try {
+    var ver = C.get('v:' + k); if (!ver) return null;
+    var n = Number(C.get('t:' + k + ':' + ver + ':n')); if (!(n > 0)) return { ver: ver, rows: null };
+    var keys = []; for (var i = 0; i < n; i++) keys.push('t:' + k + ':' + ver + ':' + i);
+    var got = C.getAll(keys), str = '';
+    for (var j = 0; j < n; j++) { if (got[keys[j]] === undefined || got[keys[j]] === null) return { ver: ver, rows: null }; str += got[keys[j]]; }
+    return { ver: ver, rows: JSON.parse(str) };
+  } catch (e) { return null; }
+}
+function xput_(k, ver, rows) {
+  var C = xcache_(); if (!C || !ver) return;
+  try {
+    var str = JSON.stringify(rows), parts = {}, n = Math.max(1, Math.ceil(str.length / XCHUNK));
+    if (n > 600) return;   /* too big to be worth it */
+    for (var i = 0; i < n; i++) parts['t:' + k + ':' + ver + ':' + i] = str.slice(i * XCHUNK, (i + 1) * XCHUNK);
+    C.putAll(parts, XTTL); C.put('t:' + k + ':' + ver + ':n', String(n), XTTL);
+  } catch (e) { /* the Sheet stays the truth */ }
+}
+function xbump_(k) {
+  var C = xcache_(); if (!C) return;
+  try { C.put('v:' + k, String(Date.now()) + Math.floor(Math.random() * 1e6), XTTL); } catch (e) { try { C.remove('v:' + k); } catch (e2) { /* nothing */ } }
+}
+
 function makeStorage_(ss) {
-  var cache = {};
-  function sheet(k) { return getSheet_(ss, SHEETS[k]); }
+  var cache = {}, sheets = {};
+  function sheet(k) { return sheets[k] || (sheets[k] = getSheet_(ss, SHEETS[k])); }
   function readAll(k) {
     if (cache[k]) return cache[k];
+    var hit = xget_(k);
+    if (hit && hit.rows) { cache[k] = hit.rows; return hit.rows; }
     var sh = sheet(k);
     var values = sh.getDataRange().getValues();
     var header = SHEETS[k].header;
@@ -1498,8 +1559,10 @@ function makeStorage_(ss) {
       rows.push(o);
     }
     cache[k] = rows;
+    if (hit && hit.ver) xput_(k, hit.ver, rows);
     return rows;
   }
+  function written(k) { cache[k] = null; xbump_(k); }
   function toRow(k, obj) {
     var header = SHEETS[k].header;
     var o = Object.assign({}, obj);
@@ -1528,10 +1591,10 @@ function makeStorage_(ss) {
       var sh = sheet('config');
       var values = sh.getDataRange().getValues();
       for (var i = 1; i < values.length; i++) {
-        if (String(values[i][0]) === key) { sh.getRange(i + 1, 2).setValue(cellSafe_(value)); cache.config = null; return; }
+        if (String(values[i][0]) === key) { sh.getRange(i + 1, 2).setValue(cellSafe_(value)); written('config'); return; }
       }
       sh.appendRow([key, cellSafe_(value)]);
-      cache.config = null;
+      written('config');
     },
     listGroups: function () {
       return readAll('groups').map(function (g) { return { classId: String(g.classId), groupId: String(g.groupId), name: String(g.name), pin: String(g.pin), country: String(g.country || ''), members: String(g.members || '') }; });
@@ -1545,18 +1608,30 @@ function makeStorage_(ss) {
       sh.getRange(1, 1, data.length, header.length).setValues(data);
       sh.getRange(1, 1, 1, header.length).setFontWeight('bold');
       sh.getRange(2, 4, Math.max(data.length - 1, 1), 1).setNumberFormat('@');
-      cache.groups = null;
+      written('groups');
     },
     appendRow: function (k, obj) {
       sheet(k).appendRow(toRow(k, obj));
-      cache[k] = null;
+      written(k);
+    },
+    /* several rows in one write (the results of a run: one call instead of one per country) */
+    appendRows: function (k, objs) {
+      if (!objs || !objs.length) return;
+      var sh = sheet(k), rows = objs.map(function (o) { return toRow(k, o); });
+      sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+      written(k);
     },
     readRows: function (k) { return readAll(k); },
+    /* the versions of every tab (a missing one is created: data cached under it is always read after it is set) */
+    stamp: function () {
+      var C = xcache_(); if (!C) return null;
+      try { return Object.keys(SHEETS).map(function (k) { var v = C.get('v:' + k); if (!v) { xbump_(k); v = C.get('v:' + k); } return v || '?'; }).join('.'); } catch (e) { return null; }
+    },
     deleteConfig: function (key) {
       var sh = sheet('config');
       var values = sh.getDataRange().getValues();
       for (var i = values.length - 1; i >= 1; i--) if (String(values[i][0]) === key) sh.deleteRow(i + 1);
-      cache.config = null;
+      written('config');
     },
     /* rewrites the tab without the rows matching pred (append-only tabs, so this is the only destructive operation) */
     deleteRows: function (k, pred) {
@@ -1577,7 +1652,7 @@ function makeStorage_(ss) {
         sh.getRange(1, 1, keep.length, keep[0].length).setValues(keep);
         sh.getRange(1, 1, 1, header.length).setFontWeight('bold');
       }
-      cache[k] = null;
+      written(k);
       return removed;
     }
   };
@@ -1600,7 +1675,7 @@ function run_(params) {
   if (typeof p.groups === 'string') { try { p.groups = JSON.parse(p.groups); } catch (e) { /* keep */ } }
   var isWrite = ['submit', 'comment', 'pledge', 'forum.post', 'forum.react', 'forum.withdraw', 'tg.send'].indexOf(action) >= 0 || (action && action.indexOf('admin.') === 0 && action !== 'admin.login' && action !== 'admin.overview');
   var lock = null;
-  if (isWrite) { lock = LockService.getScriptLock(); try { lock.waitLock(15000); } catch (e) { return { ok: false, error: 'The server is busy, try again in a few seconds.' }; } }
+  if (isWrite) { lock = LockService.getScriptLock(); try { lock.waitLock(30000); } catch (e) { return { ok: false, error: 'The server is busy, try again in a few seconds.' }; } }
   try {
     return MSService.handle(action, p, makeStorage_(getSpreadsheet_()));
   } finally {

@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111304">
-<script src="i18n.js?v=2026111304"></script>
-<script src="i18n/fr-desk.js?v=2026111304"></script>
-<script src="guide.js?v=2026111304"></script>
-<script src="config.js?v=2026111304"></script>
-<script src="core.js?v=2026111304"></script>
-<script src="app-common.js?v=2026111304"></script>
+<link rel="stylesheet" href="style.css?v=2026111315">
+<script src="i18n.js?v=2026111315"></script>
+<script src="i18n/fr-desk.js?v=2026111315"></script>
+<script src="guide.js?v=2026111315"></script>
+<script src="config.js?v=2026111315"></script>
+<script src="core.js?v=2026111315"></script>
+<script src="app-common.js?v=2026111315"></script>
 </head>
 <body>
 
@@ -320,7 +320,7 @@
     }
     else if (rec && rec.status === 'forced') card.appendChild(el('div', { class: 'note', html: '<b>Reserves exhausted</b> at the end of year ' + (st.round - 1) + ' with the current account still in deficit: a devaluation of ' + esc(MS.fmt(vc0.forced, 0)) + ' % is imposed this year, without a vote.' }));
     else if (rec && rec.status === 'closed' && rec.kind === 'currency') {
-      card.appendChild(el('div', { class: 'note', html: '<b>Currency-crisis vote of year ' + st.round + ':</b> ' + esc(rec.austerity) + ' defend · ' + esc(rec.devaluation) + ' let it float → <b>' + (rec.outcome === 'float' ? 'let it float' : 'defend') + '</b>. ' + (rec.outcome === 'float' ? 'The currency keeps floating.' : 'The central bank raises its rate by ' + esc(MS.fmt((Object.assign({}, MS.defaultState().sim, st.sim || {})).defendStep, 1)) + ' pt this year.') }));
+      card.appendChild(el('div', { class: 'note', html: '<b>Currency-crisis vote of year ' + st.round + ':</b> ' + esc(UI.currencyTally(rec)) + '. ' + (rec.outcome === 'peg' ? 'The euro is pegged to the rest of the world from this year on: a fixed rate again, defended by the reserves.' : rec.outcome === 'float' ? 'The currency keeps floating.' : 'The central bank raises its rate by ' + esc(MS.fmt((Object.assign({}, MS.defaultState().sim, st.sim || {})).defendStep, 1)) + ' pt this year.') }));
     }
     else if (rec && rec.status === 'closed') {
       cap = rec.outcome === 'austerity' ? MS.num(vc0.cap) : null;
@@ -494,12 +494,16 @@
     var st = data.state, rules = Object.assign({}, MS.defaultState().sim, st.sim || {});
     var card = el('div', { class: 'card' });
     card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'float' }, ['Currency crisis · year ' + st.round + ' — vote']), el('span', { class: 'small muted', html: mine ? '<span class="pill open">voted</span> ' + esc(UI.fmtDateTime(mine.ts)) : '<span class="pill">not voted yet</span>' })]));
-    card.appendChild(el('p', { class: 'muted small' }, ['The union’s currency fell by more than ' + MS.fmt(rules.crisisDepr, 0) + ' % over year ' + (st.round - 1) + '. Before any decision for year ' + st.round + ', the council votes — one country, one vote; a country that does not vote counts as defend; letting the currency float needs more than half of the countries. Decisions open once the administrator closes the vote.']));
+    card.appendChild(el('p', { class: 'muted small' }, ['The union’s currency fell by more than ' + MS.fmt(rules.crisisDepr, 0) + ' % over year ' + (st.round - 1) + '. Before any decision for year ' + st.round + ', the council votes — one country, one vote; a country that does not vote does not count; the median vote wins, along defend < peg < let it float. Decisions open once the administrator closes the vote.']));
     var wrap = el('div', { class: 'votes' });
-    var box = el('div', { class: 'q crisis' }); box.appendChild(el('b', {}, ['Defend the currency, or let it float?']));
-    box.appendChild(el('span', { class: 'hint' }, ['Defend: the central bank raises its rate by ' + MS.fmt(rules.defendStep, 1) + ' pt this year — capital comes back and the currency recovers, investment and every budget pay for it next year. Let it float: nothing is done; the depreciation restores competitiveness with a lag but import prices and inflation stay high.']));
+    var box = el('div', { class: 'q crisis' }); box.appendChild(el('b', {}, ['Defend the currency, peg it again, or let it float?']));
+    box.appendChild(el('span', { class: 'hint' }, ['Defend: the central bank raises its rate by ' + MS.fmt(rules.defendStep, 1) + ' pt this year — capital comes back and the currency recovers, investment and every budget pay for it next year. Let it float: nothing is done; the depreciation restores competitiveness with a lag but import prices and inflation stay high. Peg: back to a fixed rate against the rest of the world from this year on, at the parity you vote (the median of the peg votes); the reserves, frozen while floating, defend it again.']));
     var row = el('div', { class: 'opts' });
-    [['austerity', 'Defend (rate +' + MS.fmt(rules.defendStep, 1) + ' pt)'], ['devaluation', 'Let it float']].forEach(function (o) { var r = el('input', { type: 'radio', name: 'C_vote', value: o[0] }); r.checked = cur === o[0]; row.appendChild(el('label', {}, [r, o[1]])); });
+    [['austerity', 'Defend (rate +' + MS.fmt(rules.defendStep, 1) + ' pt)'], ['peg', 'Peg to the rest of the world'], ['devaluation', 'Let it float']].forEach(function (o) { var r = el('input', { type: 'radio', name: 'C_vote', value: o[0] }); r.checked = cur === o[0]; row.appendChild(el('label', {}, [r, o[1]])); });
+    /* the parity of the peg: the euro's new rate against today's (+ = devaluation) */
+    var par = el('select', { id: 'C_parity' }), curPar = mine && mine.payload && mine.payload.parity !== undefined ? MS.num(mine.payload.parity) : 0;
+    MS.PEG_PARITIES.forEach(function (v) { var o = el('option', { value: v }, [v === 0 ? 'today’s rate' : (v > 0 ? 'devaluation of ' : 'revaluation of ') + Math.abs(v) + ' %']); if (v === curPar) o.selected = true; par.appendChild(o); });
+    row.appendChild(el('label', { class: 'small', style: 'margin-left:8px' }, ['Parity of the peg: ', par]));
     box.appendChild(row); wrap.appendChild(box); card.appendChild(wrap);
     card.appendChild(el('div', { id: 'formErrors' }));
     card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', id: 'crisisBtn', onclick: submitCrisis }, [mine ? 'Update our vote' : 'Cast our vote']), el('span', { class: 'small muted' }, ['You can change your vote until the administrator closes it.'])]));
@@ -512,9 +516,10 @@
     if (!sel) { e.innerHTML = '<div class="err">Choose an option.</div>'; return; }
     var btn = $('#crisisBtn'); btn.disabled = true;
     try {
-      var r = await MSApi.call('submit', { pin: pin, phase: 'crisis', round: st.round, payload: { crisis: sel.value } });
+      var pay = { crisis: sel.value }; if (sel.value === 'peg') pay.parity = MS.num(($('#C_parity') || {}).value);
+      var r = await MSApi.call('submit', { pin: pin, phase: 'crisis', round: st.round, payload: pay });
       if (!r.ok) e.innerHTML = '<div class="err"><b>' + esc(r.error) + '</b></div>';
-      else { e.innerHTML = '<div class="ok">Vote received at ' + esc(UI.fmtTime(r.ts)) + ': ' + esc(UI.crisisWord(sel.value)) + '.</div>'; UI.toast('Vote cast'); await load(true); }
+      else { e.innerHTML = '<div class="ok">Vote received at ' + esc(UI.fmtTime(r.ts)) + ': ' + esc(($('#C_parity') ? { austerity: 'defend', peg: 'peg', devaluation: 'let it float' }[sel.value] : UI.crisisWord(sel.value))) + '.</div>'; UI.toast('Vote cast'); await load(true); }
     } catch (err) { e.innerHTML = '<div class="err">Network error: ' + esc(err.message) + '</div>'; }
     btn = $('#crisisBtn'); if (btn) btn.disabled = false;
   }
@@ -1136,6 +1141,7 @@
         });
         box.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['All groups · warm-up debrief']), el('div', { html: h + '</tbody></table></div>' })]));
       }
+      if (mine.length) box.appendChild(exportCard());
       return;
     }
     /* game */
@@ -1177,6 +1183,16 @@
       }
     } else if (mineG.length) box.appendChild(trajectoryCard(mineG, 'Your objective, year by year · ' + MS.countryName(data.group.country)));
     var upG = unionPanel((data.union || []).filter(function (r) { return r.phase === 'game'; }), 'The monetary union'); if (upG) box.appendChild(upG);
+    /* who holds the country's public debt, and what it costs (latest published year) */
+    var lastD = mineG.filter(function (r) { return r.detail && r.detail.extra && r.detail.extra.holders; }).slice(-1)[0];
+    if (lastD) {
+      var prevD = mineG.filter(function (r) { return r.year === lastD.year - 1 && r.detail && r.detail.extra && r.detail.extra.holders; })[0];
+      var uD = (data.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'UNION' && Number(r.year) === Number(lastD.year) && r.detail && r.detail.extra; })[0];
+      var cardD = el('div', { class: 'card' });
+      cardD.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': MS.financeModel(st) ? 'debt' : '' }, ['Your public debt: who holds it, what it costs']), el('span', { class: 'small muted' }, ['end of year ' + lastD.year])]));
+      cardD.appendChild(el('div', { html: UI.debtHoldersHtml(lastD.detail.extra, prevD ? prevD.detail.extra : null, uD ? uD.detail.extra : null) }));
+      box.appendChild(cardD);
+    }
     if (st.publishLeaderboard) {
       var lb = MS.leaderboard(data.gameResults || [], w);
       var cardL = el('div', { class: 'card' });
@@ -1199,6 +1215,63 @@
       }
       box.appendChild(cardL);
     }
+    /* the model explorer of the board: every country when the ranking is published, otherwise this country alone; this country
+       ticked at first */
+    box.appendChild(exportCard());
+    if (!dd) {
+      var pub = st.publishLeaderboard && (data.gameResults || []).length;
+      var xc = UI.exploreCard({ st: st, results: pub ? data.gameResults : mineG, union: data.union, key: 'macroscope.explore.desk.' + data.group.groupId, ctry: [data.group.country],
+        note: pub ? '' : 'The other countries appear here when the administrator publishes the ranking.' });
+      if (xc) box.appendChild(xc);
+    }
+  }
+  /* export of the team's own game: one line per year (warm-up plan, then the game) with its decisions, votes, justification,
+     results, score, pledge and analysis — a CSV for a spreadsheet (in French: « ; » and decimal commas), nothing of the others */
+  function exportCard() {
+    var c = el('div', { class: 'card' });
+    c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Export our game']), el('button', { class: 'btn', id: 'exportBtn', onclick: exportGame }, ['Download (CSV)'])]));
+    c.appendChild(el('p', { class: 'small muted', style: 'margin:0' }, ['Your decisions, votes and justifications, your results and score, your pledges and analyses, year by year — for a spreadsheet or a report. Only your own country.']));
+    return c;
+  }
+  function exportGame() {
+    var st = data.state, fr = typeof MXL !== 'undefined' && MXL.lang === 'fr', sep = fr ? ';' : ',';
+    var T = function (en, frs) { return fr ? frs : en; };
+    var L = function (en) { return fr ? MXL.t(en) : en; };   /* labels of the page (levers, indicators, units) in its language */
+    var num = function (v) { if (v === '' || v === null || v === undefined || isNaN(Number(v))) return ''; var s = String(MS.round3(Number(v))); return fr ? s.replace('.', ',') : s; };
+    var q = function (x) { x = x === null || x === undefined ? '' : String(x); return x.indexOf(sep) >= 0 || /["\n\r]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+    var inds = MS.indicatorsFor(st), levers = MS.LEVERS.slice();
+    var lines = [], lvUsed = {};
+    function add(phase, year, levers0, dec, row) {
+      Object.keys(levers0 || {}).forEach(function (k) { if (MS.num(levers0[k])) lvUsed[k] = 1; });
+      lines.push({ phase: phase, year: year, lv: levers0 || {}, dec: dec, row: row });
+    }
+    var res = data.myResults || [];
+    var wd = myDecision('warmup', 1);
+    if (wd && wd.payload && wd.payload.years) wd.payload.years.forEach(function (y, i) { add('warmup', i + 1, y.levers, i === 0 ? wd : null, res.filter(function (r) { return r.phase === 'warmup' && Number(r.year) === i + 1; })[0]); });
+    var years = {}; res.forEach(function (r) { if (r.phase === 'game') years[r.year] = 1; });
+    (data.myDecisions || []).forEach(function (x) { if (x.phase === 'game') years[x.round] = 1; });
+    Object.keys(years).map(Number).sort(function (a, b) { return a - b; }).forEach(function (y) {
+      var dg = myDecision('game', y);
+      add('game', y, dg && dg.payload && dg.payload.years && dg.payload.years[0] ? dg.payload.years[0].levers : {}, dg, res.filter(function (r) { return r.phase === 'game' && Number(r.year) === y; })[0]);
+    });
+    var lvCols = levers.filter(function (l) { return lvUsed[l.id]; });
+    var head = [T('phase', 'phase'), T('year', 'année')].concat(lvCols.map(function (l) { return L(l.label); }), [T('leave the union', 'sortie de l’union'), T('vote: rate', 'vote : taux'), T('vote: common external tariff', 'vote : tarif extérieur commun'), T('justification', 'justification')],
+      inds.map(function (i) { return L(i.label) + ' (' + L(i.unit) + ')'; }), ['R', T('cumulative R', 'R cumulé'), T('R: own policy', 'R : votre politique'), T('R: foreign policies', 'R : politiques étrangères'), T('R: shocks', 'R : chocs'), T('public debt (% of GDP)', 'dette publique (% du PIB)'), T('pledge', 'engagement'), T('analysis', 'analyse')]);
+    var cum = 0, out = [head.map(q).join(sep)];
+    lines.forEach(function (ln) {
+      var r = ln.row, d = ln.dec, p = d && d.payload ? d.payload : {}, v = p.votes || {}, y0 = p.years && p.years[0] ? p.years[0] : {};
+      var sp = r ? UI.rowSplit(r, st, st.weights) : {};
+      if (r && r.R !== '' && r.R !== null && r.R !== undefined) cum += Number(r.R);
+      var pl = ln.phase === 'game' ? (data.myPledges || []).filter(function (x) { return Number(x.round) === ln.year; })[0] : null;
+      var cm = (data.myComments || []).filter(function (x) { return x.phase === ln.phase && (ln.phase === 'warmup' ? ln.year === 1 : Number(x.round) === ln.year); })[0];
+      var cells = [ln.phase === 'game' ? T('game', 'partie') : T('warm-up', 'échauffement'), ln.year].concat(lvCols.map(function (l) { return num(ln.lv[l.id]); }),
+        [ln.phase === 'game' && y0.euro === 'leave' ? T('announced', 'annoncée') : '', v.rate ? (fr ? ({ cut: 'baisse', hold: 'statu quo', hike: 'hausse' }[v.rate] || v.rate) : v.rate) : '', v.cet !== undefined && v.cet !== null ? v.cet : '', d ? (p.text || '') : ''],
+        inds.map(function (i) { return r ? num(r[i.id]) : ''; }),
+        [r ? num(r.R) : '', r && r.R !== '' ? num(cum) : '', sp.nat ? num(sp.nat.R) : '', sp.foreign ? num(sp.foreign.R) : '', sp.shock ? num(sp.shock.R) : '', r && r.detail && r.detail.extra ? num(r.detail.extra.debt) : '', pl ? (pl.text || '') : '', cm ? cm.text : '']);
+      out.push(cells.map(q).join(sep));
+    });
+    var name = 'macroscope_' + (data.group.country || 'team') + '_' + String(data.group.name || '').replace(/[^\w-]+/g, '_') + '.csv';
+    UI.download(name, '﻿' + out.join('\r\n'), 'text/csv;charset=utf-8');
   }
   async function postComment(phase, round) {
     var m = $('#commentMsg'), ta = $('#commentText');
@@ -1286,7 +1359,13 @@
 
   /* ---------------- timers ---------------- */
   tick = setInterval(updateCountdown, 1000);
-  pollTimer = setInterval(function () { if (!document.hidden && pin) load(true); }, 30000);
+  /* every 10 s, a tiny « anything new? »; the state is reloaded only when something was written (or every 2 min, or when the
+     deadline has just passed) */
+  pollTimer = setInterval(async function () {
+    if (document.hidden || !pin) return;
+    var late = data && data.roundOpen && data.state && data.state.deadline && Date.parse(data.state.deadline) <= Date.now() + offset;
+    if (late || await MSApi.due('desk', 120000, 30000)) load(true);
+  }, 10000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden && pin) load(true); });
   load();
 })();

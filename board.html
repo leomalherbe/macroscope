@@ -7,10 +7,10 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111304">
-<script src="config.js?v=2026111304"></script>
-<script src="core.js?v=2026111304"></script>
-<script src="app-common.js?v=2026111304"></script>
+<link rel="stylesheet" href="style.css?v=2026111315">
+<script src="config.js?v=2026111315"></script>
+<script src="core.js?v=2026111315"></script>
+<script src="app-common.js?v=2026111315"></script>
 </head>
 <body class="board">
 
@@ -54,65 +54,14 @@
   function phaseLabel(st) { return st.phase === 'warmup' ? 'Warm-up · ' + MS.countryName(st.warmup.country) + ' · ' + st.warmup.years + '-year plan' : 'Year ' + st.round + ' of ' + st.years; }
   /* ---- model explorer: a folded section at the bottom, any published variable for the countries chosen, year by year.
      The selection survives the 15-second refresh (and, per browser, a reload). ---- */
-  var XKEY = 'macsim.explore.' + classId, xSel = null;
-  function xLoad() { if (xSel) return xSel; try { xSel = JSON.parse(localStorage.getItem(XKEY) || 'null'); } catch (e) { xSel = null; } return xSel || (xSel = { open: false, vars: ['gdp', 'debt'], ctry: null }); }
-  function xSave() { try { localStorage.setItem(XKEY, JSON.stringify(xSel)); } catch (e) { /* per-viewer convenience only */ } }
-  function exploreCard(st) {
-    if (MS.isDuel(st)) return null;
-    var res = (data.gameResults || []).filter(function (r) { return r.phase === undefined || r.phase === 'game'; });
-    var uRows = (data.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'UNION'; });
-    var years = []; res.concat(uRows).forEach(function (r) { var y = Number(r.year); if (years.indexOf(y) < 0) years.push(y); }); years.sort(function (a, b) { return a - b; });
-    if (!years.length) return null;
-    var sel = xLoad(), vars = UI.exploreVars(st);
-    var ctrys = []; res.forEach(function (r) { if (ctrys.indexOf(r.key) < 0) ctrys.push(r.key); });
-    ctrys = MS.COUNTRIES.map(function (c) { return c.id; }).filter(function (id) { return ctrys.indexOf(id) >= 0; });
-    if (!sel.ctry) sel.ctry = ctrys.slice();
-    var det = el('details', { class: 'card explore' }); det.open = !!sel.open;
-    det.addEventListener('toggle', function () { sel.open = det.open; xSave(); });
-    det.appendChild(el('summary', {}, [el('h2', { style: 'display:inline' }, ['Explore the model']), el('span', { class: 'small muted', style: 'margin-left:10px' }, ['any variable, year by year, for the countries you choose'])]));
-    var pick = el('div', { class: 'xpick' });
-    var cRow = el('div', { class: 'xctry' }, [el('b', { class: 'small' }, ['Countries'])]);
-    ctrys.forEach(function (id) {
-      var cb = el('input', { type: 'checkbox' }); cb.checked = sel.ctry.indexOf(id) >= 0;
-      cb.addEventListener('change', function () { var i = sel.ctry.indexOf(id); if (cb.checked && i < 0) sel.ctry.push(id); if (!cb.checked && i >= 0) sel.ctry.splice(i, 1); xSave(); draw(); });
-      cRow.appendChild(el('label', { class: 'xchip' }, [cb, el('i', { style: 'background:' + UI.raceColor(id) }), ' ' + MS.countryName(id)]));
-    });
-    pick.appendChild(cRow);
-    var vBox = el('div', { class: 'xvars' });
-    UI.EXPLORE_GROUPS.forEach(function (gName) {
-      var gv = vars.filter(function (v) { return v.g === gName; }); if (!gv.length) return;
-      var col = el('div', { class: 'xgroup' }, [el('b', { class: 'small' }, [gName])]);
-      gv.forEach(function (v) {
-        var cb = el('input', { type: 'checkbox' }); cb.checked = sel.vars.indexOf(v.id) >= 0;
-        cb.addEventListener('change', function () { var i = sel.vars.indexOf(v.id); if (cb.checked && i < 0) sel.vars.push(v.id); if (!cb.checked && i >= 0) sel.vars.splice(i, 1); xSave(); draw(); });
-        col.appendChild(el('label', { class: 'small' }, [cb, ' ' + v.label]));
-      });
-      vBox.appendChild(col);
-    });
-    pick.appendChild(vBox);
-    det.appendChild(pick);
-    var grid = el('div', { class: 'xgrid' }), note = el('p', { class: 'xs muted', style: 'margin:.6em 0 0' });
-    det.appendChild(grid); det.appendChild(note);
-    var modelUrl = 'model.html';
-    function draw() {
-      grid.innerHTML = '';
-      var chosen = vars.filter(function (v) { return sel.vars.indexOf(v.id) >= 0; });
-      if (!chosen.length) { grid.appendChild(el('p', { class: 'small muted' }, ['Tick one or more variables.'])); return; }
-      var missing = false;
-      chosen.forEach(function (v) {
-        var series;
-        if (v.src === 'u') series = [{ name: 'Union', color: '#0a1670', pts: years.map(function (y) { var r = uRows.filter(function (x) { return Number(x.year) === y; })[0]; return { year: y, v: UI.exploreValue(v, r) }; }) }];
-        else series = ctrys.filter(function (id) { return sel.ctry.indexOf(id) >= 0; }).map(function (id) {
-          return { name: MS.countryName(id), color: UI.raceColor(id), pts: years.map(function (y) { var r = res.filter(function (x) { return x.key === id && Number(x.year) === y; })[0]; return { year: y, v: UI.exploreValue(v, r) }; }) };
-        });
-        series.forEach(function (s) { s.pts.forEach(function (p) { if (p.v === null) missing = true; }); });
-        grid.appendChild(el('div', { class: 'xcell' }, [el('div', { html: UI.exploreSvg(v, series, years) }), el('a', { class: 'xs', href: modelUrl + '#' + v.eq, target: '_blank', rel: 'noopener' }, ['equation →'])]));
-      });
-      note.textContent = 'Deviations from the reference (no decision, no shock): volumes in %, rates and ratios in points; the union’s variables are drawn once for all. Hover a point for its value.' + (missing ? ' Gaps: variables recorded only for the years published since this tool exists (the console can publish a year again).' : '');
-    }
-    draw();
-    return det;
-  }
+  var XKEY = 'macsim.explore.' + classId;
+  /* the split « of which » of each country in « Year N in detail »: opened country by country, or all at once; kept through the
+     15-second refresh (and, per browser, a reload) */
+  var SKEY = 'macroscope.board.split.' + classId, splitOpen = null;
+  function sLoad() { if (splitOpen) return splitOpen; try { splitOpen = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch (e) { splitOpen = null; } return splitOpen || (splitOpen = {}); }
+  function sSave() { try { localStorage.setItem(SKEY, JSON.stringify(splitOpen)); } catch (e) { /* per-viewer convenience only */ } }
+  function exploreCard(st) { return UI.exploreCard({ st: st, results: data.gameResults, union: data.union, key: XKEY }); }
+
   function groupName(id) { var g = (data.groups || []).filter(function (x) { return x.groupId === id; })[0]; return g ? g.name : id; }
 
   function unionCard(rows, title) {
@@ -139,7 +88,7 @@
     var cur = rec.kind === 'currency', lab = cur ? 'Currency-crisis vote' : 'Crisis vote';
     if (rec.status === 'open') return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num"><span class="pill open">in progress</span> ' + esc(data.crisisVotesIn || 0) + ' of ' + playing + ' countries have voted</span></div>';
     if (rec.status === 'forced') return '<div class="urow"><span>Year ' + esc(st.round) + '</span><span class="num neg">reserves exhausted → forced devaluation</span></div>';
-    if (cur) return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num">' + esc(rec.austerity) + ' defend · ' + esc(rec.devaluation) + ' let it float → <b>' + (rec.outcome === 'float' ? 'let it float' : 'defend') + '</b></span></div>';
+    if (cur) return '<div class="urow"><span>' + lab + ' · year ' + esc(st.round) + '</span><span class="num">' + esc(UI.currencyTally(rec)) + '</span></div>';
     return '<div class="urow"><span>Crisis vote · year ' + esc(st.round) + '</span><span class="num">' + esc(UI.crisisTally(rec)) + ' → <b>' + esc(UI.crisisWord(rec.outcome)) + '</b></span></div>';
   }
   /* §12: the councils on retaliation of the current year */
@@ -228,13 +177,20 @@
         c.appendChild(el('p', { class: 'muted small' }, [(MS.isDuel(st) ? 'Every player of every pair. ' : '') + 'R is the score of each year: ' + st.weights.gdp + '·ΔGDP − ' + st.weights.unemp + '·Δunemployment − ' + st.weights.infl + '·Δinflation + ' + st.weights.pubbal + '·Δpublic balance + ' + st.weights.tradebal + '·Δtrade balance (deviations from the reference path). Countries are ranked by the cumulative R, the sum of their yearly scores.']));
         /* latest year detail */
         var latestYear = Math.max.apply(null, yl);
-        var det = el('div', { class: 'card' }); det.appendChild(el('h2', {}, ['Year ' + latestYear + ' in detail']));
+        var det = el('div', { class: 'card' });
+        var so = sLoad(), allOpen = lb.length > 0 && lb.every(function (r) { return !r.years[latestYear] || so[r.key]; });
+        det.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Year ' + latestYear + ' in detail']),
+          el('button', { type: 'button', class: 'btn ghost sm', id: 'splitAll', onclick: function () { lb.forEach(function (r) { if (allOpen) delete so[r.key]; else so[r.key] = 1; }); sSave(); render(); } }, [allOpen ? 'Close every split' : 'Open every split'])]));
         var hasComp = lb.some(function (r) { var e = r.years[latestYear]; return e && e.detail && e.detail.extra && e.detail.extra.compet !== undefined; });
         var hasSpread = lb.some(function (r) { var e = r.years[latestYear]; return e && e.detail && e.detail.extra && e.detail.extra.spread !== undefined; });
         var hasE = lb.some(function (r) { var e = r.years[latestYear]; return e && e.detail && e.detail.extra && e.detail.extra.E !== undefined; });
         var hd = '<div class="tablewrap"><table><thead><tr><th>Country</th>' + MS.indicatorsFor(st).map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R</th>' + (hasComp ? '<th class="num">Price level<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% vs union</span></th>' : '') + (hasSpread ? '<th class="num">Risk premium<br><span style="font-weight:400;text-transform:none;letter-spacing:0">pt</span></th>' : '') + (hasE ? '<th class="num">Emissions<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% vs reference</span></th>' : '') + '</tr></thead><tbody>';
-        lb.forEach(function (r) { var e = r.years[latestYear]; if (!e) return; var cp = e.detail && e.detail.extra ? e.detail.extra.compet : undefined; hd += '<tr><td><b>' + esc(MS.countryName(r.key)) + '</b></td>' + MS.indicatorsFor(st).map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(e[i.id])) + '">' + esc(MS.fmt(e[i.id], 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(e.R) + '"><b>' + esc(MS.fmt(e.R, 3, true)) + '</b></td>' + (hasComp ? '<td class="num ' + (cp === undefined ? '' : UI.signedClass(-cp)) + '">' + esc(cp === undefined ? '—' : MS.fmt(cp, 2, true)) + '</td>' : '') + (hasSpread ? '<td class="num ' + (e.detail && e.detail.extra && e.detail.extra.spread > 0 ? 'neg' : '') + '">' + esc(e.detail && e.detail.extra && e.detail.extra.spread !== undefined ? MS.fmt(e.detail.extra.spread, 2) : '—') + '</td>' : '') + (hasE ? '<td class="num ' + (e.detail && e.detail.extra && e.detail.extra.E !== undefined ? UI.signedClass(-e.detail.extra.E) : '') + '">' + esc(e.detail && e.detail.extra && e.detail.extra.E !== undefined ? MS.fmt(e.detail.extra.E, 0, true) : '—') + '</td>' : '') + '</tr>'; });
+        var nExtra = (hasComp ? 1 : 0) + (hasSpread ? 1 : 0) + (hasE ? 1 : 0);
+        lb.forEach(function (r) { var e = r.years[latestYear]; if (!e) return; var cp = e.detail && e.detail.extra ? e.detail.extra.compet : undefined; var op = !!so[r.key], canSplit = !!(e.detail && typeof e.detail === 'object' && Object.keys(UI.rowSplit(e, st, st.weights)).length);
+          hd += '<tr><td><b>' + esc(MS.countryName(r.key)) + '</b>' + (canSplit ? '<br><button type="button" class="splitbtn" data-split="' + esc(r.key) + '" aria-expanded="' + op + '">' + (op ? '▾ hide' : '▸ of which') + '</button>' : '') + '</td>' + MS.indicatorsFor(st).map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * MS.num(e[i.id])) + '">' + esc(MS.fmt(e[i.id], 3, true)) + '</td>'; }).join('') + '<td class="num ' + UI.signedClass(e.R) + '"><b>' + esc(MS.fmt(e.R, 3, true)) + '</b></td>' + (hasComp ? '<td class="num ' + (cp === undefined ? '' : UI.signedClass(-cp)) + '">' + esc(cp === undefined ? '—' : MS.fmt(cp, 2, true)) + '</td>' : '') + (hasSpread ? '<td class="num ' + (e.detail && e.detail.extra && e.detail.extra.spread > 0 ? 'neg' : '') + '">' + esc(e.detail && e.detail.extra && e.detail.extra.spread !== undefined ? MS.fmt(e.detail.extra.spread, 2) : '—') + '</td>' : '') + (hasE ? '<td class="num ' + (e.detail && e.detail.extra && e.detail.extra.E !== undefined ? UI.signedClass(-e.detail.extra.E) : '') + '">' + esc(e.detail && e.detail.extra && e.detail.extra.E !== undefined ? MS.fmt(e.detail.extra.E, 0, true) : '—') + '</td>' : '') + '</tr>' + (op && canSplit ? UI.splitRowsHtml(e, st, st.weights, nExtra) : ''); });
         det.appendChild(el('div', { html: hd + '</tbody></table></div>' }));
+        det.addEventListener('click', function (ev) { var bt = ev.target.closest && ev.target.closest('[data-split]'); if (!bt) return; var k = bt.getAttribute('data-split'); if (so[k]) delete so[k]; else so[k] = 1; sSave(); render(); });
+        if (lb.some(function (r) { return r.years[latestYear]; })) det.appendChild(el('p', { class: 'xs muted', style: 'margin:.5em 0 0' }, ['« of which » (↳): each result split between the country’s own policy, the other countries’ policies and the administrator’s shocks — the same lines as on the teams’ page.']));
         rankCard = c; detCard = det;
         /* key indicators of every country, end of the latest year: full width, under the two columns */
         var fc = el('div', { class: 'card' }); fc.appendChild(el('h2', {}, ['Key indicators · end of year ' + latestYear]));
@@ -356,7 +312,7 @@
     c.textContent = (t.late ? 'time is up ' : '') + t.text; c.classList.toggle('late', t.late);
   }
   setInterval(updateCountdown, 1000);
-  setInterval(load, 15000);
+  setInterval(async function () { if (await MSApi.due('board', 60000, 15000)) load(); }, 8000);   /* reload only when something new was written */
   load();
 })();
 </script>
