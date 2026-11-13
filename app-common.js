@@ -327,6 +327,139 @@ var UI = (function () {
     if (v.crisis) h += '<span class="chip vote">Will vote: ' + esc(crisisWord(v.crisis)) + '</span>';
     return '<div class="chips">' + (h || '<span class="chip zero">words only</span>') + '</div>';
   }
+  /* ---------- the ranking's bar: cumulative R split into the team's play (own policy + shocks) and the other countries' policies ---------- */
+  /* cumulative part of R due to the other countries' policies, from the published split (null when no row carries it) */
+  function othersCum(st, rows, key) {
+    var sum = 0, any = false;
+    (rows || []).forEach(function (r) { if (r.phase !== 'game' || r.key !== key) return; var f = rowSplit(r, st, st.weights).foreign; if (f && f.R !== null && f.R !== undefined) { sum += Number(f.R); any = true; } });
+    return any ? sum : null;
+  }
+  /* « your play vs the others »: one row per country (ranking order); a dot at the cumulative R net of the others (own policy +
+     shocks), an arrow to the cumulative R: green to the right when the other countries' policies helped, orange to the left
+     when they cost. Inline SVG, one shared axis with zero marked. rows: [{key, total, others}] */
+  function othersChartSvg(rows, me) {
+    rows = rows.filter(function (r) { return r.total !== null && r.total !== undefined && r.others !== null && r.others !== undefined; });
+    if (!rows.length) return '';
+    var W = 760, L = 120, Rm = 70, rowH = 34, top = 30, H = top + rows.length * rowH + 30;
+    var vals = []; rows.forEach(function (r) { vals.push(r.total, r.total - r.others, 0); });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pad = (hi - lo) * 0.08 || 0.05; lo -= pad; hi += pad;
+    var X = function (v) { return L + (v - lo) / (hi - lo) * (W - L - Rm); };
+    var f = function (v) { return MS.fmt(v, 3, true); };
+    var h = '<svg class="othchart" viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Cumulative R: your play and the effect of the other countries">';
+    h += '<defs><marker id="ah-g" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f8a4c"/></marker>' +
+      '<marker id="ah-o" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d07a1f"/></marker></defs>';
+    var x0 = X(0);
+    h += '<line x1="' + x0 + '" y1="' + (top - 8) + '" x2="' + x0 + '" y2="' + (H - 22) + '" stroke="#9aa0b5" stroke-width="1" stroke-dasharray="3 3"/>';
+    h += '<text x="' + x0 + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#6b7190">0</text>';
+    rows.forEach(function (r, k) {
+      var y = top + k * rowH + rowH / 2, net = r.total - r.others, xn = X(net), xt = X(r.total), help = r.others >= 0;
+      if (r.key === me) h += '<rect x="0" y="' + (y - rowH / 2 + 2) + '" width="' + W + '" height="' + (rowH - 4) + '" fill="#eef3fb" rx="4"/>';
+      h += '<line x1="' + L + '" y1="' + y + '" x2="' + (W - Rm) + '" y2="' + y + '" stroke="#e6e3d8" stroke-width="1"/>';
+      h += '<text x="' + (L - 10) + '" y="' + (y + 4) + '" text-anchor="end" font-size="13" font-weight="' + (r.key === me ? 700 : 500) + '" fill="#1b1f3b">' + esc(MS.countryName(r.key)) + '</text>';
+      if (Math.abs(xt - xn) > 14) h += '<line x1="' + xn + '" y1="' + y + '" x2="' + (xt + (help ? -1 : 1)) + '" y2="' + y + '" stroke="' + (help ? '#2f8a4c' : '#d07a1f') + '" stroke-width="2.5" marker-end="url(#ah-' + (help ? 'g' : 'o') + ')"/>';
+      h += '<circle cx="' + xn + '" cy="' + y + '" r="5.5" fill="#1d3fd6" stroke="#fff" stroke-width="2"><title>' + esc(MS.countryName(r.key) + ' · net of the others ' + f(net) + ' · effect of the others ' + f(r.others) + ' · cumulative R ' + f(r.total)) + '</title></circle>';
+      h += '<text x="' + (W - Rm + 8) + '" y="' + (y + 4) + '" font-size="12" font-weight="700" fill="#1b1f3b">' + esc(f(r.total)) + '</text>';
+    });
+    h += '<text x="' + (W - Rm + 8) + '" y="' + (top - 12) + '" font-size="10" fill="#6b7190">cum. R</text>';
+    return h + '</svg>';
+  }
+  function othersLegendHtml() {
+    return '<div class="xs muted rbarleg"><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="#1d3fd6"/></svg> <span>your play: own policy and the shocks you answered (R net of the others)</span></span> <span><svg width="26" height="10"><line x1="1" y1="5" x2="20" y2="5" stroke="#2f8a4c" stroke-width="2.5"/><path d="M18,1 L25,5 L18,9 z" fill="#2f8a4c"/></svg> <span>the other countries’ policies helped</span></span> <span><svg width="26" height="10"><line x1="25" y1="5" x2="6" y2="5" stroke="#d07a1f" stroke-width="2.5"/><path d="M8,1 L1,5 L8,9 z" fill="#d07a1f"/></svg> <span>they cost you</span></span> <span><span>the arrow ends at the cumulative R</span></span></div>';
+  }
+  /* the card under the ranking; lb: MS.leaderboard rows */
+  function othersCard(st, lb, rows, me) {
+    var data = lb.map(function (r) { return { key: r.key, total: r.latestR === null ? null : r.cumR, others: othersCum(st, rows, r.key) }; });
+    var svg = othersChartSvg(data, me);
+    if (!svg) return null;
+    return el('div', { class: 'card' }, [el('h2', { 'data-guide': 'score' }, ['Your play and the effect of the others']),
+      el('p', { class: 'muted small' }, ['For each country, the dot is its cumulative R net of the other countries’ policies (its own policy and the shocks it answered); the arrow carries it to its cumulative R. An arrow to the right: the others’ policies helped; to the left: they cost. A good strategy held back by the others shows as a dot far to the right with an orange arrow back.']),
+      el('div', { html: svg }), el('div', { html: othersLegendHtml() })]);
+  }
+  /* ---------- ranking by dimension ----------
+     rank of each country on each dimension of R (sign applied: less unemployment, inflation, emissions or inequality is better),
+     no weights inside a dimension; three views: cumulative (sum over the years published), the last year, net of the other
+     countries (cumulative, without the part due to the other countries' policies: own policy + the shocks it answers). The last column: R in the same view. */
+  var DIM_VIEWS = [['cum', 'Cumulative'], ['year', 'Year'], ['net', 'Net of the other countries']];
+  function ordinal(n) { return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'); }
+  function dimRanking(st, rows, view) {
+    var inds = MS.indicatorsFor(st), by = {}, last = 0;
+    (rows || []).forEach(function (r) { if (r.phase !== 'game') return; (by[r.key] = by[r.key] || []).push(r); if (Number(r.year) > last) last = Number(r.year); });
+    var keys = Object.keys(by), val = {};
+    keys.forEach(function (k) {
+      var o = {}, use = view === 'year' ? by[k].filter(function (r) { return Number(r.year) === last; }) : by[k];
+      inds.concat([{ id: 'R', sign: 1 }]).forEach(function (i) {
+        var sum = 0, any = false;
+        use.forEach(function (r) {
+          var x = null;
+          if (view === 'net') {
+            /* net of the other players: the total minus the part due to the other countries' policies (own policy + shocks, climate included) */
+            var fo = rowSplit(r, st, st.weights).foreign, tot = r[i.id], fx = fo ? (i.id === 'R' ? fo.R : fo.ind[i.id]) : null;
+            x = (fx === null || fx === undefined || tot === null || tot === undefined || tot === '' || isNaN(Number(tot))) ? null : Number(tot) - Number(fx);
+          }
+          else x = r[i.id];
+          if (x !== null && x !== undefined && x !== '' && !isNaN(Number(x))) { sum += Number(x); any = true; }
+        });
+        o[i.id] = any ? sum : null;
+      });
+      val[k] = o;
+    });
+    var rank = {};
+    inds.concat([{ id: 'R', sign: 1 }]).forEach(function (i) {
+      var list = keys.filter(function (k) { return val[k][i.id] !== null; }).map(function (k) { return { k: k, v: i.sign * val[k][i.id] }; }).sort(function (a, b) { return b.v - a.v; });
+      rank[i.id] = {}; list.forEach(function (x, j) { rank[i.id][x.k] = j > 0 && Math.abs(x.v - list[j - 1].v) < 1e-9 ? rank[i.id][list[j - 1].k] : j + 1; });
+      rank[i.id]._n = list.length;
+      rank[i.id]._flat = list.length > 1 && Math.abs(list[0].v - list[list.length - 1].v) < 1e-9;   /* everyone equal: no rank on this dimension */
+    });
+    keys.sort(function (a, b) { return (rank.R[a] || 99) - (rank.R[b] || 99) || (MS.countryName(a) < MS.countryName(b) ? -1 : 1); });
+    return { inds: inds, keys: keys, val: val, rank: rank, last: last };
+  }
+  /* the card; o: {st, rows, me, prio: {up, down} (the team's priorities, desk), store: key to remember the view} */
+  function dimRankCard(o) {
+    var st = o.st, view = (o.store && read(o.store)) || 'cum';
+    if (!(o.rows || []).some(function (r) { return r.phase === 'game'; })) return null;
+    var card = el('div', { class: 'card' }), body = el('div');
+    var seg = el('span', { class: 'seg2' });
+    function draw() {
+      var d = dimRanking(st, o.rows, view), unitOf = function (i) { return i.id === 'gdp' ? ' %' : (i.id === 'R' ? '' : ' pt'); };
+      seg.innerHTML = '';
+      DIM_VIEWS.forEach(function (v) { seg.appendChild(el('span', { class: v[0] === view ? 'on' : '', onclick: function () { view = v[0]; if (o.store) store(o.store, view); draw(); } }, [v[0] === 'year' ? 'Year ' + d.last : v[1]])); });
+      var cols = d.inds.concat([{ id: 'R', label: view === 'net' ? 'Cumulative R, net of the others' : view === 'year' ? 'R' : 'Cumulative R', sign: 1 }]);
+      var withOthers = view === 'net';
+      var h = '<div class="tablewrap"><table class="rk"><thead><tr><th>Country</th>' + cols.map(function (i) { return '<th' + (i.id === 'R' ? ' class="rcum"' : '') + '>' + esc(i.label) + '</th>'; }).join('') + (withOthers ? '<th>Effect of the others</th>' : '') + '</tr></thead><tbody>';
+      d.keys.forEach(function (k) {
+        h += '<tr' + (k === o.me ? ' class="me"' : '') + '><td><b>' + esc(MS.countryName(k)) + '</b></td>' + cols.map(function (i) {
+          var r = d.rank[i.id][k], v = d.val[k][i.id], n = d.rank[i.id]._n;
+          if (!r) return '<td class="' + (i.id === 'R' ? 'rcum' : '') + '"><span class="muted">—</span></td>';
+          if (d.rank[i.id]._flat) return '<td class="' + (i.id === 'R' ? 'rcum' : '') + '"><span class="r">=</span><span class="v">' + esc(MS.fmt(v, i.id === 'R' ? 3 : 2, true) + unitOf(i)) + '</span></td>';
+          return '<td class="' + (r === 1 ? 'g1' : (r === n && n > 1 ? 'gl' : '')) + (i.id === 'R' ? ' rcum' : '') + '"><span class="r">' + ordinal(r) + '</span><span class="v">' + esc(MS.fmt(v, i.id === 'R' ? 3 : 2, true) + unitOf(i)) + '</span></td>';
+        }).join('') + (withOthers ? (function () { var oc = othersCum(st, o.rows, k); return '<td>' + (oc === null ? '<span class="muted">—</span>' : '<span class="oth ' + (oc >= 0 ? 'help' : 'cost') + '">' + esc(MS.fmt(oc, 3, true)) + '</span><span class="v">' + (oc >= 0 ? 'helped' : 'cost') + '</span>') + '</td>'; })() : '') + '</tr>';
+      });
+      h += '</tbody></table></div>';
+      if (withOthers) h += '<p class="xs muted" style="margin:4px 0 0">Effect of the others = cumulative R − cumulative R net of the others: what the other countries’ policies added to your score (+) or took from it (−).</p>';
+      if (o.me && d.rank.R[o.me]) {
+        var firsts = d.inds.filter(function (i) { return !d.rank[i.id]._flat && d.rank[i.id][o.me] === 1; }).map(function (i) { return i.label; });
+        var lasts = d.inds.filter(function (i) { var n = d.rank[i.id]._n; return n > 1 && !d.rank[i.id]._flat && d.rank[i.id][o.me] === n; }).map(function (i) { return i.label; });
+        var parts = [];
+        if (firsts.length) parts.push('<span>1st on</span> ' + firsts.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join(', '));
+        if (lasts.length) parts.push('<span>last on</span> ' + lasts.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join(', '));
+        if (!parts.length) parts.push('<span>neither first nor last on any dimension</span>');
+        var pr = o.prio && o.prio.up && o.prio.up.length ? '<div class="small" style="margin-top:3px"><span class="muted">Your priorities this year:</span> ' + o.prio.up.map(function (id) { var i = d.inds.filter(function (x) { return x.id === id; })[0]; return '<span>' + esc(i ? i.label : id) + '</span>'; }).join(', ') + (o.prio.down && o.prio.down.length ? ' <span class="muted">· accepted to worsen:</span> ' + o.prio.down.map(function (id) { var i = d.inds.filter(function (x) { return x.id === id; })[0]; return '<span>' + esc(i ? i.label : id) + '</span>'; }).join(', ') : '') + '</div>' : '';
+        var net2 = '';
+        if (withOthers) {
+          var oc2 = othersCum(st, o.rows, o.me), dc = dimRanking(st, o.rows, 'cum');
+          if (oc2 !== null && Math.abs(oc2) >= 0.005) net2 = '<div class="small" style="margin-top:3px"><span>Net of the others, you are</span> <b>' + ordinal(d.rank.R[o.me]) + '</b><span>; the other countries’ policies</span> <b>' + (oc2 >= 0 ? '<span>added</span> ' : '<span>cost you</span> ') + esc(MS.fmt(Math.abs(oc2), 3)) + '</b> <span>of cumulative R (you are</span> <b>' + ordinal(dc.rank.R[o.me]) + '</b> <span>in all).</span></div>';
+        }
+        h += '<div class="sumrk"><b>' + esc(MS.countryName(o.me)) + '</b> · ' + parts.join(' · ') + net2 + pr + '</div>';
+      }
+      body.innerHTML = h;
+    }
+    card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'score' }, ['Ranking by dimension']), seg]));
+    card.appendChild(el('p', { class: 'muted small' }, ['Rank of each country on each dimension of R, without weights: the gap from the reference, added up over the years (or the last year alone); less unemployment, inflation, emissions or inequality is better. « Net of the other countries » takes out the part due to the other countries’ policies: what is left is your own policy and the shocks you answered — the fair comparison of how each team played.']));
+    card.appendChild(body);
+    draw();
+    return card;
+  }
+
   /* ---------- forum of the union (permanent council) ---------- */
   var FORUM_TYPE_LABEL = { engagement: 'Engagement', joint: 'Joint proposal', vote: 'Vote call' };
   var FORUM_STATUS = { kept: '<span class="kept">✓ kept</span>', broken: '<span class="broken">✗ not kept</span>', words: '<span class="muted">words only</span>', nodecision: '<span class="muted">no decision</span>' };
@@ -746,5 +879,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { othersCum: othersCum, othersCard: othersCard, othersChartSvg: othersChartSvg, dimRankCard: dimRankCard, dimRanking: dimRanking, exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

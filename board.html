@@ -7,10 +7,10 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111319">
-<script src="config.js?v=2026111319"></script>
-<script src="core.js?v=2026111319"></script>
-<script src="app-common.js?v=2026111319"></script>
+<link rel="stylesheet" href="style.css?v=2026111323">
+<script src="config.js?v=2026111323"></script>
+<script src="core.js?v=2026111323"></script>
+<script src="app-common.js?v=2026111323"></script>
 </head>
 <body class="board">
 
@@ -119,7 +119,7 @@
 
     /* layout: the union (or the duels) and the submissions side by side at the top; every other card full width below,
        in this order: council, ranking, everyone's decisions, year in detail, key indicators, the objective year by year, reveals */
-    var topLeft = null, reveals = [], factCard = null, rankCard = null, decCard = null, detCard = null, trajCard = null, councilCard = null, warmCard = null;
+    var topLeft = null, reveals = [], factCard = null, rankCard = null, othCard = null, dimCard = null, decCard = null, detCard = null, trajCard = null, councilCard = null, warmCard = null;
     /* submissions */
     var subCard = el('div', { class: 'card' }); subCard.appendChild(el('h2', {}, ['Submissions']));
     var grid = el('div', { class: 'status-grid' });
@@ -225,6 +225,9 @@
         trajCard = tc;
       }
       if (!lb.length || !st.publishLeaderboard) rankCard = c;
+      /* ranking by dimension, under the ranking (published ranking, not in duels) */
+      if (st.publishLeaderboard && lb.length && !MS.isDuel(st)) othCard = UI.othersCard(st, lb, data.gameResults, null);
+      if (st.publishLeaderboard && lb.length && !MS.isDuel(st)) dimCard = UI.dimRankCard({ st: st, rows: data.gameResults, store: 'macroscope.dimrank.board' });
       /* council */
       if (st.councilOpen) {
         var cc = el('div', { class: 'card tint' }); cc.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Council of ministers · year ' + st.round]), el('span', { class: 'pill gold' }, ['in session'])]));
@@ -302,7 +305,7 @@
     }
     if (topLeft) app.appendChild(el('div', { class: 'grid2' }, [topLeft, subTop]));
     else app.appendChild(subTop);
-    [councilCard, warmCard, rankCard, decCard, detCard, factCard, trajCard].forEach(function (c) { if (c) app.appendChild(c); });
+    [councilCard, warmCard, rankCard, othCard, dimCard, decCard, detCard, factCard, trajCard].forEach(function (c) { if (c) app.appendChild(c); });
     reveals.forEach(function (c) { app.appendChild(c); });
     if (st.phase === 'game') { var xc = exploreCard(st); if (xc) app.appendChild(xc); }
   }
