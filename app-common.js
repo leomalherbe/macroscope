@@ -22,7 +22,15 @@ var MSApi = (function () {
       document.head.appendChild(s);
     });
   }
+  /* « The server is busy »: the request found the backend's write lock taken and wrote nothing — try again, up to three times */
   async function call(action, params) {
+    for (var attempt = 0; ; attempt++) {
+      var res = await call1(action, params);
+      if (attempt < 3 && res && res.ok === false && /server is busy/i.test(String(res.error || ''))) { await new Promise(function (ok) { setTimeout(ok, 1500 * (attempt + 1)); }); continue; }
+      return res;
+    }
+  }
+  async function call1(action, params) {
     var base = apiUrl();
     if (!base) throw new Error('No backend URL is configured (config.js).');
     var body = JSON.stringify(Object.assign({ action: action }, params || {}));
@@ -36,7 +44,20 @@ var MSApi = (function () {
     } catch (e) { /* fall back to JSONP */ }
     return jsonp(base, body);
   }
-  return { call: call, apiUrl: apiUrl, setApiUrl: setApiUrl };
+  /* polling without rereading: ask the backend's stamp (it changes with every write) and say whether the page must reload its
+     data — when the stamp changed, or after maxAge ms anyway (deadlines pass without a write). A backend without stamps (before
+     1.14) gets the former rhythm: a reload every `every` ms. */
+  var stamps = {};
+  async function due(key, maxAge, every) {
+    var now = Date.now(), st = stamps[key] || (stamps[key] = { s: undefined, t: 0, none: false });
+    if (st.none) { if (now - st.t >= every) { st.t = now; return true; } return false; }
+    var r = null; try { r = await call1('stamp', {}); } catch (e) { r = null; }
+    if (r && r.ok === false && /unknown action/i.test(String(r.error || ''))) { st.none = true; st.t = now; return true; }
+    var s = r && r.ok ? r.stamp : null;
+    if (s === null || s !== st.s || now - st.t >= maxAge) { st.s = s; st.t = now; return true; }
+    return false;
+  }
+  return { call: call, due: due, apiUrl: apiUrl, setApiUrl: setApiUrl };
 })();
 
 var UI = (function () {
@@ -117,6 +138,33 @@ var UI = (function () {
     if (opts && opts.crisis && v.crisis) h += '<span class="chip vote">' + esc(VOTE_LABEL[v.crisis] || v.crisis) + '</span>';
     return '<div class="chips">' + h + '</div>';
   }
+  /* who holds a country's public debt (points of GDP, from the published detail) and what it costs: a stacked bar, one line per
+     holder with its change since the year before, then the average rate paid and the interest bill. u: the union row of the year */
+  var HOLDERS = [['hh', 'Households', '#122ddb'], ['banks', 'Banks', '#7f8ff2'], ['cb', 'Central bank', '#ff7a59'], ['row', 'Rest of the world', '#5aa58c']];
+  function debtHoldersHtml(x, px, u) {
+    var h = x && x.holders; if (!h) return '';
+    var tot = 0; HOLDERS.forEach(function (k) { tot += Math.max(0, MS.num(h[k[0]])); });
+    if (!(tot > 0)) return '';
+    var shown = HOLDERS.filter(function (k) { return Math.abs(MS.num(h[k[0]])) > 0.05; });
+    var bar = '<div class="dbar" role="img" aria-label="' + esc(shown.map(function (k) { return k[1] + ' ' + MS.fmt(h[k[0]], 1) + ' % of GDP'; }).join(', ')) + '">' + shown.map(function (k) { var w = 100 * Math.max(0, MS.num(h[k[0]])) / tot; return '<i style="width:' + w.toFixed(2) + '%;background:' + k[2] + '"></i>'; }).join('') + '</div>';
+    var rows = shown.map(function (k) {
+      var v = MS.num(h[k[0]]), pv = px && px.holders ? MS.num(px.holders[k[0]]) : null;
+      return '<div class="urow"><span><i class="dkey" style="background:' + k[2] + '"></i>' + esc(k[1]) + '</span><span class="num">' + esc(MS.fmt(v, 1)) + ' % of GDP · ' + esc(MS.fmt(100 * v / tot, 0)) + ' % of the debt' + (pv === null ? '' : ' <span class="small muted">(' + esc(MS.fmt(v - pv, 1, true)) + ' pt)</span>') + '</span></div>';
+    }).join('');
+    var rate = '';
+    if (x.intRate !== undefined) {
+      rate = '<div class="urow"><span>Average rate paid on the debt this year</span><span class="num"><b>' + esc(MS.fmt(x.intRate, 2)) + ' %</b>' +
+        ' <span class="small muted">(last year’s central-bank rate' + (x.spread !== undefined ? ', plus the risk premium on the bills held by the market' : '') + ')</span></span></div>' +
+        '<div class="urow"><span>Interest bill</span><span class="num">' + esc(MS.fmt(x.intBill, 2)) + ' % of GDP</span></div>';
+    }
+    return '<div class="union">' + bar + rows + '<div class="urow"><span><b>Public debt</b></span><span class="num"><b>' + esc(MS.fmt(tot, 1)) + ' % of GDP</b></span></div>' + rate + '</div>' +
+      '<p class="xs muted" style="margin:.5em 0 0">The interest paid to the central bank comes back to the government with its profits. Households and banks hold bills at the common rate (plus the risk premium in Finance); the rest of the world, in Finance, buys or sells them as rates and risk change.</p>';
+  }
+  /* the result of a currency-crisis vote: « 2 defend · 3 peg · 1 let it float → peg, devaluation of 5 % » */
+  function currencyTally(c) {
+    var o = c.outcome === 'float' || c.outcome === 'devaluation' ? 'let it float' : c.outcome === 'peg' ? 'peg' + (MS.num(c.parity) ? (c.parity > 0 ? ', devaluation of ' : ', revaluation of ') + MS.fmt(Math.abs(c.parity), 0) + ' %' : ' at today’s rate') : 'defend';
+    return (c.austerity || 0) + ' defend · ' + (c.peg || 0) + ' peg · ' + (c.devaluation || 0) + ' let it float → ' + o;
+  }
   function voteLinesHtml(u) {
     var v = u && u.votes; if (!v) return '';
     var r = v.rate, h = '';
@@ -127,7 +175,7 @@ var UI = (function () {
     if (r) h += '<div class="urow"><span>Vote on the central bank’s rate</span><span class="num">' + esc(r.cut) + ' cut · ' + esc(r.hold) + ' hold · ' + esc(r.hike) + ' hike → ' + (r.outcome ? esc(MS.fmt(r.outcome, 2, true)) + ' pt' : 'unchanged') + ' · rate ' + esc(MS.fmt(r.level, 2)) + ' %</span></div>';
     var c = v.crisis || {};
     if (c.outcome === 'forced') h += '<div class="urow"><span>Reserves exhausted</span><span class="num neg">forced devaluation</span></div>';
-    else if (c.active && c.kind === 'currency') h += '<div class="urow"><span>Currency crisis · vote</span><span class="num">' + esc(c.austerity) + ' defend · ' + esc(c.devaluation) + ' let it float → <b>' + (c.outcome === 'float' ? 'let it float' : 'defend (rate raised)') + '</b></span></div>';
+    else if (c.active && c.kind === 'currency') h += '<div class="urow"><span>Currency crisis · vote</span><span class="num">' + esc(currencyTally(c)) + '</span></div>';
     else if (c.active) h += '<div class="urow"><span>Reserves crisis · vote</span><span class="num">' + esc(crisisTally(c)) + ' → <b>' + esc(crisisWord(c.outcome)) + '</b>' + (c.outcome === 'austerity' && u.caps && u.caps.length ? ' (capped: ' + esc(u.caps.join(', ')) + ')' : '') + '</span></div>';
     return h;
   }
@@ -230,6 +278,8 @@ var UI = (function () {
     if (!u || !u.regime) return '';
     var isFloat = u.regime === 'float', h = '';
     h += '<div class="urow"><span>Exchange-rate regime</span><span class="num">' + (isFloat ? 'floating' : 'fixed') + (u.backstop === false ? ' · <span class="pill closed">no central-bank backstop</span>' : '') + '</span></div>';
+    /* the pull of the union's bills on capital: its rate against the rest of the world's (Finance rows carry both) */
+    if (u.rate !== undefined && u.rw !== undefined && u.rate !== null && u.rw !== null) h += '<div class="urow"><span>Rate gap with the rest of the world (union rate − world rate)</span><span class="num">' + esc(MS.fmt(100 * u.rate, 2)) + ' % − ' + esc(MS.fmt(100 * u.rw, 2)) + ' % = <b>' + esc(MS.fmt(100 * (u.rate - u.rw), 2, true)) + ' pt</b></span></div>';
     if (u.dxr !== undefined) h += '<div class="urow"><span>Change of the exchange rate over the year (+ = depreciation)</span><span class="num ' + (u.dxr > 0 ? 'neg' : (u.dxr < 0 ? 'pos' : '')) + '">' + esc(MS.fmt(u.dxr, 1, true)) + ' %</span></div>';
     if (u.KA !== undefined) h += '<div class="urow"><span>Capital flows (net inflows from the rest of the world)</span><span class="num ' + UI.signedClass(u.KA) + '">' + esc(MS.fmt(u.KA, 2, true)) + '</span></div>';
     if (u.pressured && u.pressured.length) h += '<div class="urow"><span>Members under market pressure (public debt above 110 % of GDP)</span><span class="num neg">' + esc(u.pressured.map(function (c) { return MS.countryName(c); }).join(', ')) + '</span></div>';
@@ -472,7 +522,76 @@ var UI = (function () {
     else x = d.extra && d.extra.x ? d.extra.x[v.key || v.id] : undefined;
     return x === undefined || x === null || x === '' || !isFinite(Number(x)) ? null : Number(x);
   }
+  /* the « Explore the model » card (board and teams' page): any published variable, year by year, for the countries ticked.
+     o: {st, results: the countries' result rows, union: the union rows, key: localStorage key of the selection, ctry: the countries
+     ticked at first (default: all), note: a sentence under the charts}. The selection survives the page's refresh (and, per
+     browser, a reload). Not in duels. */
+  var xState = {};
+  function exploreCard(o) {
+    var st = o.st; if (MS.isDuel(st)) return null;
+    var res = (o.results || []).filter(function (r) { return (r.phase === undefined || r.phase === 'game') && r.key && String(r.key).indexOf('UNION') !== 0; });
+    var uRows = (o.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'UNION'; });
+    var years = []; res.concat(uRows).forEach(function (r) { var y = Number(r.year); if (years.indexOf(y) < 0) years.push(y); }); years.sort(function (a, b) { return a - b; });
+    if (!years.length) return null;
+    var sel = xState[o.key];
+    if (!sel) { try { sel = JSON.parse(localStorage.getItem(o.key) || 'null'); } catch (e) { sel = null; } sel = xState[o.key] = sel || { open: false, vars: ['gdp', 'debt'], ctry: null }; }
+    function save() { try { localStorage.setItem(o.key, JSON.stringify(sel)); } catch (e) { /* per-viewer convenience only */ } }
+    var vars = exploreVars(st);
+    var ctrys = []; res.forEach(function (r) { if (ctrys.indexOf(r.key) < 0) ctrys.push(r.key); });
+    ctrys = MS.COUNTRIES.map(function (c) { return c.id; }).filter(function (id) { return ctrys.indexOf(id) >= 0; });
+    if (!sel.ctry) sel.ctry = o.ctry ? o.ctry.filter(function (id) { return ctrys.indexOf(id) >= 0; }) : ctrys.slice();
+    var det = el('details', { class: 'card explore' }); det.open = !!sel.open;
+    det.addEventListener('toggle', function () { sel.open = det.open; save(); });
+    det.appendChild(el('summary', {}, [el('h2', { style: 'display:inline' }, ['Explore the model']), el('span', { class: 'small muted', style: 'margin-left:10px' }, ['any variable, year by year, for the countries you choose'])]));
+    var pick = el('div', { class: 'xpick' });
+    var cRow = el('div', { class: 'xctry' }, [el('b', { class: 'small' }, ['Countries'])]);
+    ctrys.forEach(function (id) {
+      var cb = el('input', { type: 'checkbox' }); cb.checked = sel.ctry.indexOf(id) >= 0;
+      cb.addEventListener('change', function () { var i = sel.ctry.indexOf(id); if (cb.checked && i < 0) sel.ctry.push(id); if (!cb.checked && i >= 0) sel.ctry.splice(i, 1); save(); draw(); });
+      cRow.appendChild(el('label', { class: 'xchip' }, [cb, el('i', { style: 'background:' + raceColor(id) }), ' ' + MS.countryName(id)]));
+    });
+    pick.appendChild(cRow);
+    var vBox = el('div', { class: 'xvars' });
+    EXPLORE_GROUPS.forEach(function (gName) {
+      var gv = vars.filter(function (v) { return v.g === gName; }); if (!gv.length) return;
+      var col = el('div', { class: 'xgroup' }, [el('b', { class: 'small' }, [gName])]);
+      gv.forEach(function (v) {
+        var cb = el('input', { type: 'checkbox' }); cb.checked = sel.vars.indexOf(v.id) >= 0;
+        cb.addEventListener('change', function () { var i = sel.vars.indexOf(v.id); if (cb.checked && i < 0) sel.vars.push(v.id); if (!cb.checked && i >= 0) sel.vars.splice(i, 1); save(); draw(); });
+        col.appendChild(el('label', { class: 'small' }, [cb, ' ' + v.label]));
+      });
+      vBox.appendChild(col);
+    });
+    pick.appendChild(vBox);
+    det.appendChild(pick);
+    var grid = el('div', { class: 'xgrid' }), note = el('p', { class: 'xs muted', style: 'margin:.6em 0 0' });
+    det.appendChild(grid); det.appendChild(note);
+    if (o.note) det.appendChild(el('p', { class: 'xs muted', style: 'margin:.3em 0 0' }, [o.note]));
+    function draw() {
+      grid.innerHTML = '';
+      var chosen = vars.filter(function (v) { return sel.vars.indexOf(v.id) >= 0; });
+      if (!chosen.length) { grid.appendChild(el('p', { class: 'small muted' }, ['Tick one or more variables.'])); note.textContent = ''; return; }
+      var missing = false;
+      chosen.forEach(function (v) {
+        var series;
+        if (v.src === 'u') series = [{ name: 'Union', color: '#0a1670', pts: years.map(function (y) { var r = uRows.filter(function (x) { return Number(x.year) === y; })[0]; return { year: y, v: exploreValue(v, r) }; }) }];
+        else series = ctrys.filter(function (id) { return sel.ctry.indexOf(id) >= 0; }).map(function (id) {
+          return { name: MS.countryName(id), color: raceColor(id), pts: years.map(function (y) { var r = res.filter(function (x) { return x.key === id && Number(x.year) === y; })[0]; return { year: y, v: exploreValue(v, r) }; }) };
+        });
+        series.forEach(function (sr) { sr.pts.forEach(function (p) { if (p.v === null) missing = true; }); });
+        grid.appendChild(el('div', { class: 'xcell' }, [el('div', { html: exploreSvg(v, series, years) }), el('a', { class: 'xs', href: 'model.html#' + v.eq, target: '_blank', rel: 'noopener' }, ['equation →'])]));
+      });
+      note.textContent = 'Deviations from the reference (no decision, no shock): volumes in %, rates and ratios in points; the union’s variables are drawn once for all. Hover a point for its value.' + (missing ? ' Gaps: variables recorded only for the years published since this tool exists (the console can publish a year again).' : '');
+    }
+    draw();
+    return det;
+  }
   /* one small chart: series = [{name, color, pts: [{year, v}]}] over years */
+  /* the hover text of a point, in the page's language */
+  function pointTitle(name, year, val, unit) {
+    var fr = typeof MXL !== 'undefined' && MXL.lang === 'fr';
+    return fr ? name + ' · année ' + year + ' : ' + MXL.num(val) + ' ' + shownLabel(unit) : name + ' · year ' + year + ': ' + val + ' ' + unit;
+  }
   function exploreSvg(v, series, years) {
     var W = 360, H = 190, L = 46, Rg = 12, T = 32, B = 26;
     var vals = []; series.forEach(function (s) { s.pts.forEach(function (p) { if (p.v !== null) vals.push(p.v); }); });
@@ -483,14 +602,14 @@ var UI = (function () {
     var Y = function (val) { return T + (H - T - B) * (hi - val) / (hi - lo); };
     var dec = Math.abs(hi - lo) < 2 ? 2 : 1;
     var g = '<svg class="xchart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(v.label) + '">';
-    g += '<text x="' + L + '" y="14" class="t">' + esc(v.label) + '</text><text x="' + L + '" y="27" class="u"><tspan translate="no">' + esc(v.sym) + '</tspan> · ' + esc(v.unit) + ' vs the reference</text>';
+    g += '<text x="' + L + '" y="14" class="t">' + esc(v.label) + '</text><text x="' + L + '" y="27" class="u"><tspan translate="no">' + esc(v.sym) + '</tspan> · ' + esc(shownLabel(v.unit + ' vs the reference')) + '</text>';
     [hi - pad, 0, lo + pad].forEach(function (tv, k) { if (k !== 1 && Math.abs(tv) < 1e-9) return; g += '<line x1="' + L + '" x2="' + (W - Rg) + '" y1="' + Y(tv) + '" y2="' + Y(tv) + '" class="' + (k === 1 ? 'z' : 'gl') + '"/><text x="' + (L - 6) + '" y="' + (Y(tv) + 4) + '" class="a" text-anchor="end">' + esc(fmt2(tv, dec)) + '</text>'; });
     years.forEach(function (y, k) { if (years.length > 8 && k % 2 && k !== years.length - 1) return; g += '<text x="' + X(y) + '" y="' + (H - 8) + '" class="a" text-anchor="middle">Y' + y + '</text>'; });
     series.forEach(function (s) {
       var path = '', on = false;
       s.pts.forEach(function (p) { if (p.v === null) { on = false; return; } path += (on ? 'L' : 'M') + X(p.year).toFixed(1) + ' ' + Y(p.v).toFixed(1); on = true; });
       if (path) g += '<path d="' + path + '" fill="none" stroke="' + s.color + '" stroke-width="2" stroke-linejoin="round"/>';
-      s.pts.forEach(function (p) { if (p.v === null) return; g += '<circle cx="' + X(p.year).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="3.2" fill="' + s.color + '" stroke="#fff" stroke-width="1.5"><title>' + esc(s.name + ' · year ' + p.year + ': ' + fmt2(p.v, 2) + ' ' + v.unit) + '</title></circle>'; });
+      s.pts.forEach(function (p) { if (p.v === null) return; g += '<circle cx="' + X(p.year).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="3.2" fill="' + s.color + '" stroke="#fff" stroke-width="1.5"><title>' + esc(pointTitle(s.name, p.year, fmt2(p.v, 2), v.unit)) + '</title></circle>'; });
     });
     if (!vals.length) g += '<text x="' + ((W + L) / 2) + '" y="' + (H / 2) + '" class="a" text-anchor="middle">not recorded for these years</text>';
     return g + '</svg>';
@@ -580,6 +699,30 @@ var UI = (function () {
     }
     return (label ? label + ' — ' : '') + txt;
   }
+  /* the split of a result row into its parts — own policy, the other countries' policies, shocks, climate — with the R of each
+     part: stored with the row (detail.R) or rebuilt from the parts of the indicators with the row's weights (R is linear) */
+  var SPLIT_PARTS = ['nat', 'foreign', 'shock', 'climate'];
+  function rowSplit(r, st, weights) {
+    var d = r && r.detail, out = {}; if (!d || typeof d !== 'object') return out;
+    var w = d.weights || weights || (st && st.weights);
+    SPLIT_PARTS.forEach(function (p) {
+      var ind = {}, has = false;
+      MS.indicatorsFor(st).forEach(function (i) { var x = d[i.id] ? d[i.id][p] : undefined; if (x !== undefined && x !== null && x !== '') { ind[i.id] = Number(x); has = true; } });
+      var Rp = d.R && d.R[p] !== undefined && d.R[p] !== null ? Number(d.R[p]) : (has ? MS.scoreR(ind, w) : null);
+      if (has || Rp !== null) out[p] = { ind: ind, R: Rp };
+    });
+    return out;
+  }
+  /* the lines « of which … » under a country's row of a results table (board); nExtra: empty cells that close each line */
+  function splitRowsHtml(r, st, weights, nExtra) {
+    var sp = rowSplit(r, st, weights);
+    var lab = { nat: '↳ own policy', foreign: MS.isDuel(st) ? '↳ partner’s policy' : '↳ other countries', shock: '↳ shocks', climate: '↳ climate' };
+    return SPLIT_PARTS.filter(function (p) { return sp[p]; }).map(function (p) {
+      var s = sp[p];
+      return '<tr class="bd"><td class="small muted" style="padding-left:1.6em;white-space:nowrap">' + esc(lab[p]) + '</td>' + MS.indicatorsFor(st).map(function (i) { var x = s.ind[i.id]; return '<td class="num small ' + (x === undefined ? '' : signedClass(i.sign * x)) + '">' + esc(x === undefined ? '' : MS.fmt(x, 3, true)) + '</td>'; }).join('') +
+        '<td class="num small ' + (s.R === null ? '' : signedClass(s.R)) + '">' + esc(s.R === null ? '' : MS.fmt(s.R, 3, true)) + '</td>' + new Array((nExtra || 0) + 1).join('<td></td>') + '</tr>';
+    }).join('');
+  }
   /* the caption under the objective charts: the five dimensions, or more with the climate or the households option */
   function trajCaption(st) {
     if (MS.climateOn(st) || MS.householdsOn(st)) return 'Each bar stacks the contributions of the dimensions to R for the year (weight × deviation; GDP and the two balances count positively, the others negatively): above zero what helped, below zero what hurt. The dashed line is R itself.';
@@ -603,5 +746,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

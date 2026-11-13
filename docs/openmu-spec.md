@@ -604,7 +604,12 @@ Activation par classe : `sim.tariffs` (Control → Parameters → « tariffs »)
 - **Backend 1.13**: `ineq` column appended to the Results sheet (automatic migration, like `emis` in 1.7); `latestBy` keeps the later of two rows with the same timestamp. Pages: inequality column (desk, board, console), fact-sheet tile (the wealthy half's share), objective charts, explorer (inequality, disposable income of each half), guide card « Modest and wealthy households », model page card `#hh`.
 - Tests: `dev/engine-test.js` (households block: off = bit-identical, stationarity, matrices, exit identities, inequality signs and split), `dev/gas-fake-test.js` (column migration, `ineq` stored), `dev/e2e-households.js` (Parameters → weight 0.2 → a published year with inequality in R; desk, board, guide, French pages).
 
-## 17. Forum of the union: the permanent council (13/11, backend 1.16)
+## 17. Currency crisis: back to a peg (13/11, backend 1.15)
+
+- Floating union, depreciation above `crisisDepr` last year → council vote before the decisions, three choices ordered **defend < peg < let it float**, the (lower) median of the votes cast wins (`MS.tallyCurrency`). Defend: rate + `defendStep` this year only. Peg: each peg vote carries a parity in `MS.PEG_PARITIES` (−10, −5, 0, +5, +10, +20 %; + = the euro pegged lower); the parity is the (lower) median of the peg votes. The console then sets the year's regime to fixed (`shocks.gN.regime`, the next years follow it) and the run applies `deval = parity` that year (fixed regime: xr = xr₋₁ · (1 + deval/100)); the reserves, frozen while floating, absorb the gaps again.
+- Teams' page: public-debt card — holders (households, banks, central bank(s) = remainder, rest of the world) in points of GDP from `detail.extra.holders`, average rate paid (`intRate` = interest of the year over last year's debt) and interest bill (`intBill`, % of GDP).
+
+## 18. Forum of the union: the permanent council (13/11, backend 1.16)
 
 - **Option** `state.forum = {on, perYear: 1, maxLen: 280, frozen}` (Control → « Forum of the union (permanent council) », not in duels). When on, the convened council (`councilOpen`, pledges) is no longer offered; old pledges and their reveals stay readable.
 - **Proposals** (tab `Forum` of the Sheet, append-only events per `propId`: `post`, `withdraw`, `hide`, `show`): `perYear` per country and year, `maxLen` characters in all. Three kinds (`MS.validateProposal`): **engagement** (what we will do + the counterpart asked, `askText`, from named members or `ALL`), **joint proposal** (what every country does), **vote call** (a vote on the rate). Numbers and votes may be attached; they make the words verifiable. Numbers are **ranges per lever** (Léo, 13/11): « at least » and/or « at most » (`ranges: {vat: {max: 0}, pubdem: {min: 0.5}}`), easier to support or reject than exact values; an empty box is no bound, 0 is a bound; min ≤ max, within the lever's bounds.
@@ -615,7 +620,7 @@ Activation par classe : `sim.tariffs` (Control → Parameters → « tariffs »)
 - **Administrator**: hides a proposal afterwards (`admin.forum.hide`, reversible, no prior validation); the Council tab shows everything, hidden proposals included; export `Forum (CSV)`.
 - Pages: desk card « Forum of the union » (composer, this year's proposals with reactions, earlier years with words vs acts), board card, console. Tests: `dev/gas-fake-test.js` (forum block), `dev/e2e-forum.js`.
 
-## 18. Diplomatic telegrams (13/11, backend 1.17)
+## 19. Diplomatic telegrams (13/11, backend 1.17)
 
 - **Option** `state.telegrams = {on, open, perYear: 3, maxLen: 280}` (Control, not in duels). The administrator opens and closes the **telegraph office** (`open`); nothing is sent while it is closed.
 - **Private and bilateral**: written from the group's desk (whoever types), to one other country of the class; read by that country only (« Received ») and by the sender (« Sent »). Nothing on the board, nothing revealed to the class. `perYear` telegrams per country and game year (`state.round`), `maxLen` characters each.
