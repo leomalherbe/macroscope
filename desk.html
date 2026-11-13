@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111302">
-<script src="i18n.js?v=2026111302"></script>
-<script src="i18n/fr-desk.js?v=2026111302"></script>
-<script src="guide.js?v=2026111302"></script>
-<script src="config.js?v=2026111302"></script>
-<script src="core.js?v=2026111302"></script>
-<script src="app-common.js?v=2026111302"></script>
+<link rel="stylesheet" href="style.css?v=2026111303">
+<script src="i18n.js?v=2026111303"></script>
+<script src="i18n/fr-desk.js?v=2026111303"></script>
+<script src="guide.js?v=2026111303"></script>
+<script src="config.js?v=2026111303"></script>
+<script src="core.js?v=2026111303"></script>
+<script src="app-common.js?v=2026111303"></script>
 </head>
 <body>
 
@@ -50,7 +50,8 @@
   var offset = 0;             // server time − client time (ms)
   var formKey = null;         // phase|round of the form currently built
   var councilKey = null;
-  var forumKey = null;        // year|quota left of the forum composer currently built
+  var forumKey = null;
+  var tgKey = null;           // state of the telegram composer currently built        // year|quota left of the forum composer currently built
   var pollTimer = null, tick = null;
 
   /* ---------------- login ---------------- */
@@ -110,6 +111,7 @@
       app.appendChild(el('div', { id: 'communique' }));
       app.appendChild(el('div', { id: 'council' }));
       app.appendChild(el('div', { id: 'forum' }));
+      app.appendChild(el('div', { id: 'telegrams' }));
       app.appendChild(el('div', { id: 'form' }));
       app.appendChild(el('div', { id: 'results' }));
       app.appendChild(el('div', { id: 'reveals' }));
@@ -124,6 +126,7 @@
     else updateFormStatus();
     renderCouncil();
     renderForum();
+    renderTelegrams();
     renderResults();
     renderReveals();
     renderAllDecisions();
@@ -139,6 +142,7 @@
     if (st.deadline && data.roundOpen) strip.appendChild(el('span', { class: 'countdown', id: 'countdown' }, ['–:––']));
     if (st.phase === 'game' && st.councilOpen) strip.appendChild(el('span', { class: 'pill gold' }, ['Council in session']));
     if (data.forum && data.forum.on) { var nf = data.forum.proposals.filter(function (p) { return p.round === data.forum.year && !p.withdrawn && !p.hidden; }).length; strip.appendChild(el('a', { class: 'pill gold', href: '#forum' }, ['Forum: ' + nf + ' proposal' + (nf === 1 ? '' : 's')])); }
+    if (data.telegrams) { var nt = tgUnread().length; if (nt) strip.appendChild(el('a', { class: 'pill gold', href: '#telegrams' }, [nt === 1 ? '1 new telegram' : nt + ' new telegrams'])); }
     strip.appendChild(el('span', { class: 'spacer' }));
     strip.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { load(); UI.toast('Refreshed'); } }, ['↻ Refresh']));
     updateCountdown();
@@ -732,6 +736,57 @@
       if (!r.ok) { UI.toast(r.error || 'Error', 5000); b.disabled = false; return; }
       await load(true);
     } catch (err) { UI.toast('Network error: ' + err.message, 5000); b.disabled = false; }
+  }
+
+  /* ---------------- diplomatic telegrams (private, bilateral) ---------------- */
+  function tgSeenKey() { return 'macsim.tgseen.' + data.group.groupId; }
+  function tgUnread() { var seen = UI.read(tgSeenKey()) || ''; return ((data.telegrams && data.telegrams.inbox) || []).filter(function (t) { return String(t.ts) > String(seen); }); }
+  function tgHtml(t, dir) {
+    var who = dir === 'in' ? 'From ' : 'To ', c = dir === 'in' ? t.from : t.to;
+    return '<div class="tg' + (dir === 'in' && tgUnread().indexOf(t) >= 0 ? ' new' : '') + (dir === 'out' ? ' out' : '') + '"><div class="tghead"><b><span>' + who + '</span><span>' + esc(MS.countryName(c)) + '</span></b> <span class="muted small">' + esc(UI.fmtDateTime(t.ts)) + '</span></div>' +
+      (t.hidden ? '<div class="muted small">hidden by the administrator</div>' : '<div class="tgtext"><span translate="no">' + esc(t.text) + '</span></div>') + '</div>';
+  }
+  function renderTelegrams() {
+    var box = $('#telegrams'), tg = data.telegrams, me = data.group.country;
+    if (!tg || !me) { box.innerHTML = ''; tgKey = null; return; }
+    var left = Math.max(0, tg.perYear - tg.used), key = tg.round + '|' + left + '|' + tg.open;
+    if (tgKey !== key) {
+      box.innerHTML = '';
+      var card = el('div', { class: 'card' });
+      card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Diplomatic telegrams']),
+        el('span', { class: 'small muted' }, [tg.open ? (left ? left + ' telegram' + (left === 1 ? '' : 's') + ' left this year' : 'no telegram left this year') : 'telegraph office closed'])]));
+      card.appendChild(el('p', { class: 'muted small' }, ['Private messages from country to country: only the country you write to reads them (the administrator can read every telegram after the game). ' + tg.perYear + ' a year, ' + tg.maxLen + ' characters each. The administrator opens and closes the telegraph office.']));
+      if (tg.open && left) {
+        var sel = el('select', { id: 'tgTo' }); sel.appendChild(el('option', { value: '' }, ['— to which country? —']));
+        (data.groups || []).map(function (g) { return g.country; }).filter(function (c, i, a) { return c && c !== me && a.indexOf(c) === i; })
+          .forEach(function (c) { sel.appendChild(el('option', { value: c }, [MS.countryName(c)])); });
+        var ta = el('textarea', { id: 'tgText', style: 'min-height:60px' }), cnt = el('div', { class: 'fcount' });
+        var upd = function () { var n = ta.value.trim().length; cnt.textContent = n + ' / ' + tg.maxLen + ' characters'; cnt.classList.toggle('over', n > tg.maxLen); };
+        ta.addEventListener('input', upd); upd();
+        card.appendChild(el('div', { class: 'field' }, [el('label', { for: 'tgTo' }, ['To']), sel]));
+        card.appendChild(el('div', { class: 'field' }, [el('label', { for: 'tgText' }, ['Message']), ta, cnt]));
+        card.appendChild(el('div', { id: 'tgMsg' }));
+        card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', id: 'tgBtn', onclick: sendTelegram }, ['Send the telegram'])]));
+      }
+      card.appendChild(el('div', { class: 'cardhead', style: 'margin-top:14px' }, [el('h3', {}, ['Received']), el('button', { class: 'btn ghost sm', id: 'tgSeen', onclick: function () { var l = (data.telegrams.inbox || []).map(function (t) { return String(t.ts); }).sort().pop(); if (l) UI.store(tgSeenKey(), l); tgKey = null; render(); } }, ['Mark as read'])]));
+      card.appendChild(el('div', { id: 'tgIn' }));
+      card.appendChild(el('details', { id: 'tgOutBox', style: 'margin-top:10px' }, [el('summary', {}, ['Sent']), el('div', { id: 'tgOut' })]));
+      box.appendChild(card);
+      tgKey = key;
+    }
+    var inbox = tg.inbox.slice().sort(function (a, b) { return String(a.ts) < String(b.ts) ? 1 : -1; });
+    $('#tgIn').innerHTML = inbox.length ? inbox.map(function (t) { return tgHtml(t, 'in'); }).join('') : '<p class="muted">No telegram received.</p>';
+    $('#tgSeen').style.display = tgUnread().length ? '' : 'none';
+    var sent = tg.sent.slice().sort(function (a, b) { return String(a.ts) < String(b.ts) ? 1 : -1; });
+    $('#tgOut').innerHTML = sent.length ? sent.map(function (t) { return tgHtml(t, 'out'); }).join('') : '<p class="muted">No telegram sent.</p>';
+  }
+  async function sendTelegram() {
+    var m = $('#tgMsg'), btn = $('#tgBtn'); btn.disabled = true;
+    try {
+      var r = await MSApi.call('tg.send', { pin: pin, to: $('#tgTo').value, text: $('#tgText').value });
+      if (!r.ok) { m.innerHTML = '<div class="err"><b>' + esc(r.error) + '</b>' + (r.errors ? '<ul>' + r.errors.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') + '</div>'; btn.disabled = false; return; }
+      UI.toast('Telegram sent'); tgKey = null; await load(true);
+    } catch (e) { m.innerHTML = '<div class="err">Network error: ' + esc(e.message) + '</div>'; btn.disabled = false; }
   }
 
   /* ---------------- results ---------------- */

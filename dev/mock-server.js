@@ -14,7 +14,7 @@ const ROOT = path.join(__dirname, '..');                 // the repository = the
 function memoryStorage() {
   const config = {};
   let groups = [];
-  const tables = { decisions: [], results: [], pledges: [], comments: [], proposals: [], reactions: [], log: [] };
+  const tables = { decisions: [], results: [], pledges: [], comments: [], proposals: [], reactions: [], telegrams: [], log: [] };
   let clock = null;
   return {
     now: () => clock ? new Date(clock) : new Date(),

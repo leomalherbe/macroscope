@@ -1348,3 +1348,55 @@ Asked in return, @: between # and #.
 => Demandé en retour, @ : entre # et #.
 Asked in return, @: the minimum is above the maximum.
 => Demandé en retour, @ : le minimum est au-dessus du maximum.
+
+// diplomatic telegrams
+Diplomatic telegrams
+=> Télégrammes diplomatiques
+# new telegrams
+=> # nouveaux télégrammes
+# new telegram
+=> # nouveau télégramme
+# telegram left this year
+=> # télégramme restant cette année
+# telegrams left this year
+=> # télégrammes restants cette année
+no telegram left this year
+=> plus de télégramme cette année
+telegraph office closed
+=> bureau du télégraphe fermé
+Private messages from country to country: only the country you write to reads them (the administrator can read every telegram after the game). # a year, # characters each. The administrator opens and closes the telegraph office.
+=> Messages privés de pays à pays : seul le pays destinataire les lit (l’administrateur peut lire tous les télégrammes après la partie). # par an, # caractères chacun. L’administrateur ouvre et ferme le bureau du télégraphe.
+— to which country? —
+=> — à quel pays ? —
+To
+=> À
+From
+=> De
+Message
+=> Message
+Send the telegram
+=> Envoyer le télégramme
+Telegram sent
+=> Télégramme envoyé
+Received
+=> Reçus
+Sent
+=> Envoyés
+Mark as read
+=> Marquer comme lus
+No telegram received.
+=> Aucun télégramme reçu.
+No telegram sent.
+=> Aucun télégramme envoyé.
+Your telegram was not sent.
+=> Votre télégramme n’a pas été envoyé.
+Choose the country you write to.
+=> Choisissez le pays destinataire.
+Your telegram is empty.
+=> Votre télégramme est vide.
+Diplomatic telegrams are not in use.
+=> Les télégrammes diplomatiques ne sont pas activés.
+The telegraph office is closed: the administrator opens it.
+=> Le bureau du télégraphe est fermé : l’administrateur l’ouvre.
+Your country has sent its # telegrams for year #.
+=> Votre pays a envoyé ses # télégrammes de l’année #.
