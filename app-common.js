@@ -280,8 +280,21 @@ var UI = (function () {
   /* ---------- forum of the union (permanent council) ---------- */
   var FORUM_TYPE_LABEL = { engagement: 'Engagement', joint: 'Joint proposal', vote: 'Vote call' };
   var FORUM_STATUS = { kept: '<span class="kept">✓ kept</span>', broken: '<span class="broken">✗ not kept</span>', words: '<span class="muted">words only</span>', nodecision: '<span class="muted">no decision</span>' };
-  function forumHasContent(year, votes) { return !!(year && (Object.keys(year.levers || {}).length || Object.keys(year.tariffs || {}).length)) || !!(votes && (votes.rate || votes.crisis)); }
-  function forumChips(year, votes) { return forumHasContent(year, votes) ? pledgeChipsHtml({ year: year, votes: votes }) : ''; }
+  function forumHasContent(ranges, votes) { return !!(ranges && Object.keys(ranges).length) || !!(votes && (votes.rate || votes.crisis)); }
+  /* a lever's range as a chip label: "≥ +0.50 %", "≤ 0.00 %", "+0.50 to +1.00 %" */
+  function rangeText(id, r) {
+    var l = MS.leverById(id) || {}, u = l.duel ? ' pt' : (l.eco ? (l.id === 'ctax' ? ' pt' : '') : ' %'), f = function (v) { return MS.fmt(v, 2, true); };
+    if (r.min !== undefined && r.max !== undefined) return r.min === r.max ? '= ' + f(r.min) + u : f(r.min) + ' to ' + f(r.max) + u;
+    return (r.min !== undefined ? '≥ ' + f(r.min) : '≤ ' + f(r.max)) + u;
+  }
+  function forumChips(ranges, votes) {
+    if (!forumHasContent(ranges, votes)) return '';
+    var h = '';
+    Object.keys(ranges || {}).forEach(function (id) { var l = MS.leverById(id); h += '<span class="chip">' + esc(l ? l.label : id) + ' ' + esc(rangeText(id, ranges[id])) + '</span>'; });
+    if (votes && votes.rate) h += '<span class="chip vote">Will vote: ' + esc(votes.rate) + '</span>';
+    if (votes && votes.crisis) h += '<span class="chip vote">Will vote: ' + esc(crisisWord(votes.crisis)) + '</span>';
+    return '<div class="chips">' + h + '</div>';
+  }
   function forumNames(list) { return list.map(function (c) { return '<span>' + esc(MS.countryName(c)) + '</span>'; }).join(', '); }
   /* one proposal; opts: {me: my country, react: true to show the reaction buttons, withdraw: true for the author's button, admin: true} */
   function forumPostHtml(p, opts) {
@@ -292,12 +305,12 @@ var UI = (function () {
       (p.withdrawn ? ' <span class="pill">withdrawn</span>' : '') + (p.hidden ? ' <span class="pill">hidden by the administrator</span>' : '') + '</div>';
     if (p.hidden && !opts.admin) return h + '</div>';
     h += '<div class="ftext"><span translate="no">' + esc(p.text) + '</span></div>';
-    var own = forumChips(pay.year, pay.votes);
+    var own = forumChips(pay.ranges, pay.votes);
     if (own) h += '<div class="vals"><span class="flabel">' + (p.type === 'engagement' ? 'We will' : p.type === 'vote' ? 'Vote called' : 'Everyone') + '</span>' + own + '</div>';
     if (p.type === 'engagement' && pay.ask) {
       var from = (pay.ask.from || []).indexOf('ALL') >= 0 ? '<span>all the other members</span>' : forumNames(pay.ask.from || []);
       h += '<div class="fask"><b>In return</b> <span class="muted small"><span>from</span> ' + from + '</span> · <span translate="no">' + esc(pay.askText || '') + '</span>' +
-        (forumHasContent(pay.ask.year, pay.ask.votes) ? '<div class="vals">' + forumChips(pay.ask.year, pay.ask.votes) + '</div>' : '') + '</div>';
+        (forumHasContent(pay.ask.ranges, pay.ask.votes) ? '<div class="vals">' + forumChips(pay.ask.ranges, pay.ask.votes) + '</div>' : '') + '</div>';
     }
     var ups = (p.reactions || []).filter(function (r) { return r.value > 0; }).map(function (r) { return r.country; });
     var downs = (p.reactions || []).filter(function (r) { return r.value < 0; }).map(function (r) { return r.country; });
@@ -590,5 +603,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

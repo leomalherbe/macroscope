@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111301">
-<script src="i18n.js?v=2026111301"></script>
-<script src="i18n/fr-desk.js?v=2026111301"></script>
-<script src="i18n/fr-admin.js?v=2026111301"></script>
-<script src="config.js?v=2026111301"></script>
-<script src="core.js?v=2026111301"></script>
-<script src="app-common.js?v=2026111301"></script>
-<script src="engine.js?v=2026111301"></script>
+<link rel="stylesheet" href="style.css?v=2026111302">
+<script src="i18n.js?v=2026111302"></script>
+<script src="i18n/fr-desk.js?v=2026111302"></script>
+<script src="i18n/fr-admin.js?v=2026111302"></script>
+<script src="config.js?v=2026111302"></script>
+<script src="core.js?v=2026111302"></script>
+<script src="app-common.js?v=2026111302"></script>
+<script src="engine.js?v=2026111302"></script>
 </head>
 <body>
 
@@ -1433,11 +1433,11 @@
     row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macroscope_' + tag + '_pledges.csv', csv(plRows, ['ts', 'round', 'group', 'country', 'text', 'values']), 'text/csv'); } }, ['Pledges (CSV)']));
     if (ov.forum && ov.forum.proposals.length) {
       var foRows = ov.forum.proposals.map(function (p) {
-        var g = groupById(p.groupId), pay = p.payload || {}, ch = function (y, vv) { return UI.yearChips(y).map(function (c) { return c.label + ' ' + c.value; }).concat(vv && vv.rate ? ['vote ' + vv.rate] : []).join('; '); };
+        var g = groupById(p.groupId), pay = p.payload || {}, ch = function (rg, vv) { return Object.keys(rg || {}).map(function (id) { return id + ' ' + UI.rangeText(id, rg[id]); }).concat(vv && vv.rate ? ['vote ' + vv.rate] : []).join('; '); };
         var up = p.reactions.filter(function (r) { return r.value > 0; }).map(function (r) { return r.country; }), dn = p.reactions.filter(function (r) { return r.value < 0; }).map(function (r) { return r.country; });
         var b = p.balance;
-        return { ts: p.ts, year: p.round, group: g ? g.name : p.groupId, country: MS.countryName(p.country), type: p.type, text: p.text, values: ch(pay.year, pay.votes),
-          ask_from: pay.ask ? (pay.ask.from || []).join(' ') : '', ask_text: pay.askText || '', ask_values: pay.ask ? ch(pay.ask.year, pay.ask.votes) : '',
+        return { ts: p.ts, year: p.round, group: g ? g.name : p.groupId, country: MS.countryName(p.country), type: p.type, text: p.text, values: ch(pay.ranges, pay.votes),
+          ask_from: pay.ask ? (pay.ask.from || []).join(' ') : '', ask_text: pay.askText || '', ask_values: pay.ask ? ch(pay.ask.ranges, pay.ask.votes) : '',
           support: up.join(' '), reject: dn.join(' '), withdrawn: p.withdrawn || '', hidden: p.hidden ? 'yes' : '',
           author_acts: b ? b.author.status : '', counterpart_acts: b ? (b.counterpart || []).map(function (k) { return k.country + ':' + k.status; }).join(' ') : '', supporters_acts: b ? (b.supporters || []).map(function (k) { return k.country + ':' + k.status; }).join(' ') : '' };
       });

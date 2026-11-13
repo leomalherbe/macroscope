@@ -60,14 +60,15 @@ const KEY = 'TESTKEY';
   await fra.fill('#fAsk', 'Germany cuts its VAT by 1 pt.');
   await fra.check('#forum .fFrom[value="DEU"]');
   await fra.click('#forum summary:has-text("Attach numbers")');
-  await fra.fill('#forum [name="fO_pubdem"]', '1');
-  await fra.fill('#forum [name="fA_vat"]', '-1');
+  await fra.fill('#forum [name="fO_pubdem_min"]', '1');
+  await fra.fill('#forum [name="fA_vat_max"]', '0');
   must(/\d+ \/ 280 characters/.test(await fra.textContent('#forum .fcount')), 'character counter');
   await fra.click('#forumBtn');
   await fra.waitForSelector('.toast.show:has-text("Proposal posted")');
   await fra.waitForSelector('#forumList .fprop.mine');
   must(!(await fra.$('#fText')) && /your proposal is posted/.test(await fra.textContent('#forum .cardhead')), 'quota used: the composer is gone');
   must(/In return/.test(await fra.textContent('#forumList')) && /from Germany/.test(await fra.textContent('#forumList')), 'the proposal shows its counterpart and from whom');
+  must(/Public demand ≥ \+1\.00 %/.test(await fra.textContent('#forumList')) && /Consumption tax \(VAT\) ≤ 0\.00 %/.test(await fra.textContent('#forumList')), 'ranges shown: at least / at most');
 
   /* Germany supports, Italy rejects */
   const deu = await ctx.newPage(); deu.on('pageerror', e => errors.push('desk DEU: ' + e.message)); deu.on('dialog', d => d.accept());

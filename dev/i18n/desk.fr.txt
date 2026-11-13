@@ -1304,3 +1304,47 @@ Your country has already posted its # proposals for year #.
 => ex. « …baisse sa TVA de 1 point l’an prochain. »
 e.g. "Vote CUT: unemployment is rising everywhere."
 => ex. « Votez BAISSE : le chômage monte partout. »
+Lever
+=> Levier
+at least
+=> au moins
+at most
+=> au plus
+Leave a box empty for no bound. "At most 0" on VAT means: no VAT rise; "at least 0.5" on public demand: a rise of 0.5 % or more.
+=> Laissez une case vide pour ne pas fixer de borne. « Au plus 0 » sur la TVA veut dire : pas de hausse de TVA ; « au moins 0,5 » sur la demande publique : une hausse de 0,5 % ou plus.
+@ ≥ # %
+=> @ ≥ # %
+@ ≤ # %
+=> @ ≤ # %
+@ = # %
+=> @ = # %
+@ # to # %
+=> @ de # à # %
+@ ≥ # pt
+=> @ ≥ # pt
+@ ≤ # pt
+=> @ ≤ # pt
+@ = # pt
+=> @ = # pt
+@ # to # pt
+=> @ de # à # pt
+@ ≥ #
+=> @ ≥ #
+@ ≤ #
+=> @ ≤ #
+@ = #
+=> @ = #
+@ # to #
+=> @ de # à #
+@: not a number.
+=> @ : ce n’est pas un nombre.
+@: between # and #.
+=> @ : entre # et #.
+@: the minimum is above the maximum.
+=> @ : le minimum est au-dessus du maximum.
+Asked in return, @: not a number.
+=> Demandé en retour, @ : ce n’est pas un nombre.
+Asked in return, @: between # and #.
+=> Demandé en retour, @ : entre # et #.
+Asked in return, @: the minimum is above the maximum.
+=> Demandé en retour, @ : le minimum est au-dessus du maximum.

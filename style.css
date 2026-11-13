@@ -154,6 +154,9 @@ tr.bd + tr:not(.bd) td{border-top:1px solid var(--line)}
 .fprop .fhead b{color:var(--navy)} .fprop .ftype{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;font-weight:700;color:var(--muted)}
 .fprop .ftext{margin:4px 0} .fprop .fask{margin:4px 0;padding-left:10px;border-left:2px dotted var(--line)}
 .fprop .vals{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:3px 0} .fprop .flabel{font-size:.78rem;color:var(--muted)}
+.franges{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:4px 16px}
+.frange{padding:6px 0;border-bottom:1px solid var(--line)} .fbounds{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
+.fbound{display:flex;align-items:center;gap:6px;font-weight:400;margin:0} .fbound > span:first-child{min-width:56px} .fbound input{width:72px}
 .freact{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px}
 .freact .rbtn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .fbal{margin-top:6px;padding:6px 8px;background:#f3f1ea;border-radius:6px;font-size:.88rem}

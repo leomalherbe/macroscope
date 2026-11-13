@@ -563,12 +563,27 @@ var MS = (function () {
   }
   /* the year new proposals are about */
   function forumYear(state, now) { var cur = Number(state.round) || 1; return forumFrozenThrough(state, now) >= cur ? cur + 1 : cur; }
-  function cleanPledgeYear(year) {
-    year = year || {};
-    var cy = emptyYear();
-    LEVERS.forEach(function (l) { var v = num(year.levers ? year.levers[l.id] : 0); if (!isNaN(v) && v) cy.levers[l.id] = round2(v); });
-    Object.keys(year.tariffs || {}).forEach(function (k) { var v = num(year.tariffs[k]); if (!isNaN(v) && v && countryById(k)) cy.tariffs[k] = round2(v); });
-    return cy;
+  /* numbers of the forum: a range per lever, {lever: {min?, max?}} — "at least", "at most" or both; an empty field is no bound
+     (0 is a bound: "at most 0" = no increase) */
+  function isBlank(v) { return v === '' || v === null || v === undefined || (typeof v === 'string' && !v.trim()); }
+  function cleanRanges(state, r, errors, who) {
+    var out = {}, b = (state && state.bounds) || {};
+    LEVERS.forEach(function (l) {
+      var x = r && r[l.id]; if (!x || typeof x !== 'object') return;
+      var o = {};
+      ['min', 'max'].forEach(function (k) {
+        if (isBlank(x[k])) return;
+        var v = num(x[k]); if (isNaN(v)) { errors.push(who + l.label + ': not a number.'); return; }
+        var lo = l.eco ? 0 : -(b.lever || 10), hi = l.eco ? (l.id === 'rate' ? (b.rate || 2) : (b.eco || 10)) : (b.lever || 10);
+        if (l.id === 'rate') lo = -(b.rate || 2);
+        if (l.id === 'tariffU') { lo = 0; hi = b.tariffU || 20; }
+        if (v < lo - 1e-9 || v > hi + 1e-9) { errors.push(who + l.label + ': between ' + lo + ' and ' + hi + '.'); return; }
+        o[k] = round2(v);
+      });
+      if (o.min !== undefined && o.max !== undefined && o.min > o.max) { errors.push(who + l.label + ': the minimum is above the maximum.'); return; }
+      if (Object.keys(o).length) out[l.id] = o;
+    });
+    return out;
   }
   function cleanAnnounced(v) {
     v = v || {}; var out = {};
@@ -576,10 +591,10 @@ var MS = (function () {
     if (VOTE_CRISIS.indexOf(v.crisis) >= 0) out.crisis = v.crisis;
     return out;
   }
-  function hasContent(year, votes) {
-    return !!(year && (Object.keys(year.levers || {}).length || Object.keys(year.tariffs || {}).length)) || !!(votes && (votes.rate || votes.crisis));
+  function hasContent(ranges, votes) {
+    return !!(ranges && Object.keys(ranges).length) || !!(votes && (votes.rate || votes.crisis));
   }
-  /* {ok, errors, clean}: clean = {type, text, askText?, year, votes, ask?: {from: ['ALL'] | [country…], year, votes}} */
+  /* {ok, errors, clean}: clean = {type, text, askText?, ranges, votes, ask?: {from: ['ALL'] | [country…], ranges, votes}} */
   function validateProposal(state, author, payload) {
     payload = payload || {};
     var f = forumConf(state), errors = [];
@@ -590,32 +605,41 @@ var MS = (function () {
     if (text.length < 10) errors.push('State your proposal in a sentence (10 characters minimum).');
     if (type === 'engagement' && askText.length < 5) errors.push('Say what you ask in return.');
     if (len > f.maxLen) errors.push('Too long: ' + len + ' characters, ' + f.maxLen + ' at most.');
-    var clean = { type: type, text: text, year: cleanPledgeYear(payload.year), votes: cleanAnnounced(payload.votes) };
-    if (type === 'vote') { clean.year = emptyYear(); if (!clean.votes.rate && !clean.votes.crisis) errors.push('Choose the vote you call for.'); }
+    var clean = { type: type, text: text, ranges: type === 'vote' ? {} : cleanRanges(state, payload.ranges, errors, ''), votes: cleanAnnounced(payload.votes) };
+    if (type === 'vote' && !clean.votes.rate && !clean.votes.crisis) errors.push('Choose the vote you call for.');
     if (type === 'engagement') {
       var a = payload.ask || {}, from = Array.isArray(a.from) ? a.from : [];
       var members = membersOf(state).map(function (c) { return c.id; });
       var list = from.indexOf('ALL') >= 0 ? ['ALL'] : from.filter(function (c, i) { return c !== author && members.indexOf(c) >= 0 && from.indexOf(c) === i; });
       if (!list.length) errors.push('Say from which countries you ask the counterpart.');
       clean.askText = askText;
-      clean.ask = { from: list, year: cleanPledgeYear(a.year), votes: cleanAnnounced(a.votes) };
+      clean.ask = { from: list, ranges: cleanRanges(state, a.ranges, errors, 'Asked in return, '), votes: cleanAnnounced(a.votes) };
     }
     return { ok: !errors.length, errors: errors, clean: clean };
   }
-  /* words vs acts of one country against what it was to do ({year, votes}); decision payload or null */
-  function forumCheck(country, what, decision) {
-    if (!hasContent(what.year, what.votes)) return { country: country, status: 'words', items: [] };
+  /* words vs acts of one country against what it was to do ({ranges, votes}); decision payload or null */
+  function forumCheck(country, what, decision, tol) {
+    tol = tol === undefined ? 0.05 : tol;
+    if (!hasContent(what.ranges, what.votes)) return { country: country, status: 'words', items: [] };
     if (!decision) return { country: country, status: 'nodecision', items: [] };
-    var v = pledgeVerdict(what, decision);
-    return { country: country, status: !v.items.length ? 'words' : (v.kept ? 'kept' : 'broken'), items: v.items };
+    var dy = decision.years ? decision.years[0] : null, items = [];
+    Object.keys(what.ranges || {}).forEach(function (id) {
+      var r = what.ranges[id], l = leverById(id), d = num(dy && dy.levers ? dy.levers[id] : 0);
+      var ok = (r.min === undefined || d >= r.min - tol) && (r.max === undefined || d <= r.max + tol);
+      items.push({ id: id, label: l ? l.label : id, min: r.min, max: r.max, actual: d, kept: ok });
+    });
+    var v = pledgeVerdict({ votes: what.votes }, decision);
+    items = items.concat(v.items);
+    var kept = items.every(function (i) { return i.kept; });
+    return { country: country, status: !items.length ? 'words' : (kept ? 'kept' : 'broken'), items: items };
   }
   /* balance of a proposal: decOf = {country: decision payload of that year}; others = the other members (for 'ALL') */
   function forumBalance(prop, reactions, decOf, others) {
-    var pay = prop.payload || {}, own = { year: pay.year, votes: pay.votes };
+    var pay = prop.payload || {}, own = { ranges: pay.ranges, votes: pay.votes };
     var sup = (reactions || []).filter(function (r) { return Number(r.value) > 0; }).map(function (r) { return r.country; });
     var out = { author: forumCheck(prop.country, own, decOf[prop.country] || null), counterpart: [], supporters: [] };
     if (prop.type === 'engagement') {
-      var ask = pay.ask || {}, what = { year: ask.year, votes: ask.votes };
+      var ask = pay.ask || {}, what = { ranges: ask.ranges, votes: ask.votes };
       var from = (ask.from || []).indexOf('ALL') >= 0 ? (others || []).filter(function (c) { return c !== prop.country; }) : (ask.from || []);
       out.counterpart = from.map(function (c) { var k = forumCheck(c, what, decOf[c] || null); k.supported = sup.indexOf(c) >= 0; return k; });
     } else {

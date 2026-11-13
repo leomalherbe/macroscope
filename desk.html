@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111301">
-<script src="i18n.js?v=2026111301"></script>
-<script src="i18n/fr-desk.js?v=2026111301"></script>
-<script src="guide.js?v=2026111301"></script>
-<script src="config.js?v=2026111301"></script>
-<script src="core.js?v=2026111301"></script>
-<script src="app-common.js?v=2026111301"></script>
+<link rel="stylesheet" href="style.css?v=2026111302">
+<script src="i18n.js?v=2026111302"></script>
+<script src="i18n/fr-desk.js?v=2026111302"></script>
+<script src="guide.js?v=2026111302"></script>
+<script src="config.js?v=2026111302"></script>
+<script src="core.js?v=2026111302"></script>
+<script src="app-common.js?v=2026111302"></script>
 </head>
 <body>
 
@@ -595,16 +595,20 @@
   }
 
   /* ---------------- forum of the union (permanent council) ---------------- */
+  /* a range per lever: "at least" / "at most", either may stay empty */
   function forumLeverTable(prefix, title) {
-    var st = data.state, tt = el('table'), tb = el('tbody');
+    var st = data.state, list = el('div', { class: 'franges' });
     MS.leversFor(st).forEach(function (l) {
       if (l.id === 'tariffU') return;
-      var inp = el('input', { type: 'number', name: prefix + l.id, step: l.eco ? 0.5 : 0.1, min: l.eco ? 0 : -st.bounds.lever, max: l.eco ? (st.bounds.eco || 10) : st.bounds.lever, value: 0 });
-      inp.addEventListener('input', function () { inp.classList.toggle('nz', !!MS.num(inp.value)); });
-      tb.appendChild(el('tr', {}, [el('td', {}, [l.n + '. ' + l.label]), el('td', { class: 'unit' }, [l.eco ? l.unit : '% of ref.']), el('td', { class: 'num' }, [inp])]));
+      var cell = function (k) {
+        var inp = el('input', { type: 'number', name: prefix + l.id + '_' + k, step: l.eco ? 0.5 : 0.1, min: l.eco ? 0 : -st.bounds.lever, max: l.eco ? (st.bounds.eco || 10) : st.bounds.lever, placeholder: '—' });
+        inp.addEventListener('input', function () { inp.classList.toggle('nz', inp.value !== ''); });
+        return el('label', { class: 'fbound' }, [el('span', { class: 'xs muted' }, [k === 'min' ? 'at least' : 'at most']), inp]);
+      };
+      list.appendChild(el('div', { class: 'frange' }, [el('div', { class: 'small' }, [l.n + '. ' + l.label + ' ', el('span', { class: 'xs muted' }, [l.eco ? l.unit : '% of ref.'])]), el('div', { class: 'fbounds' }, [cell('min'), cell('max')])]));
     });
-    tt.appendChild(tb);
-    return el('div', { class: 'field' }, [el('label', { class: 'small' }, [title]), el('div', { class: 'tablewrap' }, [tt])]);
+    return el('div', { class: 'field' }, [el('label', { class: 'small' }, [title]), list,
+      el('p', { class: 'xs muted', style: 'margin:4px 0 0' }, ['Leave a box empty for no bound. "At most 0" on VAT means: no VAT rise; "at least 0.5" on public demand: a rise of 0.5 % or more.'])]);
   }
   function forumVoteSelects(prefix, title) {
     var vc = votesConfig(); if (!vc.on) return null;
@@ -613,10 +617,14 @@
     box.appendChild(selR);
     return box;
   }
-  function forumYearOf(prefix) {
-    var y = MS.emptyYear();
-    MS.LEVERS.forEach(function (l) { var i = $('#forum [name="' + prefix + l.id + '"]'); if (i && MS.num(i.value)) y.levers[l.id] = i.value; });
-    return y;
+  function forumRangesOf(prefix) {
+    var r = {};
+    MS.LEVERS.forEach(function (l) {
+      var a = $('#forum [name="' + prefix + l.id + '_min"]'), b = $('#forum [name="' + prefix + l.id + '_max"]'), o = {};
+      if (a && a.value !== '') o.min = a.value; if (b && b.value !== '') o.max = b.value;
+      if (Object.keys(o).length) r[l.id] = o;
+    });
+    return r;
   }
   function forumVotesOf(prefix) { var v = {}, sr = $('#' + prefix + 'rate'); if (sr && sr.value) v.rate = sr.value; return v; }
   /* text set in an attribute after the page is translated (placeholders of text areas are not walked by i18n.js) */
@@ -704,8 +712,8 @@
   async function postProposal(type) {
     var payload = { type: type, text: $('#fText').value };
     if (type === 'vote') payload.votes = forumVotesOf('fV_');
-    else { payload.year = forumYearOf('fO_'); payload.votes = forumVotesOf('fOV_'); }
-    if (type === 'engagement') payload = Object.assign(payload, { askText: $('#fAsk').value, ask: { from: $$('#forum .fFrom').filter(function (x) { return x.checked; }).map(function (x) { return x.value; }), year: forumYearOf('fA_'), votes: forumVotesOf('fAV_') } });
+    else { payload.ranges = forumRangesOf('fO_'); payload.votes = forumVotesOf('fOV_'); }
+    if (type === 'engagement') payload = Object.assign(payload, { askText: $('#fAsk').value, ask: { from: $$('#forum .fFrom').filter(function (x) { return x.checked; }).map(function (x) { return x.value; }), ranges: forumRangesOf('fA_'), votes: forumVotesOf('fAV_') } });
     var m = $('#forumMsg'), btn = $('#forumBtn'); btn.disabled = true;
     try {
       var r = await MSApi.call('forum.post', { pin: pin, payload: payload });

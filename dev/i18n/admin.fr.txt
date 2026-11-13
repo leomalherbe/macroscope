@@ -1078,3 +1078,21 @@ Support followed by acts
 => Soutien suivi d’actes
 Only measurable words count: numbers or votes attached to a proposal, compared with the decisions of the same year.
 => Seule la parole mesurable compte : chiffres ou votes joints à une proposition, comparés aux décisions de la même année.
+@ ≥ # %
+=> @ ≥ # %
+@ ≤ # %
+=> @ ≤ # %
+@ = # %
+=> @ = # %
+@ # to # %
+=> @ de # à # %
+@ ≥ # pt
+=> @ ≥ # pt
+@ ≤ # pt
+=> @ ≤ # pt
+@ ≥ #
+=> @ ≥ #
+@ ≤ #
+=> @ ≤ #
+@ # to #
+=> @ de # à #
