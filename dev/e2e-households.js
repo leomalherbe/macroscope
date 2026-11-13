@@ -36,7 +36,7 @@ const INEQ_W = 'div:has(> label:text-is("− Inequality")) > input';
   await admin.waitForSelector('text=No class yet');
   await admin.click('button:has-text("+ New class")');
   await admin.waitForSelector('#statusGrid');
-  must(/backend v1\.13/.test(await admin.textContent('#footTime')), 'backend reports v1.13');
+  must(/backend v1\.14/.test(await admin.textContent('#footTime')), 'backend reports v1.14');
   const cid = JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id;
   await admin.click('#tabs button:has-text("Groups")');
   await admin.click('button:has-text("Add 7 default groups")');

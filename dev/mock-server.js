@@ -15,20 +15,23 @@ function memoryStorage() {
   const config = {};
   let groups = [];
   const tables = { decisions: [], results: [], pledges: [], comments: [], log: [] };
-  let clock = null;
+  let clock = null, ver = 0;
+  const w = (f) => (...a) => { ver++; return f(...a); };
   return {
     now: () => clock ? new Date(clock) : new Date(),
     setClock: (iso) => { clock = iso; },
     getConfig: (k) => (k in config ? config[k] : null),
-    setConfig: (k, v) => { config[k] = String(v); },
+    setConfig: w((k, v) => { config[k] = String(v); }),
     listGroups: () => groups.map(g => Object.assign({}, g)),
-    replaceGroups: (classId, list) => { groups = groups.filter(g => g.classId !== classId).concat(list.map(g => Object.assign({}, g))); },
-    appendRow: (t, o) => { tables[t].push(JSON.parse(JSON.stringify(o))); },
+    replaceGroups: w((classId, list) => { groups = groups.filter(g => g.classId !== classId).concat(list.map(g => Object.assign({}, g))); }),
+    appendRow: w((t, o) => { tables[t].push(JSON.parse(JSON.stringify(o))); }),
+    appendRows: w((t, list) => { list.forEach(o => tables[t].push(JSON.parse(JSON.stringify(o)))); }),
     readRows: (t) => tables[t].map(r => Object.assign({}, r)),
-    deleteConfig: (k) => { delete config[k]; },
-    deleteRows: (t, pred) => { const before = tables[t].length; tables[t] = tables[t].filter(r => !pred(r)); return before - tables[t].length; },
+    deleteConfig: w((k) => { delete config[k]; }),
+    deleteRows: w((t, pred) => { const before = tables[t].length; tables[t] = tables[t].filter(r => !pred(r)); return before - tables[t].length; }),
+    stamp: () => String(ver) + ':' + (clock || ''),
     dump: () => ({ config, groups, tables }),
-    reset: () => { Object.keys(config).forEach(k => delete config[k]); groups = []; Object.keys(tables).forEach(k => { tables[k] = []; }); clock = null; }
+    reset: () => { Object.keys(config).forEach(k => delete config[k]); groups = []; Object.keys(tables).forEach(k => { tables[k] = []; }); clock = null; ver++; }
   };
 }
 const storage = memoryStorage();

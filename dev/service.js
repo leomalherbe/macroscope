@@ -12,7 +12,7 @@
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.13';
+  var VERSION = '1.14';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -392,7 +392,7 @@ var MSService = (function () {
     if (!classExists(st, p.classId)) return fail('Unknown class.');
     var state = getState(st, p.classId);
     var ts = iso(st.now());
-    var n = 0;
+    var n = 0, out = [];
     (p.rows || []).forEach(function (r) {
       if (!r.key) return;
       var dev = {};
@@ -402,16 +402,20 @@ var MSService = (function () {
       var R = (r.R !== '' && r.R !== null && r.R !== undefined && !isNaN(Rgiven)) ? MS.round3(Rgiven) : (hasAny ? MS.scoreR(dev, state.weights) : '');
       var detail = r.detail ? (typeof r.detail === 'string' ? r.detail : JSON.stringify(r.detail)) : '';
       if (!hasAny && R === '' && !detail) return;          // a UNION row carries only a detail
-      st.appendRow('results', Object.assign({ ts: ts, classId: p.classId, phase: p.phase, round: Number(p.round), key: r.key, year: Number(r.year),
+      out.push(Object.assign({ ts: ts, classId: p.classId, phase: p.phase, round: Number(p.round), key: r.key, year: Number(r.year),
         R: R, published: !!r.published, detail: detail }, dev));
       n++;
     });
+    /* one write for all the rows (the lock is held for a moment, not once per country) */
+    if (st.appendRows) st.appendRows('results', out); else out.forEach(function (o) { st.appendRow('results', o); });
     log(st, 'results.set', p.classId, 'admin', p.phase + ' r' + p.round + ' ' + n + ' rows');
     return { ok: true, saved: n, results: resultsOf(st, p.classId) };
   }
 
   /* ---------- dispatcher ---------- */
-  var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard };
+  /* stamp: a short string that changes with every write to the data — the pages ask for it often and reload the whole state only
+     when it changed (a cheap request: nothing is read from the Sheet) */
+  var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, stamp: function (st) { return { ok: true, stamp: st.stamp ? st.stamp() : null }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard };
   var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename, 'admin.class.delete': actAdminClassDelete,
     'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.results.set': actAdminResultsSet };
 
