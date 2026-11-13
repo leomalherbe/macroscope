@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111310">
-<script src="i18n.js?v=2026111310"></script>
-<script src="i18n/fr-desk.js?v=2026111310"></script>
-<script src="guide.js?v=2026111310"></script>
-<script src="config.js?v=2026111310"></script>
-<script src="core.js?v=2026111310"></script>
-<script src="app-common.js?v=2026111310"></script>
+<link rel="stylesheet" href="style.css?v=2026111311">
+<script src="i18n.js?v=2026111311"></script>
+<script src="i18n/fr-desk.js?v=2026111311"></script>
+<script src="guide.js?v=2026111311"></script>
+<script src="config.js?v=2026111311"></script>
+<script src="core.js?v=2026111311"></script>
+<script src="app-common.js?v=2026111311"></script>
 </head>
 <body>
 
@@ -798,6 +798,7 @@
         });
         box.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['All groups · warm-up debrief']), el('div', { html: h + '</tbody></table></div>' })]));
       }
+      if (mine.length) box.appendChild(exportCard());
       return;
     }
     /* game */
@@ -861,6 +862,63 @@
       }
       box.appendChild(cardL);
     }
+    /* the model explorer of the board: every country when the ranking is published, otherwise this country alone; this country
+       ticked at first */
+    box.appendChild(exportCard());
+    if (!dd) {
+      var pub = st.publishLeaderboard && (data.gameResults || []).length;
+      var xc = UI.exploreCard({ st: st, results: pub ? data.gameResults : mineG, union: data.union, key: 'macroscope.explore.desk.' + data.group.groupId, ctry: [data.group.country],
+        note: pub ? '' : 'The other countries appear here when the administrator publishes the ranking.' });
+      if (xc) box.appendChild(xc);
+    }
+  }
+  /* export of the team's own game: one line per year (warm-up plan, then the game) with its decisions, votes, justification,
+     results, score, pledge and analysis — a CSV for a spreadsheet (in French: « ; » and decimal commas), nothing of the others */
+  function exportCard() {
+    var c = el('div', { class: 'card' });
+    c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Export our game']), el('button', { class: 'btn', id: 'exportBtn', onclick: exportGame }, ['Download (CSV)'])]));
+    c.appendChild(el('p', { class: 'small muted', style: 'margin:0' }, ['Your decisions, votes and justifications, your results and score, your pledges and analyses, year by year — for a spreadsheet or a report. Only your own country.']));
+    return c;
+  }
+  function exportGame() {
+    var st = data.state, fr = typeof MXL !== 'undefined' && MXL.lang === 'fr', sep = fr ? ';' : ',';
+    var T = function (en, frs) { return fr ? frs : en; };
+    var L = function (en) { return fr ? MXL.t(en) : en; };   /* labels of the page (levers, indicators, units) in its language */
+    var num = function (v) { if (v === '' || v === null || v === undefined || isNaN(Number(v))) return ''; var s = String(MS.round3(Number(v))); return fr ? s.replace('.', ',') : s; };
+    var q = function (x) { x = x === null || x === undefined ? '' : String(x); return x.indexOf(sep) >= 0 || /["\n\r]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+    var inds = MS.indicatorsFor(st), levers = MS.LEVERS.slice();
+    var lines = [], lvUsed = {};
+    function add(phase, year, levers0, dec, row) {
+      Object.keys(levers0 || {}).forEach(function (k) { if (MS.num(levers0[k])) lvUsed[k] = 1; });
+      lines.push({ phase: phase, year: year, lv: levers0 || {}, dec: dec, row: row });
+    }
+    var res = data.myResults || [];
+    var wd = myDecision('warmup', 1);
+    if (wd && wd.payload && wd.payload.years) wd.payload.years.forEach(function (y, i) { add('warmup', i + 1, y.levers, i === 0 ? wd : null, res.filter(function (r) { return r.phase === 'warmup' && Number(r.year) === i + 1; })[0]); });
+    var years = {}; res.forEach(function (r) { if (r.phase === 'game') years[r.year] = 1; });
+    (data.myDecisions || []).forEach(function (x) { if (x.phase === 'game') years[x.round] = 1; });
+    Object.keys(years).map(Number).sort(function (a, b) { return a - b; }).forEach(function (y) {
+      var dg = myDecision('game', y);
+      add('game', y, dg && dg.payload && dg.payload.years && dg.payload.years[0] ? dg.payload.years[0].levers : {}, dg, res.filter(function (r) { return r.phase === 'game' && Number(r.year) === y; })[0]);
+    });
+    var lvCols = levers.filter(function (l) { return lvUsed[l.id]; });
+    var head = [T('phase', 'phase'), T('year', 'année')].concat(lvCols.map(function (l) { return L(l.label); }), [T('leave the union', 'sortie de l’union'), T('vote: rate', 'vote : taux'), T('vote: common external tariff', 'vote : tarif extérieur commun'), T('justification', 'justification')],
+      inds.map(function (i) { return L(i.label) + ' (' + L(i.unit) + ')'; }), ['R', T('cumulative R', 'R cumulé'), T('R: own policy', 'R : votre politique'), T('R: foreign policies', 'R : politiques étrangères'), T('R: shocks', 'R : chocs'), T('public debt (% of GDP)', 'dette publique (% du PIB)'), T('pledge', 'engagement'), T('analysis', 'analyse')]);
+    var cum = 0, out = [head.map(q).join(sep)];
+    lines.forEach(function (ln) {
+      var r = ln.row, d = ln.dec, p = d && d.payload ? d.payload : {}, v = p.votes || {}, y0 = p.years && p.years[0] ? p.years[0] : {};
+      var sp = r ? UI.rowSplit(r, st, st.weights) : {};
+      if (r && r.R !== '' && r.R !== null && r.R !== undefined) cum += Number(r.R);
+      var pl = ln.phase === 'game' ? (data.myPledges || []).filter(function (x) { return Number(x.round) === ln.year; })[0] : null;
+      var cm = (data.myComments || []).filter(function (x) { return x.phase === ln.phase && (ln.phase === 'warmup' ? ln.year === 1 : Number(x.round) === ln.year); })[0];
+      var cells = [ln.phase === 'game' ? T('game', 'partie') : T('warm-up', 'échauffement'), ln.year].concat(lvCols.map(function (l) { return num(ln.lv[l.id]); }),
+        [ln.phase === 'game' && y0.euro === 'leave' ? T('announced', 'annoncée') : '', v.rate ? (fr ? ({ cut: 'baisse', hold: 'statu quo', hike: 'hausse' }[v.rate] || v.rate) : v.rate) : '', v.cet !== undefined && v.cet !== null ? v.cet : '', d ? (p.text || '') : ''],
+        inds.map(function (i) { return r ? num(r[i.id]) : ''; }),
+        [r ? num(r.R) : '', r && r.R !== '' ? num(cum) : '', sp.nat ? num(sp.nat.R) : '', sp.foreign ? num(sp.foreign.R) : '', sp.shock ? num(sp.shock.R) : '', r && r.detail && r.detail.extra ? num(r.detail.extra.debt) : '', pl ? (pl.text || '') : '', cm ? cm.text : '']);
+      out.push(cells.map(q).join(sep));
+    });
+    var name = 'macroscope_' + (data.group.country || 'team') + '_' + String(data.group.name || '').replace(/[^\w-]+/g, '_') + '.csv';
+    UI.download(name, '﻿' + out.join('\r\n'), 'text/csv;charset=utf-8');
   }
   async function postComment(phase, round) {
     var m = $('#commentMsg'), ta = $('#commentText');
