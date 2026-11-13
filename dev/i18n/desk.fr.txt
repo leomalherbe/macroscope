@@ -1141,6 +1141,214 @@ decrease
 increase
 => augmenter
 
+// forum of the union (permanent council)
+Forum of the union · proposals for year #
+=> Forum de l’union · propositions pour l’année #
+Forum: # proposals
+=> Forum : # propositions
+Forum: # proposal
+=> Forum : # proposition
+# proposal left this year
+=> # proposition restante cette année
+# proposals left this year
+=> # propositions restantes cette année
+your proposal is posted
+=> votre proposition est publiée
+the game is over
+=> la partie est terminée
+A public forum, open all game long. Each country posts one proposal a year (# characters); every country can support 👍 or reject 👎 the others’ proposals, by name, as often as it likes. When the submissions of the year close, its forum is frozen and its proposals are compared with the decisions: words vs acts, in public.
+=> Un forum public, ouvert toute la partie. Chaque pays publie une proposition par an (# caractères) ; chaque pays peut soutenir 👍 ou rejeter 👎 les propositions des autres, nominativement, autant qu’il veut. À la clôture des soumissions de l’année, son forum est gelé et ses propositions sont comparées aux décisions : la parole et les actes, en public.
+A public forum, open all game long. Each country posts # proposals a year (# characters); every country can support 👍 or reject 👎 the others’ proposals, by name, as often as it likes. When the submissions of the year close, its forum is frozen and its proposals are compared with the decisions: words vs acts, in public.
+=> Un forum public, ouvert toute la partie. Chaque pays publie # propositions par an (# caractères) ; chaque pays peut soutenir 👍 ou rejeter 👎 les propositions des autres, nominativement, autant qu’il veut. À la clôture des soumissions de l’année, son forum est gelé et ses propositions sont comparées aux décisions : la parole et les actes, en public.
+On the table · year #
+=> Sur la table · année #
+No proposal yet for year #.
+=> Pas encore de proposition pour l’année #.
+Earlier years: proposals and words vs acts
+=> Années précédentes : propositions, paroles et actes
+Post our proposal for year #
+=> Publier notre proposition pour l’année #
+Engagement
+=> Engagement
+Joint proposal
+=> Proposition commune
+Vote call
+=> Appel de vote
+We commit to something, and say what we ask in return.
+=> Nous nous engageons sur quelque chose et disons ce que nous demandons en retour.
+Everyone does the same thing.
+=> Tous les pays font la même chose.
+We call the members to vote one way at the central bank.
+=> Nous appelons les membres à voter dans un sens à la banque centrale.
+We commit to
+=> Nous nous engageons à
+We propose that every country
+=> Nous proposons que chaque pays
+Our call
+=> Notre appel
+In return, we ask
+=> En retour, nous demandons
+From:
+=> Demandé à :
+all the other members
+=> tous les autres membres
+# / # characters
+=> # / # caractères
+The vote we call for
+=> Le vote que nous appelons
+no vote on the rate
+=> pas de vote sur le taux
+vote CUT
+=> voter BAISSE
+vote HOLD
+=> voter STATU QUO
+vote HIKE
+=> voter HAUSSE
+Attach numbers (optional: they make the words verifiable)
+=> Joindre des chiffres (facultatif : ils rendent la parole vérifiable)
+What we will do
+=> Ce que nous ferons
+What every country does
+=> Ce que fait chaque pays
+Asked in return
+=> Demandé en retour
+Our vote on the rate
+=> Notre vote sur le taux
+Vote asked in return
+=> Vote demandé en retour
+Post our proposal
+=> Publier notre proposition
+Public at once. It can be withdrawn until the year closes, but the withdrawal does not give the proposal back.
+=> Publique immédiatement. Elle peut être retirée jusqu’à la clôture de l’année, mais le retrait ne rend pas la proposition.
+Your proposal was not posted.
+=> Votre proposition n’a pas été publiée.
+Choose the kind of proposal.
+=> Choisissez le type de proposition.
+State your proposal in a sentence (10 characters minimum).
+=> Formulez votre proposition en une phrase (10 caractères minimum).
+Say what you ask in return.
+=> Dites ce que vous demandez en retour.
+Too long: # characters, # at most.
+=> Trop long : # caractères, # au plus.
+Choose the vote you call for.
+=> Choisissez le vote que vous appelez.
+Say from which countries you ask the counterpart.
+=> Dites à quels pays vous demandez la contrepartie.
+Proposal posted
+=> Proposition publiée
+Withdraw this proposal? It stays visible as withdrawn, and your country cannot post another one this year.
+=> Retirer cette proposition ? Elle reste visible comme retirée, et votre pays ne pourra pas en publier une autre cette année.
+Your country has already posted its proposal for year #.
+=> Votre pays a déjà publié sa proposition pour l’année #.
+The forum of year # is closed: reactions are frozen.
+=> Le forum de l’année # est clos : les réactions sont gelées.
+The forum of year # is closed: the proposal can no longer be withdrawn.
+=> Le forum de l’année # est clos : la proposition ne peut plus être retirée.
+You cannot react to your own proposal.
+=> Vous ne pouvez pas réagir à votre propre proposition.
+This proposal has been withdrawn.
+=> Cette proposition a été retirée.
+We will
+=> Nous ferons
+Vote called
+=> Vote appelé
+Everyone
+=> Tous
+In return
+=> En retour
+from
+=> de la part de
+withdrawn
+=> retirée
+hidden by the administrator
+=> masquée par l’administrateur
+👍 Support
+=> 👍 Soutenir
+👎 Reject
+=> 👎 Rejeter
+Withdraw
+=> Retirer
+Words vs acts
+=> Paroles et actes
+Counterpart
+=> Contrepartie
+Supporters
+=> Soutiens
+none
+=> aucun
+✗ not kept
+=> ✗ non tenu
+no decision
+=> pas de décision
+Own word kept
+=> Parole tenue
+Support followed by acts
+=> Soutien suivi d’actes
+Only measurable words count: numbers or votes attached to a proposal, compared with the decisions of the same year.
+=> Seule la parole mesurable compte : chiffres ou votes joints à une proposition, comparés aux décisions de la même année.
+The forum of the union is closed.
+=> Le forum de l’union est fermé.
+Unknown proposal.
+=> Proposition inconnue.
+This proposal is already withdrawn.
+=> Cette proposition est déjà retirée.
+The game is over: the forum takes no more proposals.
+=> La partie est terminée : le forum ne prend plus de proposition.
+Your country has already posted its # proposals for year #.
+=> Votre pays a déjà publié ses # propositions pour l’année #.
+| e.g. "We raise public demand by 0.5 pt of GDP."
+=> ex. « Nous augmentons la demande publique de 0,5 point de PIB. »
+| e.g. "Germany and the Netherlands raise public demand by 0.5 pt."
+=> ex. « L’Allemagne et les Pays-Bas augmentent leur demande publique de 0,5 point. »
+| e.g. "…cuts its VAT by 1 pt next year."
+=> ex. « …baisse sa TVA de 1 point l’an prochain. »
+e.g. "Vote CUT: unemployment is rising everywhere."
+=> ex. « Votez BAISSE : le chômage monte partout. »
+Lever
+=> Levier
+at least
+=> au moins
+at most
+=> au plus
+Leave a box empty for no bound. "At most 0" on VAT means: no VAT rise; "at least 0.5" on public demand: a rise of 0.5 % or more.
+=> Laissez une case vide pour ne pas fixer de borne. « Au plus 0 » sur la TVA veut dire : pas de hausse de TVA ; « au moins 0,5 » sur la demande publique : une hausse de 0,5 % ou plus.
+@ ≥ # %
+=> @ ≥ # %
+@ ≤ # %
+=> @ ≤ # %
+@ = # %
+=> @ = # %
+@ # to # %
+=> @ de # à # %
+@ ≥ # pt
+=> @ ≥ # pt
+@ ≤ # pt
+=> @ ≤ # pt
+@ = # pt
+=> @ = # pt
+@ # to # pt
+=> @ de # à # pt
+@ ≥ #
+=> @ ≥ #
+@ ≤ #
+=> @ ≤ #
+@ = #
+=> @ = #
+@ # to #
+=> @ de # à #
+@: not a number.
+=> @ : ce n’est pas un nombre.
+@: between # and #.
+=> @ : entre # et #.
+@: the minimum is above the maximum.
+=> @ : le minimum est au-dessus du maximum.
+Asked in return, @: not a number.
+=> Demandé en retour, @ : ce n’est pas un nombre.
+Asked in return, @: between # and #.
+=> Demandé en retour, @ : entre # et #.
+Asked in return, @: the minimum is above the maximum.
+=> Demandé en retour, @ : le minimum est au-dessus du maximum.
+
 // currency crisis: the peg (third choice) and its parity
 Peg to the rest of the world
 => Ancrer au reste du monde

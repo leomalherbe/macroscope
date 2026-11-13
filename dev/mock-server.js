@@ -14,7 +14,7 @@ const ROOT = path.join(__dirname, '..');                 // the repository = the
 function memoryStorage() {
   const config = {};
   let groups = [];
-  const tables = { decisions: [], results: [], pledges: [], comments: [], log: [] };
+  const tables = { decisions: [], results: [], pledges: [], comments: [], proposals: [], reactions: [], log: [] };
   let clock = null, ver = 0;
   const w = (f) => (...a) => { ver++; return f(...a); };
   return {

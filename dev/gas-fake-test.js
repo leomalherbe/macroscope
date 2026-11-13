@@ -113,7 +113,8 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
   r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
   const [pF, pD, pI] = r2.groups.map(g => g.pin);
-  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.15', 'backend reports v1.15');
+  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.16', 'backend reports v1.16');
+
   const dec = (pin, y, votes) => call({ action: 'submit', pin, phase: 'game', round: Number(call({ action: 'state', pin }).state.round), payload: { years: [y], text: 'x'.repeat(130), votes: votes || { rate: 'hold' } } });
   call({ action: 'admin.state.set', key, classId: cx, patch: { phase: 'game', round: 1, status: 'open', sim: { model: 'v1.2', exit: true } } });
   r2 = dec(pF, { levers: {}, euro: 'leave' }); must(!r2.ok && /not available/.test(r2.errors.join(' ')), 'leaving refused in a v1.2 class (no capital account)');
@@ -158,6 +159,53 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   r2 = dec(pD, { levers: { tariffU: 5 } }); must(!r2.ok, 'a member cannot set the exited-country tariff');
   call({ action: 'admin.class.delete', key, classId: cx, name: 'Exit class' });
 }
+/* forum of the union (backend 1.16): permanent council, 1 proposal a year, reactions by name, withdrawal, yearly freeze, words vs acts */
+{
+  let f = call({ action: 'admin.class.create', key, name: 'Forum class' }); const cf = f.classId;
+  f = call({ action: 'admin.groups.set', key, classId: cf, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
+  const [qF, qD, qI] = f.groups.map(g => g.pin);
+  call({ action: 'admin.state.set', key, classId: cf, patch: { phase: 'game', round: 1, status: 'closed', years: 3 } });
+  const post = (pin, pl) => call({ action: 'forum.post', pin, payload: pl });
+  must(!post(qF, { type: 'joint', text: 'Let us all spend more on public demand.' }).ok, 'forum closed while the option is off');
+  must(call({ action: 'state', pin: qF }).forum === null, 'no forum in the state while off');
+  call({ action: 'admin.state.set', key, classId: cf, patch: { forum: { on: true } } });
+  f = post(qF, { type: 'engagement', text: 'We raise public demand by 1 pt.', askText: '' });
+  must(!f.ok && /in return/.test(f.errors.join(' ')), 'an engagement needs its counterpart');
+  f = post(qF, { type: 'engagement', text: 'We raise public demand by 1 pt.', askText: 'Germany cuts its VAT by 1 pt.', ranges: { pubdem: { min: 1 } }, ask: { from: ['DEU', 'FRA', 'XXX'], ranges: { vat: { max: 0 } } } });
+  must(f.ok && f.round === 1, 'engagement with counterpart posted for year 1');
+  const pid = f.propId;
+  must(!post(qF, { type: 'joint', text: 'Second proposal of the same year.' }).ok, 'one proposal per country and year');
+  must(!post(qD, { type: 'joint', text: 'x'.repeat(300) }).ok, 'proposals limited to 280 characters');
+  f = post(qD, { type: 'joint', text: 'Everyone keeps VAT between 1 and -1.', ranges: { vat: { min: 1, max: -1 }, pubdem: { min: 30 } } });
+  must(!f.ok && /minimum is above the maximum/.test(f.errors.join(' ')) && /between -10 and 10/.test(f.errors.join(' ')), 'ranges checked: min below max, within the bounds');
+  must(!post(qD, { type: 'vote', text: 'Everybody votes for a cut.' }).ok, 'a vote call names the vote');
+  f = post(qD, { type: 'vote', text: 'Everybody votes for a cut.', votes: { rate: 'cut' } }); must(f.ok, 'vote call posted'); const pidD = f.propId;
+  must(!call({ action: 'forum.react', pin: qF, propId: pid, value: 1 }).ok, 'no reaction to one′s own proposal');
+  must(call({ action: 'forum.react', pin: qD, propId: pid, value: -1 }).ok && call({ action: 'forum.react', pin: qD, propId: pid, value: 1 }).ok && call({ action: 'forum.react', pin: qI, propId: pid, value: -1 }).ok, 'reactions recorded, and changeable');
+  f = call({ action: 'state', pin: qI });
+  let pv = f.forum.proposals.filter(x => x.propId === pid)[0];
+  must(pv.payload.ask.from.join() === 'DEU' && pv.payload.ranges.pubdem.min === 1 && pv.payload.ask.ranges.vat.max === 0 && pv.payload.ask.ranges.vat.min === undefined && pv.reactions.length === 2 && pv.reactions.filter(x => x.country === 'DEU')[0].value === 1, 'reactions visible by name; counterpart limited to valid other members');
+  must(call({ action: 'forum.withdraw', pin: qD, propId: pidD }).ok && !call({ action: 'forum.react', pin: qF, propId: pidD, value: 1 }).ok, 'a withdrawn proposal takes no reaction');
+  must(!post(qD, { type: 'joint', text: 'Another try after withdrawal.' }).ok, 'withdrawal does not give the quota back');
+  must(!call({ action: 'forum.withdraw', pin: qD, propId: pid }).ok, 'only the author withdraws');
+  /* year 1 decisions, then the close freezes the forum of year 1 */
+  call({ action: 'admin.state.set', key, classId: cf, patch: { status: 'open' } });
+  const dc = (pin, lv) => call({ action: 'submit', pin, phase: 'game', round: 1, payload: { years: [{ levers: lv }], text: 'x'.repeat(130), votes: { rate: 'hold' } } });
+  must(dc(qF, { pubdem: 1 }).ok && dc(qD, { vat: 0.5 }).ok, 'decisions of year 1');
+  f = call({ action: 'admin.state.set', key, classId: cf, patch: { status: 'closed' } }); must(f.state.forum.frozen === 1, 'closing the submissions freezes the forum of year 1');
+  must(!call({ action: 'forum.react', pin: qI, propId: pid, value: 1 }).ok, 'reactions frozen');
+  f = post(qI, { type: 'joint', text: 'Next year, everyone cuts income tax.', ranges: { inctax: { max: -0.5 } } }); must(f.ok && f.round === 2, 'a proposal posted after the close belongs to year 2');
+  f = call({ action: 'board', classId: cf });
+  pv = f.forum.proposals.filter(x => x.propId === pid)[0];
+  must(pv.frozen && pv.balance.author.status === 'kept' && pv.balance.counterpart[0].country === 'DEU' && pv.balance.counterpart[0].status === 'broken' && pv.balance.counterpart[0].supported, 'balance: France kept its word, Germany supported but did not deliver');
+  must(f.forum.proposals.filter(x => x.propId === pidD)[0].withdrawn && !f.forum.proposals.filter(x => x.propId === pidD)[0].balance, 'withdrawn proposal shown as such, without a balance');
+  f = call({ action: 'admin.forum.hide', key, classId: cf, propId: pid, hidden: true }); must(f.ok, 'administrator hides a proposal');
+  pv = call({ action: 'state', pin: qD }).forum.proposals.filter(x => x.propId === pid)[0];
+  must(pv.hidden && pv.text === '' && !pv.reactions.length, 'hidden proposal emptied for students');
+  must(call({ action: 'admin.overview', key, classId: cf }).forum.proposals.filter(x => x.propId === pid)[0].text.length > 0, 'the administrator still reads it');
+  f = call({ action: 'admin.class.delete', key, classId: cf, name: 'Forum class' }); must(f.ok && f.removed > 0, 'forum rows removed with the class');
+}
+
 /* backend 1.14: the shared cache of the tabs, one write for a run's rows, « busy » when the lock cannot be had */
 {
   const cid9 = call({ action: 'admin.class.create', key, name: 'Cache class' }).classId;

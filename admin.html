@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111312">
-<script src="i18n.js?v=2026111312"></script>
-<script src="i18n/fr-desk.js?v=2026111312"></script>
-<script src="i18n/fr-admin.js?v=2026111312"></script>
-<script src="config.js?v=2026111312"></script>
-<script src="core.js?v=2026111312"></script>
-<script src="app-common.js?v=2026111312"></script>
-<script src="engine.js?v=2026111312"></script>
+<link rel="stylesheet" href="style.css?v=2026111313">
+<script src="i18n.js?v=2026111313"></script>
+<script src="i18n/fr-desk.js?v=2026111313"></script>
+<script src="i18n/fr-admin.js?v=2026111313"></script>
+<script src="config.js?v=2026111313"></script>
+<script src="core.js?v=2026111313"></script>
+<script src="app-common.js?v=2026111313"></script>
+<script src="engine.js?v=2026111313"></script>
 </head>
 <body>
 
@@ -416,10 +416,26 @@
     var r4 = el('div', { class: 'btnrow' });
     if (isGame && isDuel()) r4.appendChild(el('span', { class: 'muted small' }, ['Duels have no council: decisions are revealed to the partner once the round is closed.']));
     else if (isGame) {
-      r4.appendChild(el('button', { class: 'btn ' + (s.councilOpen ? 'danger' : 'primary'), onclick: function () { patch({ councilOpen: !s.councilOpen }, s.councilOpen ? 'Council adjourned' : 'Council in session'); } }, [s.councilOpen ? 'Adjourn the council' : 'Convene the council (year ' + s.round + ')']));
-      r4.appendChild(el('span', { class: 'muted small' }, ['While in session, groups post public pledges; their actual decisions stay private.']));
+      if (!MS.forumConf(s).on || s.councilOpen) {
+        r4.appendChild(el('button', { class: 'btn ' + (s.councilOpen ? 'danger' : 'primary'), onclick: function () { patch({ councilOpen: !s.councilOpen }, s.councilOpen ? 'Council adjourned' : 'Council in session'); } }, [s.councilOpen ? 'Adjourn the council' : 'Convene the council (year ' + s.round + ')']));
+        r4.appendChild(el('span', { class: 'muted small' }, ['While in session, groups post public pledges; their actual decisions stay private.']));
+      }
     } else r4.appendChild(el('span', { class: 'muted small' }, ['The council is available during the game.']));
     c4.appendChild(r4);
+    if (!isDuel()) {
+      /* forum of the union: the permanent council (replaces the convened council when on) */
+      var fc = MS.forumConf(s), fr = el('div', { class: 'checks', style: 'margin-top:10px' });
+      var cbF = el('input', { type: 'checkbox' }); cbF.checked = fc.on;
+      cbF.addEventListener('change', function () { patch({ forum: { on: cbF.checked }, councilOpen: false }, cbF.checked ? 'Forum of the union open' : 'Forum of the union closed'); });
+      fr.appendChild(el('label', {}, [cbF, ' Forum of the union (permanent council)']));
+      var selN = el('select', { onchange: function () { patch({ forum: { perYear: Number(selN.value) } }, 'Forum updated'); } });
+      [1, 2, 3].forEach(function (n) { selN.appendChild(el('option', { value: n }, [n + ' proposal' + (n > 1 ? 's' : '') + ' a year'])); }); selN.value = fc.perYear;
+      var selL = el('select', { onchange: function () { patch({ forum: { maxLen: Number(selL.value) } }, 'Forum updated'); } });
+      [140, 280, 500].forEach(function (n) { selL.appendChild(el('option', { value: n }, [n + ' characters'])); }); selL.value = fc.maxLen;
+      fr.appendChild(selN); fr.appendChild(selL);
+      c4.appendChild(fr);
+      c4.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['Open all game long: each country posts its proposals (engagement with a counterpart, joint proposal, vote call); every country supports or rejects them by name. The forum of a year freezes when you close its submissions; its proposals are then compared with the decisions, in public. You can hide a proposal afterwards (Council tab).']));
+    }
     if (isGame && !isDuel()) {
       var rv = el('div', { class: 'checks', style: 'margin-top:10px' });
       rv.appendChild(el('span', { class: 'muted small' }, ['Reveal pledges vs decisions for:']));
@@ -1358,6 +1374,29 @@
   function renderCouncil() {
     var v = $('#view'); v.innerHTML = '';
     var s = st();
+    var fo = ov.forum;
+    if (fo && (MS.forumConf(s).on || fo.proposals.length)) {
+      var cf = el('div', { class: 'card' });
+      cf.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Forum of the union']), el('span', { class: 'pill ' + (MS.forumConf(s).on ? 'gold' : '') }, [MS.forumConf(s).on ? 'open · proposals for year ' + fo.year : 'closed'])]));
+      cf.appendChild(el('p', { class: 'muted small' }, ['Everything the groups posted, hidden proposals included. Hiding removes the text and its reactions from the desks and the board; it can be undone.']));
+      var fy = fo.proposals.map(function (p) { return p.round; }).filter(function (y, i, a) { return a.indexOf(y) === i; }).sort(function (a, b) { return b - a; });
+      if (!fy.length) cf.appendChild(el('p', { class: 'muted' }, ['No proposal yet.']));
+      fy.forEach(function (y) {
+        cf.appendChild(el('h3', { style: 'margin-top:14px' }, ['Year ' + y + (y <= fo.frozenThrough ? ' · frozen' : '')]));
+        cf.appendChild(el('div', { html: fo.proposals.filter(function (p) { return p.round === y; }).map(function (p) { return UI.forumPostHtml(p, { admin: true }); }).join('') }));
+      });
+      var recH = UI.forumRecordHtml(fo);
+      if (recH) { cf.appendChild(el('h3', { style: 'margin-top:14px' }, ['Words vs acts, frozen years'])); cf.appendChild(el('div', { html: recH })); }
+      cf.addEventListener('click', async function (e) {
+        var b = e.target.closest('button[data-act="hide"]'); if (!b) return;
+        var id = b.closest('[data-prop]').getAttribute('data-prop'), hide = b.getAttribute('data-v') === '1';
+        b.disabled = true;
+        var r = await admin('admin.forum.hide', { propId: id, hidden: hide });
+        if (r.ok) { ov.forum = r.forum; UI.toast(hide ? 'Proposal hidden' : 'Proposal shown again'); renderCouncil(); } else b.disabled = false;
+      });
+      v.appendChild(cf);
+      if (!ov.pledges.length) return;
+    }
     var c = el('div', { class: 'card' });
     c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Council of ministers']), el('span', { class: 'pill ' + (s.councilOpen ? 'gold' : '') }, [s.councilOpen ? 'in session · year ' + s.round : 'adjourned'])]));
     var rounds = {}; ov.pledges.forEach(function (p) { rounds[p.round] = true; });
@@ -1389,7 +1428,7 @@
     var v = $('#view'); v.innerHTML = '';
     var c = el('div', { class: 'card' });
     c.appendChild(el('h2', {}, ['Export']));
-    c.appendChild(el('p', { class: 'muted small' }, ['Everything also lives in the Google Sheet (tabs Decisions, Results, Pledges, Comments, Log). These exports are the latest version of each item for this class.']));
+    c.appendChild(el('p', { class: 'muted small' }, ['Everything also lives in the Google Sheet (tabs Decisions, Results, Pledges, Forum, Reactions, Comments, Log). These exports are the latest version of each item for this class.']));
     var cls = classes.filter(function (x) { return x.id === classId; })[0]; var tag = (cls ? cls.name : classId).replace(/[^a-z0-9]+/gi, '_');
     var decRows = ov.decisions.map(function (d) { var g = groupById(d.groupId); var o = { ts: d.ts, phase: d.phase, round: d.round, group: g ? g.name : d.groupId, country: MS.countryName(d.country), used: d.used, text: d.text }; d.payload.years.forEach(function (y, i) { MS.LEVERS.forEach(function (l) { o['y' + (i + 1) + '_' + l.id] = y.levers[l.id] || 0; }); o['y' + (i + 1) + '_tariffs'] = Object.keys(y.tariffs || {}).map(function (k) { return k + ':' + y.tariffs[k]; }).join(' '); o['y' + (i + 1) + '_euro'] = y.euro; o['y' + (i + 1) + '_tfp'] = y.tfp || 0; }); return o; });
     var decCols = decRows.length ? Object.keys(decRows.reduce(function (a, r) { Object.keys(r).forEach(function (k) { a[k] = 1; }); return a; }, {})) : [];
@@ -1401,6 +1440,18 @@
     row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macroscope_' + tag + '_results.csv', csv(resRows, ['phase', 'round', 'who', 'year'].concat(MS.indicatorsFor(st()).map(function (i) { return i.id; })).concat(['R', 'published', 'ts'])), 'text/csv'); } }, ['Results (CSV)']));
     row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macroscope_' + tag + '_comments.csv', csv(cmRows, ['ts', 'phase', 'round', 'group', 'text']), 'text/csv'); } }, ['Analyses (CSV)']));
     row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macroscope_' + tag + '_pledges.csv', csv(plRows, ['ts', 'round', 'group', 'country', 'text', 'values']), 'text/csv'); } }, ['Pledges (CSV)']));
+    if (ov.forum && ov.forum.proposals.length) {
+      var foRows = ov.forum.proposals.map(function (p) {
+        var g = groupById(p.groupId), pay = p.payload || {}, ch = function (rg, vv) { return Object.keys(rg || {}).map(function (id) { return id + ' ' + UI.rangeText(id, rg[id]); }).concat(vv && vv.rate ? ['vote ' + vv.rate] : []).join('; '); };
+        var up = p.reactions.filter(function (r) { return r.value > 0; }).map(function (r) { return r.country; }), dn = p.reactions.filter(function (r) { return r.value < 0; }).map(function (r) { return r.country; });
+        var b = p.balance;
+        return { ts: p.ts, year: p.round, group: g ? g.name : p.groupId, country: MS.countryName(p.country), type: p.type, text: p.text, values: ch(pay.ranges, pay.votes),
+          ask_from: pay.ask ? (pay.ask.from || []).join(' ') : '', ask_text: pay.askText || '', ask_values: pay.ask ? ch(pay.ask.ranges, pay.ask.votes) : '',
+          support: up.join(' '), reject: dn.join(' '), withdrawn: p.withdrawn || '', hidden: p.hidden ? 'yes' : '',
+          author_acts: b ? b.author.status : '', counterpart_acts: b ? (b.counterpart || []).map(function (k) { return k.country + ':' + k.status; }).join(' ') : '', supporters_acts: b ? (b.supporters || []).map(function (k) { return k.country + ':' + k.status; }).join(' ') : '' };
+      });
+      row.appendChild(el('button', { class: 'btn', onclick: function () { UI.download('macroscope_' + tag + '_forum.csv', csv(foRows, ['ts', 'year', 'group', 'country', 'type', 'text', 'values', 'ask_from', 'ask_text', 'ask_values', 'support', 'reject', 'withdrawn', 'hidden', 'author_acts', 'counterpart_acts', 'supporters_acts']), 'text/csv'); } }, ['Forum (CSV)']));
+    }
     row.appendChild(el('button', { class: 'btn ghost', onclick: function () { UI.download('macroscope_' + tag + '_all.json', JSON.stringify(ov, null, 2), 'application/json'); } }, ['Everything (JSON)']));
     c.appendChild(row);
     v.appendChild(c);

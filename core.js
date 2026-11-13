@@ -170,6 +170,9 @@ var MS = (function () {
          both replaced as whole objects by a patch, like `shocks` */
       exits: {},
       retaliation: {},
+      /* forum of the union (permanent council): on, proposals per country and year, characters per proposal,
+         frozen = last year whose forum is frozen (set when the submissions of that year close) */
+      forum: { on: false, perYear: 1, maxLen: 280, frozen: 0 },
       sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15, crisisDepr: 10, defendStep: 1, exit: false, tariffs: false }
     };
   }
@@ -554,6 +557,112 @@ var MS = (function () {
     return out;
   }
 
+  /* ---------- Forum of the union (permanent council) ----------
+     Each country posts a limited number of proposals a year; every country reacts (support / reject) for free,
+     by name. The forum of year N freezes when the submissions of year N close; proposals posted afterwards
+     belong to year N+1. Once frozen, a year's proposals are compared with the decisions (words vs acts). */
+  var FORUM_TYPES = ['engagement', 'joint', 'vote'];
+  function forumConf(state) {
+    var f = (state && state.forum) || {};
+    return { on: !!f.on, perYear: Math.max(1, Math.round(num(f.perYear)) || 1), maxLen: Math.max(80, Math.round(num(f.maxLen)) || 280), frozen: Math.max(0, Math.round(num(f.frozen)) || 0) };
+  }
+  function forumOn(state) { return forumConf(state).on && !!state && state.phase === 'game'; }
+  /* last frozen year: every year before the current one, the years closed by the administrator, the current one once its timer ran out */
+  function forumFrozenThrough(state, now) {
+    var cur = Number(state.round) || 1, t = Math.max(forumConf(state).frozen, cur - 1);
+    if (state.status === 'open' && state.deadline && now) {
+      var dl = Date.parse(state.deadline);
+      if (!isNaN(dl) && now.getTime() > dl + 60 * 1000) t = Math.max(t, cur);
+    }
+    return t;
+  }
+  /* the year new proposals are about */
+  function forumYear(state, now) { var cur = Number(state.round) || 1; return forumFrozenThrough(state, now) >= cur ? cur + 1 : cur; }
+  /* numbers of the forum: a range per lever, {lever: {min?, max?}} — "at least", "at most" or both; an empty field is no bound
+     (0 is a bound: "at most 0" = no increase) */
+  function isBlank(v) { return v === '' || v === null || v === undefined || (typeof v === 'string' && !v.trim()); }
+  function cleanRanges(state, r, errors, who) {
+    var out = {}, b = (state && state.bounds) || {};
+    LEVERS.forEach(function (l) {
+      var x = r && r[l.id]; if (!x || typeof x !== 'object') return;
+      var o = {};
+      ['min', 'max'].forEach(function (k) {
+        if (isBlank(x[k])) return;
+        var v = num(x[k]); if (isNaN(v)) { errors.push(who + l.label + ': not a number.'); return; }
+        var lo = l.eco ? 0 : -(b.lever || 10), hi = l.eco ? (l.id === 'rate' ? (b.rate || 2) : (b.eco || 10)) : (b.lever || 10);
+        if (l.id === 'rate') lo = -(b.rate || 2);
+        if (l.id === 'tariffU') { lo = 0; hi = b.tariffU || 20; }
+        if (v < lo - 1e-9 || v > hi + 1e-9) { errors.push(who + l.label + ': between ' + lo + ' and ' + hi + '.'); return; }
+        o[k] = round2(v);
+      });
+      if (o.min !== undefined && o.max !== undefined && o.min > o.max) { errors.push(who + l.label + ': the minimum is above the maximum.'); return; }
+      if (Object.keys(o).length) out[l.id] = o;
+    });
+    return out;
+  }
+  function cleanAnnounced(v) {
+    v = v || {}; var out = {};
+    if (VOTE_RATE.indexOf(v.rate) >= 0) out.rate = v.rate;
+    if (VOTE_CRISIS.indexOf(v.crisis) >= 0) out.crisis = v.crisis;
+    return out;
+  }
+  function hasContent(ranges, votes) {
+    return !!(ranges && Object.keys(ranges).length) || !!(votes && (votes.rate || votes.crisis));
+  }
+  /* {ok, errors, clean}: clean = {type, text, askText?, ranges, votes, ask?: {from: ['ALL'] | [country…], ranges, votes}} */
+  function validateProposal(state, author, payload) {
+    payload = payload || {};
+    var f = forumConf(state), errors = [];
+    var type = payload.type;
+    if (FORUM_TYPES.indexOf(type) < 0) errors.push('Choose the kind of proposal.');
+    var text = String(payload.text || '').trim(), askText = type === 'engagement' ? String(payload.askText || '').trim() : '';
+    var len = text.length + askText.length;
+    if (text.length < 10) errors.push('State your proposal in a sentence (10 characters minimum).');
+    if (type === 'engagement' && askText.length < 5) errors.push('Say what you ask in return.');
+    if (len > f.maxLen) errors.push('Too long: ' + len + ' characters, ' + f.maxLen + ' at most.');
+    var clean = { type: type, text: text, ranges: type === 'vote' ? {} : cleanRanges(state, payload.ranges, errors, ''), votes: cleanAnnounced(payload.votes) };
+    if (type === 'vote' && !clean.votes.rate && !clean.votes.crisis) errors.push('Choose the vote you call for.');
+    if (type === 'engagement') {
+      var a = payload.ask || {}, from = Array.isArray(a.from) ? a.from : [];
+      var members = membersOf(state).map(function (c) { return c.id; });
+      var list = from.indexOf('ALL') >= 0 ? ['ALL'] : from.filter(function (c, i) { return c !== author && members.indexOf(c) >= 0 && from.indexOf(c) === i; });
+      if (!list.length) errors.push('Say from which countries you ask the counterpart.');
+      clean.askText = askText;
+      clean.ask = { from: list, ranges: cleanRanges(state, a.ranges, errors, 'Asked in return, '), votes: cleanAnnounced(a.votes) };
+    }
+    return { ok: !errors.length, errors: errors, clean: clean };
+  }
+  /* words vs acts of one country against what it was to do ({ranges, votes}); decision payload or null */
+  function forumCheck(country, what, decision, tol) {
+    tol = tol === undefined ? 0.05 : tol;
+    if (!hasContent(what.ranges, what.votes)) return { country: country, status: 'words', items: [] };
+    if (!decision) return { country: country, status: 'nodecision', items: [] };
+    var dy = decision.years ? decision.years[0] : null, items = [];
+    Object.keys(what.ranges || {}).forEach(function (id) {
+      var r = what.ranges[id], l = leverById(id), d = num(dy && dy.levers ? dy.levers[id] : 0);
+      var ok = (r.min === undefined || d >= r.min - tol) && (r.max === undefined || d <= r.max + tol);
+      items.push({ id: id, label: l ? l.label : id, min: r.min, max: r.max, actual: d, kept: ok });
+    });
+    var v = pledgeVerdict({ votes: what.votes }, decision);
+    items = items.concat(v.items);
+    var kept = items.every(function (i) { return i.kept; });
+    return { country: country, status: !items.length ? 'words' : (kept ? 'kept' : 'broken'), items: items };
+  }
+  /* balance of a proposal: decOf = {country: decision payload of that year}; others = the other members (for 'ALL') */
+  function forumBalance(prop, reactions, decOf, others) {
+    var pay = prop.payload || {}, own = { ranges: pay.ranges, votes: pay.votes };
+    var sup = (reactions || []).filter(function (r) { return Number(r.value) > 0; }).map(function (r) { return r.country; });
+    var out = { author: forumCheck(prop.country, own, decOf[prop.country] || null), counterpart: [], supporters: [] };
+    if (prop.type === 'engagement') {
+      var ask = pay.ask || {}, what = { ranges: ask.ranges, votes: ask.votes };
+      var from = (ask.from || []).indexOf('ALL') >= 0 ? (others || []).filter(function (c) { return c !== prop.country; }) : (ask.from || []);
+      out.counterpart = from.map(function (c) { var k = forumCheck(c, what, decOf[c] || null); k.supported = sup.indexOf(c) >= 0; return k; });
+    } else {
+      out.supporters = sup.map(function (c) { return forumCheck(c, own, decOf[c] || null); });
+    }
+    return out;
+  }
+
   /* ---------- Misc ---------- */
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function newId(prefix) {
@@ -581,6 +690,7 @@ var MS = (function () {
     exitModelOk: exitModelOk, MODEL_IDS: MODEL_IDS, modelId: modelId, financeModel: financeModel, climateOn: climateOn, householdsOn: householdsOn, engineModel: engineModel, modelLabel: modelLabel, exitAllowed: exitAllowed, exitYearOf: exitYearOf, isOutIn: isOutIn, leversForCountry: leversForCountry, FX_REGIMES: FX_REGIMES,
     RETAL_TARIFF: RETAL_TARIFF, RETAL_SALE: RETAL_SALE, retaliationOf: retaliationOf, openRetaliation: openRetaliation, retaliationIn: retaliationIn, validateRetaliationVote: validateRetaliationVote, tallyRetaliation: tallyRetaliation,
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
+    FORUM_TYPES: FORUM_TYPES, forumConf: forumConf, forumOn: forumOn, forumFrozenThrough: forumFrozenThrough, forumYear: forumYear, validateProposal: validateProposal, forumCheck: forumCheck, forumBalance: forumBalance,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, PEG_PARITIES: PEG_PARITIES, tallyCurrency: tallyCurrency, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
