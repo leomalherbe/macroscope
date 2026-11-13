@@ -396,3 +396,5 @@ footer{border-top:1.5px solid var(--blue);color:var(--muted)}
 /* the desk's public-debt card: holders as a stacked bar, a colour key before each line */
 .dbar{display:flex;height:16px;border-radius:4px;overflow:hidden;margin:4px 0 10px;background:var(--line)} .dbar i{display:block;height:100%;border-right:2px solid #fff} .dbar i:last-child{border-right:0}
 .dkey{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;vertical-align:baseline}
+.checks.options{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 12px}
+.checks.options label{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:#fff;margin:0}
