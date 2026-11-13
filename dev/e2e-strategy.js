@@ -91,6 +91,15 @@ const MS = require('../core.js');
   must(/5 \/ 6 right/.test(fc) && /↓ → ↓/.test(fc) && /↓ → ≈/.test(fc), 'forecasts vs what happened: 5 right out of 6 (the trade balance did not fall with the shock)');
   await (await fra.$('#forecasts')).screenshot({ path: OUT + '/s2-forecasts.png' });
 
+  /* the team download: closed during the game, opened by the administrator at the end */
+  must(!(await fra.$('#exportBtn')), 'no team download while the administrator has not allowed it');
+  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { game: { teamExport: true } } });
+  await fra.reload(); await fra.waitForSelector('#exportBtn');
+  const [dlT] = await Promise.all([fra.waitForEvent('download'), fra.click('#exportBtn')]);
+  const teamCsv = fs.readFileSync(await dlT.path(), 'utf8');
+  must(/strategy: shock and votes/.test(teamCsv) && /The fall of world demand/.test(teamCsv) && /forecasts right/.test(teamCsv) && /5 \/ 6/.test(teamCsv) && /improve first/.test(teamCsv), 'team CSV: the five parts, the priorities, the forecasts and their score');
+  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { game: { teamExport: false } } });
+
   /* year 2: the project comes back */
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { round: 2, status: 'open' } });
   await fra.reload(); await fra.waitForSelector('#strategy');

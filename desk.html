@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111315">
-<script src="i18n.js?v=2026111315"></script>
-<script src="i18n/fr-desk.js?v=2026111315"></script>
-<script src="guide.js?v=2026111315"></script>
-<script src="config.js?v=2026111315"></script>
-<script src="core.js?v=2026111315"></script>
-<script src="app-common.js?v=2026111315"></script>
+<link rel="stylesheet" href="style.css?v=2026111316">
+<script src="i18n.js?v=2026111316"></script>
+<script src="i18n/fr-desk.js?v=2026111316"></script>
+<script src="guide.js?v=2026111316"></script>
+<script src="config.js?v=2026111316"></script>
+<script src="core.js?v=2026111316"></script>
+<script src="app-common.js?v=2026111316"></script>
 </head>
 <body>
 
@@ -1141,7 +1141,7 @@
         });
         box.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['All groups · warm-up debrief']), el('div', { html: h + '</tbody></table></div>' })]));
       }
-      if (mine.length) box.appendChild(exportCard());
+      if (mine.length && st.game && st.game.teamExport) box.appendChild(exportCard());
       return;
     }
     /* game */
@@ -1217,7 +1217,7 @@
     }
     /* the model explorer of the board: every country when the ranking is published, otherwise this country alone; this country
        ticked at first */
-    box.appendChild(exportCard());
+    if (st.game && st.game.teamExport) box.appendChild(exportCard());   /* the administrator opens the download at the end of the game */
     if (!dd) {
       var pub = st.publishLeaderboard && (data.gameResults || []).length;
       var xc = UI.exploreCard({ st: st, results: pub ? data.gameResults : mineG, union: data.union, key: 'macroscope.explore.desk.' + data.group.groupId, ctry: [data.group.country],
@@ -1230,7 +1230,7 @@
   function exportCard() {
     var c = el('div', { class: 'card' });
     c.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Export our game']), el('button', { class: 'btn', id: 'exportBtn', onclick: exportGame }, ['Download (CSV)'])]));
-    c.appendChild(el('p', { class: 'small muted', style: 'margin:0' }, ['Your decisions, votes and justifications, your results and score, your pledges and analyses, year by year — for a spreadsheet or a report. Only your own country.']));
+    c.appendChild(el('p', { class: 'small muted', style: 'margin:0' }, ['Your decisions, votes and strategy, your results and score, your forecasts, your forum proposals and the reactions, your telegrams, your analyses, year by year — for a spreadsheet or a report. Only your own country.']));
     return c;
   }
   function exportGame() {
@@ -1250,13 +1250,27 @@
     if (wd && wd.payload && wd.payload.years) wd.payload.years.forEach(function (y, i) { add('warmup', i + 1, y.levers, i === 0 ? wd : null, res.filter(function (r) { return r.phase === 'warmup' && Number(r.year) === i + 1; })[0]); });
     var years = {}; res.forEach(function (r) { if (r.phase === 'game') years[r.year] = 1; });
     (data.myDecisions || []).forEach(function (x) { if (x.phase === 'game') years[x.round] = 1; });
+    /* a year with only words (forum, telegrams) has its line too */
+    if (data.telegrams) (data.telegrams.sent || []).concat(data.telegrams.inbox || []).forEach(function (t) { years[t.round] = 1; });
+    if (data.forum) data.forum.proposals.forEach(function (x) { if (x.country === data.group.country || (x.reactions || []).some(function (rr) { return rr.country === data.group.country; })) years[x.round] = 1; });
     Object.keys(years).map(Number).sort(function (a, b) { return a - b; }).forEach(function (y) {
       var dg = myDecision('game', y);
       add('game', y, dg && dg.payload && dg.payload.years && dg.payload.years[0] ? dg.payload.years[0].levers : {}, dg, res.filter(function (r) { return r.phase === 'game' && Number(r.year) === y; })[0]);
     });
     var lvCols = levers.filter(function (l) { return lvUsed[l.id]; });
+    /* guided strategy, forum, telegrams: their columns only when the class used them */
+    var hasStrat = lines.some(function (ln) { return ln.dec && ln.dec.payload && ln.dec.payload.strategy; });
+    var fo = data.forum, me = data.group.country, tg = data.telegrams;
+    var hasForum = !!(fo && fo.proposals && fo.proposals.length), hasTg = !!(tg && ((tg.sent || []).length || (tg.inbox || []).length));
+    var CN = function (c) { return L(MS.countryName(c)); };
+    var ARW = { '1': '↑', '0': '≈', '-1': '↓' }, indName = function (id) { var i = inds.filter(function (x) { return x.id === id; })[0]; return i ? L(i.label) : id; };
+    var STATUS = { kept: T('kept', 'tenue'), broken: T('not kept', 'non tenue'), words: T('words only', 'paroles seulement'), nodecision: T('no decision', 'pas de décision') };
+    var resOf = function (y) { return (data.myResults || []).filter(function (r) { return r.phase === 'game' && Number(r.year) === y; })[0] || null; };
     var head = [T('phase', 'phase'), T('year', 'année')].concat(lvCols.map(function (l) { return L(l.label); }), [T('leave the union', 'sortie de l’union'), T('vote: rate', 'vote : taux'), T('vote: common external tariff', 'vote : tarif extérieur commun'), T('justification', 'justification')],
-      inds.map(function (i) { return L(i.label) + ' (' + L(i.unit) + ')'; }), ['R', T('cumulative R', 'R cumulé'), T('R: own policy', 'R : votre politique'), T('R: foreign policies', 'R : politiques étrangères'), T('R: shocks', 'R : chocs'), T('public debt (% of GDP)', 'dette publique (% du PIB)'), T('pledge', 'engagement'), T('analysis', 'analyse')]);
+      inds.map(function (i) { return L(i.label) + ' (' + L(i.unit) + ')'; }), ['R', T('cumulative R', 'R cumulé'), T('R: own policy', 'R : votre politique'), T('R: foreign policies', 'R : politiques étrangères'), T('R: shocks', 'R : chocs'), T('public debt (% of GDP)', 'dette publique (% du PIB)'), T('pledge', 'engagement'), T('analysis', 'analyse')],
+      hasStrat ? [T('strategy: shock and votes', 'stratégie : choc et votes'), T('strategy: other countries', 'stratégie : autres pays'), T('strategy: own policy', 'stratégie : notre politique'), T('strategy: priorities', 'stratégie : priorités'), T('improve first', 'améliorer d’abord'), T('accepted to worsen', 'accepté de dégrader'), T('long-term project', 'projet de long terme'), T('project: kept / revised', 'projet : gardé / révisé'), T('why revised', 'pourquoi révisé'), T('forecasts: shocks', 'prévisions : chocs'), T('forecasts: other countries', 'prévisions : autres pays'), T('forecasts: own policy', 'prévisions : notre politique'), T('forecasts right', 'prévisions justes')] : [],
+      hasForum ? [T('forum: our proposal', 'forum : notre proposition'), T('forum: supported by', 'forum : soutenue par'), T('forum: rejected by', 'forum : rejetée par'), T('forum: our word', 'forum : notre parole'), T('forum: we supported', 'forum : nous avons soutenu'), T('forum: we rejected', 'forum : nous avons rejeté')] : [],
+      hasTg ? [T('telegrams sent', 'télégrammes envoyés'), T('telegrams received', 'télégrammes reçus')] : []);
     var cum = 0, out = [head.map(q).join(sep)];
     lines.forEach(function (ln) {
       var r = ln.row, d = ln.dec, p = d && d.payload ? d.payload : {}, v = p.votes || {}, y0 = p.years && p.years[0] ? p.years[0] : {};
@@ -1268,6 +1282,30 @@
         [ln.phase === 'game' && y0.euro === 'leave' ? T('announced', 'annoncée') : '', v.rate ? (fr ? ({ cut: 'baisse', hold: 'statu quo', hike: 'hausse' }[v.rate] || v.rate) : v.rate) : '', v.cet !== undefined && v.cet !== null ? v.cet : '', d ? (p.text || '') : ''],
         inds.map(function (i) { return r ? num(r[i.id]) : ''; }),
         [r ? num(r.R) : '', r && r.R !== '' ? num(cum) : '', sp.nat ? num(sp.nat.R) : '', sp.foreign ? num(sp.foreign.R) : '', sp.shock ? num(sp.shock.R) : '', r && r.detail && r.detail.extra ? num(r.detail.extra.debt) : '', pl ? (pl.text || '') : '', cm ? cm.text : '']);
+      if (hasStrat) {
+        var sg = p.strategy || {}, part = function (id) { return sg[id] ? sg[id].text || '' : ''; };
+        var fx = function (id) { var e = sg[id] && sg[id].expect; return e ? Object.keys(e).map(function (k) { return indName(k) + ' ' + ARW[String(e[k])]; }).join(', ') : ''; };
+        var fcs = ln.phase === 'game' && p.strategy ? MS.forecastCheck(st, sg, r, resOf(ln.year - 1)) : { n: 0 };
+        var pj = sg.project || {};
+        cells = cells.concat([part('shock'), part('others'), part('own'), part('prio'), (sg.prio && sg.prio.up || []).map(indName).join(', '), (sg.prio && sg.prio.down || []).map(indName).join(', '),
+          pj.text || '', pj.status ? ({ new: T('new', 'nouveau'), kept: T('kept', 'gardé'), revised: T('revised', 'révisé') }[pj.status] || '') : '', pj.why || '',
+          fx('shock'), fx('others'), fx('own'), fcs.n ? fcs.hits + ' / ' + fcs.n : '']);
+      }
+      if (hasForum) {
+        var yp = ln.phase === 'game' ? fo.proposals.filter(function (x) { return x.round === ln.year; }) : [];
+        var ours = yp.filter(function (x) { return x.country === me; });
+        var who = function (sign) { return ours.map(function (x) { return (x.reactions || []).filter(function (rr) { return rr.value === sign; }).map(function (rr) { return CN(rr.country); }).join(', '); }).join(' | '); };
+        var gave = function (sign) { return yp.filter(function (x) { return (x.reactions || []).some(function (rr) { return rr.country === me && rr.value === sign; }); }).map(function (x) { return CN(x.country); }).join(', '); };
+        cells = cells.concat([
+          ours.map(function (x) { return L(UI.FORUM_TYPE_LABEL[x.type] || x.type) + ': ' + x.text + (x.payload && x.payload.askText ? ' — ' + T('in return', 'en retour') + ': ' + x.payload.askText : '') + (x.withdrawn ? ' (' + T('withdrawn', 'retirée') + ')' : ''); }).join(' | '),
+          who(1), who(-1),
+          ours.map(function (x) { return x.balance ? STATUS[x.balance.author.status] : ''; }).join(' | '),
+          gave(1), gave(-1)]);
+      }
+      if (hasTg) {
+        var ofY = function (list) { return (list || []).filter(function (t) { return ln.phase === 'game' && t.round === ln.year && !t.hidden; }); };
+        cells = cells.concat([ofY(tg.sent).map(function (t) { return '→ ' + CN(t.to) + ': ' + t.text; }).join(' | '), ofY(tg.inbox).map(function (t) { return '← ' + CN(t.from) + ': ' + t.text; }).join(' | ')]);
+      }
       out.push(cells.map(q).join(sep));
     });
     var name = 'macroscope_' + (data.group.country || 'team') + '_' + String(data.group.name || '').replace(/[^\w-]+/g, '_') + '.csv';
