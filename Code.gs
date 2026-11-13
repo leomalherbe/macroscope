@@ -1244,7 +1244,10 @@ var MSService = (function () {
   }
 
   /* ---------- dispatcher ---------- */
-  var VERSION = '1.16';
+  /* stamp: a short string that changes with every write to the data — the pages ask for it often and reload the whole state only
+     when it changed (a cheap request: nothing is read from the Sheet) */
+  var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, stamp: function (st) { return { ok: true, stamp: st.stamp ? st.stamp() : null }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard,
+    'forum.post': actForumPost, 'forum.react': actForumReact, 'forum.withdraw': actForumWithdraw };
   var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename, 'admin.class.delete': actAdminClassDelete,
     'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.results.set': actAdminResultsSet,
     'admin.forum.hide': actAdminForumHide };
@@ -1278,7 +1281,7 @@ var SHEETS = {
   results:   { name: 'Results',   header: ['ts', 'classId', 'phase', 'round', 'key', 'year', 'gdp', 'unemp', 'infl', 'pubbal', 'tradebal', 'R', 'published', 'detail', 'emis', 'ineq'] },   // emis (v1.7) and ineq (v1.13) appended last so older sheets stay aligned
   pledges:   { name: 'Pledges',   header: ['ts', 'classId', 'round', 'groupId', 'country', 'text', 'payload'] },
   comments:  { name: 'Comments',  header: ['ts', 'classId', 'phase', 'round', 'groupId', 'text'] },
-  proposals: { name: 'Forum',     header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'kind', 'type', 'text', 'payload'] },   // v1.14: forum of the union (kind: post | withdraw | hide | show)
+  proposals: { name: 'Forum',     header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'kind', 'type', 'text', 'payload'] },   // v1.16: forum of the union (kind: post | withdraw | hide | show)
   reactions: { name: 'Reactions', header: ['ts', 'classId', 'round', 'propId', 'groupId', 'country', 'value'] },
   log:       { name: 'Log',       header: ['ts', 'action', 'classId', 'who', 'details'] }
 };
