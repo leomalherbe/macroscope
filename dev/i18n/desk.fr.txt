@@ -1194,3 +1194,101 @@ Interest bill
 => Charge d’intérêts
 The interest paid to the central bank comes back to the government with its profits. Households and banks hold bills at the common rate (plus the risk premium in Finance); the rest of the world, in Finance, buys or sells them as rates and risk change.
 => Les intérêts versés à la banque centrale reviennent à l’État avec ses bénéfices. Ménages et banques détiennent des titres au taux commun (plus la prime de risque en Finance) ; le reste du monde, en Finance, en achète ou en vend selon les taux et le risque.
+
+// union panel (Finance): the rate gap with the rest of the world
+Rate gap with the rest of the world (union rate − world rate)
+=> Écart de taux avec le reste du monde (taux de l’union − taux mondial)
+# pt
+=> # pt
+
+// « Explore the model » (teams' page and board): groups, variables, chart texts
+Explore the model
+=> Explorer le modèle
+any variable, year by year, for the countries you choose
+=> n’importe quelle variable, année par année, pour les pays de votre choix
+Countries
+=> Pays
+Tick one or more variables.
+=> Cochez une ou plusieurs variables.
+equation →
+=> équation →
+Deviations from the reference (no decision, no shock): volumes in %, rates and ratios in points; the union’s variables are drawn once for all. Hover a point for its value.
+=> Écarts à la référence (sans décision ni choc) : volumes en %, taux et ratios en points ; les variables de l’union sont tracées une seule fois pour tous. Survolez un point pour sa valeur.
+Deviations from the reference (no decision, no shock): volumes in %, rates and ratios in points; the union’s variables are drawn once for all. Hover a point for its value. Gaps: variables recorded only for the years published since this tool exists (the console can publish a year again).
+=> Écarts à la référence (sans décision ni choc) : volumes en %, taux et ratios en points ; les variables de l’union sont tracées une seule fois pour tous. Survolez un point pour sa valeur. Trous : variables enregistrées seulement pour les années publiées depuis l’existence de cet outil (la console peut republier une année).
+The other countries appear here when the administrator publishes the ranking.
+=> Les autres pays apparaissent ici quand l’administrateur publie le classement.
+not recorded for these years
+=> pas enregistré pour ces années
+% vs the reference
+=> % par rapport à la référence
+pt vs the reference
+=> pt par rapport à la référence
+pt of GDP vs the reference
+=> pt de PIB par rapport à la référence
+pt of potential vs the reference
+=> pt du potentiel par rapport à la référence
+Union
+=> Union
+Activity
+=> Activité
+Firms
+=> Entreprises
+Government
+=> État
+Trade
+=> Commerce
+Money and finance
+=> Monnaie et finance
+The union
+=> L’union
+Climate
+=> Climat
+Price level vs the union
+=> Niveau des prix par rapport à l’union
+Consumption
+=> Consommation
+Disposable income
+=> Revenu disponible
+Wealth
+=> Patrimoine
+Disposable income, modest half
+=> Revenu disponible, moitié modeste
+Disposable income, wealthy half
+=> Revenu disponible, moitié aisée
+Investment
+=> Investissement
+Tax revenue
+=> Recettes fiscales
+Exports
+=> Exportations
+Imports (value)
+=> Importations (valeur)
+Bills held by the central bank
+=> Titres détenus par la banque centrale
+Foreign bills held by households
+=> Titres étrangers détenus par les ménages
+Central bank rate
+=> Taux de la banque centrale
+Foreign reserves
+=> Réserves de change
+Exchange rate (up = depreciation)
+=> Taux de change (hausse = dépréciation)
+Current account of the union
+=> Solde courant de l’union
+Net capital inflows
+=> Entrées nettes de capitaux
+Carbon intensity
+=> Intensité carbone
+Climate damage
+=> Dommages climatiques
+pt of potential
+=> pt du potentiel
+
+// export of the team's own game
+Export our game
+=> Exporter notre partie
+Download (CSV)
+=> Télécharger (CSV)
+Your decisions, votes and justifications, your results and score, your pledges and analyses, year by year — for a spreadsheet or a report. Only your own country.
+=> Vos décisions, votes et justifications, vos résultats et votre score, vos engagements et analyses, année par année — pour un tableur ou un rapport. Seulement votre pays.
