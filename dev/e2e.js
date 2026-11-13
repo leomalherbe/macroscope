@@ -36,7 +36,7 @@ console.log('engine:', realEngine ? 'engine.js (real)' : 'dev/engine-stub.js (st
   await admin.click('button:has-text("+ New class")');
   await admin.waitForSelector('#statusGrid');
   must(await admin.textContent('#classbar select') === 'M1 Finance A', 'class created through the console');
-  must(/backend v1\.17/.test(await admin.textContent('#footTime')), 'backend reports v1.17');
+  must(/backend v1\.18/.test(await admin.textContent('#footTime')), 'backend reports v1.18');
   /* a class created from the console plays v1 · Trade; this scenario was written for the former v1.1, kept for the classes that
      use it: set it through the backend, then check that Parameters lists it for this class only */
   const cidA = JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id;

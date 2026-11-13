@@ -184,6 +184,8 @@ var MS = (function () {
       forum: { on: false, perYear: 1, maxLen: 280, frozen: 0 },
       /* diplomatic telegrams: private, from country to country; the administrator opens and closes the send window */
       telegrams: { on: false, open: false, perYear: 3, maxLen: 280 },
+      /* guided strategy: the justification in five short parts (instead of one free text), forecasts optional or required */
+      strategy: { on: false, gridsRequired: false, minPart: 30 },
       sim: { votes: true, voteStep: 0.5, austerityCap: -5, devalSize: 10, forcedDeval: 15, crisisDepr: 10, defendStep: 1, exit: false, tariffs: false }
     };
   }
@@ -503,7 +505,11 @@ var MS = (function () {
     if (cfg.maxNonZero && used.length > cfg.maxNonZero) errors.push('At most ' + cfg.maxNonZero + ' instruments may be used (you use ' + used.length + ').');
     if (used.length === 0 && isWarm) errors.push('No instrument is activated — a plan with all zeros is not a policy.');
     var minText = cfg.minText || 0;
-    if (clean.text.length < minText) errors.push('Your ' + (isWarm ? 'strategy statement' : 'justification') + ' needs at least ' + minText + ' characters (' + clean.text.length + ' so far).');
+    if (strategyOn(st, phase)) {
+      /* guided strategy: five parts checked one by one; the text column carries them as one text */
+      var sv = validateStrategy(st, phase, payload && payload.strategy);
+      errors = errors.concat(sv.errors); clean.strategy = sv.clean; clean.text = sv.text;
+    } else if (clean.text.length < minText) errors.push('Your ' + (isWarm ? 'strategy statement' : 'justification') + ' needs at least ' + minText + ' characters (' + clean.text.length + ' so far).');
 
     return { ok: errors.length === 0, errors: errors, clean: clean, used: used };
   }
@@ -689,6 +695,87 @@ var MS = (function () {
     return { ok: !errors.length, errors: errors, clean: { to: to, text: text } };
   }
 
+  /* ---------- Guided strategy ----------
+     Five parts: the shock and the votes of the year, the other countries, our own policy (each with a forecast grid:
+     the expected direction ↑ ≈ ↓ of every indicator, compared ex post with the matching part of the published split:
+     shocks, foreign policies, own policy), priorities and sacrifices among the dimensions of R, the long-term project
+     (kept or revised from one year to the next). The warm-up has no "other countries" part and no grids. */
+  var STRAT_PARTS = [
+    { id: 'shock', label: 'The shock and the votes of the year', src: 'shock' },
+    { id: 'others', label: 'The other countries of the union', src: 'foreign', game: true },
+    { id: 'own', label: 'Our own policy', src: 'nat' },
+    { id: 'prio', label: 'Priorities and sacrifices' },
+    { id: 'project', label: 'Our long-term project' }
+  ];
+  function strategyConf(state) {
+    var g = (state && state.strategy) || {};
+    return { on: !!g.on, gridsRequired: !!g.gridsRequired, minPart: Math.max(0, Math.round(num(g.minPart)) || 0) };
+  }
+  function strategyOn(state, phase) { return strategyConf(state).on && !isDuel(state) && (phase === 'game' || phase === 'warmup'); }
+  function strategyParts(phase) { return STRAT_PARTS.filter(function (p) { return phase === 'game' || !p.game; }); }
+  var ARROW = { '1': '↑', '0': '≈', '-1': '↓' };
+  function validateStrategy(state, phase, raw) {
+    raw = raw || {};
+    var c = strategyConf(state), errors = [], clean = {}, ids = indicatorsFor(state).map(function (i) { return i.id; });
+    var grids = phase === 'game';
+    var txt = function (v) { return String(v || '').trim(); };
+    strategyParts(phase).forEach(function (p) {
+      var r = raw[p.id] || {}, o = { text: txt(r.text) };
+      if (p.id === 'project') {
+        o.status = ['new', 'kept', 'revised'].indexOf(r.status) >= 0 ? r.status : 'new';
+        o.why = txt(r.why);
+        if (o.status === 'revised' && o.why.length < 10) errors.push(p.label + ': say why you revise it.');
+        if (o.text.length < (o.status === 'kept' ? 10 : c.minPart)) errors.push(p.label + ': at least ' + (o.status === 'kept' ? 10 : c.minPart) + ' characters (' + o.text.length + ' so far).');
+      } else if (o.text.length < c.minPart) errors.push(p.label + ': at least ' + c.minPart + ' characters (' + o.text.length + ' so far).');
+      if (p.src && grids) {
+        o.expect = {};
+        ids.forEach(function (id) { var v = r.expect ? r.expect[id] : null; if (v === 1 || v === 0 || v === -1 || v === '1' || v === '0' || v === '-1') o.expect[id] = Number(v); });
+        if (c.gridsRequired && Object.keys(o.expect).length < ids.length) errors.push(p.label + ': give your forecast for every indicator.');
+      }
+      if (p.id === 'prio') {
+        var up = (Array.isArray(r.up) ? r.up : []).filter(function (x, i, a) { return ids.indexOf(x) >= 0 && a.indexOf(x) === i; }).slice(0, 2);
+        var down = (Array.isArray(r.down) ? r.down : []).filter(function (x, i, a) { return ids.indexOf(x) >= 0 && a.indexOf(x) === i && up.indexOf(x) < 0; }).slice(0, 2);
+        if (!up.length) errors.push(p.label + ': choose at least one priority.');
+        o.up = up; o.down = down;
+      }
+      clean[p.id] = o;
+    });
+    return { ok: !errors.length, errors: errors, clean: clean, text: strategyText(state, phase, clean) };
+  }
+  /* the strategy as one text (the justification column of the sheet, the exports, the reveals) */
+  function strategyText(state, phase, s) {
+    var name = function (id) { var i = INDICATORS.filter(function (x) { return x.id === id; })[0]; return i ? i.label : id; };
+    return strategyParts(phase).map(function (p) {
+      var o = s[p.id] || {}, h = p.label;
+      if (p.id === 'project') h += ' (' + (o.status === 'kept' ? 'kept' : o.status === 'revised' ? 'revised: ' + o.why : 'new') + ')';
+      var line = h + ': ' + (o.text || '');
+      if (o.expect && Object.keys(o.expect).length) line += ' [' + Object.keys(o.expect).map(function (k) { return name(k) + ' ' + ARROW[String(o.expect[k])]; }).join(', ') + ']';
+      if (p.id === 'prio') line += ' [first: ' + (o.up || []).map(name).join(', ') + (o.down && o.down.length ? '; accepted to worsen: ' + o.down.map(name).join(', ') : '') + ']';
+      return line;
+    }).join('\n');
+  }
+  /* forecasts vs what happened: for each part with a grid, the change over the year of the matching part of the split
+     (row of the year minus the row of the year before, or zero in year 1); ≈ within ±tol */
+  function forecastCheck(state, strat, row, prevRow, tol) {
+    tol = tol === undefined ? 0.05 : tol;
+    var out = { parts: [], hits: 0, n: 0 };
+    if (!strat || !row || !row.detail) return out;
+    strategyParts('game').forEach(function (p) {
+      if (!p.src) return;
+      var ex = (strat[p.id] && strat[p.id].expect) || {}, cells = [];
+      indicatorsFor(state).forEach(function (ind) {
+        if (ex[ind.id] === undefined) return;
+        var a = row.detail[ind.id] ? num(row.detail[ind.id][p.src]) : NaN, b = prevRow && prevRow.detail && prevRow.detail[ind.id] ? num(prevRow.detail[ind.id][p.src]) : 0;
+        if (isNaN(a)) return;
+        var d = a - (isNaN(b) ? 0 : b), dir = d > tol ? 1 : (d < -tol ? -1 : 0), hit = dir === ex[ind.id];
+        cells.push({ id: ind.id, expected: ex[ind.id], actual: dir, change: round3(d), hit: hit });
+        out.n++; if (hit) out.hits++;
+      });
+      if (cells.length) out.parts.push({ id: p.id, label: p.label, cells: cells });
+    });
+    return out;
+  }
+
   /* ---------- Misc ---------- */
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function newId(prefix) {
@@ -718,6 +805,7 @@ var MS = (function () {
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     FORUM_TYPES: FORUM_TYPES, forumConf: forumConf, forumOn: forumOn, forumFrozenThrough: forumFrozenThrough, forumYear: forumYear, validateProposal: validateProposal, forumCheck: forumCheck, forumBalance: forumBalance,
     telegramConf: telegramConf, telegramsOn: telegramsOn, validateTelegram: validateTelegram,
+    STRAT_PARTS: STRAT_PARTS, strategyConf: strategyConf, strategyOn: strategyOn, strategyParts: strategyParts, validateStrategy: validateStrategy, strategyText: strategyText, forecastCheck: forecastCheck,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, PEG_PARITIES: PEG_PARITIES, tallyCurrency: tallyCurrency, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
@@ -738,7 +826,7 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.17';
+  var VERSION = '1.18';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;

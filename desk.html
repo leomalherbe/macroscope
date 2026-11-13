@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111314">
-<script src="i18n.js?v=2026111314"></script>
-<script src="i18n/fr-desk.js?v=2026111314"></script>
-<script src="guide.js?v=2026111314"></script>
-<script src="config.js?v=2026111314"></script>
-<script src="core.js?v=2026111314"></script>
-<script src="app-common.js?v=2026111314"></script>
+<link rel="stylesheet" href="style.css?v=2026111315">
+<script src="i18n.js?v=2026111315"></script>
+<script src="i18n/fr-desk.js?v=2026111315"></script>
+<script src="guide.js?v=2026111315"></script>
+<script src="config.js?v=2026111315"></script>
+<script src="core.js?v=2026111315"></script>
+<script src="app-common.js?v=2026111315"></script>
 </head>
 <body>
 
@@ -114,6 +114,7 @@
       app.appendChild(el('div', { id: 'telegrams' }));
       app.appendChild(el('div', { id: 'form' }));
       app.appendChild(el('div', { id: 'results' }));
+      app.appendChild(el('div', { id: 'forecasts' }));
       app.appendChild(el('div', { id: 'reveals' }));
       app.appendChild(el('div', { id: 'alldecisions' }));
       app.appendChild(el('div', { id: 'history' }));
@@ -128,6 +129,7 @@
     renderForum();
     renderTelegrams();
     renderResults();
+    renderForecasts();
     renderReveals();
     renderAllDecisions();
     renderHistory();
@@ -218,6 +220,7 @@
     var c = $('#usedCounter'); if (c) { c.textContent = 'Instruments used: ' + used.length + (f.maxNonZero ? ' / ' + f.maxNonZero : ''); c.classList.toggle('bad', f.maxNonZero && used.length > f.maxNonZero); }
     var ta = $('#decisionText'), tc = $('#textCounter');
     if (ta && tc) { tc.textContent = ta.value.trim().length + ' / ' + f.minText + ' characters minimum'; tc.classList.toggle('bad', ta.value.trim().length < f.minText); }
+    strategyCounters();
   }
   function readForm() {
     var f = formConfig(); var years = [];
@@ -235,6 +238,7 @@
     }
     var ta = $('#decisionText');
     var out = { years: years, text: ta ? ta.value : '' };
+    if ($('#strategy')) out.strategy = readStrategy();
     if (!f.isWarm && votesConfig().on && !f.out) {
       var vr = $('#form input[name="V_rate"]:checked'), vc = $('#form input[name="V_crisis"]:checked');
       out.votes = { rate: vr ? vr.value : 'hold', crisis: vc ? vc.value : 'austerity' };
@@ -408,7 +412,9 @@
     /* votes (game) */
     var vb = votesBlock(pv); if (vb) card.appendChild(vb);
 
-    /* text */
+    /* text: the guided strategy in five parts, or one free text */
+    if (MS.strategyOn(st, st.phase)) card.appendChild(strategyBlock(f, pv));
+    else {
     var fld = el('div', { class: 'field' });
     fld.appendChild(el('label', { for: 'decisionText' }, [f.isWarm ? 'Your strategy, a priori' : 'Justification']));
     fld.appendChild(el('p', { class: 'muted small', style: 'margin:0 0 6px' }, [f.isWarm
@@ -418,6 +424,7 @@
     ta.addEventListener('input', onInput);
     fld.appendChild(ta); fld.appendChild(el('div', { class: 'counter', id: 'textCounter' }));
     card.appendChild(fld);
+    }
 
     card.appendChild(el('div', { id: 'formErrors' }));
     var row = el('div', { class: 'btnrow' });
@@ -792,6 +799,138 @@
       if (!r.ok) { m.innerHTML = '<div class="err"><b>' + esc(r.error) + '</b>' + (r.errors ? '<ul>' + r.errors.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') + '</div>'; btn.disabled = false; return; }
       UI.toast('Telegram sent'); tgKey = null; await load(true);
     } catch (e) { m.innerHTML = '<div class="err">Network error: ' + esc(e.message) + '</div>'; btn.disabled = false; }
+  }
+
+  /* ---------------- guided strategy (five parts) ---------------- */
+  var STRAT_HELP = {
+    shock: ['What do the shock of the year and the votes (rate, crisis, councils) do to your country?', 'Read the administrator’s communiqué and the panel of the union.'],
+    others: ['What will the other countries of the union do, and what will it do to you?', 'Their spending leaks into your exports; their austerity too. Think of the large countries first.'],
+    own: ['Which levers, through which mechanism of the model, for which effects?', 'Say what you expect on each indicator, and what it costs.'],
+    prio: ['What comes first this year, and what do you accept to see worsen?', 'R weighs every dimension; you cannot improve them all at once.'],
+    project: ['Where do you want your country, and the union, to be at the end of the game?', 'Keep it, or revise it when the results, the others or an election change the picture.']
+  };
+  function strategyBlock(f, pv) {
+    var st = data.state, c = MS.strategyConf(st), me = f.country, phase = st.phase, grids = phase === 'game';
+    var prevS = (pv && pv.strategy) || {}, inds = MS.indicatorsFor(st);
+    var lastYear = phase === 'game' ? (data.myDecisions || []).filter(function (d) { return d.phase === 'game' && Number(d.round) < Number(st.round) && d.payload && d.payload.strategy; }).sort(function (a, b) { return b.round - a.round; })[0] : null;
+    var lastProject = lastYear ? lastYear.payload.strategy.project : null;
+    var wrap = el('div', { id: 'strategy', class: 'strategy' });
+    wrap.appendChild(el('h3', {}, [f.isWarm ? 'Your strategy, a priori' : 'Your strategy for year ' + st.round]));
+    wrap.appendChild(el('p', { class: 'muted small', style: 'margin:0 0 6px' }, [
+      c.minPart ? el('span', {}, ['Each part: ' + c.minPart + ' characters at least.']) : null, ' ',
+      grids ? el('span', {}, ['The arrows are your forecasts for each indicator itself (unemployment ↑ = more unemployment); after the run they are compared with what each source actually did.']) : null, ' ',
+      grids && !c.gridsRequired ? el('span', {}, ['Optional, but that is how you learn.']) : null]));
+    MS.strategyParts(phase).forEach(function (p, k) {
+      var o = prevS[p.id] || {}, box = el('div', { class: 'spart', 'data-part': p.id });
+      box.appendChild(el('div', { class: 'shead' }, [el('span', { class: 'snum' }, [String(k + 1)]), el('b', {}, [p.label])]));
+      box.appendChild(el('p', { class: 'small', style: 'margin:2px 0' }, [STRAT_HELP[p.id][0]]));
+      box.appendChild(el('p', { class: 'xs muted', style: 'margin:0 0 4px' }, [STRAT_HELP[p.id][1]]));
+      if (p.id === 'shock' && st.communique) box.appendChild(el('div', { class: 'sctx small' }, [el('span', { class: 'muted' }, ['Communiqué: ']), el('span', { translate: 'no' }, [st.communique])]));
+      if (p.id === 'others' && data.forum && data.forum.on) {
+        var fp = data.forum.proposals.filter(function (x) { return x.round === data.forum.year && !x.withdrawn && !x.hidden && x.country !== me; });
+        if (fp.length) box.appendChild(el('div', { class: 'sctx small', html: '<span class="muted">On the forum:</span> ' + fp.map(function (x) { return '<b>' + esc(MS.countryName(x.country)) + '</b> <span translate="no">' + esc(x.text) + '</span>'; }).join(' · ') }));
+      }
+      if (p.id === 'prio') {
+        var wi = MS.weightsInfo(st, st.round, me);
+        box.appendChild(el('div', { class: 'sctx small' }, [el('span', { class: 'muted' }, ['Weights of R in force: ']), UI.weightsLine(wi.weights, wi.elected ? wi.label : '')]));
+        var pr = el('div', { class: 'sprio' });
+        [['up', 'Improve first (2 at most)'], ['down', 'Accept to see worsen (2 at most)']].forEach(function (g) {
+          var row = el('div', {}, [el('div', { class: 'xs muted' }, [g[1]])]), chips = el('div', { class: 'chips' });
+          inds.forEach(function (i) {
+            var cb = el('input', { type: 'checkbox', name: 'SP_' + g[0], value: i.id }); if ((o[g[0]] || []).indexOf(i.id) >= 0) cb.checked = true;
+            cb.addEventListener('change', function () {
+              var other = $('#strategy input[name="SP_' + (g[0] === 'up' ? 'down' : 'up') + '"][value="' + i.id + '"]'); if (cb.checked && other) other.checked = false;
+              var on = UI.$$('#strategy input[name="SP_' + g[0] + '"]:checked'); if (on.length > 2) cb.checked = false;
+            });
+            chips.appendChild(el('label', { class: 'schip' }, [cb, i.label]));
+          });
+          row.appendChild(chips); pr.appendChild(row);
+        });
+        box.appendChild(pr);
+      }
+      var text = o.text || '';
+      if (p.id === 'project') {
+        if (lastProject) {
+          var wi2 = MS.weightsInfo(st, st.round, me);
+          if (wi2.elected && Number(wi2.year) === Number(st.round)) box.appendChild(el('div', { class: 'note small' }, ['An election changed your weights this year (' + wi2.label + '): time to look at your project again.']));
+          box.appendChild(el('div', { class: 'sctx small', html: '<span class="muted">Your project in year ' + esc(lastYear.round) + ':</span> <span translate="no">' + esc(lastProject.text) + '</span>' }));
+          var stt = o.status || 'kept', sr = el('div', { class: 'chips', style: 'margin:4px 0' });
+          [['kept', 'We keep it'], ['revised', 'We revise it']].forEach(function (x) { var r = el('input', { type: 'radio', name: 'S_project_status', value: x[0] }); if (stt === x[0]) r.checked = true; r.addEventListener('change', showWhy); sr.appendChild(el('label', { class: 'schip' }, [r, x[1]])); });
+          box.appendChild(sr);
+          if (!o.text) text = lastProject.text;
+        }
+      }
+      var ta = el('textarea', { name: 'S_' + p.id, style: 'min-height:56px' }); ta.value = text;
+      ta.addEventListener('input', strategyCounters);
+      box.appendChild(ta);
+      if (p.id === 'project' && lastProject) {
+        var why = el('div', { class: 'swhy' }, [el('label', { class: 'small' }, ['Why we revise it']), el('textarea', { name: 'S_project_why', style: 'min-height:40px' })]);
+        why.querySelector('textarea').value = o.why || '';
+        box.appendChild(why);
+      }
+      box.appendChild(el('div', { class: 'counter', 'data-cnt': p.id }));
+      if (p.src && grids) {
+        var g = el('div', { class: 'sgrid' });
+        inds.forEach(function (i) {
+          var seg = el('div', { class: 'seg' });
+          [[-1, '↓'], [0, '≈'], [1, '↑']].forEach(function (a) {
+            var r = el('input', { type: 'radio', name: 'G_' + p.id + '_' + i.id, value: a[0] }); if (o.expect && o.expect[i.id] === a[0]) r.checked = true;
+            seg.appendChild(el('label', { title: a[1] }, [r, el('span', {}, [a[1]])]));
+          });
+          g.appendChild(el('div', { class: 'sind' }, [el('span', { class: 'small' }, [i.label]), seg]));
+        });
+        box.appendChild(el('div', { class: 'xs muted', style: 'margin-top:4px' }, [p.id === 'shock' ? 'Expected effect of the shocks this year' : p.id === 'others' ? 'Expected effect of the other countries’ policies this year' : 'Expected effect of your own policy this year']));
+        box.appendChild(g);
+      }
+      wrap.appendChild(box);
+    });
+    function showWhy() { var r = $('#strategy input[name="S_project_status"]:checked'), w = $('#strategy .swhy'); if (w) w.style.display = r && r.value === 'revised' ? '' : 'none'; }
+    setTimeout(function () { showWhy(); strategyCounters(); }, 0);
+    return wrap;
+  }
+  function strategyCounters() {
+    if (!$('#strategy')) return;
+    var c = MS.strategyConf(data.state);
+    UI.$$('#strategy [data-cnt]').forEach(function (d) {
+      var id = d.getAttribute('data-cnt'), t = $('#strategy textarea[name="S_' + id + '"]'), n = t ? t.value.trim().length : 0;
+      var st0 = $('#strategy input[name="S_project_status"]:checked'), min = id === 'project' && st0 && st0.value === 'kept' ? 10 : c.minPart;
+      d.textContent = n + ' / ' + min + ' characters minimum'; d.classList.toggle('bad', n < min);
+    });
+  }
+  function readStrategy() {
+    var out = {}, st = data.state;
+    MS.strategyParts(st.phase).forEach(function (p) {
+      var t = $('#strategy textarea[name="S_' + p.id + '"]'), o = { text: t ? t.value : '' };
+      if (p.src) { o.expect = {}; MS.indicatorsFor(st).forEach(function (i) { var r = $('#strategy input[name="G_' + p.id + '_' + i.id + '"]:checked'); if (r) o.expect[i.id] = Number(r.value); }); }
+      if (p.id === 'prio') ['up', 'down'].forEach(function (g) { o[g] = UI.$$('#strategy input[name="SP_' + g + '"]:checked').map(function (x) { return x.value; }); });
+      if (p.id === 'project') { var r = $('#strategy input[name="S_project_status"]:checked'), w = $('#strategy textarea[name="S_project_why"]'); o.status = r ? r.value : 'new'; o.why = w ? w.value : ''; }
+      out[p.id] = o;
+    });
+    return out;
+  }
+  /* forecasts vs what happened, year by year (game) */
+  function renderForecasts() {
+    var st = data.state, box = $('#forecasts'), me = data.group.country;
+    if (st.phase !== 'game' || !me) { box.innerHTML = ''; return; }
+    var rows = (data.myResults || []).filter(function (r) { return r.phase === 'game' && r.key === me; });
+    var byYear = {}; rows.forEach(function (r) { byYear[r.year] = r; });
+    var decs = (data.myDecisions || []).filter(function (d) { return d.phase === 'game' && d.payload && d.payload.strategy; });
+    var items = decs.map(function (d) { var y = Number(d.round); return { year: y, fc: MS.forecastCheck(st, d.payload.strategy, byYear[y], byYear[y - 1] || null) }; })
+      .filter(function (x) { return x.fc.n; }).sort(function (a, b) { return b.year - a.year; });
+    var open = box.querySelector('details') ? box.querySelector('details').open : false;
+    if (!items.length) { box.innerHTML = ''; return; }
+    var inds = MS.indicatorsFor(st), A = { '1': '↑', '0': '≈', '-1': '↓' };
+    var table = function (fc) {
+      return '<div class="tablewrap"><table class="fctab"><thead><tr><th></th>' + inds.map(function (i) { return '<th class="num">' + esc(i.label) + '</th>'; }).join('') + '</tr></thead><tbody>' + fc.parts.map(function (p) {
+        return '<tr><td class="small">' + esc(p.label) + '</td>' + inds.map(function (i) { var c = p.cells.filter(function (x) { return x.id === i.id; })[0]; return '<td class="num small">' + (c ? '<span class="' + (c.hit ? 'kept' : 'broken') + '">' + A[String(c.expected)] + ' → ' + A[String(c.actual)] + '</span>' : '<span class="muted">—</span>') + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+    };
+    var total = items.reduce(function (a, x) { return [a[0] + x.fc.hits, a[1] + x.fc.n]; }, [0, 0]);
+    var h = '<div class="card"><div class="cardhead"><h2>Your forecasts vs what happened</h2><span class="small muted">' + total[0] + ' / ' + total[1] + ' right over the game</span></div>' +
+      '<p class="muted small">For each part of your strategy: the direction you expected (left) and the direction the matching source actually gave over the year (right): the shocks, the other countries’ policies, your own policy. ≈ means a change of less than 0.05.</p>' +
+      '<h3>Year ' + items[0].year + ' · ' + items[0].fc.hits + ' / ' + items[0].fc.n + ' right</h3>' + table(items[0].fc);
+    if (items.length > 1) h += '<details' + (open ? ' open' : '') + '><summary>Earlier years</summary>' + items.slice(1).map(function (x) { return '<h3>Year ' + x.year + ' · ' + x.fc.hits + ' / ' + x.fc.n + ' right</h3>' + table(x.fc); }).join('') + '</details>';
+    box.innerHTML = h + '</div>';
   }
 
   /* ---------------- results ---------------- */

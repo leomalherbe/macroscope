@@ -44,7 +44,7 @@ const MS = require('../core.js'), OPENMU = require('../engine.js');
   await admin.waitForSelector('#statusGrid');
   const cid = JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id;
   must((await api({ action: 'admin.overview', key: KEY, classId: cid })).state.sim.model === 'v1', 'a new class plays v1 · Trade');
-  must(/backend v1\.17/.test(await admin.textContent('#footTime')), 'backend reports v1.17');
+  must(/backend v1\.18/.test(await admin.textContent('#footTime')), 'backend reports v1.18');
   await admin.click('#tabs button:has-text("Groups")');
   await admin.click('button:has-text("Add 7 default groups")');
   await admin.click('button:has-text("Save groups")');

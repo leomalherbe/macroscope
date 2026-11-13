@@ -34,7 +34,7 @@ const TEXT = 'We announce our decisions for the year and explain them to the cou
   await admin.waitForSelector('text=No class yet');
   await admin.click('button:has-text("+ New class")');
   await admin.waitForSelector('#statusGrid');
-  must(/backend v1\.17/.test(await admin.textContent('#footTime')), 'backend reports v1.17');
+  must(/backend v1\.18/.test(await admin.textContent('#footTime')), 'backend reports v1.18');
   const cid = JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id;
   await admin.click('#tabs button:has-text("Groups")');
   await admin.click('button:has-text("Add 7 default groups")');
