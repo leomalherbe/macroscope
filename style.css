@@ -408,3 +408,4 @@ table.rk{width:100%;border-collapse:collapse}.rk th{font-size:.74rem;text-transf
 .rbarleg{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;align-items:center} .rbarleg > span{display:inline-flex;gap:5px;align-items:center}
 .othchart{display:block;max-width:100%;height:auto}
 .rk .oth{font-family:var(--mono);font-weight:700} .rk .oth.help{color:#2f7d47} .rk .oth.cost{color:#b9661a}
+.accrow{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 0}.acc{flex:1 1 220px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:#f6f9fd}.accv span{font-size:1.6rem;font-weight:800;color:var(--navy)}.accv small{color:var(--muted)}

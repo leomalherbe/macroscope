@@ -43,7 +43,7 @@ const MS = require('../core.js');
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { phase: 'game', round: 1, status: 'open', years: 3, communique: 'World demand falls by 2 % this year.' } });
   await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(500);
   await admin.click('#tabs button:has-text("Control")');
-  must(!(await admin.isVisible('label:has-text("guided strategy") input')), 'the guided strategy is no longer in the communication card');
+  must(!(await admin.isVisible('label:has-text("guided strategy (five parts") input')), 'the guided strategy is no longer in the communication card');
   await admin.click('summary:has-text("Parameters")');
   must(!(await admin.isVisible('label:has-text("forecasts required")')), 'Parameters: its settings show only once it is ticked');
   await admin.check('#strategyOn');
@@ -94,7 +94,22 @@ const MS = require('../core.js');
   await fra.reload(); await fra.waitForSelector('#forecasts h2');
   const fc = await fra.textContent('#forecasts');
   must(/5 \/ 6 right/.test(fc) && /↓ → ↓/.test(fc) && /↓ → ≈/.test(fc), 'forecasts vs what happened: 5 right out of 6 (the trade balance did not fall with the shock)');
+  must(/Diagnosis of the shock\s*49\s*\/ 100/.test(fc) && /Forecast of own policy\s*76\s*\/ 100/.test(fc), 'accuracy: diagnosis of the shock 49, forecast of the own policy 76 (weighted by the size of the effects)');
   await (await fra.$('#forecasts')).screenshot({ path: OUT + '/s2-forecasts.png' });
+  /* the console's table and the board's ranking (published by the administrator) */
+  await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(400);
+  await admin.click('#tabs button:has-text("Export")');
+  await admin.waitForSelector('h2:has-text("Forecast accuracy")');
+  must(/France · Group/.test(await admin.textContent('.card:has(h2:has-text("Forecast accuracy"))')) && /49 · 76/.test(await admin.textContent('.card:has(h2:has-text("Forecast accuracy"))')), 'console: the accuracy of every team, year by year');
+  await admin.click('#tabs button:has-text("Control")');
+  const boardA = await ctx.newPage(); boardA.on('pageerror', e => errors.push('board: ' + e.message));
+  await boardA.goto(BASE + '/board.html?class=' + cid + '&api=' + encodeURIComponent(API)); await boardA.waitForTimeout(1500);
+  must(!(await boardA.$('h2:has-text("Best diagnoses")')), 'board: no forecast ranking until the administrator publishes it');
+  await admin.click('label:has-text("publish the forecast-accuracy ranking") input');
+  await admin.waitForSelector('.toast.show:has-text("Forecast ranking published")');
+  await boardA.reload(); await boardA.waitForSelector('h2:has-text("Best diagnoses")');
+  must(/France/.test(await boardA.textContent('.card:has(h2:has-text("Best diagnoses"))')) && /63/.test(await boardA.textContent('.card:has(h2:has-text("Best diagnoses"))')), 'board: best diagnoses, France with an average of 63');
+  await (await boardA.$('.card:has(h2:has-text("Best diagnoses"))')).screenshot({ path: OUT + '/s4-board-accuracy.png' });
 
   /* the team download: closed during the game, opened by the administrator at the end */
   must(!(await fra.$('#exportBtn')), 'no team download while the administrator has not allowed it');

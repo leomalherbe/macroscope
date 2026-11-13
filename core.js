@@ -768,6 +768,53 @@ var MS = (function () {
     return out;
   }
 
+  /* ---------- forecast accuracy (guided strategy) ----------
+     Two scores, 0–100: the diagnosis of the shock (part 1 vs the « shocks » part of the split) and the forecast of the
+     team's own policy (part 3 vs the « own policy » part). Each indicator weighs by the size of the actual change over the
+     year (w = |Δ| / scale, between 0.05 and 1), so that a big effect counts and « ≈ » everywhere does not pay; credit 1 for the
+     right direction, 0.5 for « ≈ » against a moderate effect (|Δ| ≤ scale) or for an arrow against a negligible one, 0 for the
+     wrong direction or an empty cell. The « other countries » part is not scored (Léo, 13/11). */
+  var ACC_PARTS = [{ id: 'shock', src: 'shock', label: 'Diagnosis of the shock' }, { id: 'own', src: 'nat', label: 'Forecast of own policy' }];
+  var ACC_SCALE = { gdp: 0.5, unemp: 0.25, infl: 0.25, pubbal: 0.25, tradebal: 0.25, emis: 1, ineq: 0.25 };
+  function accuracyYear(state, strat, row, prevRow, tol) {
+    tol = tol === undefined ? 0.05 : tol;
+    var out = {};
+    if (!strat || !row || !row.detail) return out;
+    ACC_PARTS.forEach(function (p) {
+      var ex = (strat[p.id] && strat[p.id].expect) || {}, num0 = 0, den = 0;
+      indicatorsFor(state).forEach(function (ind) {
+        var a = row.detail[ind.id] ? num(row.detail[ind.id][p.src]) : NaN;
+        if (isNaN(a)) return;
+        var b = prevRow && prevRow.detail && prevRow.detail[ind.id] ? num(prevRow.detail[ind.id][p.src]) : 0;
+        var d = a - (isNaN(b) ? 0 : b), sc = ACC_SCALE[ind.id] || 0.25;
+        var w = Math.max(0.05, Math.min(1, Math.abs(d) / sc)), dir = d > tol ? 1 : (d < -tol ? -1 : 0), e = ex[ind.id];
+        var c = 0;
+        if (e === 1 || e === 0 || e === -1) {
+          if (e === dir) c = 1;
+          else if (e === 0 && dir !== 0) c = Math.abs(d) <= sc ? 0.5 : 0;
+          else if (dir === 0) c = 0.5;
+        }
+        num0 += w * c; den += w;
+      });
+      if (den) out[p.id] = { num: num0, den: den, score: Math.round(100 * num0 / den) };
+    });
+    return out;
+  }
+  /* a team over the game: decisions [{round, payload}] and its published rows [{year, detail}] → {years: {y: {shock, own}}, cum: {shock, own}} */
+  function accuracyTeam(state, decisions, rows) {
+    var by = {}; (rows || []).forEach(function (r) { by[Number(r.year)] = r; });
+    var years = {}, tot = {};
+    (decisions || []).forEach(function (d) {
+      var y = Number(d.round), sg = d.payload && d.payload.strategy; if (!sg || !by[y]) return;
+      var a = accuracyYear(state, sg, by[y], by[y - 1] || null);
+      if (!Object.keys(a).length) return;
+      years[y] = a;
+      Object.keys(a).forEach(function (k) { tot[k] = tot[k] || { num: 0, den: 0 }; tot[k].num += a[k].num; tot[k].den += a[k].den; });
+    });
+    var cum = {}; Object.keys(tot).forEach(function (k) { if (tot[k].den) cum[k] = { num: tot[k].num, den: tot[k].den, score: Math.round(100 * tot[k].num / tot[k].den) }; });
+    return { years: years, cum: cum };
+  }
+
   /* ---------- Misc ---------- */
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function newId(prefix) {
@@ -797,7 +844,7 @@ var MS = (function () {
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     FORUM_TYPES: FORUM_TYPES, forumConf: forumConf, forumOn: forumOn, forumFrozenThrough: forumFrozenThrough, forumYear: forumYear, validateProposal: validateProposal, forumCheck: forumCheck, forumBalance: forumBalance,
     telegramConf: telegramConf, telegramsOn: telegramsOn, validateTelegram: validateTelegram,
-    STRAT_PARTS: STRAT_PARTS, strategyConf: strategyConf, strategyOn: strategyOn, strategyParts: strategyParts, validateStrategy: validateStrategy, strategyText: strategyText, forecastCheck: forecastCheck,
+    STRAT_PARTS: STRAT_PARTS, strategyConf: strategyConf, strategyOn: strategyOn, strategyParts: strategyParts, validateStrategy: validateStrategy, strategyText: strategyText, forecastCheck: forecastCheck, ACC_PARTS: ACC_PARTS, accuracyYear: accuracyYear, accuracyTeam: accuracyTeam,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, PEG_PARITIES: PEG_PARITIES, tallyCurrency: tallyCurrency, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
