@@ -405,9 +405,6 @@ table.rk{width:100%;border-collapse:collapse}.rk th{font-size:.74rem;text-transf
 .rk .r{display:inline-block;min-width:30px;font-weight:700;border-radius:6px;padding:1px 6px}.rk .v{display:block;font-family:var(--mono);font-size:.72rem;color:var(--muted);white-space:nowrap}
 .rk .g1 .r{background:#e3f1e6;color:#1f6b35}.rk .gl .r{background:#f8e5e3;color:#a2332a}.rk tr.me td{background:#f6f9fd}.rk .rcum{border-left:2px solid var(--line)}
 .sumrk{margin:10px 0 0;padding:8px 12px;background:#f6f9fd;border-radius:8px}
-.bar.rbar i{opacity:.9} .bar.rbar em,.rbarleg em{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,rgba(0,0,0,0) 0 3px,rgba(255,255,255,.55) 3px 5px)}
-.bar.rbar em.help,.rbarleg em.help{background-color:#3f9a5b} .bar.rbar em.cost,.rbarleg em.cost{background-color:#e08a2c}
-.bar.rbar b{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--ink,#1b1f3b)}
 .rbarleg{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;align-items:center} .rbarleg > span{display:inline-flex;gap:5px;align-items:center}
-.rbarleg i,.rbarleg em{position:relative;display:inline-block;width:18px;height:10px} .rbarleg i{background:var(--blue)} .rbarleg b{display:inline-block;width:2px;height:12px;background:var(--ink,#1b1f3b)}
+.othchart{display:block;max-width:100%;height:auto}
 .rk .oth{font-family:var(--mono);font-weight:700} .rk .oth.help{color:#2f7d47} .rk .oth.cost{color:#b9661a}

@@ -334,23 +334,47 @@ var UI = (function () {
     (rows || []).forEach(function (r) { if (r.phase !== 'game' || r.key !== key) return; var f = rowSplit(r, st, st.weights).foreign; if (f && f.R !== null && f.R !== undefined) { sum += Number(f.R); any = true; } });
     return any ? sum : null;
   }
-  /* bar from the centre: solid = net of the others, hatched = the others' policies (green: helped, orange: cost), tick = cumulative R */
-  function rBarHtml(total, others, maxAbs) {
-    var X = function (v) { return Math.max(0, Math.min(100, 50 + v / maxAbs * 50)); };
-    if (total === null || total === undefined) return '<div class="bar"></div>';
-    if (others === null || others === undefined) {
-      var pct = Math.abs(total) / maxAbs * 50;
-      return '<div class="bar"><i class="' + (total < 0 ? 'neg' : '') + '" style="left:' + (total < 0 ? 50 - pct : 50) + '%;width:' + pct + '%"></i></div>';
-    }
-    var net = total - others, a = X(0), b = X(net), c = X(total);
-    var tip = 'Net of the others ' + MS.fmt(net, 3, true) + ' · the other countries ' + MS.fmt(others, 3, true) + ' · cumulative R ' + MS.fmt(total, 3, true);
-    return '<div class="bar rbar" title="' + esc(tip) + '"><i class="' + (net < 0 ? 'neg' : '') + '" style="left:' + Math.min(a, b) + '%;width:' + Math.abs(b - a) + '%"></i>' +
-      '<em class="' + (others >= 0 ? 'help' : 'cost') + '" style="left:' + Math.min(b, c) + '%;width:' + Math.abs(c - b) + '%"></em><b style="left:' + c + '%"></b></div>';
+  /* « your play vs the others »: one row per country (ranking order); a dot at the cumulative R net of the others (own policy +
+     shocks), an arrow to the cumulative R: green to the right when the other countries' policies helped, orange to the left
+     when they cost. Inline SVG, one shared axis with zero marked. rows: [{key, total, others}] */
+  function othersChartSvg(rows, me) {
+    rows = rows.filter(function (r) { return r.total !== null && r.total !== undefined && r.others !== null && r.others !== undefined; });
+    if (!rows.length) return '';
+    var W = 760, L = 120, Rm = 70, rowH = 34, top = 30, H = top + rows.length * rowH + 30;
+    var vals = []; rows.forEach(function (r) { vals.push(r.total, r.total - r.others, 0); });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pad = (hi - lo) * 0.08 || 0.05; lo -= pad; hi += pad;
+    var X = function (v) { return L + (v - lo) / (hi - lo) * (W - L - Rm); };
+    var f = function (v) { return MS.fmt(v, 3, true); };
+    var h = '<svg class="othchart" viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Cumulative R: your play and the effect of the other countries">';
+    h += '<defs><marker id="ah-g" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f8a4c"/></marker>' +
+      '<marker id="ah-o" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d07a1f"/></marker></defs>';
+    var x0 = X(0);
+    h += '<line x1="' + x0 + '" y1="' + (top - 8) + '" x2="' + x0 + '" y2="' + (H - 22) + '" stroke="#9aa0b5" stroke-width="1" stroke-dasharray="3 3"/>';
+    h += '<text x="' + x0 + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#6b7190">0</text>';
+    rows.forEach(function (r, k) {
+      var y = top + k * rowH + rowH / 2, net = r.total - r.others, xn = X(net), xt = X(r.total), help = r.others >= 0;
+      if (r.key === me) h += '<rect x="0" y="' + (y - rowH / 2 + 2) + '" width="' + W + '" height="' + (rowH - 4) + '" fill="#eef3fb" rx="4"/>';
+      h += '<line x1="' + L + '" y1="' + y + '" x2="' + (W - Rm) + '" y2="' + y + '" stroke="#e6e3d8" stroke-width="1"/>';
+      h += '<text x="' + (L - 10) + '" y="' + (y + 4) + '" text-anchor="end" font-size="13" font-weight="' + (r.key === me ? 700 : 500) + '" fill="#1b1f3b">' + esc(MS.countryName(r.key)) + '</text>';
+      if (Math.abs(xt - xn) > 14) h += '<line x1="' + xn + '" y1="' + y + '" x2="' + (xt + (help ? -1 : 1)) + '" y2="' + y + '" stroke="' + (help ? '#2f8a4c' : '#d07a1f') + '" stroke-width="2.5" marker-end="url(#ah-' + (help ? 'g' : 'o') + ')"/>';
+      h += '<circle cx="' + xn + '" cy="' + y + '" r="5.5" fill="#1d3fd6" stroke="#fff" stroke-width="2"><title>' + esc(MS.countryName(r.key) + ' · net of the others ' + f(net) + ' · effect of the others ' + f(r.others) + ' · cumulative R ' + f(r.total)) + '</title></circle>';
+      h += '<text x="' + (W - Rm + 8) + '" y="' + (y + 4) + '" font-size="12" font-weight="700" fill="#1b1f3b">' + esc(f(r.total)) + '</text>';
+    });
+    h += '<text x="' + (W - Rm + 8) + '" y="' + (top - 12) + '" font-size="10" fill="#6b7190">cum. R</text>';
+    return h + '</svg>';
   }
-  function rBarLegendHtml() {
-    return '<div class="xs muted rbarleg"><span><i></i> <span>your play: own policy and the shocks you answered</span></span> <span><em class="help"></em> <span>the other countries’ policies helped</span></span> <span><em class="cost"></em> <span>they cost you</span></span> <span><b></b> <span>cumulative R</span></span></div>';
+  function othersLegendHtml() {
+    return '<div class="xs muted rbarleg"><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="#1d3fd6"/></svg> <span>your play: own policy and the shocks you answered (R net of the others)</span></span> <span><svg width="26" height="10"><line x1="1" y1="5" x2="20" y2="5" stroke="#2f8a4c" stroke-width="2.5"/><path d="M18,1 L25,5 L18,9 z" fill="#2f8a4c"/></svg> <span>the other countries’ policies helped</span></span> <span><svg width="26" height="10"><line x1="25" y1="5" x2="6" y2="5" stroke="#d07a1f" stroke-width="2.5"/><path d="M8,1 L1,5 L8,9 z" fill="#d07a1f"/></svg> <span>they cost you</span></span> <span><span>the arrow ends at the cumulative R</span></span></div>';
   }
-
+  /* the card under the ranking; lb: MS.leaderboard rows */
+  function othersCard(st, lb, rows, me) {
+    var data = lb.map(function (r) { return { key: r.key, total: r.latestR === null ? null : r.cumR, others: othersCum(st, rows, r.key) }; });
+    var svg = othersChartSvg(data, me);
+    if (!svg) return null;
+    return el('div', { class: 'card' }, [el('h2', { 'data-guide': 'score' }, ['Your play and the effect of the others']),
+      el('p', { class: 'muted small' }, ['For each country, the dot is its cumulative R net of the other countries’ policies (its own policy and the shocks it answered); the arrow carries it to its cumulative R. An arrow to the right: the others’ policies helped; to the left: they cost. A good strategy held back by the others shows as a dot far to the right with an orange arrow back.']),
+      el('div', { html: svg }), el('div', { html: othersLegendHtml() })]);
+  }
   /* ---------- ranking by dimension ----------
      rank of each country on each dimension of R (sign applied: less unemployment, inflation, emissions or inequality is better),
      no weights inside a dimension; three views: cumulative (sum over the years published), the last year, net of the other
@@ -855,5 +879,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { othersCum: othersCum, rBarHtml: rBarHtml, rBarLegendHtml: rBarLegendHtml, dimRankCard: dimRankCard, dimRanking: dimRanking, exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { othersCum: othersCum, othersCard: othersCard, othersChartSvg: othersChartSvg, dimRankCard: dimRankCard, dimRanking: dimRanking, exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

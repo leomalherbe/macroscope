@@ -1690,13 +1690,21 @@ of cumulative R (you are
 => de R cumulé (vous êtes
 in all).
 => au total).
-your play: own policy and the shocks you answered
-=> votre jeu : votre politique et les chocs auxquels vous avez répondu
 the other countries’ policies helped
 => les politiques des autres pays ont aidé
 they cost you
 => elles vous ont coûté
 cumulative R
 => R cumulé
-Net of the others # · the other countries # · cumulative R #
-=> Net des autres # · les autres pays # · R cumulé #
+Your play and the effect of the others
+=> Votre jeu et l’effet des autres
+For each country, the dot is its cumulative R net of the other countries’ policies (its own policy and the shocks it answered); the arrow carries it to its cumulative R. An arrow to the right: the others’ policies helped; to the left: they cost. A good strategy held back by the others shows as a dot far to the right with an orange arrow back.
+=> Pour chaque pays, le point est son R cumulé net des politiques des autres pays (sa propre politique et les chocs auxquels il a répondu) ; la flèche le mène à son R cumulé. Flèche vers la droite : les politiques des autres l’ont aidé ; vers la gauche : elles lui ont coûté. Une bonne stratégie freinée par les autres se voit à un point loin à droite avec une flèche orange qui revient.
+your play: own policy and the shocks you answered (R net of the others)
+=> votre jeu : votre politique et les chocs auxquels vous avez répondu (R net des autres)
+the arrow ends at the cumulative R
+=> la flèche s’arrête au R cumulé
+cum. R
+=> R cumulé
+@ · net of the others # · effect of the others # · cumulative R #
+=> @ · net des autres # · effet des autres # · R cumulé #
