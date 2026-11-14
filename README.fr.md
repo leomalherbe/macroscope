@@ -163,4 +163,4 @@ Plusieurs classes : **+ New class** ; chaque classe a ses groupes, son état et 
 
 ---
 
-Macroscope, par Léo Malherbe. Licence [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (voir `LICENSE`).
+Macroscope, par Léo Malherbe ; design web de Lina Lozano. Licence [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (voir `LICENSE`). Développé avec l'aide de l'IA : voir [AI-USE.fr.md](AI-USE.fr.md).
