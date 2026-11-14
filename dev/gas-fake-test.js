@@ -113,7 +113,7 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
   r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
   const [pF, pD, pI] = r2.groups.map(g => g.pin);
-  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.18', 'backend reports v1.18');
+  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.19', 'backend reports v1.19');
 
 
 
@@ -263,4 +263,22 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   lockBusy = false;
   must(!b.ok && /server is busy/.test(b.error), 'a write that cannot get the lock answers « busy » and writes nothing');
 }
+/* backend 1.19: what other teams receive of a decision — levers and votes, never its text nor its guided strategy (forecast arrows only) */
+{
+  let q = call({ action: 'admin.class.create', key, name: 'Private class' }); const cq = q.classId;
+  q = call({ action: 'admin.groups.set', key, classId: cq, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }] });
+  const [pFq, pDq] = q.groups.map(g => g.pin);
+  call({ action: 'admin.state.set', key, classId: cq, patch: { phase: 'game', round: 1, status: 'open', years: 3, strategy: { on: true, minPart: 0 }, revealRounds: [1] } });
+  const S = { shock: { text: 'Our secret reading of the shock.', expect: { gdp: -1 } }, others: { text: 'What we think of Germany.', expect: { gdp: 0 } }, own: { text: 'Our levers.', expect: { gdp: 1 } }, prio: { text: 'Jobs first.', up: ['unemp'] }, project: { text: 'Our secret long-term project.' } };
+  must(call({ action: 'submit', pin: pFq, phase: 'game', round: 1, payload: { years: [{ levers: { pubdem: 1 } }], strategy: S } }).ok, 'France submits with its guided strategy');
+  call({ action: 'admin.state.set', key, classId: cq, patch: { status: 'closed' } });
+  const other = call({ action: 'state', pin: pDq }), brd = call({ action: 'board', classId: cq });
+  const seen = JSON.stringify(other.decisionsAll) + JSON.stringify(other.reveals) + JSON.stringify(brd.decisionsAll) + JSON.stringify(brd.reveals);
+  const fr = other.decisionsAll[0].decisions.filter(d => d.country === 'FRA')[0];
+  must(fr && fr.payload.years[0].levers.pubdem === 1 && !/secret|What we think|Our levers|Jobs first/.test(seen), 'another team and the board see France′s levers, not its texts nor its strategy');
+  must(fr.payload.strategy.own.expect.gdp === 1 && fr.payload.strategy.shock.expect.gdp === -1 && !fr.payload.strategy.others && !fr.payload.strategy.project && !fr.payload.strategy.prio, 'only the forecast arrows of the scored parts travel');
+  must(/Our secret long-term project/.test(JSON.stringify(call({ action: 'state', pin: pFq }).myDecisions)) && /Our secret long-term project/.test(JSON.stringify(call({ action: 'admin.overview', key, classId: cq }).decisions)), 'the team itself and the administrator still read everything');
+  call({ action: 'admin.class.delete', key, classId: cq, name: 'Private class' });
+}
+
 console.log('\nGAS adapter OK');

@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111402">
-<script src="i18n.js?v=2026111402"></script>
-<script src="i18n/fr-desk.js?v=2026111402"></script>
-<script src="guide.js?v=2026111402"></script>
-<script src="config.js?v=2026111402"></script>
-<script src="core.js?v=2026111402"></script>
-<script src="app-common.js?v=2026111402"></script>
+<link rel="stylesheet" href="style.css?v=2026111404">
+<script src="i18n.js?v=2026111404"></script>
+<script src="i18n/fr-desk.js?v=2026111404"></script>
+<script src="guide.js?v=2026111404"></script>
+<script src="config.js?v=2026111404"></script>
+<script src="core.js?v=2026111404"></script>
+<script src="app-common.js?v=2026111404"></script>
 </head>
 <body>
 
@@ -931,7 +931,7 @@
     var accHtml = '<div class="accrow">' + MS.ACC_PARTS.map(function (p) {
       var c = acc.cum[p.id], y = ay[p.id];
       return '<div class="acc"><div class="small"><b>' + esc(p.label) + '</b></div><div class="accv"><span>' + (c ? c.score : '—') + '</span><small> / 100</small></div><div class="xs muted"><span>over the game</span>' + (y ? ' · <span>year ' + items[0].year + ': ' + y.score + '</span>' : '') + '</div></div>';
-    }).join('') + '</div><p class="xs muted" style="margin:4px 0 8px">Each indicator weighs by the size of what actually happened: getting a big effect right counts, « ≈ » everywhere does not pay. Right direction 1, « ≈ » against a moderate effect ½, wrong or empty 0. The « other countries » part is not scored.</p>';
+    }).join('') + '</div><p class="xs muted" style="margin:4px 0 8px">Only the cells you filled in count, each weighing by the size of what actually happened. A minimal change: « ≈ » and an arrow in its direction are both right. Otherwise: the right direction 1, « ≈ » against a moderate effect ½, wrong 0. The « other countries » part is not scored.</p>';
     var h = '<div class="card"><div class="cardhead"><h2>Your forecasts vs what happened</h2><span class="small muted">' + total[0] + ' / ' + total[1] + ' arrows right over the game</span></div>' + accHtml +
       '<p class="muted small">For each part of your strategy: the direction you expected (left) and the direction the matching source actually gave over the year (right): the shocks, the other countries’ policies, your own policy. ≈ means a change of less than 0.05.</p>' +
       '<h3>Year ' + items[0].year + ' · ' + items[0].fc.hits + ' / ' + items[0].fc.n + ' right</h3>' + table(items[0].fc);

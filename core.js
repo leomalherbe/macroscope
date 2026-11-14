@@ -748,6 +748,19 @@ var MS = (function () {
   }
   /* forecasts vs what happened: for each part with a grid, the change over the year of the matching part of the split
      (row of the year minus the row of the year before, or zero in year 1); ≈ within ±tol */
+
+  /* credit of one forecast cell (Léo, 14/11): e = expected direction (1, 0, −1), d = actual change over the year, sc = scale of the indicator.
+     A minimal change (|d| ≤ max(tol, 0.2·scale)): « ≈ » and the arrow in the direction of the change both count as right.
+     Otherwise: the right arrow 1; « ≈ » against a moderate effect (|d| ≤ scale) ½; anything else 0. */
+  var ACC_SCALE = { gdp: 0.5, unemp: 0.25, infl: 0.25, pubbal: 0.25, tradebal: 0.25, emis: 1, ineq: 0.25 };
+  function cellCredit(e, d, sc, tol) {
+    tol = tol === undefined ? 0.05 : tol; sc = sc || 0.25;
+    var dir = d > tol ? 1 : (d < -tol ? -1 : 0);
+    if (Math.abs(d) <= Math.max(tol, 0.2 * sc)) return (e === 0 || e === dir || (d !== 0 && e === (d > 0 ? 1 : -1))) ? 1 : 0;
+    if (e === dir) return 1;
+    if (e === 0) return Math.abs(d) <= sc ? 0.5 : 0;
+    return 0;
+  }
   function forecastCheck(state, strat, row, prevRow, tol) {
     tol = tol === undefined ? 0.05 : tol;
     var out = { parts: [], hits: 0, n: 0 };
@@ -759,7 +772,7 @@ var MS = (function () {
         if (ex[ind.id] === undefined) return;
         var a = row.detail[ind.id] ? num(row.detail[ind.id][p.src]) : NaN, b = prevRow && prevRow.detail && prevRow.detail[ind.id] ? num(prevRow.detail[ind.id][p.src]) : 0;
         if (isNaN(a)) return;
-        var d = a - (isNaN(b) ? 0 : b), dir = d > tol ? 1 : (d < -tol ? -1 : 0), hit = dir === ex[ind.id];
+        var d = a - (isNaN(b) ? 0 : b), dir = d > tol ? 1 : (d < -tol ? -1 : 0), hit = cellCredit(ex[ind.id], d, ACC_SCALE[ind.id], tol) === 1;
         cells.push({ id: ind.id, expected: ex[ind.id], actual: dir, change: round3(d), hit: hit });
         out.n++; if (hit) out.hits++;
       });
@@ -771,11 +784,9 @@ var MS = (function () {
   /* ---------- forecast accuracy (guided strategy) ----------
      Two scores, 0–100: the diagnosis of the shock (part 1 vs the « shocks » part of the split) and the forecast of the
      team's own policy (part 3 vs the « own policy » part). Each indicator weighs by the size of the actual change over the
-     year (w = |Δ| / scale, between 0.05 and 1), so that a big effect counts and « ≈ » everywhere does not pay; credit 1 for the
-     right direction, 0.5 for « ≈ » against a moderate effect (|Δ| ≤ scale) or for an arrow against a negligible one, 0 for the
-     wrong direction or an empty cell. The « other countries » part is not scored (Léo, 13/11). */
+     year (w = |Δ| / scale, between 0.05 and 1), so that a big effect counts and « ≈ » everywhere does not pay; the credit of
+     each filled cell is cellCredit; empty cells do not count. The « other countries » part is not scored (Léo, 13/11). */
   var ACC_PARTS = [{ id: 'shock', src: 'shock', label: 'Diagnosis of the shock' }, { id: 'own', src: 'nat', label: 'Forecast of own policy' }];
-  var ACC_SCALE = { gdp: 0.5, unemp: 0.25, infl: 0.25, pubbal: 0.25, tradebal: 0.25, emis: 1, ineq: 0.25 };
   function accuracyYear(state, strat, row, prevRow, tol) {
     tol = tol === undefined ? 0.05 : tol;
     var out = {};
@@ -786,15 +797,10 @@ var MS = (function () {
         var a = row.detail[ind.id] ? num(row.detail[ind.id][p.src]) : NaN;
         if (isNaN(a)) return;
         var b = prevRow && prevRow.detail && prevRow.detail[ind.id] ? num(prevRow.detail[ind.id][p.src]) : 0;
-        var d = a - (isNaN(b) ? 0 : b), sc = ACC_SCALE[ind.id] || 0.25;
-        var w = Math.max(0.05, Math.min(1, Math.abs(d) / sc)), dir = d > tol ? 1 : (d < -tol ? -1 : 0), e = ex[ind.id];
-        var c = 0;
-        if (e === 1 || e === 0 || e === -1) {
-          if (e === dir) c = 1;
-          else if (e === 0 && dir !== 0) c = Math.abs(d) <= sc ? 0.5 : 0;
-          else if (dir === 0) c = 0.5;
-        }
-        num0 += w * c; den += w;
+        var d = a - (isNaN(b) ? 0 : b), sc = ACC_SCALE[ind.id] || 0.25, e = ex[ind.id];
+        if (e !== 1 && e !== 0 && e !== -1) return;   /* only the cells the team filled in count (the administrator can make the grids required) */
+        var w = Math.max(0.05, Math.min(1, Math.abs(d) / sc));
+        num0 += w * cellCredit(e, d, sc, tol); den += w;
       });
       if (den) out[p.id] = { num: num0, den: den, score: Math.round(100 * num0 / den) };
     });
@@ -844,7 +850,7 @@ var MS = (function () {
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     FORUM_TYPES: FORUM_TYPES, forumConf: forumConf, forumOn: forumOn, forumFrozenThrough: forumFrozenThrough, forumYear: forumYear, validateProposal: validateProposal, forumCheck: forumCheck, forumBalance: forumBalance,
     telegramConf: telegramConf, telegramsOn: telegramsOn, validateTelegram: validateTelegram,
-    STRAT_PARTS: STRAT_PARTS, strategyConf: strategyConf, strategyOn: strategyOn, strategyParts: strategyParts, validateStrategy: validateStrategy, strategyText: strategyText, forecastCheck: forecastCheck, ACC_PARTS: ACC_PARTS, accuracyYear: accuracyYear, accuracyTeam: accuracyTeam,
+    STRAT_PARTS: STRAT_PARTS, strategyConf: strategyConf, strategyOn: strategyOn, strategyParts: strategyParts, validateStrategy: validateStrategy, strategyText: strategyText, forecastCheck: forecastCheck, cellCredit: cellCredit, ACC_PARTS: ACC_PARTS, accuracyYear: accuracyYear, accuracyTeam: accuracyTeam,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, PEG_PARITIES: PEG_PARITIES, tallyCurrency: tallyCurrency, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };

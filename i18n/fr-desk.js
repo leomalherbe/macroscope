@@ -565,7 +565,7 @@ MXL.add('fr', {"str":{"Macroscope · Policy desk":"Macroscope · Bureau des déc
 "Diagnosis of the shock":"Diagnostic du choc",
 "Forecast of own policy":"Prévision de la politique propre",
 "over the game":"sur la partie",
-"Each indicator weighs by the size of what actually happened: getting a big effect right counts, « ≈ » everywhere does not pay. Right direction 1, « ≈ » against a moderate effect ½, wrong or empty 0. The « other countries » part is not scored.":"Chaque indicateur pèse selon l’ampleur de ce qui s’est réellement passé : bien prévoir un gros effet compte, « ≈ » partout ne rapporte pas. Bon sens 1, « ≈ » face à un effet modéré ½, faux ou vide 0. La rubrique « autres pays » n’est pas notée.",
+"Only the cells you filled in count, each weighing by the size of what actually happened. A minimal change: « ≈ » and an arrow in its direction are both right. Otherwise: the right direction 1, « ≈ » against a moderate effect ½, wrong 0. The « other countries » part is not scored.":"Seules les cases que vous avez remplies comptent, chacune selon l’ampleur de ce qui s’est réellement passé. Une variation minime : « ≈ » et une flèche dans son sens sont tous deux justes. Sinon : bon sens 1, « ≈ » face à un effet modéré ½, faux 0. La rubrique « autres pays » n’est pas notée.",
 "Cumulative R: your play and the effect of the other countries":"R cumulé : votre jeu et l’effet des autres pays"},"re":[["The model: equations (.+?) notation ↗",
 "Le modèle : équations et notations (en anglais) ↗"],
 ["Macroscope · runs on OPEN-MU, a stock-flow consistent model of a monetary union after Godley (.+?) Lavoie ·",

@@ -12,7 +12,7 @@
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.18';
+  var VERSION = '1.19';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -162,6 +162,20 @@ var MSService = (function () {
     return true;
   }
 
+  /* what other teams (and the board) may receive of a decision: its levers and votes, never its text nor the parts of its
+     guided strategy; only the forecast arrows stay (the « best diagnoses » ranking needs them, a number says nothing of the reasoning) */
+  function publicPayload(p) {
+    if (!p || typeof p !== 'object') return p;
+    var o = {};
+    Object.keys(p).forEach(function (k) { if (k !== 'text' && k !== 'strategy') o[k] = p[k]; });
+    if (p.strategy && typeof p.strategy === 'object') {
+      var s = {};
+      ['shock', 'own'].forEach(function (k) { if (p.strategy[k] && p.strategy[k].expect) s[k] = { expect: p.strategy[k].expect }; });
+      o.strategy = s;
+    }
+    return o;
+  }
+
   /* decisions everyone may see: game rounds that are over (previous years, or the current year once closed) */
   function closedRoundDecisions(state, decisions) {
     if (!state.showDecisionsWhenClosed) return [];
@@ -183,14 +197,14 @@ var MSService = (function () {
       if (d.phase !== 'game') return;
       var over = (state.phase === 'game' && (rd < cur || (rd === cur && state.status !== 'open'))) || (state.phase !== 'game');
       if (!over) return;
-      (out[rd] = out[rd] || []).push({ groupId: d.groupId, country: d.country, payload: d.payload, ts: d.ts });
+      (out[rd] = out[rd] || []).push({ groupId: d.groupId, country: d.country, payload: publicPayload(d.payload), ts: d.ts });
     });
     var rounds = {}; Object.keys(out).forEach(function (k) { rounds[k] = 1; }); Object.keys(crisisOut).forEach(function (k) { rounds[k] = 1; }); Object.keys(retalOut).forEach(function (k) { rounds[k] = 1; });
     return Object.keys(rounds).map(Number).sort(function (a, b) { return a - b; }).map(function (rd) { return { round: rd, decisions: out[rd] || [], crisisVotes: crisisOut[rd] || [], retaliationVotes: retalOut[rd] || [] }; });
   }
   function warmupPlans(state, decisions) {
     if (!state.revealWarmup) return [];
-    return decisions.filter(function (d) { return d.phase === 'warmup'; }).map(function (d) { return { groupId: d.groupId, payload: d.payload, ts: d.ts }; });
+    return decisions.filter(function (d) { return d.phase === 'warmup'; }).map(function (d) { return { groupId: d.groupId, payload: publicPayload(d.payload), ts: d.ts }; });
   }
 
   /* =====================================================================
@@ -228,7 +242,7 @@ var MSService = (function () {
         round: rd,
         pledges: pledges.filter(function (x) { return x.round === rd; }),
         decisions: decisions.filter(function (d) { return d.phase === 'game' && Number(d.round) === rd; })
-          .map(function (d) { return { groupId: d.groupId, country: d.country, payload: d.payload, text: d.text, ts: d.ts }; })
+          .map(function (d) { return { groupId: d.groupId, country: d.country, payload: publicPayload(d.payload), ts: d.ts }; })
       });
     });
 
@@ -425,7 +439,7 @@ var MSService = (function () {
         round: rd,
         pledges: pledges.filter(function (x) { return x.round === rd; }),
         decisions: decisions.filter(function (d) { return d.phase === 'game' && Number(d.round) === rd; })
-          .map(function (d) { return { groupId: d.groupId, country: d.country, payload: d.payload, text: d.text, ts: d.ts }; })
+          .map(function (d) { return { groupId: d.groupId, country: d.country, payload: publicPayload(d.payload), ts: d.ts }; })
       };
     });
     var submitted = decisions.filter(function (d) { return d.phase === state.phase && Number(d.round) === Number(state.round); })

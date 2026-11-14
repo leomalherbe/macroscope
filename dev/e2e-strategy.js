@@ -33,7 +33,7 @@ const MS = require('../core.js');
   await admin.waitForSelector('text=No class yet');
   await admin.click('button:has-text("+ New class")');
   await admin.waitForSelector('#statusGrid');
-  must(/backend v1\.18/.test(await admin.textContent('#footTime')), 'backend reports v1.18');
+  must(/backend v1\.19/.test(await admin.textContent('#footTime')), 'backend reports v1.19');
   const cid = JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id;
   await admin.click('#tabs button:has-text("Groups")');
   await admin.click('button:has-text("Add 7 default groups")');
@@ -94,13 +94,13 @@ const MS = require('../core.js');
   await fra.reload(); await fra.waitForSelector('#forecasts h2');
   const fc = await fra.textContent('#forecasts');
   must(/5 \/ 6 right/.test(fc) && /↓ → ↓/.test(fc) && /↓ → ≈/.test(fc), 'forecasts vs what happened: 5 right out of 6 (the trade balance did not fall with the shock)');
-  must(/Diagnosis of the shock\s*49\s*\/ 100/.test(fc) && /Forecast of own policy\s*76\s*\/ 100/.test(fc), 'accuracy: diagnosis of the shock 49, forecast of the own policy 76 (weighted by the size of the effects)');
+  must(/Diagnosis of the shock\s*87\s*\/ 100/.test(fc) && /Forecast of own policy\s*100\s*\/ 100/.test(fc), 'accuracy over the cells filled in: diagnosis of the shock 87 (the trade-balance arrow missed a tiny rise), forecast of the own policy 100');
   await (await fra.$('#forecasts')).screenshot({ path: OUT + '/s2-forecasts.png' });
   /* the console's table and the board's ranking (published by the administrator) */
   await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(400);
   await admin.click('#tabs button:has-text("Export")');
   await admin.waitForSelector('h2:has-text("Forecast accuracy")');
-  must(/France · Group/.test(await admin.textContent('.card:has(h2:has-text("Forecast accuracy"))')) && /49 · 76/.test(await admin.textContent('.card:has(h2:has-text("Forecast accuracy"))')), 'console: the accuracy of every team, year by year');
+  must(/France · Group/.test(await admin.textContent('.card:has(h2:has-text("Forecast accuracy"))')) && /87 · 100/.test(await admin.textContent('.card:has(h2:has-text("Forecast accuracy"))')), 'console: the accuracy of every team, year by year');
   await admin.click('#tabs button:has-text("Control")');
   const boardA = await ctx.newPage(); boardA.on('pageerror', e => errors.push('board: ' + e.message));
   await boardA.goto(BASE + '/board.html?class=' + cid + '&api=' + encodeURIComponent(API)); await boardA.waitForTimeout(1500);
@@ -108,7 +108,7 @@ const MS = require('../core.js');
   await admin.click('label:has-text("publish the forecast-accuracy ranking") input');
   await admin.waitForSelector('.toast.show:has-text("Forecast ranking published")');
   await boardA.reload(); await boardA.waitForSelector('h2:has-text("Best diagnoses")');
-  must(/France/.test(await boardA.textContent('.card:has(h2:has-text("Best diagnoses"))')) && /63/.test(await boardA.textContent('.card:has(h2:has-text("Best diagnoses"))')), 'board: best diagnoses, France with an average of 63');
+  must(/France/.test(await boardA.textContent('.card:has(h2:has-text("Best diagnoses"))')) && /94/.test(await boardA.textContent('.card:has(h2:has-text("Best diagnoses"))')), 'board: best diagnoses, France with an average of 94');
   await (await boardA.$('.card:has(h2:has-text("Best diagnoses"))')).screenshot({ path: OUT + '/s4-board-accuracy.png' });
 
   /* the team download: closed during the game, opened by the administrator at the end */

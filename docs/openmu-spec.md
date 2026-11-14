@@ -634,3 +634,8 @@ Activation par classe : `sim.tariffs` (Control → Parameters → « tariffs »)
 - **Forecasts**: parts 1–3 carry a grid, the expected direction ↑ ≈ ↓ of each indicator itself, optional unless `gridsRequired`. `MS.forecastCheck` compares them with the change over the year of the matching part of the published split (`detail[ind].shock`, `.foreign`, `.nat`, row of the year minus the row of the year before, 0 in year 1; ≈ within ±0.05). Desk card « Your forecasts vs what happened » (score of the year and of the game).
 - **Storage**: `payload.strategy` in the decision (validated by `MS.validateStrategy`, server side too); the `text` column carries the parts as one text (`MS.strategyText`), so exports, reveals and the board are unchanged. Export *Decisions (CSV)* adds `s_<part>`, `s_<part>_expect`, `s_prio_up/down`, `s_project_status/why`, `forecast_hits/forecast_n`.
 - Tests: `dev/e2e-strategy.js`.
+
+## 21. What other teams receive (14/11, backend 1.19)
+
+- Once a year is closed, the decisions shown to every team and on the board (`decisionsAll`, `reveals`, `warmupPlans`) go through `publicPayload`: levers, votes and exchange-rate choices only. The justification text and the guided strategy never leave the team; only the forecast arrows of the two scored parts (shock, own policy) travel, for the « best diagnoses » ranking. The team itself (`myDecisions`) and the administrator (`admin.overview`, exports) still read everything.
+- Test: `dev/gas-fake-test.js` (block « backend 1.19 »).
