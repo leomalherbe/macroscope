@@ -29,7 +29,7 @@ const KEY = 'TESTKEY';
   await admin.waitForSelector('text=No class yet');
   await admin.click('button:has-text("+ New class")');
   await admin.waitForSelector('#statusGrid');
-  must(/backend v1\.20/.test(await admin.textContent('#footTime')), 'backend reports v1.20');
+  must(/backend v1\.19/.test(await admin.textContent('#footTime')), 'backend reports v1.19');
   const cid = JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id;
   await admin.click('#tabs button:has-text("Groups")');
   await admin.click('button:has-text("Add 7 default groups")');

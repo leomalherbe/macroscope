@@ -782,7 +782,7 @@ console.log('\n# Households option');
 }
 
 
-/* backend 1.20: the shocks split into the external environment and the union's decisions (externalShocks) */
+/* 14/11: the shocks split into the external environment and the union's decisions (externalShocks) */
 {
   const pq = OPENMU.paramsFor('v2.0');
   const rq = OPENMU.report({ params: pq, years: 3, policies: { FRA: [{ pubdem: 2 }, {}, {}] }, shocks: [{ rate: -0.5, confidence: -2 }, { rate: -1 }, { rate: -1, deval: 5 }], externalShocks: [{ rate: 0, confidence: -2 }, { rate: 0 }, { rate: 0 }] });

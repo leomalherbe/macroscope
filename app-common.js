@@ -865,7 +865,7 @@ var UI = (function () {
     return out;
   }
   /* the three parts shown to the players (Léo, 14/11): own policy · the others (other countries' policies + the union's decisions:
-     rate votes, crisis outcomes, common external tariff) · the external environment (shocks + climate). Rows run before backend 1.20
+     rate votes, crisis outcomes, common external tariff) · the external environment (shocks + climate). Rows published before 14/11
      have no ext / union: the others are the other countries alone, the environment is the shocks (union decisions included) + climate. */
   function rowParts(r, st, weights) {
     var sp = rowSplit(r, st, weights), inds = MS.indicatorsFor(st);

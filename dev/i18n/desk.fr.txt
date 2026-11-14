@@ -1721,7 +1721,7 @@ Only the cells you filled in count, each weighing by the size of what actually h
 Cumulative R: your play and the effect of the other countries
 => R cumulé : votre jeu et l’effet des autres pays
 
-// three parts of each result (backend 1.20)
+// three parts of each result (14/11)
 of which the others (countries and union)
 => dont les autres (pays et union)
 of which the external environment
