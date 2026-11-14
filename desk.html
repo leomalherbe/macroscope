@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111405">
-<script src="i18n.js?v=2026111405"></script>
-<script src="i18n/fr-desk.js?v=2026111405"></script>
-<script src="guide.js?v=2026111405"></script>
-<script src="config.js?v=2026111405"></script>
-<script src="core.js?v=2026111405"></script>
-<script src="app-common.js?v=2026111405"></script>
+<link rel="stylesheet" href="style.css?v=2026111406">
+<script src="i18n.js?v=2026111406"></script>
+<script src="i18n/fr-desk.js?v=2026111406"></script>
+<script src="guide.js?v=2026111406"></script>
+<script src="config.js?v=2026111406"></script>
+<script src="core.js?v=2026111406"></script>
+<script src="app-common.js?v=2026111406"></script>
 </head>
 <body>
 
@@ -945,34 +945,37 @@
   /* R of the parts shown: own policy, the others (countries + union), the external environment; and the two halves of the others */
   function rSplit(r, weights) {
     var pt = UI.rowParts(r, data.state, rowWeights(r, weights)), out = {};
-    ['nat', 'others', 'env', 'foreign', 'union'].forEach(function (k) { if (pt[k] && pt[k].R !== null && pt[k].R !== undefined) out[k] = pt[k].R; });
+    ['nat', 'others', 'env', 'foreign', 'union', 'shocks', 'climate'].forEach(function (k) { if (pt[k] && pt[k].R !== null && pt[k].R !== undefined) out[k] = pt[k].R; });
     return out;
   }
-  var showOthersSplit = false;   /* the two halves of « the others », unfolded by a click */
+  /* the halves of « the others » (countries · union) and of « the external environment » (shocks · climate), unfolded by a click */
+  var showSplit = { others: false, env: false };
   document.addEventListener('click', function (e) {
-    var b = e.target.closest && e.target.closest('button[data-othsplit]'); if (!b) return;
-    showOthersSplit = !showOthersSplit;
-    UI.$$('table.withsplit').forEach(function (t) { t.classList.toggle('showsplit', showOthersSplit); });
-    UI.$$('button[data-othsplit]').forEach(function (x) { x.textContent = showOthersSplit ? '▾' : '▸'; });
+    var b = e.target.closest && e.target.closest('button[data-subsplit]'); if (!b) return;
+    var g = b.getAttribute('data-subsplit'); showSplit[g] = !showSplit[g];
+    UI.$$('table.withsplit').forEach(function (t) { t.classList.toggle('show-' + g, showSplit[g]); });
+    UI.$$('button[data-subsplit="' + g + '"]').forEach(function (x) { x.textContent = showSplit[g] ? '▾' : '▸'; });
   });
   function breakdownRows(r, weights, cum) {
     var d = r.detail; if (!d || typeof d !== 'object') return '';
     var pt = UI.rowParts(r, data.state, rowWeights(r, weights)), split = rSplit(r, weights), duel = MS.isDuel(data.state);
-    var parts = [['nat', 'of which your own policy'], ['others', duel ? 'of which your partner’s policy' : (pt.hasUnion ? 'of which the others (countries and union)' : 'of which foreign policies')], ['foreign', 'other countries’ policies', true], ['union', 'union decisions (rate, crisis, tariff)', true], ['env', 'of which the external environment']];
+    var parts = [['nat', 'of which your own policy'], ['others', duel ? 'of which your partner’s policy' : (pt.hasUnion ? 'of which the others (countries and union)' : 'of which foreign policies')], ['foreign', 'other countries’ policies', 'others'], ['union', 'union decisions (rate, crisis, tariff)', 'others'],
+      ['env', 'of which the external environment'], ['shocks', pt.hasUnion ? 'the year’s shocks' : 'shocks (union decisions included)', 'env'], ['climate', 'climate', 'env']];
+    var canOpen = { others: pt.hasUnion, env: pt.hasClimate };
     return parts.map(function (pp) {
       var x = pt[pp[0]]; if (!x) return '';
-      if (pp[2] && !pt.hasUnion) return '';
+      if (pp[2] && !canOpen[pp[2]]) return '';
       var Rp = split[pp[0]] === undefined ? null : split[pp[0]];
       var Cp = cum && cum[pp[0]] !== undefined ? cum[pp[0]] : null;
-      var lab = pp[1] + (pp[0] === 'others' && pt.hasUnion ? ' <button type="button" class="splitbtn" data-othsplit="1" title="countries · union">' + (showOthersSplit ? '▾' : '▸') + '</button>' : '');
-      return '<tr class="bd' + (pp[2] ? ' bdsub' : '') + '"><td class="small muted" style="padding-left:' + (pp[2] ? 2.8 : 1.6) + 'em;white-space:nowrap">' + lab + '</td>' + MS.indicatorsFor(data.state).map(function (i) { var v = x.ind[i.id]; return '<td class="num small ' + (v === undefined ? '' : UI.signedClass(i.sign * v)) + '">' + esc(v === undefined ? '' : MS.fmt(v, 3, true)) + '</td>'; }).join('') +
+      var lab = pp[1] + (canOpen[pp[0]] ? ' <button type="button" class="splitbtn" data-subsplit="' + pp[0] + '" title="' + (pp[0] === 'others' ? 'countries · union' : 'shocks · climate') + '">' + (showSplit[pp[0]] ? '▾' : '▸') + '</button>' : '');
+      return '<tr class="bd' + (pp[2] ? ' bdsub sub-' + pp[2] : '') + '"><td class="small muted" style="padding-left:' + (pp[2] ? 2.8 : 1.6) + 'em;white-space:nowrap">' + lab + '</td>' + MS.indicatorsFor(data.state).map(function (i) { var v = x.ind[i.id]; return '<td class="num small ' + (v === undefined ? '' : UI.signedClass(i.sign * v)) + '">' + esc(v === undefined ? '' : MS.fmt(v, 3, true)) + '</td>'; }).join('') +
         '<td class="num small ' + (Rp === null ? '' : UI.signedClass(Rp)) + '">' + esc(Rp === null ? '' : MS.fmt(Rp, 3, true)) + '</td>' +
         '<td class="num small ' + (Cp === null ? '' : UI.signedClass(Cp)) + '">' + esc(Cp === null ? '' : MS.fmt(Cp, 3, true)) + '</td></tr>';
     }).join('');
   }
   function resultsTable(rows, firstCol) {
     var w = data && data.state ? data.state.weights : null;
-    var h = '<div class="tablewrap"><table class="withsplit' + (showOthersSplit ? ' showsplit' : '') + '"><thead><tr><th>' + esc(firstCol || 'Year') + '</th>' + MS.indicatorsFor(data.state).map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">score of the year</span></th><th class="num">Cum. R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">sum so far</span></th></tr></thead><tbody>';
+    var h = '<div class="tablewrap"><table class="withsplit' + (showSplit.others ? ' show-others' : '') + (showSplit.env ? ' show-env' : '') + '"><thead><tr><th>' + esc(firstCol || 'Year') + '</th>' + MS.indicatorsFor(data.state).map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">score of the year</span></th><th class="num">Cum. R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">sum so far</span></th></tr></thead><tbody>';
     var cumR = 0, cumParts = {}, anyR = false;
     rows.forEach(function (r) {
       var R = MS.num(r.R); var hasR = r.R !== null && r.R !== undefined && r.R !== '' && !isNaN(R);
@@ -986,7 +989,7 @@
   }
   function weightsLine(w) {
     if (MS.isDuel(data.state)) return 'Deviations from the reference path (GDP in %, the rest in points). R is the score of the year; « Cumulative R » adds the yearly scores up — the ranking uses it. The lines « of which » split each result between your own policy, your partner’s policy, the administrator’s shocks and the climate.';
-    return 'Deviations from the reference path (GDP in %, the rest in points). R is the score of the year — the weighted sum of that year’s deviations, not a change from the year before: higher GDP, lower unemployment and inflation, better public and trade balances raise it. « Cumulative R » adds the yearly scores up; it is what the ranking uses. The lines « of which » split each result between your own policy, the others (the other countries’ policies and the union’s decisions: rate votes, crisis outcomes, common tariff — ▸ unfolds the two) and the external environment (the administrator’s shocks and the climate).';
+    return 'Deviations from the reference path (GDP in %, the rest in points). R is the score of the year — the weighted sum of that year’s deviations, not a change from the year before: higher GDP, lower unemployment and inflation, better public and trade balances raise it. « Cumulative R » adds the yearly scores up; it is what the ranking uses. The lines « of which » split each result between your own policy, the others (the other countries’ policies and the union’s decisions: rate votes, crisis outcomes, common tariff) and the external environment (the administrator’s shocks and the climate); ▸ unfolds the two halves.';
   }
   function ratiosLine(rows) {
     var last = rows.filter(function (r) { return r.detail && r.detail.extra && (r.detail.extra.debt !== undefined || r.detail.extra.wealth !== undefined); }).sort(function (a, b) { return b.year - a.year; })[0];

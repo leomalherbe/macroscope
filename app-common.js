@@ -876,7 +876,8 @@ var UI = (function () {
     };
     var hasUnion = !!sp.union;
     return { nat: add(['nat']), others: add(hasUnion ? ['foreign', 'union'] : ['foreign']), env: add([hasUnion ? 'ext' : 'shock', 'climate']),
-      foreign: sp.foreign || null, union: sp.union || null, hasUnion: hasUnion };
+      foreign: sp.foreign || null, union: sp.union || null, hasUnion: hasUnion,
+      shocks: add([hasUnion ? 'ext' : 'shock']), climate: sp.climate || null, hasClimate: !!sp.climate };
   }
 
   /* the lines « of which … » under a country's row of a results table (board); nExtra: empty cells that close each line */
@@ -889,7 +890,8 @@ var UI = (function () {
     };
     return line('↳ own policy', pt.nat) + line(duel ? '↳ partner’s policy' : (pt.hasUnion ? '↳ the others (countries and union)' : '↳ other countries'), pt.others) +
       (pt.hasUnion ? line('other countries', pt.foreign, true) + line('union decisions', pt.union, true) : '') +
-      line('↳ external environment', pt.env);
+      line('↳ external environment', pt.env) +
+      (pt.hasClimate ? line(pt.hasUnion ? 'shocks' : 'shocks (union decisions included)', pt.shocks, true) + line('climate', pt.climate, true) : '');
   }
   /* the caption under the objective charts: the five dimensions, or more with the climate or the households option */
   function trajCaption(st) {

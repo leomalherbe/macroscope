@@ -592,8 +592,8 @@ of which the shocks
 => dont les chocs
 of which the climate
 => dont le climat
-Deviations from the reference path (GDP in %, the rest in points). R is the score of the year — the weighted sum of that year’s deviations, not a change from the year before: higher GDP, lower unemployment and inflation, better public and trade balances raise it. « Cumulative R » adds the yearly scores up; it is what the ranking uses. The lines « of which » split each result between your own policy, the others (the other countries’ policies and the union’s decisions: rate votes, crisis outcomes, common tariff — ▸ unfolds the two) and the external environment (the administrator’s shocks and the climate).
-=> Écarts à la trajectoire de référence (PIB en %, le reste en points). R est le score de l’année — la somme pondérée des écarts de l’année, pas une variation par rapport à l’année précédente : plus de PIB, moins de chômage et d’inflation, de meilleurs soldes public et commercial le font monter. « R cumulé » additionne les scores annuels ; c’est lui que le classement utilise. Les lignes « dont » répartissent chaque résultat entre votre propre politique, les autres (les politiques des autres pays et les décisions de l’union : votes sur le taux, issues des crises, tarif commun — ▸ déplie les deux) et l’environnement extérieur (les chocs de l’administrateur et le climat).
+Deviations from the reference path (GDP in %, the rest in points). R is the score of the year — the weighted sum of that year’s deviations, not a change from the year before: higher GDP, lower unemployment and inflation, better public and trade balances raise it. « Cumulative R » adds the yearly scores up; it is what the ranking uses. The lines « of which » split each result between your own policy, the others (the other countries’ policies and the union’s decisions: rate votes, crisis outcomes, common tariff) and the external environment (the administrator’s shocks and the climate); ▸ unfolds the two halves.
+=> Écarts à la trajectoire de référence (PIB en %, le reste en points). R est le score de l’année — la somme pondérée des écarts de l’année, pas une variation par rapport à l’année précédente : plus de PIB, moins de chômage et d’inflation, de meilleurs soldes public et commercial le font monter. « R cumulé » additionne les scores annuels ; c’est lui que le classement utilise. Les lignes « dont » répartissent chaque résultat entre votre propre politique, les autres (les politiques des autres pays et les décisions de l’union : votes sur le taux, issues des crises, tarif commun) et l’environnement extérieur (les chocs de l’administrateur et le climat) ; ▸ déplie les deux moitiés.
 Deviations from the reference path (GDP in %, the rest in points). R is the score of the year; « Cumulative R » adds the yearly scores up — the ranking uses it. The lines « of which » split each result between your own policy, your partner’s policy, the administrator’s shocks and the climate.
 => Écarts à la trajectoire de référence (PIB en %, le reste en points). R est le score de l’année ; le « R cumulé » additionne les scores annuels — c’est lui qui fait le classement. Les lignes « dont » répartissent chaque résultat entre votre propre politique, celle de votre partenaire, les chocs de l’administrateur et le climat.
 Your objective, year by year
@@ -1736,3 +1736,11 @@ R: the others (countries and union)
 => R : les autres (pays et union)
 R: external environment
 => R : environnement extérieur
+the year’s shocks
+=> chocs de l’année
+climate
+=> climat
+shocks · climate
+=> chocs · climat
+shocks (union decisions included)
+=> chocs (décisions de l’union comprises)
