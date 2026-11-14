@@ -163,4 +163,4 @@ Several classes: **+ New class**; each class has its own teams, state and board 
 
 ---
 
-Macroscope, by Léo Malherbe. Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (see `LICENSE`). Developed with the help of AI: see [AI-USE.md](AI-USE.md).
+Macroscope, by Léo Malherbe; web design by Lina Lozano. Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (see `LICENSE`). Developed with the help of AI: see [AI-USE.md](AI-USE.md).

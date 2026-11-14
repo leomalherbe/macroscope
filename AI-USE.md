@@ -13,6 +13,9 @@ Macroscope is designed and maintained by Léo Malherbe. Its development relies h
 - The technical documentation (model specification, README) and the French translation of the interface.
 - Design proposals (game rules, options, visualisations), which I accepted, changed or set aside.
 
+**What is not the AI's**
+- The web design of the site is by Lina Lozano.
+
 **What is mine**
 - The teaching design of the game, and the choice of the model and of its rules.
 - The decisions: every change goes through a pull request that I read and merge myself.

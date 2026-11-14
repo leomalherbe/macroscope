@@ -13,6 +13,9 @@ Macroscope est conçu et maintenu par Léo Malherbe. Son développement s'appuie
 - La documentation technique (spécification du modèle, README) et la traduction française de l'interface.
 - Des propositions de conception (règles de jeu, options, visualisations), que j'ai acceptées, modifiées ou écartées.
 
+**Ce qui ne relève pas de l'IA**
+- Le design web du site est de Lina Lozano.
+
 **Ce qui relève de moi**
 - La conception pédagogique du jeu, ainsi que le choix du modèle et de ses règles.
 - Les décisions : toute modification passe par une demande de fusion (*pull request*) que je relis et que je fusionne moi-même.

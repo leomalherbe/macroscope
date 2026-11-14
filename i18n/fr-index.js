@@ -131,7 +131,7 @@ MXL.add('fr', {
 "k155": "sa monnaie<br>son taux",
 "k156": "un taux de change entre eux, un climat partagé",
 "k157": "Pour l’utiliser en cours, ou pour contribuer",
-"k158": "Macroscope, par Léo Malherbe, KEDGE Business School. Utilisation gratuite, sous licence <a href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr\">CC BY-NC-SA 4.0</a>.",
+"k158": "Macroscope, par Léo Malherbe, KEDGE Business School ; design web de Lina Lozano. Utilisation gratuite, sous licence <a href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr\">CC BY-NC-SA 4.0</a>.",
 "k159": "Code source sur <a href=\"https://github.com/leomalherbe/macroscope\">GitHub</a>",
 "k188": "Développé avec l’aide de l’IA : <a href=\"https://github.com/leomalherbe/macroscope/blob/main/AI-USE.fr.md\">comment et pour quoi</a>",
 "k160": "NOUVEAU",
