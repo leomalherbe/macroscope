@@ -1744,3 +1744,39 @@ shocks (union decisions included)
 => chocs (décisions de l’union comprises)
 shocks
 => chocs
+
+// foreign reserves of a country out of the union
+Your foreign reserves
+=> Vos réserves de change
+Your foreign reserves:
+=> Vos réserves de change :
+Your foreign reserves at the end of year #:
+=> Vos réserves de change à la fin de l’année # :
+exhausted
+=> épuisées
+owed to the rest of the world # % of GDP
+=> dette envers le reste du monde : # % du PIB
+# % of GDP · # months of imports · # % of the share received at the exit
+=> # % du PIB · # mois d’importations · # % de la part reçue à la sortie
+# % of the share received at the exit
+=> # % de la part reçue à la sortie
+Frozen while your currency floats: they are what your central bank would have to defend a peg with.
+=> Gelées tant que votre monnaie flotte : c’est avec elles que votre banque centrale devrait défendre un ancrage.
+— your central bank owes the rest of the world # % of GDP.
+=> — votre banque centrale doit au reste du monde # % du PIB.
+A peg can no longer be defended: with a deficit, a forced devaluation.
+=> Un ancrage ne peut plus être défendu : avec un déficit, dévaluation forcée.
+# % of GDP, # months of imports, # % of what you received at the exit.
+=> # % du PIB, # mois d’importations, # % de ce que vous avez reçu à la sortie.
+# % of GDP, # % of what you received at the exit.
+=> # % du PIB, # % de ce que vous avez reçu à la sortie.
+# % of what you received at the exit.
+=> # % de ce que vous avez reçu à la sortie.
+A peg spends them when your balance of payments is in deficit; at zero, a forced devaluation.
+=> Un ancrage les dépense quand votre balance des paiements est en déficit ; à zéro, dévaluation forcée.
+at the exit your central bank receives # % of the union’s reserves (your share by size).
+=> à la sortie, votre banque centrale reçoit # % des réserves de l’union (votre part selon votre taille).
+The union held # months of its imports from the rest of the world at the end of year #.
+=> L’union détenait # mois de ses importations du reste du monde à la fin de l’année #.
+Your results will show them in % of GDP and in months of your imports.
+=> Vos résultats les indiqueront en % du PIB et en mois de vos importations.
