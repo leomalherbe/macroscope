@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111410">
-<script src="i18n.js?v=2026111410"></script>
-<script src="i18n/fr-desk.js?v=2026111410"></script>
-<script src="guide.js?v=2026111410"></script>
-<script src="config.js?v=2026111410"></script>
-<script src="core.js?v=2026111410"></script>
-<script src="app-common.js?v=2026111410"></script>
+<link rel="stylesheet" href="style.css?v=2026111411">
+<script src="i18n.js?v=2026111411"></script>
+<script src="i18n/fr-desk.js?v=2026111411"></script>
+<script src="guide.js?v=2026111411"></script>
+<script src="config.js?v=2026111411"></script>
+<script src="core.js?v=2026111411"></script>
+<script src="app-common.js?v=2026111411"></script>
 </head>
 <body>
 
@@ -374,11 +374,12 @@
       cb.appendChild(el('tr', { class: 'cat' }, [el('td', { colspan: 3 }, ['Your currency'])]));
       var fxSel = el('select', { name: 'FX', id: 'fxSel' }); [['float', 'floating: the market sets it'], ['peg', 'peg to the euro: your central bank defends it with its reserves']].forEach(function (o) { fxSel.appendChild(el('option', { value: o[0] }, [o[1]])); });
       fxSel.value = py.fx === 'peg' ? 'peg' : 'float';
+      if (pegBroken(lastExitExtra(f.country))) { fxSel.value = 'float'; fxSel.disabled = true; }
       var pcIn = numInput('PC', py.pegChange || 0, f.bounds.peg || 20, 1);
       var abIn = el('input', { type: 'checkbox', name: 'AB' }); abIn.checked = !!py.absorb; abIn.addEventListener('change', onInput);
       function syncPeg() { pcIn.disabled = fxSel.value !== 'peg'; if (fxSel.value !== 'peg') pcIn.value = 0; onInput(); }
       fxSel.addEventListener('change', syncPeg);
-      cb.appendChild(el('tr', {}, [el('td', { html: 'Exchange-rate regime<span class="hint">Floating: the price of the euro in your currency moves until your balance of payments balances (your reserves are frozen). Peg: your central bank holds the parity and its reserves absorb your deficits and surpluses; reserves exhausted with a deficit force a devaluation of 15 %. Against the rest of the world your currency follows the euro.</span>' }), el('td', { class: 'unit' }, ['—']), el('td', { class: 'num' }, [fxSel])]));
+      cb.appendChild(el('tr', {}, [el('td', { html: 'Exchange-rate regime<span class="hint">Floating: the price of the euro in your currency moves until your balance of payments balances (your reserves are frozen). Peg: your central bank holds the parity and its reserves absorb your deficits and surpluses; reserves exhausted: one year to float or to devalue by at least 15 %; still exhausted the next year, the peg breaks. Against the rest of the world your currency follows the euro.</span>' }), el('td', { class: 'unit' }, ['—']), el('td', { class: 'num' }, [fxSel])]));
       cb.appendChild(el('tr', {}, [el('td', { html: 'Change of the parity (peg only)<span class="hint">+ = devaluation (a euro costs more of your currency: exports recover with a lag, import prices and inflation rise at once), − = revaluation</span>' }), el('td', { class: 'unit' }, ['% · ±' + (f.bounds.peg || 20)]), el('td', { class: 'num' }, [pcIn])]));
       cb.appendChild(el('tr', {}, [el('td', { html: 'Buy back the bills the union sells<span class="hint">If the union’s central bank sells your bills, your central bank buys them: your rate does not rise, but the money created goes abroad anyway — your currency still falls (or your reserves, in a peg)</span>' }), el('td', { class: 'unit' }, ['—']), el('td', { class: 'num' }, [abIn])]));
       cb.appendChild(el('tr', {}, [el('td', { colspan: 3, class: 'small', html: reservesLineHtml(f.country) })]));
@@ -538,6 +539,12 @@
     var st = data.state, f = formConfig();
     var payload = readForm();
     var v = MS.validateDecision(st, st.phase, f.country, payload);
+    /* §12: exhausted reserves of a country out of the union (also checked by the server) */
+    if (v.ok && f.out) {
+      var lastX = (data.myResults || []).filter(function (r) { return r.phase === 'game' && r.key === f.country && Number(r.year) === Number(st.round) - 1 && r.detail && r.detail.extra; })[0];
+      var exErr = MS.exitReservesError(lastX ? lastX.detail.extra : null, v.clean.years[0]);
+      if (exErr) v = { ok: false, errors: [exErr] };
+    }
     var e = $('#formErrors');
     if (!v.ok) { e.innerHTML = '<div class="err"><b>Please fix the following:</b><ul>' + v.errors.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>'; return; }
     var btn = $('#submitBtn'); btn.disabled = true; btn.textContent = 'Sending…';
@@ -551,12 +558,20 @@
 
   /* §12: the foreign reserves of a country out of the union, before its decision: the last published year once out; in the first
      year out, the share of the union's reserves it receives (in proportion to its size among the members at the exit) */
+  function lastExitExtra(c) {
+    var rows = (data.myResults || []).filter(function (r) { return r.phase === 'game' && r.key === c && r.detail && r.detail.extra && r.detail.extra.exited; }).sort(function (a, b) { return b.year - a.year; });
+    return rows[0] ? rows[0].detail.extra : null;
+  }
+  /* §12: exhausted reserves after the second chance (a forced year), or while floating: no peg any more */
+  function pegBroken(x) { return !!x && Number(x.RXshare) <= 0 && (!!x.forced || !!x.broken || !x.peg); }
   function reservesLineHtml(c) {
     var st = data.state, rows = (data.myResults || []).filter(function (r) { return r.phase === 'game' && r.key === c && r.detail && r.detail.extra && r.detail.extra.exited; }).sort(function (a, b) { return b.year - a.year; });
     var x = rows[0] ? rows[0].detail.extra : null;
     if (x) {
       var head = '<b>Your foreign reserves at the end of year ' + esc(rows[0].year) + ':</b> ';
-      if (x.RXgdp !== undefined && x.RXgdp < 0) return head + '<span class="neg">exhausted</span> <span>— your central bank owes the rest of the world ' + esc(MS.fmt(-x.RXgdp, 1)) + ' % of GDP.</span> <span class="pill closed">ALERT</span> <span>A peg can no longer be defended: with a deficit, a forced devaluation.</span>';
+      if ((x.RXgdp !== undefined && x.RXgdp < 0) || Number(x.RXshare) <= 0) return head + '<span class="neg">exhausted</span>' + (x.RXgdp !== undefined && x.RXgdp < 0 ? ' <span>— your central bank owes the rest of the world ' + esc(MS.fmt(-x.RXgdp, 1)) + ' % of GDP.</span>' : '') + ' <span class="pill closed">ALERT</span> ' +
+        (pegBroken(x) ? '<b class="neg">The peg is broken: your currency floats.</b> <span>In a float the reserves do not come back, so no new peg is possible.</span>'
+          : '<b class="neg">This year: let your currency float, or keep the peg with a devaluation of at least ' + MS.EXIT_FORCED_DEVAL + ' %.</b> <span>Without a decision, the peg holds with a forced devaluation of ' + MS.EXIT_FORCED_DEVAL + ' %.</span> <span>Last chance: if your reserves are still exhausted at the end of the year, the peg breaks.</span>');
       return head + '<span>' + (x.RXgdp !== undefined ? esc(MS.fmt(x.RXgdp, 1)) + ' % of GDP, ' + (x.RXmonths !== null && x.RXmonths !== undefined ? esc(MS.fmt(x.RXmonths, 1)) + ' months of imports, ' : '') : '') +
         esc(MS.fmt(100 * (x.RXshare || 0), 0)) + ' % of what you received at the exit.</span>' + (x.RXalert ? ' <span class="pill closed">ALERT</span>' : '') + ' <span>A peg spends them when your balance of payments is in deficit; at zero, a forced devaluation.</span>';
     }

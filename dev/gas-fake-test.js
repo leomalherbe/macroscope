@@ -113,7 +113,7 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
   r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
   const [pF, pD, pI] = r2.groups.map(g => g.pin);
-  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.19', 'backend reports v1.19');
+  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.20', 'backend reports v1.20');
 
 
 
@@ -279,6 +279,25 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   must(fr.payload.strategy.own.expect.gdp === 1 && fr.payload.strategy.shock.expect.gdp === -1 && !fr.payload.strategy.others && !fr.payload.strategy.project && !fr.payload.strategy.prio, 'only the forecast arrows of the scored parts travel');
   must(/Our secret long-term project/.test(JSON.stringify(call({ action: 'state', pin: pFq }).myDecisions)) && /Our secret long-term project/.test(JSON.stringify(call({ action: 'admin.overview', key, classId: cq }).decisions)), 'the team itself and the administrator still read everything');
   call({ action: 'admin.class.delete', key, classId: cq, name: 'Private class' });
+}
+
+/* backend 1.20: a country out of the union with exhausted reserves floats, or pegs with a devaluation of at least 15 % */
+{
+  let x = call({ action: 'admin.class.create', key, name: 'Reserves class' }); const cr = x.classId;
+  x = call({ action: 'admin.groups.set', key, classId: cr, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
+  const pI = x.groups.filter(g => g.country === 'ITA')[0].pin;
+  call({ action: 'admin.state.set', key, classId: cr, patch: { phase: 'game', round: 4, status: 'open', years: 6, sim: { model: 'v2', exit: true }, exits: { ITA: 3 } } });
+  const dec = (y) => call({ action: 'submit', pin: pI, phase: 'game', round: 4, payload: { years: [Object.assign({ levers: {} }, y)], text: 'x'.repeat(130) } });
+  must(dec({ fx: 'peg', pegChange: 0 }).ok, 'reserves not yet known: the peg as is is accepted');
+  call({ action: 'admin.results.set', key, classId: cr, phase: 'game', round: 3, rows: [{ key: 'ITA', year: 3, gdp: 0, unemp: 0, infl: 0, pubbal: 0, tradebal: 0, published: true, detail: { extra: { exited: true, peg: true, RXshare: -0.4, RXgdp: -2 } } }] });
+  let r = dec({ fx: 'peg', pegChange: -20 });
+  must(!r.ok && /reserves are exhausted/.test((r.errors || []).join(' ')), 'exhausted reserves: a revaluation under the peg is refused');
+  must(!dec({ fx: 'peg', pegChange: 10 }).ok, 'a devaluation of 10 % is not enough');
+  must(dec({ fx: 'peg', pegChange: 15 }).ok && dec({ fx: 'float' }).ok, 'a devaluation of 15 %, or letting the currency float, is accepted');
+  call({ action: 'admin.results.set', key, classId: cr, phase: 'game', round: 3, rows: [{ key: 'ITA', year: 3, gdp: 0, unemp: 0, infl: 0, pubbal: 0, tradebal: 0, published: true, detail: { extra: { exited: true, peg: true, forced: true, RXshare: -0.4, RXgdp: -2 } } }] });
+  r = dec({ fx: 'peg', pegChange: 20 });
+  must(!r.ok && /peg is broken/.test((r.errors || []).join(' ')) && dec({ fx: 'float' }).ok, 'still exhausted after a forced year: no peg at all, the float is accepted');
+  call({ action: 'admin.class.delete', key, classId: cr, name: 'Reserves class' });
 }
 
 console.log('\nGAS adapter OK');

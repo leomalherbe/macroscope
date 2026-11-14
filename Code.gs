@@ -830,6 +830,19 @@ var MS = (function () {
     return { years: years, cum: cum };
   }
 
+  /* §12: a country out of the union whose foreign reserves were exhausted at the end of last year (extra of its last published row:
+     RXshare ≤ 0) cannot hold its peg as is: float, or peg with a devaluation of at least 15 % — once (Léo, 14/11); still exhausted after that
+     forced year, or floating with no reserves, it cannot peg at all. Returns an error or null. */
+  var EXIT_FORCED_DEVAL = 15;
+  function exitReservesError(lastExtra, year) {
+    if (!lastExtra || !lastExtra.exited || lastExtra.RXshare === undefined || lastExtra.RXshare === null || Number(lastExtra.RXshare) > 0) return null;
+    if (!year || year.fx !== 'peg') return null;
+    /* second chance used (a forced year already), or floating: the peg is broken, a new one needs reserves */
+    if (lastExtra.forced || lastExtra.broken || !lastExtra.peg) return 'Your foreign reserves are still exhausted: the peg is broken, your currency floats.';
+    if (num(year.pegChange) >= EXIT_FORCED_DEVAL - 1e-9) return null;
+    return 'Your foreign reserves are exhausted: let your currency float, or keep the peg with a devaluation of at least ' + EXIT_FORCED_DEVAL + ' %.';
+  }
+
   /* ---------- Misc ---------- */
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function newId(prefix) {
@@ -859,7 +872,7 @@ var MS = (function () {
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     FORUM_TYPES: FORUM_TYPES, forumConf: forumConf, forumOn: forumOn, forumFrozenThrough: forumFrozenThrough, forumYear: forumYear, validateProposal: validateProposal, forumCheck: forumCheck, forumBalance: forumBalance,
     telegramConf: telegramConf, telegramsOn: telegramsOn, validateTelegram: validateTelegram,
-    STRAT_PARTS: STRAT_PARTS, strategyConf: strategyConf, strategyOn: strategyOn, strategyParts: strategyParts, validateStrategy: validateStrategy, strategyText: strategyText, forecastCheck: forecastCheck, cellCredit: cellCredit, ACC_PARTS: ACC_PARTS, accuracyYear: accuracyYear, accuracyTeam: accuracyTeam,
+    STRAT_PARTS: STRAT_PARTS, strategyConf: strategyConf, strategyOn: strategyOn, strategyParts: strategyParts, validateStrategy: validateStrategy, strategyText: strategyText, forecastCheck: forecastCheck, cellCredit: cellCredit, EXIT_FORCED_DEVAL: EXIT_FORCED_DEVAL, exitReservesError: exitReservesError, ACC_PARTS: ACC_PARTS, accuracyYear: accuracyYear, accuracyTeam: accuracyTeam,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, PEG_PARITIES: PEG_PARITIES, tallyCurrency: tallyCurrency, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
@@ -880,7 +893,7 @@ var MS = (function () {
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.19';
+  var VERSION = '1.20';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -1179,6 +1192,12 @@ var MSService = (function () {
     if (!country) return fail('No country is assigned to your group yet. Ask the administrator.');
     var v = MS.validateDecision(state, phase, country, p.payload || {});
     if (!v.ok) return { ok: false, error: 'Your decision was not accepted.', errors: v.errors };
+    /* §12: exhausted reserves of a country out of the union (its row of last year, published) */
+    if (phase === 'game' && MS.isOutIn(state, country, round)) {
+      var lastX = resultsOf(st, g.classId).filter(function (r) { return r.phase === 'game' && r.key === country && r.published && Number(r.year) === round - 1 && r.detail && r.detail.extra; })[0];
+      var exErr = MS.exitReservesError(lastX ? lastX.detail.extra : null, v.clean.years && v.clean.years[0]);
+      if (exErr) return { ok: false, error: 'Your decision was not accepted.', errors: [exErr] };
+    }
     var row = { ts: iso(now), classId: g.classId, phase: phase, round: round, groupId: g.groupId, country: country,
       payload: JSON.stringify(v.clean), text: v.clean.text, used: v.used.join(', ') };
     st.appendRow('decisions', row);

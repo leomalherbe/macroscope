@@ -6,7 +6,7 @@
 <title>Macroscope · The model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111410">
+<link rel="stylesheet" href="style.css?v=2026111411">
 <style>
 table.eq{width:100%;border-collapse:collapse;background:#faf8f1;border:1px solid var(--line);border-radius:10px;margin:8px 0;font-size:.86rem}
 table.eq td{padding:4px 10px;vertical-align:top;border-bottom:1px solid #efebe0}
@@ -63,10 +63,10 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
 .part{margin:34px 0 12px;font-size:1.15rem;font-weight:700;color:var(--accent,#1a3cff);border-bottom:2px solid currentColor;padding-bottom:4px}
 .part .pill{margin-right:8px;vertical-align:2px}
 </style>
-<script src="i18n.js?v=2026111410"></script>
-<script src="i18n/fr-model.js?v=2026111410"></script>
-<script src="engine.js?v=2026111410"></script>
-<script src="accounts.js?v=2026111410"></script>
+<script src="i18n.js?v=2026111411"></script>
+<script src="i18n/fr-model.js?v=2026111411"></script>
+<script src="engine.js?v=2026111411"></script>
+<script src="accounts.js?v=2026111411"></script>
 </head>
 <body>
 <header class="topbar"><div class="wrap">
@@ -364,7 +364,7 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
         <tr><td class="e" translate="no">T2 = A + xr·R_X − H</td><td class="c">TARGET balance, in euros, that closes both balance sheets (&gt; 0: the country's central bank owes the union). At the reference T2 = −Bcb: the union owes the country exactly what it keeps of its bills</td></tr>
         <tr><td class="e" translate="no">E</td><td class="c">price of one euro in the new currency (1 at the exit; up = depreciation); against the rest of the world the rate is E·xr: the country chooses only E</td></tr>
         <tr><td class="e" translate="no">float: CA′(E) + KA(E) = 0</td><td class="c">E clears its balance of payments each year, its reserves are frozen</td></tr>
-        <tr><td class="e" translate="no">peg: R_X = R_X,−1 + (CA′ + KA)/(E·xr)</td><td class="c">its reserves absorb the balance; the parity moves only when the country decides (±20 %) or when its reserves are exhausted with a deficit (forced devaluation of 15 %)</td></tr>
+        <tr><td class="e" translate="no">peg: R_X = R_X,−1 + (CA′ + KA)/(E·xr)</td><td class="c">its reserves absorb the balance; the parity moves only when the country decides (±20 %) or when its reserves are exhausted: one year to float or devalue by at least 15 %, then the peg breaks</td></tr>
         <tr><td class="e" translate="no">r_X = r* + rate</td><td class="c">its own policy rate (±2 pt), on investment next year, on its debt and on the capital flows; it no longer votes at the union's council</td></tr>
         <tr><td class="e" translate="no">π_X = … + ω·Δ(E·xr) + ω·((1 − sR)/sR)·ΔE</td><td class="c">all its imports now go through the exchange rate: a depreciation of 10 % against the euro adds about 3 pt of inflation that year</td></tr>
         <tr><td class="e" translate="no">trade</td><td class="c">priced in the producer's currency, as with the rest of the world; relative prices in a common currency, with a one-year lag</td></tr>

@@ -814,8 +814,8 @@ floating: the market sets it
 => flottant : le marché le fixe
 peg to the euro: your central bank defends it with its reserves
 => ancrage à l’euro : votre banque centrale le défend avec ses réserves
-Floating: the price of the euro in your currency moves until your balance of payments balances (your reserves are frozen). Peg: your central bank holds the parity and its reserves absorb your deficits and surpluses; reserves exhausted with a deficit force a devaluation of # %. Against the rest of the world your currency follows the euro.
-=> Flottant : le prix de l’euro dans votre monnaie bouge jusqu’à ce que votre balance des paiements s’équilibre (vos réserves sont gelées). Ancrage : votre banque centrale tient la parité et ses réserves absorbent vos déficits et vos excédents ; des réserves épuisées avec un déficit imposent une dévaluation de # %. Face au reste du monde, votre monnaie suit l’euro.
+Floating: the price of the euro in your currency moves until your balance of payments balances (your reserves are frozen). Peg: your central bank holds the parity and its reserves absorb your deficits and surpluses; reserves exhausted: one year to float or to devalue by at least # %; still exhausted the next year, the peg breaks. Against the rest of the world your currency follows the euro.
+=> Flottant : le prix de l’euro dans votre monnaie bouge jusqu’à ce que votre balance des paiements s’équilibre (vos réserves sont gelées). Ancrage : votre banque centrale tient la parité et ses réserves absorbent vos déficits et vos excédents ; réserves épuisées : un an pour flotter ou dévaluer d’au moins # % ; encore épuisées l’année suivante, l’ancrage rompt. Face au reste du monde, votre monnaie suit l’euro.
 Change of the parity (peg only)
 => Changement de parité (ancrage seulement)
 + = devaluation (a euro costs more of your currency: exports recover with a lag, import prices and inflation rise at once), − = revaluation
@@ -1780,3 +1780,17 @@ The union held # months of its imports from the rest of the world at the end of 
 => L’union détenait # mois de ses importations du reste du monde à la fin de l’année #.
 Your results will show them in % of GDP and in months of your imports.
 => Vos résultats les indiqueront en % du PIB et en mois de vos importations.
+This year: let your currency float, or keep the peg with a devaluation of at least # %.
+=> Cette année : laissez flotter votre monnaie, ou gardez l’ancrage avec une dévaluation d’au moins # %.
+Without a decision, the peg holds with a forced devaluation of # %.
+=> Sans décision, l’ancrage tient avec une dévaluation forcée de # %.
+Your foreign reserves are exhausted: let your currency float, or keep the peg with a devaluation of at least # %.
+=> Vos réserves de change sont épuisées : laissez flotter votre monnaie, ou gardez l’ancrage avec une dévaluation d’au moins # %.
+The peg is broken: your currency floats.
+=> L’ancrage a rompu : votre monnaie flotte.
+In a float the reserves do not come back, so no new peg is possible.
+=> En change flottant, les réserves ne se reconstituent pas : plus de nouvel ancrage possible.
+Last chance: if your reserves are still exhausted at the end of the year, the peg breaks.
+=> Dernière chance : si vos réserves sont encore épuisées à la fin de l’année, l’ancrage rompt.
+Your foreign reserves are still exhausted: the peg is broken, your currency floats.
+=> Vos réserves de change sont toujours épuisées : l’ancrage a rompu, votre monnaie flotte.

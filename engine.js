@@ -112,7 +112,7 @@ var OPENMU = (function () {
       rhoC: 0.15,       // inflation pass-through of a change in the carbon tax, per point
       ctaxUnit: 0.002,  // carbon-tax revenue per point: ctaxUnit × emissions (1 point ≈ 0.2 % of GDP at the reference intensity)
       /* §12: leaving the union */
-      forcedDevalExit: 15 // an exited country on a peg whose reserves are exhausted with a current-account deficit: devaluation, %
+      forcedDevalExit: 15 // an exited country on a peg whose reserves are exhausted: devaluation of at least this, %
     };
     if (!useFirms) { p.alpha2 = 0.185; p.lambda0 = 0.70; }
     if (usePrices) { p.reserveMonths = 1.5; }
@@ -758,7 +758,7 @@ var OPENMU = (function () {
       var rc = ref.countries[id];
       prev[id] = { Y: rc.Y, V: rc.V, VP: rc.VP || 0, VR: rc.VR !== undefined ? rc.VR : rc.V, Bh: rc.Bh, M: rc.M, B: rc.B, Bcb: rc.Bcb, A: rc.A, K: rc.K, L: rc.L, tau: rc.tau, P: 1, Prel: 1,
         Bf: rc.Bf || 0, Bw: rc.Bw || 0, Bb: rc.Bb, s: 0, ci: p.ci0, ctax: 0, green: 0,
-        H0: rc.H, runCum: 0, E: 1, rb: p.r, out: false, BcbU: 0, BcbN: 0, T2: 0, RX: 0, RX0: 0, NWn: 0, peg: false, CApX: 0 };
+        H0: rc.H, runCum: 0, E: 1, rb: p.r, out: false, BcbU: 0, BcbN: 0, T2: 0, RX: 0, RX0: 0, NWn: 0, peg: false, forced: false, CApX: 0 };
     });
     function pol(id, t, key) { return lever(policies, id, t, key); }
     function rt(t, id, key) { var y = retal && retal[t]; var o = y && y[id]; return o ? num(o[key]) : 0; }
@@ -808,12 +808,18 @@ var OPENMU = (function () {
         invF[id] = Math.max(p.ifloor, 1 - p.iota * (prev[id].rb - p.r));
       });
       /* exchange-rate regime and parity of each exited country (peg: E given; float: solved below) */
-      var pegged = {}, Epeg = {}, forced = {};
+      var pegged = {}, Epeg = {}, forced = {}, broken = {};
       outs.forEach(function (id) {
         var pv = prev[id];
         pegged[id] = pol(id, t, 'peg') > 0;
-        forced[id] = pegged[id] && pv.peg && pv.RX <= 0 && pv.CApX < 0;
-        Epeg[id] = pv.E * (1 + Math.max(-20, Math.min(20, pol(id, t, 'pegChange'))) / 100) * (forced[id] ? 1 + p.forcedDevalExit / 100 : 1);
+        /* reserves exhausted at the end of last year under a peg: the peg holds only with a devaluation of at least forcedDevalExit %;
+           a voluntary change of the parity can go further, never offset it (Léo, 14/11: reserves must not go negative for ever) */
+        /* second chance only (Léo, 14/11): still exhausted after a forced year, or a new peg without reserves → the peg breaks, the currency floats */
+        broken[id] = pegged[id] && pv.RX <= 0 && (pv.forced || !pv.peg);
+        if (broken[id]) pegged[id] = false;
+        forced[id] = pegged[id] && pv.peg && pv.RX <= 0;
+        var chg = 1 + Math.max(-20, Math.min(20, pol(id, t, 'pegChange'))) / 100;
+        Epeg[id] = pv.E * (forced[id] ? Math.max(chg, 1 + p.forcedDevalExit / 100) : chg);
       });
       /* v2.0 block */
       var D = 0, ci = {}, ctaxNow = {}, greenNow = {};
@@ -1028,12 +1034,12 @@ var OPENMU = (function () {
             Bf: pf.Bf, Bw: Bw, spread: sEff, rEff: rEff, pressured: !!pressured[id], capGain: capGain[id],
             CAi: out_ ? CApX : TB + rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw,
             E: eco ? ci[id] * Y : 0, ci: eco ? ci[id] : 0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0, GREEN: c.GREEN || 0, Tc: Tc, D: D,
-            exited: out_, announced: !!announce[id], fx: out_ ? Ei : 1, dfx: out_ ? dE : 0, peg: !!pegged[id], forced: !!forced[id], tariffRev: Tt,
+            exited: out_, announced: !!announce[id], fx: out_ ? Ei : 1, dfx: out_ ? dE : 0, peg: !!pegged[id], forced: !!forced[id], broken: !!broken[id], tariffRev: Tt,
             BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, sold: sold, settled: !!settle[id], tariff: out_ ? 100 * (tar[id] - 1) : 0, tariffU: out_ ? 100 * (tarX[id] - 1) : 0, KAX: KAX };
           if (eco) U.E += ci[id] * Y;
           newPrev[id] = { Y: Y, V: V, VP: VP, VR: VR, Bh: pf.Bh, M: pf.M, H0: pf.H, B: B, Bcb: Bcb, A: pf.A, K: K, L: L, tau: c.tau, P: P, Prel: Prel, Bf: pf.Bf, Bw: Bw, Bb: pf.Bb, s: sEff,
             ci: eco ? ci[id] : p.ci0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0,
-            runCum: run, E: Ei, rb: rb[id], out: out_, BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, NWn: NWn, peg: !!pegged[id], CApX: CApX };
+            runCum: run, E: Ei, rb: rb[id], out: out_, BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, NWn: NWn, peg: !!pegged[id], forced: !!forced[id], CApX: CApX };
           if (!out_) {
             U.H += pf.H; U.BcbA += Bcb + pf.A; U.CA += c.XR - xr * IMR; U.IMRv += xr * IMR; U.Y += Y; U.TB += TB; U.PY += Prel * rc.Y;
             U.prim += rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw;
@@ -1226,7 +1232,7 @@ var OPENMU = (function () {
           var ex = detail.extra;
           ex.exited = !!cy.exited; ex.announced = !!cy.announced;
           if (cy.exited) {
-            ex.fx = cy.fx; ex.dfx = cy.dfx; ex.fxWorld = cy.fx * runAll.years[t].union.xr; ex.peg = cy.peg; ex.forced = cy.forced;
+            ex.fx = cy.fx; ex.dfx = cy.dfx; ex.fxWorld = cy.fx * runAll.years[t].union.xr; ex.peg = cy.peg; ex.forced = cy.forced; ex.broken = cy.broken;
             ex.rate = 100 * cy.r; ex.rEff = 100 * cy.rEff; ex.tariff = cy.tariff; ex.tariffU = cy.tariffU; ex.sold = 100 * cy.sold / cy.Y; ex.settled = cy.settled;
             ex.T2 = 100 * cy.T2 * cy.fx / cy.Y; ex.BcbU = 100 * cy.BcbU / cy.Y; ex.RXshare = cy.RX0 > 0 ? cy.RX / cy.RX0 : 0;
             ex.RXalert = cy.peg && cy.RX < p.alertShare * cy.RX0;

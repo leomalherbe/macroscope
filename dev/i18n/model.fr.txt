@@ -471,8 +471,8 @@
 => prix d’un euro dans la nouvelle monnaie (1 à la sortie ; hausse = dépréciation) ; face au reste du monde le taux est E·xr : le pays ne choisit que E
 | E clears its balance of payments each year, its reserves are frozen
 => E équilibre sa balance des paiements chaque année, ses réserves sont gelées
-| its reserves absorb the balance; the parity moves only when the country decides (±20 %) or when its reserves are exhausted with a deficit (forced devaluation of 15 %)
-=> ses réserves absorbent le solde ; la parité ne bouge que quand le pays le décide (±20 %) ou quand ses réserves sont épuisées avec un déficit (dévaluation forcée de 15 %)
+| its reserves absorb the balance; the parity moves only when the country decides (±20 %) or when its reserves are exhausted: one year to float or devalue by at least 15 %, then the peg breaks
+=> ses réserves absorbent le solde ; la parité ne bouge que quand le pays le décide (±20 %) ou quand ses réserves sont épuisées : un an pour flotter ou dévaluer d’au moins 15 %, puis l’ancrage rompt
 | its own policy rate (±2 pt), on investment next year, on its debt and on the capital flows; it no longer votes at the union's council
 => son propre taux directeur (±2 pt), sur l’investissement l’année suivante, sur sa dette et sur les flux de capitaux ; il ne vote plus au conseil de l’union
 | all its imports now go through the exchange rate: a depreciation of 10 % against the euro adds about 3 pt of inflation that year
