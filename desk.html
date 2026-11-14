@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111406">
-<script src="i18n.js?v=2026111406"></script>
-<script src="i18n/fr-desk.js?v=2026111406"></script>
-<script src="guide.js?v=2026111406"></script>
-<script src="config.js?v=2026111406"></script>
-<script src="core.js?v=2026111406"></script>
-<script src="app-common.js?v=2026111406"></script>
+<link rel="stylesheet" href="style.css?v=2026111407">
+<script src="i18n.js?v=2026111407"></script>
+<script src="i18n/fr-desk.js?v=2026111407"></script>
+<script src="guide.js?v=2026111407"></script>
+<script src="config.js?v=2026111407"></script>
+<script src="core.js?v=2026111407"></script>
+<script src="app-common.js?v=2026111407"></script>
 </head>
 <body>
 
@@ -960,7 +960,7 @@
     var d = r.detail; if (!d || typeof d !== 'object') return '';
     var pt = UI.rowParts(r, data.state, rowWeights(r, weights)), split = rSplit(r, weights), duel = MS.isDuel(data.state);
     var parts = [['nat', 'of which your own policy'], ['others', duel ? 'of which your partner’s policy' : (pt.hasUnion ? 'of which the others (countries and union)' : 'of which foreign policies')], ['foreign', 'other countries’ policies', 'others'], ['union', 'union decisions (rate, crisis, tariff)', 'others'],
-      ['env', 'of which the external environment'], ['shocks', pt.hasUnion ? 'the year’s shocks' : 'shocks (union decisions included)', 'env'], ['climate', 'climate', 'env']];
+      ['env', 'of which the external environment'], ['shocks', pt.hasUnion ? 'shocks' : 'shocks (union decisions included)', 'env'], ['climate', 'climate', 'env']];
     var canOpen = { others: pt.hasUnion, env: pt.hasClimate };
     return parts.map(function (pp) {
       var x = pt[pp[0]]; if (!x) return '';

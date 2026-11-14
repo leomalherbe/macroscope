@@ -1736,11 +1736,11 @@ R: the others (countries and union)
 => R : les autres (pays et union)
 R: external environment
 => R : environnement extérieur
-the year’s shocks
-=> chocs de l’année
 climate
 => climat
 shocks · climate
 => chocs · climat
 shocks (union decisions included)
 => chocs (décisions de l’union comprises)
+shocks
+=> chocs
