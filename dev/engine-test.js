@@ -794,5 +794,28 @@ console.log('\n# Households option');
   if (r0.years[1].countries.FRA.detail.gdp.ext !== undefined) throw new Error('no ext/union parts without externalShocks');
   console.log('ok - shocks split into the external environment and the union decisions (ext + union = shock; union part of the rate cuts > 0)');
 }
+
+/* 14/11: an exited country on a peg with exhausted reserves devalues by at least 15 %, whatever parity change it asks for */
+{
+  const pe = OPENMU.paramsFor('v2');
+  const pl = [{ leave: 1 }]; for (let y = 1; y < 8; y++) pl.push({ peg: 1, pegChange: -20, pubdem: 10, benefits: 10 });
+  const re = OPENMU.report({ params: pe, years: 8, policies: { ITA: pl }, shocks: [] });
+  let checked = 0, prevX = null;
+  re.years.forEach((y) => { const x = y.countries.ITA.detail.extra; if (prevX && prevX.exited && prevX.peg && prevX.RXshare <= 0 && x.peg) { if (!(x.dfx >= 14.9)) throw new Error('forced devaluation offset: dfx ' + x.dfx); checked++; } prevX = x; });
+  if (!checked) throw new Error('the test never exhausted the reserves');
+  console.log('ok - exhausted reserves under a peg: a devaluation of at least 15 % even when a revaluation is asked (' + checked + ' year(s))');
+}
+/* 14/11: one second chance only — still exhausted after the forced year, the peg breaks and the currency floats; reserves stop falling */
+{
+  const pe = OPENMU.paramsFor('v2');
+  const pl = [{ leave: 1 }]; for (let y = 1; y < 10; y++) pl.push({ peg: 1, pubdem: 10, benefits: 10 });
+  const re = OPENMU.report({ params: pe, years: 10, policies: { ITA: pl }, shocks: [] });
+  const xs = re.years.map(y => y.countries.ITA.detail.extra);
+  const b = xs.findIndex(x => x.broken);
+  if (b < 1) throw new Error('the peg never broke');
+  if (!(xs[b - 1].forced && xs[b - 1].RXshare <= 0)) throw new Error('the peg broke without a second chance');
+  for (let i = b; i < xs.length; i++) { if (xs[i].peg || !xs[i].broken) throw new Error('a peg after the break, year ' + (i + 1)); if (Math.abs(xs[i].RXshare - xs[b - 1].RXshare) > 1e-9) throw new Error('reserves move in the float'); }
+  console.log('ok - still exhausted after the forced year: the peg breaks in year ' + (b + 1) + ', the currency floats, the reserves stop falling');
+}
 console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' : '\nENGINE OK');
 process.exit(failed ? 1 : 0);

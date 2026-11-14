@@ -12,7 +12,7 @@
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.19';
+  var VERSION = '1.20';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -311,6 +311,12 @@ var MSService = (function () {
     if (!country) return fail('No country is assigned to your group yet. Ask the administrator.');
     var v = MS.validateDecision(state, phase, country, p.payload || {});
     if (!v.ok) return { ok: false, error: 'Your decision was not accepted.', errors: v.errors };
+    /* §12: exhausted reserves of a country out of the union (its row of last year, published) */
+    if (phase === 'game' && MS.isOutIn(state, country, round)) {
+      var lastX = resultsOf(st, g.classId).filter(function (r) { return r.phase === 'game' && r.key === country && r.published && Number(r.year) === round - 1 && r.detail && r.detail.extra; })[0];
+      var exErr = MS.exitReservesError(lastX ? lastX.detail.extra : null, v.clean.years && v.clean.years[0]);
+      if (exErr) return { ok: false, error: 'Your decision was not accepted.', errors: [exErr] };
+    }
     var row = { ts: iso(now), classId: g.classId, phase: phase, round: round, groupId: g.groupId, country: country,
       payload: JSON.stringify(v.clean), text: v.clean.text, used: v.used.join(', ') };
     st.appendRow('decisions', row);

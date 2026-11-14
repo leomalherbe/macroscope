@@ -453,7 +453,7 @@ R_X = R_X,−1 + (CA'_X + KA_X) / (e_X · xr)
 - **Parité de départ** : 1 (la conversion 1 pour 1), ou le dernier `e_X` si X passait du flottant à la parité.
 - **Dévaluation ou réévaluation** : décision de l'équipe (champ `peg` : variation de la parité en %, bornée ±20), effective l'année même.
 - **Alerte** : `R_X < 25 %` de sa part initiale, affichée au pays sorti.
-- **Épuisement** (`R_X ≤ 0` et déficit à la fin de N) : dévaluation forcée de 15 % en N+1, comme en duel, sans vote.
+- **Épuisement** (`R_X ≤ 0` à la fin de N) : voir §24 (une seconde chance avec une dévaluation d'au moins 15 %, puis rupture de l'ancrage).
 - Le taux croisé contre le monde suit toujours l'union : `e_X · xr`.
 
 La parité garde l'ancrage (pas d'inflation importée venant de l'union) mais redonne une contrainte de réserves, sans les réserves communes. Le flottant supprime la contrainte de réserves mais fait varier les prix à l'importation.
@@ -652,3 +652,14 @@ Activation par classe : `sim.tariffs` (Control → Parameters → « tariffs »)
 - Léo: « when you leave the union you do not know how much reserves you have ». The report gave only `RXshare` (share of the allotment), and the desk showed it only under a peg.
 - `report()`: `extra.RXgdp` (reserves in % of GDP: RX × price of the world currency in the national currency / Y) and `extra.RXmonths` (months of the country's imports, all origins). Desk panel « Your currency »: the reserves always (% of GDP, months of imports, share of the allotment, alert); frozen while floating; « exhausted » with the debt owed to the rest of the world when negative. Decision form, block « Your currency »: the reserves at the end of the last published year; in the first year out, the share of the union's reserves received (by size among the class's members at the exit) and the union's months of imports.
 - Rows published before this change have no `RXgdp`: the share alone is shown.
+
+## 24. Exhausted reserves of a country out of the union: a second chance, then the peg breaks (14/11)
+
+- Léo: « it is too easy if the reserves can go negative for ever ». Before: under a peg, reserves ≤ 0 with a current-account deficit forced a devaluation of 15 % on top of the chosen change of parity, so a revaluation of 20 % offset it and the reserves kept falling (Italy in the test game: −6.4 % of GDP).
+- Rule (engine, `report()` extra `forced`, `broken`):
+  1. reserves ≤ 0 at the end of N−1 under a peg, first time: in N the country floats, or keeps the peg with a devaluation of **at least** 15 % (`max(chosen change, +15 %)`; a revaluation cannot offset it). Without a decision, the peg holds with the forced devaluation. `extra.forced`.
+  2. reserves still ≤ 0 at the end of that forced year: the peg **breaks**, the currency floats (`extra.broken`), whatever the decision.
+  3. a country floating with reserves ≤ 0 cannot peg again: in a float the reserves do not move (except the settlement of T2, which only lowers them), so the break lasts until the end of the game.
+- Backend 1.20 (`MS.exitReservesError`, page and server): from the country's published row of N−1, a peg is refused in case 2–3, and in case 1 below a devaluation of 15 %. Desk: the reserves line says which case applies; the regime is locked on « floating » after a break.
+- Simulation (Italy out in year 1, public demand and benefits +10 a year, no shocks, 10 years, cumulative R): float −18.2; peg as is −15.3 (forced year 5, reserves positive again, forced year 7, break year 8; reserves −3.5 % of GDP at the end, by valuation only); revaluation of 20 % then float −18.5. Burning the reserves under a revalued peg, then floating, does not pay.
+
