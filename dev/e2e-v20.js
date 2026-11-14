@@ -49,7 +49,7 @@ const KEY = 'TESTKEY';
   await admin.waitForTimeout(700);
   let ov = await api({ action: 'admin.overview', key: KEY, classId: cid });
   must(ov.state.sim.model === 'v2' && ov.state.sim.climate === true && ov.state.warmup.allowed.indexOf('ctax') >= 0 && ov.state.warmup.allowed.indexOf('green') >= 0 && ov.state.bounds.eco === 10, 'class switched to v2 · Finance + Climate (= the former v2.0): the carbon tax and green investment join the warm-up levers, eco bound 10');
-  must(/backend v1\.19/.test(await admin.textContent('#footTime')), 'backend reports v1.19');
+  must(/backend v1\.20/.test(await admin.textContent('#footTime')), 'backend reports v1.20');
 
   /* warm-up: shocks editor shows the v2.0 rows; open submissions */
   await admin.click('#tabs button:has-text("Run")');
@@ -107,7 +107,7 @@ const KEY = 'TESTKEY';
   must(typeof u3.D === 'number' && u3.D > 1 && u3.Sshare > 1.03 && u3.Erel < 0, 'published union row: damage ' + u3.D.toFixed(1) + ' % in year 3, pollution stock ' + (100 * u3.Sshare).toFixed(1) + ', union emissions ' + u3.Erel.toFixed(0) + ' %');
   await stu.reload(); await stu.waitForSelector('#commentText');
   const stuTxt = await stu.textContent('#app');
-  must(/Climate:/.test(stuTxt) && /carbon intensity/.test(stuTxt) && /Climate damage this year/.test(stuTxt) && /of which the climate/.test(stuTxt) && !/shocks and the climate/.test(stuTxt), 'student results: climate line, union climate block, fourth breakdown line "of which the climate"');
+  must(/Climate:/.test(stuTxt) && /carbon intensity/.test(stuTxt) && /Climate damage this year/.test(stuTxt) && /of which the external environment/.test(stuTxt) && !/of which the climate/.test(stuTxt), 'student results: climate line, union climate block; the climate counts in « of which the external environment » (backend 1.20)');
   must(/Carbon tax \+5\.00 pt/.test(stuTxt) || /Carbon tax/.test(stuTxt), 'lever chips name the carbon tax');
   /* sixth dimension: emissions, weight 0 by default */
   const heads = await stu.evaluate(() => [...document.querySelectorAll('#results table thead th')].map(th => th.textContent.trim()));

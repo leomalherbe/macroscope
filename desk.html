@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111404">
-<script src="i18n.js?v=2026111404"></script>
-<script src="i18n/fr-desk.js?v=2026111404"></script>
-<script src="guide.js?v=2026111404"></script>
-<script src="config.js?v=2026111404"></script>
-<script src="core.js?v=2026111404"></script>
-<script src="app-common.js?v=2026111404"></script>
+<link rel="stylesheet" href="style.css?v=2026111405">
+<script src="i18n.js?v=2026111405"></script>
+<script src="i18n/fr-desk.js?v=2026111405"></script>
+<script src="guide.js?v=2026111405"></script>
+<script src="config.js?v=2026111405"></script>
+<script src="core.js?v=2026111405"></script>
+<script src="app-common.js?v=2026111405"></script>
 </head>
 <body>
 
@@ -942,33 +942,37 @@
   /* ---------------- results ---------------- */
   /* R split of a row (own / foreign / shocks); R is linear, so a row without a stored split gets it rebuilt from the indicators' split */
   function rowWeights(r, weights) { return r && r.detail && r.detail.weights ? r.detail.weights : weights; }
+  /* R of the parts shown: own policy, the others (countries + union), the external environment; and the two halves of the others */
   function rSplit(r, weights) {
-    var d = r.detail, out = {}; if (!d || typeof d !== 'object') return out;
-    weights = rowWeights(r, weights);
-    ['nat', 'foreign', 'shock', 'climate'].forEach(function (p) {
-      var Rp = d.R && d.R[p] !== undefined ? d.R[p] : null;
-      if (Rp === null) { var pd = {}, has = false; MS.indicatorsFor(data.state).forEach(function (i) { var x = d[i.id] ? d[i.id][p] : null; if (x !== null && x !== undefined) { pd[i.id] = x; has = true; } }); if (has) Rp = MS.scoreR(pd, weights); }
-      if (Rp !== null) out[p] = Rp;
-    });
+    var pt = UI.rowParts(r, data.state, rowWeights(r, weights)), out = {};
+    ['nat', 'others', 'env', 'foreign', 'union'].forEach(function (k) { if (pt[k] && pt[k].R !== null && pt[k].R !== undefined) out[k] = pt[k].R; });
     return out;
   }
+  var showOthersSplit = false;   /* the two halves of « the others », unfolded by a click */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('button[data-othsplit]'); if (!b) return;
+    showOthersSplit = !showOthersSplit;
+    UI.$$('table.withsplit').forEach(function (t) { t.classList.toggle('showsplit', showOthersSplit); });
+    UI.$$('button[data-othsplit]').forEach(function (x) { x.textContent = showOthersSplit ? '▾' : '▸'; });
+  });
   function breakdownRows(r, weights, cum) {
     var d = r.detail; if (!d || typeof d !== 'object') return '';
-    var parts = [['nat', 'of which your own policy'], ['foreign', MS.isDuel(data.state) ? 'of which your partner’s policy' : 'of which foreign policies'], ['shock', 'of which the shocks'], ['climate', 'of which the climate']];
-    var split = rSplit(r, weights);
+    var pt = UI.rowParts(r, data.state, rowWeights(r, weights)), split = rSplit(r, weights), duel = MS.isDuel(data.state);
+    var parts = [['nat', 'of which your own policy'], ['others', duel ? 'of which your partner’s policy' : (pt.hasUnion ? 'of which the others (countries and union)' : 'of which foreign policies')], ['foreign', 'other countries’ policies', true], ['union', 'union decisions (rate, crisis, tariff)', true], ['env', 'of which the external environment']];
     return parts.map(function (pp) {
-      var any = MS.indicatorsFor(data.state).some(function (i) { return d[i.id] && d[i.id][pp[0]] !== undefined; }) || split[pp[0]] !== undefined;
-      if (!any) return '';
+      var x = pt[pp[0]]; if (!x) return '';
+      if (pp[2] && !pt.hasUnion) return '';
       var Rp = split[pp[0]] === undefined ? null : split[pp[0]];
       var Cp = cum && cum[pp[0]] !== undefined ? cum[pp[0]] : null;
-      return '<tr class="bd"><td class="small muted" style="padding-left:1.6em;white-space:nowrap">' + pp[1] + '</td>' + MS.indicatorsFor(data.state).map(function (i) { var x = d[i.id] ? d[i.id][pp[0]] : null; return '<td class="num small ' + (x === null || x === undefined ? '' : UI.signedClass(i.sign * x)) + '">' + esc(x === null || x === undefined ? '' : MS.fmt(x, 3, true)) + '</td>'; }).join('') +
+      var lab = pp[1] + (pp[0] === 'others' && pt.hasUnion ? ' <button type="button" class="splitbtn" data-othsplit="1" title="countries · union">' + (showOthersSplit ? '▾' : '▸') + '</button>' : '');
+      return '<tr class="bd' + (pp[2] ? ' bdsub' : '') + '"><td class="small muted" style="padding-left:' + (pp[2] ? 2.8 : 1.6) + 'em;white-space:nowrap">' + lab + '</td>' + MS.indicatorsFor(data.state).map(function (i) { var v = x.ind[i.id]; return '<td class="num small ' + (v === undefined ? '' : UI.signedClass(i.sign * v)) + '">' + esc(v === undefined ? '' : MS.fmt(v, 3, true)) + '</td>'; }).join('') +
         '<td class="num small ' + (Rp === null ? '' : UI.signedClass(Rp)) + '">' + esc(Rp === null ? '' : MS.fmt(Rp, 3, true)) + '</td>' +
         '<td class="num small ' + (Cp === null ? '' : UI.signedClass(Cp)) + '">' + esc(Cp === null ? '' : MS.fmt(Cp, 3, true)) + '</td></tr>';
     }).join('');
   }
   function resultsTable(rows, firstCol) {
     var w = data && data.state ? data.state.weights : null;
-    var h = '<div class="tablewrap"><table><thead><tr><th>' + esc(firstCol || 'Year') + '</th>' + MS.indicatorsFor(data.state).map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">score of the year</span></th><th class="num">Cum. R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">sum so far</span></th></tr></thead><tbody>';
+    var h = '<div class="tablewrap"><table class="withsplit' + (showOthersSplit ? ' showsplit' : '') + '"><thead><tr><th>' + esc(firstCol || 'Year') + '</th>' + MS.indicatorsFor(data.state).map(function (i) { return '<th class="num">' + esc(i.label) + '<br><span style="font-weight:400;text-transform:none;letter-spacing:0">' + esc(i.unit) + '</span></th>'; }).join('') + '<th class="num">R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">score of the year</span></th><th class="num">Cum. R<br><span style="font-weight:400;text-transform:none;letter-spacing:0">sum so far</span></th></tr></thead><tbody>';
     var cumR = 0, cumParts = {}, anyR = false;
     rows.forEach(function (r) {
       var R = MS.num(r.R); var hasR = r.R !== null && r.R !== undefined && r.R !== '' && !isNaN(R);
@@ -982,7 +986,7 @@
   }
   function weightsLine(w) {
     if (MS.isDuel(data.state)) return 'Deviations from the reference path (GDP in %, the rest in points). R is the score of the year; « Cumulative R » adds the yearly scores up — the ranking uses it. The lines « of which » split each result between your own policy, your partner’s policy, the administrator’s shocks and the climate.';
-    return 'Deviations from the reference path (GDP in %, the rest in points). R is the score of the year — the weighted sum of that year’s deviations, not a change from the year before: higher GDP, lower unemployment and inflation, better public and trade balances raise it. « Cumulative R » adds the yearly scores up; it is what the ranking uses. The lines « of which » split each result between your own policy, the other countries’ policies and the administrator’s shocks.';
+    return 'Deviations from the reference path (GDP in %, the rest in points). R is the score of the year — the weighted sum of that year’s deviations, not a change from the year before: higher GDP, lower unemployment and inflation, better public and trade balances raise it. « Cumulative R » adds the yearly scores up; it is what the ranking uses. The lines « of which » split each result between your own policy, the others (the other countries’ policies and the union’s decisions: rate votes, crisis outcomes, common tariff — ▸ unfolds the two) and the external environment (the administrator’s shocks and the climate).';
   }
   function ratiosLine(rows) {
     var last = rows.filter(function (r) { return r.detail && r.detail.extra && (r.detail.extra.debt !== undefined || r.detail.extra.wealth !== undefined); }).sort(function (a, b) { return b.year - a.year; })[0];
@@ -1281,21 +1285,21 @@
     var STATUS = { kept: T('kept', 'tenue'), broken: T('not kept', 'non tenue'), words: T('words only', 'paroles seulement'), nodecision: T('no decision', 'pas de décision') };
     var resOf = function (y) { return (data.myResults || []).filter(function (r) { return r.phase === 'game' && Number(r.year) === y; })[0] || null; };
     var head = [T('phase', 'phase'), T('year', 'année')].concat(lvCols.map(function (l) { return L(l.label); }), [T('leave the union', 'sortie de l’union'), T('vote: rate', 'vote : taux'), T('vote: common external tariff', 'vote : tarif extérieur commun'), T('justification', 'justification')],
-      inds.map(function (i) { return L(i.label) + ' (' + L(i.unit) + ')'; }), ['R', T('cumulative R', 'R cumulé'), T('R: own policy', 'R : votre politique'), T('R: foreign policies', 'R : politiques étrangères'), T('R: shocks', 'R : chocs'), T('public debt (% of GDP)', 'dette publique (% du PIB)'), T('pledge', 'engagement'), T('analysis', 'analyse')],
+      inds.map(function (i) { return L(i.label) + ' (' + L(i.unit) + ')'; }), ['R', T('cumulative R', 'R cumulé'), T('R: own policy', 'R : votre politique'), T('R: the others (countries and union)', 'R : les autres (pays et union)'), T('R: external environment', 'R : environnement extérieur'), T('public debt (% of GDP)', 'dette publique (% du PIB)'), T('pledge', 'engagement'), T('analysis', 'analyse')],
       hasStrat ? [T('strategy: shock and votes', 'stratégie : choc et votes'), T('strategy: other countries', 'stratégie : autres pays'), T('strategy: own policy', 'stratégie : notre politique'), T('strategy: priorities', 'stratégie : priorités'), T('improve first', 'améliorer d’abord'), T('accepted to worsen', 'accepté de dégrader'), T('long-term project', 'projet de long terme'), T('project: kept / revised', 'projet : gardé / révisé'), T('why revised', 'pourquoi révisé'), T('forecasts: shocks', 'prévisions : chocs'), T('forecasts: other countries', 'prévisions : autres pays'), T('forecasts: own policy', 'prévisions : notre politique'), T('forecasts right', 'prévisions justes')] : [],
       hasForum ? [T('forum: our proposal', 'forum : notre proposition'), T('forum: supported by', 'forum : soutenue par'), T('forum: rejected by', 'forum : rejetée par'), T('forum: our word', 'forum : notre parole'), T('forum: we supported', 'forum : nous avons soutenu'), T('forum: we rejected', 'forum : nous avons rejeté')] : [],
       hasTg ? [T('telegrams sent', 'télégrammes envoyés'), T('telegrams received', 'télégrammes reçus')] : []);
     var cum = 0, out = [head.map(q).join(sep)];
     lines.forEach(function (ln) {
       var r = ln.row, d = ln.dec, p = d && d.payload ? d.payload : {}, v = p.votes || {}, y0 = p.years && p.years[0] ? p.years[0] : {};
-      var sp = r ? UI.rowSplit(r, st, st.weights) : {};
+      var sp = r ? UI.rowParts(r, st, st.weights) : {};
       if (r && r.R !== '' && r.R !== null && r.R !== undefined) cum += Number(r.R);
       var pl = ln.phase === 'game' ? (data.myPledges || []).filter(function (x) { return Number(x.round) === ln.year; })[0] : null;
       var cm = (data.myComments || []).filter(function (x) { return x.phase === ln.phase && (ln.phase === 'warmup' ? ln.year === 1 : Number(x.round) === ln.year); })[0];
       var cells = [ln.phase === 'game' ? T('game', 'partie') : T('warm-up', 'échauffement'), ln.year].concat(lvCols.map(function (l) { return num(ln.lv[l.id]); }),
         [ln.phase === 'game' && y0.euro === 'leave' ? T('announced', 'annoncée') : '', v.rate ? (fr ? ({ cut: 'baisse', hold: 'statu quo', hike: 'hausse' }[v.rate] || v.rate) : v.rate) : '', v.cet !== undefined && v.cet !== null ? v.cet : '', d ? (p.text || '') : ''],
         inds.map(function (i) { return r ? num(r[i.id]) : ''; }),
-        [r ? num(r.R) : '', r && r.R !== '' ? num(cum) : '', sp.nat ? num(sp.nat.R) : '', sp.foreign ? num(sp.foreign.R) : '', sp.shock ? num(sp.shock.R) : '', r && r.detail && r.detail.extra ? num(r.detail.extra.debt) : '', pl ? (pl.text || '') : '', cm ? cm.text : '']);
+        [r ? num(r.R) : '', r && r.R !== '' ? num(cum) : '', sp.nat ? num(sp.nat.R) : '', sp.others ? num(sp.others.R) : '', sp.env ? num(sp.env.R) : '', r && r.detail && r.detail.extra ? num(r.detail.extra.debt) : '', pl ? (pl.text || '') : '', cm ? cm.text : '']);
       if (hasStrat) {
         var sg = p.strategy || {}, part = function (id) { return sg[id] ? sg[id].text || '' : ''; };
         var fx = function (id) { var e = sg[id] && sg[id].expect; return e ? Object.keys(e).map(function (k) { return indName(k) + ' ' + ARW[String(e[k])]; }).join(', ') : ''; };

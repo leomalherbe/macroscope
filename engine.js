@@ -1162,6 +1162,9 @@ var OPENMU = (function () {
     var pOff = p.eco ? Object.assign({}, p, { damageOff: true }) : p;
     var runRef = simulate({ params: pOff, years: years });
     var runShock = simulate({ params: pOff, years: years, shocks: shocks });
+    /* the shocks without the union's decisions (rate votes, crisis outcomes, common external tariff), when the console gives them:
+       the « shock » part then splits into « ext » (the outside environment) and « union » (the union's decisions); shock = ext + union */
+    var runExt = opts.externalShocks ? simulate({ params: pOff, years: years, shocks: opts.externalShocks }) : null;
     /* §12: the union's retaliation against an exited country is the other members' policy: in the full runs only ("foreign" for it) */
     var retal = opts.retaliation;
     var runAllOff = simulate({ params: pOff, years: years, policies: policies, shocks: shocks, retaliation: retal });
@@ -1189,7 +1192,8 @@ var OPENMU = (function () {
         var foreign = diff(diff(diff(iAllOff, iRef, p), shock, p), nat, p);
         var climate = p.eco ? diff(iAll, iAllOff, p) : null;
         var detail = {};
-        KEYS.forEach(function (k) { detail[k] = { shock: shock[k], nat: nat[k], foreign: foreign[k] }; if (climate) detail[k].climate = climate[k]; });
+        var ext = runExt ? diff(indicators(runExt.years[t].countries[id], rc, p), iRef, p) : null;
+        KEYS.forEach(function (k) { detail[k] = { shock: shock[k], nat: nat[k], foreign: foreign[k] }; if (climate) detail[k].climate = climate[k]; if (ext) { detail[k].ext = ext[k]; detail[k].union = shock[k] - ext[k]; } });
         var cy = runAll.years[t].countries[id];
         detail.extra = { gap: cy.gap, debt: 100 * cy.B / cy.Y, wealth: 100 * cy.V / cy.Y, u: cy.u, pi: cy.pi, P: cy.P,
           inv: rc.I ? 100 * (cy.I / rc.I - 1) : 0, loans: 100 * cy.L / cy.Y, deposits: 100 * cy.M / cy.Y };

@@ -592,8 +592,8 @@ of which the shocks
 => dont les chocs
 of which the climate
 => dont le climat
-Deviations from the reference path (GDP in %, the rest in points). R is the score of the year — the weighted sum of that year’s deviations, not a change from the year before: higher GDP, lower unemployment and inflation, better public and trade balances raise it. « Cumulative R » adds the yearly scores up; it is what the ranking uses. The lines « of which » split each result between your own policy, the other countries’ policies and the administrator’s shocks.
-=> Écarts à la trajectoire de référence (PIB en %, le reste en points). R est le score de l’année — la somme pondérée des écarts de cette année, pas une variation par rapport à l’année précédente : un PIB plus élevé, moins de chômage et d’inflation, de meilleurs soldes public et commercial l’augmentent. Le « R cumulé » additionne les scores annuels ; c’est lui qui fait le classement. Les lignes « dont » répartissent chaque résultat entre votre propre politique, celles des autres pays et les chocs de l’administrateur.
+Deviations from the reference path (GDP in %, the rest in points). R is the score of the year — the weighted sum of that year’s deviations, not a change from the year before: higher GDP, lower unemployment and inflation, better public and trade balances raise it. « Cumulative R » adds the yearly scores up; it is what the ranking uses. The lines « of which » split each result between your own policy, the others (the other countries’ policies and the union’s decisions: rate votes, crisis outcomes, common tariff — ▸ unfolds the two) and the external environment (the administrator’s shocks and the climate).
+=> Écarts à la trajectoire de référence (PIB en %, le reste en points). R est le score de l’année — la somme pondérée des écarts de l’année, pas une variation par rapport à l’année précédente : plus de PIB, moins de chômage et d’inflation, de meilleurs soldes public et commercial le font monter. « R cumulé » additionne les scores annuels ; c’est lui que le classement utilise. Les lignes « dont » répartissent chaque résultat entre votre propre politique, les autres (les politiques des autres pays et les décisions de l’union : votes sur le taux, issues des crises, tarif commun — ▸ déplie les deux) et l’environnement extérieur (les chocs de l’administrateur et le climat).
 Deviations from the reference path (GDP in %, the rest in points). R is the score of the year; « Cumulative R » adds the yearly scores up — the ranking uses it. The lines « of which » split each result between your own policy, your partner’s policy, the administrator’s shocks and the climate.
 => Écarts à la trajectoire de référence (PIB en %, le reste en points). R est le score de l’année ; le « R cumulé » additionne les scores annuels — c’est lui qui fait le classement. Les lignes « dont » répartissent chaque résultat entre votre propre politique, celle de votre partenaire, les chocs de l’administrateur et le climat.
 Your objective, year by year
@@ -1646,10 +1646,10 @@ Ranking by dimension
 => Classement par dimension
 Cumulative
 => Cumulé
-Net of the other countries
-=> Net des autres pays
-Rank of each country on each dimension of R, without weights: the gap from the reference, added up over the years (or the last year alone); less unemployment, inflation, emissions or inequality is better. « Net of the other countries » takes out the part due to the other countries’ policies: what is left is your own policy and the shocks you answered — the fair comparison of how each team played.
-=> Rang de chaque pays sur chaque dimension de R, sans pondération : l’écart à la référence, additionné sur les années (ou la dernière année seule) ; moins de chômage, d’inflation, d’émissions ou d’inégalités, c’est mieux. « Net des autres pays » retire la part due aux politiques des autres pays : il reste votre propre politique et les chocs auxquels vous avez répondu — la comparaison juste de la façon dont chaque équipe a joué.
+Net of the others
+=> Net des autres
+Rank of each country on each dimension of R, without weights: the gap from the reference, added up over the years (or the last year alone); less unemployment, inflation, emissions or inequality is better. « Net of the others » takes out the part due to the other countries’ policies and to the union’s decisions (rate votes, crisis outcomes, common tariff): what is left is your own policy and the external environment you answered — the fair comparison of how each team played.
+=> Rang de chaque pays sur chaque dimension de R, sans pondération : l’écart à la référence, additionné sur les années (ou la dernière année seule) ; moins de chômage, d’inflation, d’émissions ou d’inégalités, c’est mieux. « Net des autres » retire la part due aux politiques des autres pays et aux décisions de l’union (votes sur le taux, issues des crises, tarif commun) : il reste votre propre politique et l’environnement extérieur auquel vous avez répondu — la comparaison juste de la façon dont chaque équipe a joué.
 Cumulative R, net of the others
 => R cumulé, net des autres
 1st
@@ -1676,12 +1676,12 @@ helped
 => a aidé
 cost
 => a coûté
-Effect of the others = cumulative R − cumulative R net of the others: what the other countries’ policies added to your score (+) or took from it (−).
-=> Effet des autres = R cumulé − R cumulé net des autres : ce que les politiques des autres pays ont ajouté à votre score (+) ou lui ont retiré (−).
+Effect of the others = cumulative R − cumulative R net of the others: what the other countries’ policies and the union’s decisions added to your score (+) or took from it (−).
+=> Effet des autres = R cumulé − R cumulé net des autres : ce que les politiques des autres pays et les décisions de l’union ont ajouté à votre score (+) ou lui ont retiré (−).
 Net of the others, you are
 => Net des autres, vous êtes
-; the other countries’ policies
-=> ; les politiques des autres pays
+; the others (countries and union)
+=> ; les autres (pays et union)
 added
 => vous ont apporté
 cost you
@@ -1698,10 +1698,10 @@ cumulative R
 => R cumulé
 Your play and the effect of the others
 => Votre jeu et l’effet des autres
-For each country, the dot is its cumulative R net of the other countries’ policies (its own policy and the shocks it answered); the arrow carries it to its cumulative R. An arrow to the right: the others’ policies helped; to the left: they cost. A good strategy held back by the others shows as a dot far to the right with an orange arrow back.
-=> Pour chaque pays, le point est son R cumulé net des politiques des autres pays (sa propre politique et les chocs auxquels il a répondu) ; la flèche le mène à son R cumulé. Flèche vers la droite : les politiques des autres l’ont aidé ; vers la gauche : elles lui ont coûté. Une bonne stratégie freinée par les autres se voit à un point loin à droite avec une flèche orange qui revient.
-your play: own policy and the shocks you answered (R net of the others)
-=> votre jeu : votre politique et les chocs auxquels vous avez répondu (R net des autres)
+For each country, the dot is its cumulative R net of the others — the other countries’ policies and the union’s decisions (its own policy and the external environment it answered); the arrow carries it to its cumulative R. An arrow to the right: the others helped; to the left: they cost. A good strategy held back by the others shows as a dot far to the right with an orange arrow back.
+=> Pour chaque pays, le point est son R cumulé net des autres — les politiques des autres pays et les décisions de l’union (sa propre politique et l’environnement extérieur auquel il a répondu) ; la flèche le mène à son R cumulé. Flèche vers la droite : les autres l’ont aidé ; vers la gauche : ils lui ont coûté. Une bonne stratégie freinée par les autres se voit à un point loin à droite avec une flèche orange qui revient.
+your play: own policy and the external environment you answered (R net of the others)
+=> votre jeu : votre politique et l’environnement extérieur auquel vous avez répondu (R net des autres)
 the arrow ends at the cumulative R
 => la flèche s’arrête au R cumulé
 cum. R
@@ -1720,3 +1720,19 @@ Only the cells you filled in count, each weighing by the size of what actually h
 => Seules les cases que vous avez remplies comptent, chacune selon l’ampleur de ce qui s’est réellement passé. Une variation minime : « ≈ » et une flèche dans son sens sont tous deux justes. Sinon : bon sens 1, « ≈ » face à un effet modéré ½, faux 0. La rubrique « autres pays » n’est pas notée.
 Cumulative R: your play and the effect of the other countries
 => R cumulé : votre jeu et l’effet des autres pays
+
+// three parts of each result (backend 1.20)
+of which the others (countries and union)
+=> dont les autres (pays et union)
+of which the external environment
+=> dont l’environnement extérieur
+other countries’ policies
+=> politiques des autres pays
+union decisions (rate, crisis, tariff)
+=> décisions de l’union (taux, crise, tarif)
+countries · union
+=> pays · union
+R: the others (countries and union)
+=> R : les autres (pays et union)
+R: external environment
+=> R : environnement extérieur

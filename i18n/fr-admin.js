@@ -219,7 +219,7 @@ MXL.add('fr', {"str":{"Macroscope · Administrator":"Macroscope · Administratio
 "Pub. bal. (pt GDP)":"Solde pub. (pt PIB)",
 "Trade bal. (pt GDP)":"Solde com. (pt PIB)",
 "Emis. (% ref.)":"Émis. (% réf.)",
-"of which own / foreign / shocks (GDP)":"dont propre / étranger / chocs (PIB)",
+"of which own / others / environment (GDP)":"dont propre / autres / environnement (PIB)",
 "own / partner / shocks / climate (GDP)":"propre / partenaire / chocs / climat (PIB)",
 "Save and publish all":"Enregistrer et tout publier",
 "Save as draft (not published)":"Enregistrer en brouillon (non publié)",
