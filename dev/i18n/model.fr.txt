@@ -665,8 +665,8 @@
 => les membres gardent des niveaux de prix égaux : pas de réallocation dans l’union
 | reserves 94 % → 86 % → 77 % of R0
 => réserves 94 % → 86 % → 77 % de R0
-| Figures for the Trade model unless marked Finance; both models start with 3 months of reserves. The report splits every result into what your own policy did, what the other countries' policies did, and what the shocks did — three counterfactual runs of the same model.
-=> Chiffres pour le modèle Commerce sauf mention Finance ; les deux modèles démarrent avec 3 mois de réserves. Les résultats décomposent chaque résultat entre ce qu’a fait votre propre politique, ce qu’ont fait les politiques des autres pays et ce qu’ont fait les chocs — trois simulations contrefactuelles du même modèle.
+| Figures for the Trade model unless marked Finance; both models start with 3 months of reserves. The report splits every result into what your own policy did, what the others did (the other countries' policies and the union's decisions: rate votes, crisis outcomes, common tariff) and what the external environment did (the shocks and the climate) — counterfactual runs of the same model.
+=> Chiffres pour le modèle Commerce sauf mention Finance ; les deux modèles démarrent avec 3 mois de réserves. Les résultats décomposent chaque résultat entre ce qu’a fait votre propre politique, ce qu’ont fait les autres (les politiques des autres pays et les décisions de l’union : votes sur le taux, issues des crises, tarif commun) et ce qu’a fait l’environnement extérieur (les chocs et le climat) — des simulations contrefactuelles du même modèle.
 | Model: Godley &amp; Lavoie (2007), <em>Monetary Economics</em>, chapter 6 (OPEN / REG), extended to a monetary union with firms and horizontalist banks. Engine <code>engine.js</code>, specification in <code>docs/openmu-spec.md</code> of the repository.
 => Modèle : Godley &amp; Lavoie (2007), <em>Monetary Economics</em>, chapitre 6 (OPEN / REG), étendu à une union monétaire avec des entreprises et des banques horizontalistes. Moteur <code>engine.js</code>, spécification dans <code>docs/openmu-spec.md</code> du dépôt.
 | Interest on government bills

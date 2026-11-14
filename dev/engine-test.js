@@ -781,5 +781,18 @@ console.log('\n# Households option');
   must(errD < 1e-9, 'inequality: shock + own + foreign (+ climate) parts add up to the total, union and exit (max ' + errD.toExponential(1) + ')');
 }
 
+
+/* 14/11: the shocks split into the external environment and the union's decisions (externalShocks) */
+{
+  const pq = OPENMU.paramsFor('v2.0');
+  const rq = OPENMU.report({ params: pq, years: 3, policies: { FRA: [{ pubdem: 2 }, {}, {}] }, shocks: [{ rate: -0.5, confidence: -2 }, { rate: -1 }, { rate: -1, deval: 5 }], externalShocks: [{ rate: 0, confidence: -2 }, { rate: 0 }, { rate: 0 }] });
+  let maxErr = 0, unionGdp2 = 0;
+  rq.years.forEach((y, t) => Object.keys(y.countries).forEach(id => { const d = y.countries[id].detail; ['gdp', 'unemp', 'infl', 'pubbal', 'tradebal'].forEach(k => { maxErr = Math.max(maxErr, Math.abs(d[k].ext + d[k].union - d[k].shock)); }); if (t === 1 && id === 'FRA') unionGdp2 = d.gdp.union; }));
+  if (!(maxErr < 1e-12)) throw new Error('ext + union ≠ shock (' + maxErr + ')');
+  if (!(unionGdp2 > 0)) throw new Error('rate cuts voted by the union should lift GDP in year 2 (' + unionGdp2 + ')');
+  const r0 = OPENMU.report({ params: pq, years: 2, policies: {}, shocks: [{ confidence: -2 }, {}] });
+  if (r0.years[1].countries.FRA.detail.gdp.ext !== undefined) throw new Error('no ext/union parts without externalShocks');
+  console.log('ok - shocks split into the external environment and the union decisions (ext + union = shock; union part of the rate cuts > 0)');
+}
 console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' : '\nENGINE OK');
 process.exit(failed ? 1 : 0);

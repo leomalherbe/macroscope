@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111404">
-<script src="i18n.js?v=2026111404"></script>
-<script src="i18n/fr-desk.js?v=2026111404"></script>
-<script src="i18n/fr-admin.js?v=2026111404"></script>
-<script src="config.js?v=2026111404"></script>
-<script src="core.js?v=2026111404"></script>
-<script src="app-common.js?v=2026111404"></script>
-<script src="engine.js?v=2026111404"></script>
+<link rel="stylesheet" href="style.css?v=2026111407">
+<script src="i18n.js?v=2026111407"></script>
+<script src="i18n/fr-desk.js?v=2026111407"></script>
+<script src="i18n/fr-admin.js?v=2026111407"></script>
+<script src="config.js?v=2026111407"></script>
+<script src="core.js?v=2026111407"></script>
+<script src="app-common.js?v=2026111407"></script>
+<script src="engine.js?v=2026111407"></script>
 </head>
 <body>
 
@@ -959,7 +959,7 @@
     row.R = MS.scoreR(dev, weights);
     /* R is linear in the indicators: split it the same way (own policy / foreign policies / shocks) */
     var Rparts = {}, anyPart = false;
-    ['shock', 'nat', 'foreign', 'climate'].forEach(function (p) {
+    ['shock', 'nat', 'foreign', 'climate', 'ext', 'union'].forEach(function (p) {
       var pd = {}, has = false;
       MS.indicatorsFor(st()).forEach(function (i) { var x = det[i.id] && det[i.id][p]; if (x !== undefined && x !== null) { pd[i.id] = x; has = true; } });
       if (has) { Rparts[p] = MS.scoreR(pd, weights); anyPart = true; }
@@ -1199,7 +1199,7 @@
       }
       policies[g.country] = plan;
     });
-    var shocks = [], tallies = {}, caps = {}, cum = 0, rStar = params.r * 100, half = playing.length / 2, warnings = [];
+    var shocks = [], extShocks = [], tallies = {}, caps = {}, cum = 0, rStar = params.r * 100, half = playing.length / 2, warnings = [];
     var exAll = exitsUpTo(N), retal = retaliationList(N, exAll);   /* §12 */
     var cetLevel = 0, tariffsOn = MS.tariffsOn(s);   /* §13 */
     for (var y = 1; y <= N; y++) {
@@ -1221,6 +1221,9 @@
       var rateShock = (adminShocks[y - 1].rate || 0) + cum;
       rateShock = Math.max(-rStar, Math.min(10 - rStar, rateShock));
       var shock = Object.assign({}, adminShocks[y - 1], { rate: rateShock });
+      /* the same year without the union's decisions: the administrator's rate only, no common external tariff, no crisis outcome */
+      var extShock = Object.assign({}, adminShocks[y - 1], { rate: Math.max(-rStar, Math.min(10 - rStar, adminShocks[y - 1].rate || 0)) });
+      delete extShock.cet;
       /* §13: the common external tariff of year y — lower median of the votes cast by the members with their decisions; when nobody
          votes, the level of the previous year stays */
       var cetT = null;
@@ -1254,12 +1257,14 @@
           ['pubdem', 'benefits'].forEach(function (k) { if ((pol[k] || 0) > rules.austerityCap) { pol[k] = rules.austerityCap; if (capped.indexOf(g.country) < 0) capped.push(g.country); } });
         });
       } else if (crisis.needed) warnings.push('Year ' + y + ': the union ' + (exhausted ? 'had exhausted its reserves (forced devaluation due)' : 'was under alert (crisis vote due)') + ' but no crisis round was recorded in Control; the year was run without it.');
-      shocks.push(shock);
+      /* the exchange-rate regime stays the year's framework in both runs (a regime chosen at a crisis vote carries over in the shocks) */
+      extShock.regime = shock.regime;
+      shocks.push(shock); extShocks.push(extShock);
       tallies[y] = { rate: votesOn ? { cut: t.rate.cut, hold: t.rate.hold, hike: t.rate.hike, outcome: delta, level: rStar + shock.rate } : null, crisis: crisis };
       if (cetT) tallies[y].cet = cetT;
       caps[y] = capped;
     }
-    return { policies: policies, shocks: shocks, tallies: tallies, caps: caps, warnings: warnings, retaliation: retal, exits: exAll };
+    return { policies: policies, shocks: shocks, externalShocks: extShocks, tallies: tallies, caps: caps, warnings: warnings, retaliation: retal, exits: exAll };
   }
   /* situation of the union at the start of year N (end of year N−1, replayed with the recorded decisions, shocks and crisis rounds) */
   function crisisNeed(N) {
@@ -1301,7 +1306,7 @@
     try {
       var params = engineParams();
       var rp = replayWithVotes(N, params);
-      var rep = OPENMU.report({ params: params, years: N, policies: rp.policies, shocks: rp.shocks, retaliation: rp.retaliation });
+      var rep = OPENMU.report({ params: params, years: N, policies: rp.policies, shocks: rp.shocks, externalShocks: rp.externalShocks, retaliation: rp.retaliation });
       var yr = rep.years[N - 1];
       var rows = [];
       ov.groups.forEach(function (g) { var cc = g.country && yr.countries[g.country]; if (!cc) return; var wi = MS.weightsInfo(s, N, g.country); var r = countryRow(cc, g.country, N, wi.weights); if (wi.elected) { r.detail.weights = wi.weights; r.detail.electionLabel = wi.label; } r._group = g; rows.push(r); });
@@ -1343,12 +1348,12 @@
       ]));
       box.appendChild(card); return;
     }
-    var h = '<div class="tablewrap"><table class="resgrid"><thead><tr><th>' + (isGame ? 'Country' : 'Group') + '</th><th>Year</th>' + MS.indicatorsFor(st()).map(function (i) { return '<th class="num">' + esc(SHORT[i.id]) + '</th>'; }).join('') + '<th class="num">R</th><th class="num">of which own / foreign / shocks (GDP)</th></tr></thead><tbody>';
+    var h = '<div class="tablewrap"><table class="resgrid"><thead><tr><th>' + (isGame ? 'Country' : 'Group') + '</th><th>Year</th>' + MS.indicatorsFor(st()).map(function (i) { return '<th class="num">' + esc(SHORT[i.id]) + '</th>'; }).join('') + '<th class="num">R</th><th class="num">of which own / others / environment (GDP)</th></tr></thead><tbody>';
     runPreview.rows.filter(function (r) { return String(r.key).indexOf('UNION') !== 0; }).forEach(function (r) {
       var who = isGame ? MS.countryName(r.key) + (r._group ? ' <span class="muted small">' + esc(r._group.name) + '</span>' : '') : esc(r._group ? r._group.name : r.key);
       var d = r.detail && r.detail.gdp ? r.detail.gdp : null;
       h += '<tr><td><b>' + who + '</b></td><td>' + r.year + '</td>' + MS.indicatorsFor(st()).map(function (i) { return '<td class="num ' + UI.signedClass(i.sign * r[i.id]) + '">' + esc(MS.fmt(r[i.id], 3, true)) + '</td>'; }).join('') +
-        '<td class="num ' + UI.signedClass(r.R) + '"><b>' + esc(MS.fmt(r.R, 3, true)) + '</b></td><td class="num small muted">' + (d ? esc(MS.fmt(d.nat, 2, true)) + ' / ' + esc(MS.fmt(d.foreign, 2, true)) + ' / ' + esc(MS.fmt(d.shock, 2, true)) : '') + '</td></tr>';
+        '<td class="num ' + UI.signedClass(r.R) + '"><b>' + esc(MS.fmt(r.R, 3, true)) + '</b></td><td class="num small muted">' + (d ? esc(MS.fmt(d.nat, 2, true)) + ' / ' + esc(MS.fmt(d.foreign + (d.union || 0), 2, true)) + ' / ' + esc(MS.fmt((d.ext !== undefined ? d.ext : d.shock) + (d.climate || 0), 2, true)) : '') + '</td></tr>';
     });
     card.appendChild(el('div', { html: h + '</tbody></table></div>' }));
     var unions = runPreview.rows.filter(function (r) { return String(r.key).indexOf('UNION') === 0; });

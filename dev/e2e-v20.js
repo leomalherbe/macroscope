@@ -107,7 +107,7 @@ const KEY = 'TESTKEY';
   must(typeof u3.D === 'number' && u3.D > 1 && u3.Sshare > 1.03 && u3.Erel < 0, 'published union row: damage ' + u3.D.toFixed(1) + ' % in year 3, pollution stock ' + (100 * u3.Sshare).toFixed(1) + ', union emissions ' + u3.Erel.toFixed(0) + ' %');
   await stu.reload(); await stu.waitForSelector('#commentText');
   const stuTxt = await stu.textContent('#app');
-  must(/Climate:/.test(stuTxt) && /carbon intensity/.test(stuTxt) && /Climate damage this year/.test(stuTxt) && /of which the climate/.test(stuTxt) && !/shocks and the climate/.test(stuTxt), 'student results: climate line, union climate block, fourth breakdown line "of which the climate"');
+  must(/Climate:/.test(stuTxt) && /carbon intensity/.test(stuTxt) && /Climate damage this year/.test(stuTxt) && /of which the external environment/.test(stuTxt) && !/of which the climate/.test(stuTxt), 'student results: climate line, union climate block; the climate counts in « of which the external environment » (three parts, 14/11)');
   must(/Carbon tax \+5\.00 pt/.test(stuTxt) || /Carbon tax/.test(stuTxt), 'lever chips name the carbon tax');
   /* sixth dimension: emissions, weight 0 by default */
   const heads = await stu.evaluate(() => [...document.querySelectorAll('#results table thead th')].map(th => th.textContent.trim()));
