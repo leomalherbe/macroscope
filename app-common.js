@@ -375,6 +375,24 @@ var UI = (function () {
       el('p', { class: 'muted small' }, ['For each country, the dot is its cumulative R net of the other countries’ policies (its own policy and the shocks it answered); the arrow carries it to its cumulative R. An arrow to the right: the others’ policies helped; to the left: they cost. A good strategy held back by the others shows as a dot far to the right with an orange arrow back.']),
       el('div', { html: svg }), el('div', { html: othersLegendHtml() })]);
   }
+  /* ---------- forecast accuracy: the table of every team (console, board) ----------
+     teams: [{key: country, label, decisions: [{round, payload}], rows: [published rows of the country]}] */
+  function accuracyTableHtml(st, teams, opts) {
+    opts = opts || {};
+    var list = teams.map(function (t) { var a = MS.accuracyTeam(st, t.decisions, t.rows); var s1 = a.cum.shock, s2 = a.cum.own; return { t: t, a: a, s1: s1 ? s1.score : null, s2: s2 ? s2.score : null, avg: s1 && s2 ? Math.round((s1.score + s2.score) / 2) : (s1 ? s1.score : (s2 ? s2.score : null)) }; })
+      .filter(function (x) { return x.avg !== null; }).sort(function (a, b) { return b.avg - a.avg; });
+    if (!list.length) return '';
+    var years = {}; list.forEach(function (x) { Object.keys(x.a.years).forEach(function (y) { years[y] = 1; }); });
+    var yl = Object.keys(years).map(Number).sort(function (a, b) { return a - b; });
+    var h = '<div class="tablewrap"><table class="rk"><thead><tr><th>#</th><th>Country</th><th>' + esc(MS.ACC_PARTS[0].label) + '</th><th>' + esc(MS.ACC_PARTS[1].label) + '</th><th class="rcum">Average</th>' +
+      (opts.years ? yl.map(function (y) { return '<th>Y' + y + '</th>'; }).join('') : '') + '</tr></thead><tbody>';
+    list.forEach(function (x, i) {
+      h += '<tr><td class="rank">' + (i + 1) + '</td><td><b>' + esc(x.t.label || MS.countryName(x.t.key)) + '</b></td><td><span class="r">' + (x.s1 === null ? '—' : x.s1) + '</span></td><td><span class="r">' + (x.s2 === null ? '—' : x.s2) + '</span></td><td class="rcum"><span class="r">' + x.avg + '</span></td>' +
+        (opts.years ? yl.map(function (y) { var a = x.a.years[y]; return '<td class="small">' + (a ? (a.shock ? a.shock.score : '—') + ' · ' + (a.own ? a.own.score : '—') : '<span class="muted">—</span>') + '</td>'; }).join('') : '') + '</tr>';
+    });
+    return h + '</tbody></table></div>';
+  }
+
   /* ---------- ranking by dimension ----------
      rank of each country on each dimension of R (sign applied: less unemployment, inflation, emissions or inequality is better),
      no weights inside a dimension; three views: cumulative (sum over the years published), the last year, net of the other
@@ -879,5 +897,5 @@ var UI = (function () {
   }
   function store(key, val) { try { if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  return { othersCum: othersCum, othersCard: othersCard, othersChartSvg: othersChartSvg, dimRankCard: dimRankCard, dimRanking: dimRanking, exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
+  return { accuracyTableHtml: accuracyTableHtml, othersCum: othersCum, othersCard: othersCard, othersChartSvg: othersChartSvg, dimRankCard: dimRankCard, dimRanking: dimRanking, exploreCard: exploreCard, rowSplit: rowSplit, splitRowsHtml: splitRowsHtml, debtHoldersHtml: debtHoldersHtml, currencyTally: currencyTally, trajCaption: trajCaption, EXPLORE_GROUPS: EXPLORE_GROUPS, exploreVars: exploreVars, exploreValue: exploreValue, exploreSvg: exploreSvg, raceColor: raceColor, $: $, $$: $$, esc: esc, el: el, toast: toast, fmtTime: fmtTime, fmtDateTime: fmtDateTime, countdownText: countdownText, signedClass: signedClass, yearChips: yearChips, chipsHtml: chipsHtml, voteChipsHtml: voteChipsHtml, crisisWord: crisisWord, crisisTally: crisisTally, voteLinesHtml: voteLinesHtml, regimeLinesHtml: regimeLinesHtml, exitLinesHtml: exitLinesHtml, factSheetHtml: factSheetHtml, factTableHtml: factTableHtml, factItems: factItems, currencyPanelHtml: currencyPanelHtml, climateLinesHtml: climateLinesHtml, duelPanelHtml: duelPanelHtml, pledgeChipsHtml: pledgeChipsHtml, FORUM_TYPE_LABEL: FORUM_TYPE_LABEL, forumPostHtml: forumPostHtml, forumBalanceHtml: forumBalanceHtml, forumRecord: forumRecord, forumRecordHtml: forumRecordHtml, rangeText: rangeText, trajectorySvg: trajectorySvg, rRaceSvg: rRaceSvg, trajectoryLegendHtml: trajectoryLegendHtml, weightsLine: weightsLine, download: download, copyText: copyText, store: store, read: read };
 })();

@@ -1196,3 +1196,21 @@ Communication between teams and visibility
 => Communication entre équipes et visibilité
 Replaced by the guided strategy (minimum length per part)
 => Remplacé par la stratégie guidée (longueur minimale par rubrique)
+
+// forecast accuracy
+Forecast ranking published
+=> Classement des prévisions publié
+Forecast ranking hidden
+=> Classement des prévisions masqué
+publish the forecast-accuracy ranking on the board (guided strategy; needs the published ranking and the decisions shown once closed)
+=> publier le classement de la précision des prévisions sur le board (stratégie guidée ; demande le classement publié et les décisions montrées une fois l’année close)
+Forecast accuracy
+=> Précision des prévisions
+Guided strategy: the diagnosis of the shock and the forecast of each team’s own policy, 0–100, over the game (the years: shock · own policy). Each indicator weighs by the size of what actually happened. Also in the decisions CSV (accuracy_shock, accuracy_own).
+=> Stratégie guidée : le diagnostic du choc et la prévision de la politique propre de chaque équipe, de 0 à 100, sur la partie (par année : choc · politique propre). Chaque indicateur pèse selon l’ampleur de ce qui s’est réellement passé. Aussi dans le CSV des décisions (accuracy_shock, accuracy_own).
+Diagnosis of the shock
+=> Diagnostic du choc
+Forecast of own policy
+=> Prévision de la politique propre
+Average
+=> Moyenne

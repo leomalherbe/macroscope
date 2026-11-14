@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111401">
-<script src="i18n.js?v=2026111401"></script>
-<script src="i18n/fr-desk.js?v=2026111401"></script>
-<script src="i18n/fr-admin.js?v=2026111401"></script>
-<script src="config.js?v=2026111401"></script>
-<script src="core.js?v=2026111401"></script>
-<script src="app-common.js?v=2026111401"></script>
-<script src="engine.js?v=2026111401"></script>
+<link rel="stylesheet" href="style.css?v=2026111402">
+<script src="i18n.js?v=2026111402"></script>
+<script src="i18n/fr-desk.js?v=2026111402"></script>
+<script src="i18n/fr-admin.js?v=2026111402"></script>
+<script src="config.js?v=2026111402"></script>
+<script src="core.js?v=2026111402"></script>
+<script src="app-common.js?v=2026111402"></script>
+<script src="engine.js?v=2026111402"></script>
 </head>
 <body>
 
@@ -472,6 +472,8 @@
     vis.appendChild(el('label', {}, [cbD, ' once a round is closed, show everyone’s decisions for that round (never while it is open)']));
     var cbX = el('input', { type: 'checkbox' }); cbX.checked = !!(s.game && s.game.teamExport); cbX.addEventListener('change', function () { patch({ game: { teamExport: cbX.checked } }, cbX.checked ? 'Teams can download their game' : 'Team download closed'); });
     vis.appendChild(el('label', {}, [cbX, ' let each team download its own game (CSV) — at the end of the game: no file to paste into a chatbot while playing']));
+    var cbA = el('input', { type: 'checkbox' }); cbA.checked = !!(s.game && s.game.publishAccuracy); cbA.addEventListener('change', function () { patch({ game: { publishAccuracy: cbA.checked } }, cbA.checked ? 'Forecast ranking published' : 'Forecast ranking hidden'); });
+    if (!isDuel()) vis.appendChild(el('label', {}, [cbA, ' publish the forecast-accuracy ranking on the board (guided strategy; needs the published ranking and the decisions shown once closed)']));
     c4.appendChild(vis);
     v.appendChild(c4);
 
@@ -1483,6 +1485,13 @@
     var v = $('#view'); v.innerHTML = '';
     var c = el('div', { class: 'card' });
     c.appendChild(el('h2', {}, ['Export']));
+    /* forecast accuracy of every team (guided strategy), from the published rows */
+    var accTeams = ov.groups.filter(function (g) { return g.country; }).map(function (g) {
+      return { key: g.country, label: MS.countryName(g.country) + ' · ' + g.name, decisions: ov.decisions.filter(function (d) { return d.phase === 'game' && d.groupId === g.groupId; }),
+        rows: ov.results.filter(function (r) { return r.phase === 'game' && r.key === g.country && r.published; }) };
+    });
+    var accH = UI.accuracyTableHtml(st(), accTeams, { years: true });
+    if (accH) v.appendChild(el('div', { class: 'card' }, [el('h2', {}, ['Forecast accuracy']), el('p', { class: 'muted small' }, ['Guided strategy: the diagnosis of the shock and the forecast of each team’s own policy, 0–100, over the game (the years: shock · own policy). Each indicator weighs by the size of what actually happened. Also in the decisions CSV (accuracy_shock, accuracy_own).']), el('div', { html: accH })]));
     c.appendChild(el('p', { class: 'muted small' }, ['Everything also lives in the Google Sheet (tabs Decisions, Results, Pledges, Forum, Reactions, Telegrams, Comments, Log). These exports are the latest version of each item for this class.']));
     var cls = classes.filter(function (x) { return x.id === classId; })[0]; var tag = (cls ? cls.name : classId).replace(/[^a-z0-9]+/gi, '_');
     var decRows = ov.decisions.map(function (d) { var g = groupById(d.groupId); var o = { ts: d.ts, phase: d.phase, round: d.round, group: g ? g.name : d.groupId, country: MS.countryName(d.country), used: d.used, text: d.text }; d.payload.years.forEach(function (y, i) { MS.LEVERS.forEach(function (l) { o['y' + (i + 1) + '_' + l.id] = y.levers[l.id] || 0; }); o['y' + (i + 1) + '_tariffs'] = Object.keys(y.tariffs || {}).map(function (k) { return k + ':' + y.tariffs[k]; }).join(' '); o['y' + (i + 1) + '_euro'] = y.euro; o['y' + (i + 1) + '_tfp'] = y.tfp || 0; }); return o; });
@@ -1498,6 +1507,13 @@
         var fc = MS.forecastCheck(st(), sg, rowOf(Number(d.round)), rowOf(Number(d.round) - 1));
         if (fc.n) { o.forecast_hits = fc.hits; o.forecast_n = fc.n; }
       }
+    });
+    /* forecast accuracy of each decision (guided strategy): the two scores of the year */
+    ov.decisions.forEach(function (d, k) {
+      var sg = d.payload && d.payload.strategy; if (!sg || d.phase !== 'game') return;
+      var rowOf2 = function (y) { return ov.results.filter(function (r) { return r.phase === 'game' && r.key === d.country && Number(r.year) === y && r.published; })[0] || null; };
+      var a = MS.accuracyYear(st(), sg, rowOf2(Number(d.round)), rowOf2(Number(d.round) - 1));
+      if (a.shock) decRows[k].accuracy_shock = a.shock.score; if (a.own) decRows[k].accuracy_own = a.own.score;
     });
     var decCols = decRows.length ? Object.keys(decRows.reduce(function (a, r) { Object.keys(r).forEach(function (k) { a[k] = 1; }); return a; }, {})) : [];
     var resRows = ov.results.map(function (r) { var g = r.phase === 'warmup' ? groupById(r.key) : groupByCountry(r.key); return Object.assign({}, r, { who: r.phase === 'warmup' ? (g ? g.name : r.key) : MS.countryName(r.key) + (g ? ' (' + g.name + ')' : '') }); });
