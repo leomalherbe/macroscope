@@ -131,7 +131,7 @@ MXL.add('fr', {
 "k155": "sa monnaie<br>son taux",
 "k156": "un taux de change entre eux, un climat partagé",
 "k157": "Pour l’utiliser en cours, ou pour contribuer",
-"k158": "Macroscope, par Léo Malherbe, KEDGE Business School. Utilisation gratuite, sous licence <a href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr\">CC BY-NC-SA 4.0</a>.",
+"k158": "Macroscope, par Léo Malherbe, KEDGE Business School ; design web de Lina Lozano. Utilisation gratuite, sous licence <a href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr\">CC BY-NC-SA 4.0</a>.",
 "k159": "Code source sur <a href=\"https://github.com/leomalherbe/macroscope\">GitHub</a>",
 "k160": "NOUVEAU",
 "k161": "Demande et échanges : demande mondiale, confiance des ménages, part des dépenses consacrée aux importations, dévaluation",
