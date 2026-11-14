@@ -262,11 +262,13 @@ var UI = (function () {
     h += '<div class="urow"><span>Price of one euro in your currency (+ = depreciation)</span><span class="num">' + esc(MS.fmt(x.fx, 3)) + ' <span class="' + (x.dfx > 0 ? 'neg' : (x.dfx < 0 ? 'pos' : 'muted')) + '">(' + esc(MS.fmt(x.dfx, 1, true)) + ' % over the year)</span></span></div>';
     h += '<div class="urow"><span>Price of the world currency in your currency</span><span class="num">' + esc(MS.fmt(x.fxWorld, 3)) + '</span></div>';
     h += '<div class="urow"><span>Your policy rate · rate on your bills</span><span class="num">' + esc(MS.fmt(x.rate, 2)) + ' % · ' + esc(MS.fmt(x.rEff, 2)) + ' %</span></div>';
-    if (x.peg) {
-      var pct = Math.max(0, Math.min(100, 100 * (x.RXshare || 0)));
-      h += '<div class="urow"><span>Your foreign reserves (share received at the exit)</span><span class="num">' + esc(MS.fmt(100 * (x.RXshare || 0), 0)) + ' %' + (x.RXalert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
-        '<div class="bar reserves"><i class="' + (x.RXalert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>';
-    }
+    /* the reserves: always shown (frozen while floating, they are what a peg would defend) */
+    var pct = Math.max(0, Math.min(100, 100 * (x.RXshare || 0)));
+    if (x.RXgdp !== undefined && x.RXgdp < 0) h += '<div class="urow"><span>Your foreign reserves</span><span class="num"><span class="neg">exhausted</span> · owed to the rest of the world ' + esc(MS.fmt(-x.RXgdp, 1)) + ' % of GDP <span class="pill closed">ALERT</span></span></div>';
+    else h += '<div class="urow"><span>Your foreign reserves</span><span class="num">' + (x.RXgdp !== undefined ? esc(MS.fmt(x.RXgdp, 1)) + ' % of GDP' + (x.RXmonths !== null && x.RXmonths !== undefined ? ' · ' + esc(MS.fmt(x.RXmonths, 1)) + ' months of imports' : '') + ' · ' : '') +
+      esc(MS.fmt(100 * (x.RXshare || 0), 0)) + ' % of the share received at the exit' + (x.RXalert ? ' <span class="pill closed">ALERT</span>' : '') + '</span></div>' +
+      '<div class="bar reserves"><i class="' + (x.RXalert ? 'neg' : '') + '" style="left:0;width:' + pct + '%"></i><b style="left:25%"></b></div>';
+    if (!x.peg) h += '<p class="xs muted" style="margin:2px 0 6px">Frozen while your currency floats: they are what your central bank would have to defend a peg with.</p>';
     h += '<div class="urow"><span>Your bills held by the union’s central bank</span><span class="num">' + esc(MS.fmt(x.BcbU, 1)) + ' % of GDP' + (x.sold ? ' <span class="neg">(' + esc(MS.fmt(x.sold, 1)) + ' % sold this year)</span>' : '') + '</span></div>';
     h += '<div class="urow"><span>TARGET balance (+: your central bank owes the union, in euros)</span><span class="num ' + (x.T2 > 0 ? 'neg' : '') + '">' + esc(MS.fmt(x.T2, 1, true)) + ' % of GDP' + (x.settled ? ' · settled this year' : '') + '</span></div>';
     if (x.tariff) h += '<div class="urow"><span>Union tariff on your exports</span><span class="num neg">' + esc(MS.fmt(x.tariff, 0)) + ' %</span></div>';

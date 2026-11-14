@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111407">
-<script src="i18n.js?v=2026111407"></script>
-<script src="i18n/fr-desk.js?v=2026111407"></script>
-<script src="guide.js?v=2026111407"></script>
-<script src="config.js?v=2026111407"></script>
-<script src="core.js?v=2026111407"></script>
-<script src="app-common.js?v=2026111407"></script>
+<link rel="stylesheet" href="style.css?v=2026111410">
+<script src="i18n.js?v=2026111410"></script>
+<script src="i18n/fr-desk.js?v=2026111410"></script>
+<script src="guide.js?v=2026111410"></script>
+<script src="config.js?v=2026111410"></script>
+<script src="core.js?v=2026111410"></script>
+<script src="app-common.js?v=2026111410"></script>
 </head>
 <body>
 
@@ -381,6 +381,7 @@
       cb.appendChild(el('tr', {}, [el('td', { html: 'Exchange-rate regime<span class="hint">Floating: the price of the euro in your currency moves until your balance of payments balances (your reserves are frozen). Peg: your central bank holds the parity and its reserves absorb your deficits and surpluses; reserves exhausted with a deficit force a devaluation of 15 %. Against the rest of the world your currency follows the euro.</span>' }), el('td', { class: 'unit' }, ['—']), el('td', { class: 'num' }, [fxSel])]));
       cb.appendChild(el('tr', {}, [el('td', { html: 'Change of the parity (peg only)<span class="hint">+ = devaluation (a euro costs more of your currency: exports recover with a lag, import prices and inflation rise at once), − = revaluation</span>' }), el('td', { class: 'unit' }, ['% · ±' + (f.bounds.peg || 20)]), el('td', { class: 'num' }, [pcIn])]));
       cb.appendChild(el('tr', {}, [el('td', { html: 'Buy back the bills the union sells<span class="hint">If the union’s central bank sells your bills, your central bank buys them: your rate does not rise, but the money created goes abroad anyway — your currency still falls (or your reserves, in a peg)</span>' }), el('td', { class: 'unit' }, ['—']), el('td', { class: 'num' }, [abIn])]));
+      cb.appendChild(el('tr', {}, [el('td', { colspan: 3, class: 'small', html: reservesLineHtml(f.country) })]));
       ct.appendChild(cb); card.appendChild(el('div', { class: 'tablewrap' }, [ct]));
       setTimeout(syncPeg, 0);
     }
@@ -547,6 +548,28 @@
     } catch (err) { e.innerHTML = '<div class="err">Network error: ' + esc(err.message) + '</div>'; }
     btn = $('#submitBtn'); if (btn) { btn.disabled = !data.roundOpen; btn.textContent = 'Update our decisions'; }
   }
+
+  /* §12: the foreign reserves of a country out of the union, before its decision: the last published year once out; in the first
+     year out, the share of the union's reserves it receives (in proportion to its size among the members at the exit) */
+  function reservesLineHtml(c) {
+    var st = data.state, rows = (data.myResults || []).filter(function (r) { return r.phase === 'game' && r.key === c && r.detail && r.detail.extra && r.detail.extra.exited; }).sort(function (a, b) { return b.year - a.year; });
+    var x = rows[0] ? rows[0].detail.extra : null;
+    if (x) {
+      var head = '<b>Your foreign reserves at the end of year ' + esc(rows[0].year) + ':</b> ';
+      if (x.RXgdp !== undefined && x.RXgdp < 0) return head + '<span class="neg">exhausted</span> <span>— your central bank owes the rest of the world ' + esc(MS.fmt(-x.RXgdp, 1)) + ' % of GDP.</span> <span class="pill closed">ALERT</span> <span>A peg can no longer be defended: with a deficit, a forced devaluation.</span>';
+      return head + '<span>' + (x.RXgdp !== undefined ? esc(MS.fmt(x.RXgdp, 1)) + ' % of GDP, ' + (x.RXmonths !== null && x.RXmonths !== undefined ? esc(MS.fmt(x.RXmonths, 1)) + ' months of imports, ' : '') : '') +
+        esc(MS.fmt(100 * (x.RXshare || 0), 0)) + ' % of what you received at the exit.</span>' + (x.RXalert ? ' <span class="pill closed">ALERT</span>' : '') + ' <span>A peg spends them when your balance of payments is in deficit; at zero, a forced devaluation.</span>';
+    }
+    /* first year out: the share of the union's reserves, by size among the members of the class at the exit */
+    var y = Number(st.round), size = function (id) { var k = MS.countryById(id); return k ? k.size : 0; };
+    var mem = (data.groups || []).map(function (g) { return g.country; }).filter(function (id, i, a) { return id && a.indexOf(id) === i && (id === c || !MS.isOutIn(st, id, y - 1)); });
+    var tot = mem.reduce(function (a, id) { return a + size(id); }, 0), sh = tot ? 100 * size(c) / tot : 0;
+    var u = (data.union || []).filter(function (r) { return r.phase === 'game' && r.key === 'UNION' && Number(r.year) === y - 1 && r.detail && r.detail.extra; })[0];
+    var ux = u ? u.detail.extra : null;
+    return '<b>Your foreign reserves:</b> <span>at the exit your central bank receives ' + esc(MS.fmt(sh, 0)) + ' % of the union’s reserves (your share by size).</span>' +
+      (ux && ux.months !== undefined ? ' <span>The union held ' + esc(MS.fmt(ux.months, 1)) + ' months of its imports from the rest of the world at the end of year ' + (y - 1) + '.</span>' : '') + ' <span>Your results will show them in % of GDP and in months of your imports.</span>';
+  }
+
 
   /* ---------------- council of ministers ---------------- */
   function renderCouncil() {

@@ -1230,6 +1230,9 @@ var OPENMU = (function () {
             ex.rate = 100 * cy.r; ex.rEff = 100 * cy.rEff; ex.tariff = cy.tariff; ex.tariffU = cy.tariffU; ex.sold = 100 * cy.sold / cy.Y; ex.settled = cy.settled;
             ex.T2 = 100 * cy.T2 * cy.fx / cy.Y; ex.BcbU = 100 * cy.BcbU / cy.Y; ex.RXshare = cy.RX0 > 0 ? cy.RX / cy.RX0 : 0;
             ex.RXalert = cy.peg && cy.RX < p.alertShare * cy.RX0;
+            /* the reserves themselves: % of GDP and months of imports (value in the national currency: RX × price of the world currency) */
+            var rxV = cy.RX * cy.fx * runAll.years[t].union.xr;
+            ex.RXgdp = 100 * rxV / cy.Y; ex.RXmonths = cy.IMV > 0 ? 12 * rxV / cy.IMV : null;
           }
         }
         var entry = { detail: detail, byPart: { total: total, shock: shock, nat: nat, foreign: foreign } };
