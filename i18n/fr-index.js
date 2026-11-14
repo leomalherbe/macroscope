@@ -133,6 +133,7 @@ MXL.add('fr', {
 "k157": "Pour l’utiliser en cours, ou pour contribuer",
 "k158": "Macroscope, par Léo Malherbe, KEDGE Business School. Utilisation gratuite, sous licence <a href=\"https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr\">CC BY-NC-SA 4.0</a>.",
 "k159": "Code source sur <a href=\"https://github.com/leomalherbe/macroscope\">GitHub</a>",
+"k188": "Développé avec l’aide de l’IA : <a href=\"https://github.com/leomalherbe/macroscope/blob/main/AI-USE.fr.md\">comment et pour quoi</a>",
 "k160": "NOUVEAU",
 "k161": "Demande et échanges : demande mondiale, confiance des ménages, part des dépenses consacrée aux importations, dévaluation",
 "k162": "Finance : le régime de change, les flux de capitaux jusqu’à l’arrêt brutal, le taux d’intérêt mondial, le filet de la banque centrale",
