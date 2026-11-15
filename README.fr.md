@@ -10,7 +10,7 @@ Trois pages statiques (le dépôt `macroscope` publié par GitHub Pages), un pet
 | `admin.html` | vous | ouvrir/fermer les tours, publier un communiqué, **régler les chocs et faire tourner le modèle** (onglet *Run*), publier les résultats, classement, conseil, export CSV |
 | `board.html?class=…` | le vidéoprojecteur | état du tour, compte à rebours, communiqué, **réserves de change de l'union et alerte**, classement, engagements, « engagements vs décisions » |
 
-Tout est en anglais côté étudiants.
+Langues : la page d'accueil, la page des équipes (`desk.html`), la console (`admin.html`) et la page du modèle existent en anglais et en français. La langue suit le choix du visiteur (boutons EN / FR, retenu par le navigateur) ou celle de son navigateur ; `?lang=fr` ou `?lang=en` dans l'adresse l'impose. Seul le tableau de bord projeté (`board.html`) est encore en anglais.
 
 ---
 
