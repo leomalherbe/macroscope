@@ -1127,4 +1127,6 @@ MXL.add('fr', {"str":{"Macroscope · Policy desk":"Macroscope · Bureau des déc
 ["Without a decision, the peg holds with a forced devaluation of ([+−±-]?\\d+(?:[.,]\\d+)?) %\\.",
 "Sans décision, l’ancrage tient avec une dévaluation forcée de $1 %."],
 ["Your foreign reserves are exhausted: let your currency float, or keep the peg with a devaluation of at least ([+−±-]?\\d+(?:[.,]\\d+)?) %\\.",
-"Vos réserves de change sont épuisées : laissez flotter votre monnaie, ou gardez l’ancrage avec une dévaluation d’au moins $1 %."]],"title":"Macroscope · Bureau des décisions"});
+"Vos réserves de change sont épuisées : laissez flotter votre monnaie, ou gardez l’ancrage avec une dévaluation d’au moins $1 %."],
+["closes ([+−±-]?\\d+(?:[.,]\\d+)?)\\/([+−±-]?\\d+(?:[.,]\\d+)?) ([+−±-]?\\d+(?:[.,]\\d+)?):([+−±-]?\\d+(?:[.,]\\d+)?)",
+"ferme le $1/$2 à $3:$4"]],"title":"Macroscope · Bureau des décisions"});

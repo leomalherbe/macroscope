@@ -1214,3 +1214,47 @@ Forecast of own policy
 => Prévision de la politique propre
 Average
 => Moyenne
+
+// several games at once, the email when every group has submitted, a timer in hours (backend 1.21)
++ Console in a new tab ↗
+=> + Console dans un nouvel onglet ↗
+Each tab of the console keeps its own class: open another tab to run another game at the same time
+=> Chaque onglet de la console garde sa propre classe : ouvrez un autre onglet pour mener une autre partie en même temps
+& : every group has submitted
+=> & : tous les groupes ont soumis
+hours
+=> heures
+Timer: between # and # hours
+=> Minuteur : entre # et # heures
+Timer: between # and # minutes
+=> Minuteur : entre # et # minutes
+Open for # h
+=> Ouvert pour # h
+Timer ends #/# #:#.
+=> Fin du minuteur le #/# à #:#.
+ends #/# #:#
+=> fin le #/# à #:#
+✉ email me when every group has submitted the round
+=> ✉ m’envoyer un e-mail quand tous les groupes ont soumis le tour
+to
+=> à
+your Google account (default)
+=> votre compte Google (par défaut)
+Send a test email
+=> Envoyer un e-mail de test
+You will get an email when every group has submitted
+=> Vous recevrez un e-mail quand tous les groupes auront soumis
+Email notification off
+=> Notification par e-mail désactivée
+Address saved
+=> Adresse enregistrée
+Test email sent
+=> E-mail de test envoyé
+Test email sent to &
+=> E-mail de test envoyé à &
+One email per round, sent by your Apps Script backend to the address above (empty: the Google account that runs it). The class selector also shows, for every class, how many groups have submitted (✓: all of them).
+=> Un e-mail par tour, envoyé par votre serveur Apps Script à l’adresse ci-dessus (vide : le compte Google qui le fait tourner). Le sélecteur de classe indique aussi, pour chaque classe, combien de groupes ont soumis (✓ : tous).
+This backend cannot send emails.
+=> Ce serveur ne peut pas envoyer d’e-mails.
+The email could not be sent: &. In the Apps Script editor, run the function testEmail once to allow it.
+=> L’e-mail n’a pas pu être envoyé : &. Dans l’éditeur Apps Script, exécutez une fois la fonction testEmail pour l’autoriser.

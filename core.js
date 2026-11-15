@@ -157,6 +157,9 @@ var MS = (function () {
         minText: 100,
         teamExport: false         // the teams may download their own game as a CSV: the administrator allows it at the end of the game (inside `game`: no backend change)
       },
+      /* email to the administrator when every group of the class has submitted the round (backend 1.21): to = '' → the Google account
+         that runs the script; link = the console's address, put in the email; sent = 'phase:round' of the last email (one per round) */
+      notify: { on: false, to: '', link: '', sent: '' },
       weights: { gdp: 0.2, unemp: 0.2, infl: 0.2, pubbal: 0.2, tradebal: 0.2, emis: 0, ineq: 0 },   // emis (climate option) and ineq (households option): 0 unless an election or the administrator activates them
       /* OPEN-MU engine inputs. `shocks`: key = year as a string ('1', '2', …), value =
          {world, rate, confidence, imports, deval} (world/confidence/imports/deval in %, rate in points).

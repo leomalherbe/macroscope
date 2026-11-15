@@ -98,8 +98,9 @@ var UI = (function () {
     if (!deadline) return null;
     var left = Date.parse(deadline) - (Date.now() + (offset || 0));
     var late = left < 0; left = Math.abs(left);
-    var m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
-    return { text: (late ? '−' : '') + m + ':' + MS.pad(s), late: late };
+    var h = Math.floor(left / 3600000), m = Math.floor((left % 3600000) / 60000), s = Math.floor((left % 60000) / 1000);
+    /* m:ss under an hour, h:mm:ss beyond (a timer of 24 or 48 hours for a game at a distance: 47:59:12) */
+    return { text: (late ? '−' : '') + (h ? h + ':' + MS.pad(m) : m) + ':' + MS.pad(s), late: late };
   }
   /* a label as the page will show it (the desk may translate it in place: i18n.js) */
   function shownLabel(t) { return typeof MXL !== 'undefined' && MXL.lang !== 'en' ? MXL.t(t) : t; }

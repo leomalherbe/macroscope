@@ -31,6 +31,9 @@ global.CacheService = { getScriptCache: () => ({
   getAll(keys) { const o = {}; keys.forEach(k => { if (cacheStore.has(k)) { o[k] = cacheStore.get(k); cacheHits++; } }); return o; },
   put(k, v) { cacheStore.set(k, String(v)); }, putAll(o) { Object.keys(o).forEach(k => cacheStore.set(k, String(o[k]))); }, remove(k) { cacheStore.delete(k); }
 }) };
+const sentMails = [];
+global.MailApp = { sendEmail: (to, subject, body) => { sentMails.push({ to, subject, body }); } };
+global.Session = { getEffectiveUser: () => ({ getEmail: () => 'owner@example.org' }) };
 global.ContentService = { MimeType: { JSON: 'json', JAVASCRIPT: 'js' }, createTextOutput: (b) => ({ _b: b, setMimeType(m) { this._m = m; return this; } }) };
 const gas = new Function(src + '\n; return { setup: setup, doGet: doGet, doPost: doPost };')();
 function must(c, m) { if (!c) throw new Error('FAILED: ' + m); console.log('ok -', m); }
@@ -113,7 +116,7 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
   r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
   const [pF, pD, pI] = r2.groups.map(g => g.pin);
-  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.20', 'backend reports v1.20');
+  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.21', 'backend reports v1.21');
 
 
 
@@ -298,6 +301,34 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   r = dec({ fx: 'peg', pegChange: 20 });
   must(!r.ok && /peg is broken/.test((r.errors || []).join(' ')) && dec({ fx: 'float' }).ok, 'still exhausted after a forced year: no peg at all, the float is accepted');
   call({ action: 'admin.class.delete', key, classId: cr, name: 'Reserves class' });
+}
+
+/* backend 1.21: an email when every group has submitted (once per round), the status of every class */
+{
+  let x = call({ action: 'admin.class.create', key, name: 'Distance class' }); const cn = x.classId;
+  x = call({ action: 'admin.groups.set', key, classId: cn, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }] });
+  const [pF, pD] = x.groups.map(g => g.pin);
+  call({ action: 'admin.state.set', key, classId: cn, patch: { phase: 'game', round: 1, status: 'open', years: 3, notify: { on: true, to: '', link: 'https://example.org/admin.html?class=' + cn } } });
+  const dec = { years: [{ levers: { pubdem: 1 } }], text: 'x'.repeat(130) };
+  const n0 = sentMails.length;
+  must(call({ action: 'submit', pin: pF, phase: 'game', round: 1, payload: dec }).ok && sentMails.length === n0, 'one group of two: no email');
+  let s = call({ action: 'admin.classes.status', key }).classes.filter(c => c.id === cn)[0];
+  must(s && s.done === 1 && s.total === 2 && s.round === 1 && s.open, 'class status: 1 / 2, year 1, open');
+  must(call({ action: 'submit', pin: pD, phase: 'game', round: 1, payload: dec }).ok && sentMails.length === n0 + 1, 'every group: one email');
+  const m = sentMails[sentMails.length - 1];
+  must(m.to === 'owner@example.org' && /Distance class/.test(m.subject) && /year 1/.test(m.subject) && /admin\.html\?class=/.test(m.body), 'to the owner, with the class, the year and the console link');
+  call({ action: 'submit', pin: pD, phase: 'game', round: 1, payload: dec });
+  must(sentMails.length === n0 + 1, 'a resubmission: no second email');
+  s = call({ action: 'admin.classes.status', key }).classes.filter(c => c.id === cn)[0];
+  must(s.done === 2 && s.total === 2, 'class status: 2 / 2');
+  call({ action: 'admin.state.set', key, classId: cn, patch: { round: 2, status: 'open', notify: { to: 'prof@example.org' } } });
+  call({ action: 'submit', pin: pF, phase: 'game', round: 2, payload: dec }); call({ action: 'submit', pin: pD, phase: 'game', round: 2, payload: dec });
+  must(sentMails.length === n0 + 2 && sentMails[sentMails.length - 1].to === 'prof@example.org', 'next year: a new email, to the address typed');
+  must(call({ action: 'admin.notify.test', key, classId: cn }).ok && sentMails.length === n0 + 3, 'test email');
+  call({ action: 'admin.state.set', key, classId: cn, patch: { deadlineMinutes: 24 * 60 } });
+  const dl = Date.parse(call({ action: 'admin.overview', key, classId: cn }).state.deadline);
+  must(Math.abs(dl - Date.now() - 24 * 3600000) < 60000, 'a timer of 24 hours');
+  call({ action: 'admin.class.delete', key, classId: cn, name: 'Distance class' });
 }
 
 console.log('\nGAS adapter OK');

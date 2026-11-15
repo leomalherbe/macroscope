@@ -15,7 +15,7 @@ function memoryStorage() {
   const config = {};
   let groups = [];
   const tables = { decisions: [], results: [], pledges: [], comments: [], proposals: [], reactions: [], telegrams: [], log: [] };
-  let clock = null, ver = 0;
+  let clock = null, ver = 0; const mails = [];
   const w = (f) => (...a) => { ver++; return f(...a); };
   return {
     now: () => clock ? new Date(clock) : new Date(),
@@ -30,8 +30,10 @@ function memoryStorage() {
     deleteConfig: w((k) => { delete config[k]; }),
     deleteRows: w((t, pred) => { const before = tables[t].length; tables[t] = tables[t].filter(r => !pred(r)); return before - tables[t].length; }),
     stamp: () => String(ver) + ':' + (clock || ''),
-    dump: () => ({ config, groups, tables }),
-    reset: () => { Object.keys(config).forEach(k => delete config[k]); groups = []; Object.keys(tables).forEach(k => { tables[k] = []; }); clock = null; ver++; }
+    owner: () => 'owner@example.org',
+    mail: (to, subject, body) => { mails.push({ to: to || 'owner@example.org', subject, body }); },
+    dump: () => ({ config, groups, tables, mails }),
+    reset: () => { Object.keys(config).forEach(k => delete config[k]); groups = []; Object.keys(tables).forEach(k => { tables[k] = []; }); mails.length = 0; clock = null; ver++; }
   };
 }
 const storage = memoryStorage();
