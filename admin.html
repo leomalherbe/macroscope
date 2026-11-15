@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111411">
-<script src="i18n.js?v=2026111411"></script>
-<script src="i18n/fr-desk.js?v=2026111411"></script>
-<script src="i18n/fr-admin.js?v=2026111411"></script>
-<script src="config.js?v=2026111411"></script>
-<script src="core.js?v=2026111411"></script>
-<script src="app-common.js?v=2026111411"></script>
-<script src="engine.js?v=2026111411"></script>
+<link rel="stylesheet" href="style.css?v=2026111501">
+<script src="i18n.js?v=2026111501"></script>
+<script src="i18n/fr-desk.js?v=2026111501"></script>
+<script src="i18n/fr-admin.js?v=2026111501"></script>
+<script src="config.js?v=2026111501"></script>
+<script src="core.js?v=2026111501"></script>
+<script src="app-common.js?v=2026111501"></script>
+<script src="engine.js?v=2026111501"></script>
 </head>
 <body>
 
@@ -42,7 +42,22 @@
   $('#courseLabel').textContent = cfg.COURSE_LABEL || 'Macroscope';
   var app = $('#app');
   var key = UI.read('macsim.adminKey') || '';
-  var classes = [], classId = UI.read('macsim.classId') || '';
+  /* the class of THIS tab (several consoles can run several games at once): the address (?class=…) > this tab's last choice >
+     the last class chosen in any tab (a new tab opens on it) */
+  /* an attribute of an input (i18n.js leaves inputs alone) */
+  function trAttr(t) { var L = window.MXL; if (!L || L.lang === 'en' || !L.lookup) return t; var x = L.lookup(L.lang, t, true); return x === null ? t : x; }
+  function tabRead(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+  var classes = [], classId = (/[?&]class=([^&#]+)/.exec(location.search) || [])[1] || tabRead('macsim.classId') || UI.read('macsim.classId') || '';
+  try { classId = decodeURIComponent(classId); } catch (e) { /* keep */ }
+  var statusOf = {};          // admin.classes.status: the round and the submissions of every class
+  /* remember the class of this tab: in the address (a reload stays on it), for this tab, and as the default of a new tab */
+  function keepClass() {
+    try { sessionStorage.setItem('macsim.classId', classId); } catch (e) { /* ignore */ }
+    UI.store('macsim.classId', classId);
+    try { var u = new URL(location.href); if (classId) u.searchParams.set('class', classId); else u.searchParams.delete('class'); history.replaceState(null, '', u.href); } catch (e) { /* ignore */ }
+    var c = classes.filter(function (x) { return x.id === classId; })[0];
+    document.title = (c ? c.name + ' · ' : '') + 'Macroscope console';
+  }
   var ov = null;              // admin.overview answer
   var offset = 0;
   var tab = UI.read('macsim.adminTab') || 'control';
@@ -83,7 +98,7 @@
         if (!r.ok) { renderLogin(r.error); return; }
         UI.store('macsim.adminKey', key); classes = r.classes; offset = Date.parse(r.now) - Date.now();
         if (!classes.some(function (c) { return c.id === classId; })) classId = classes.length ? classes[0].id : '';
-        UI.store('macsim.classId', classId);
+        keepClass();
         boot();
       } catch (e) { renderLogin('Cannot reach the backend: ' + e.message); }
     }
@@ -111,18 +126,41 @@
     app.appendChild(el('div', { id: 'strip', class: 'strip' }));
     app.appendChild(el('div', { id: 'tabs', class: 'tabs' }));
     app.appendChild(el('div', { id: 'view' }));
-    renderClassBar();
+    keepClass(); renderClassBar();
     if (classId) await refresh(); else renderNoClass();
+    loadStatus();
     clearInterval(pollTimer);
-    pollTimer = setInterval(async function () { if (!document.hidden && classId && (tab === 'control' || tab === 'entry' || tab === 'council') && await MSApi.due('admin', 120000, 20000)) refresh(true); }, 8000);
+    pollTimer = setInterval(async function () {
+      if (document.hidden || !classId || !(await MSApi.due('admin', 120000, 20000))) return;
+      if (tab === 'control' || tab === 'entry' || tab === 'council') refresh(true);
+      loadStatus();
+    }, 8000);
+  }
+  /* the round and the submissions of every class, in the selector: « ✓ » when every group has submitted (one more year can run) */
+  async function loadStatus() {
+    try {
+      var r = await MSApi.call('admin.classes.status', { key: key });
+      if (!r || !r.ok) return;
+      var before = statusOf; statusOf = {};
+      r.classes.forEach(function (c) { statusOf[c.id] = c; });
+      r.classes.forEach(function (c) { var b = before[c.id]; if (b && c.total && c.done === c.total && b.done < b.total && c.phase === b.phase && c.round === b.round) UI.toast(c.name + ': every group has submitted', 6000); });
+      var sel = $('#classSel'); if (sel) Array.prototype.forEach.call(sel.options, function (o) { o.textContent = classLabel(o.value); });
+    } catch (e) { /* an older backend: names only */ }
+  }
+  function classLabel(id) {
+    var c = classes.filter(function (x) { return x.id === id; })[0], k = statusOf[id];
+    var name = c ? c.name : id; if (!k) return name;
+    var where = k.phase === 'warmup' ? 'warm-up' : 'year ' + k.round;
+    return name + ' · ' + where + (k.open ? ' · open' : '') + ' · ' + k.done + '/' + k.total + (k.total && k.done === k.total ? ' ✓' : '');
   }
   function renderClassBar() {
     var bar = $('#classbar'); bar.innerHTML = '';
-    var sel = el('select', { onchange: function () { classId = sel.value; UI.store('macsim.classId', classId); renderClassBar(); refresh(); } });   /* the bar again: its links (board, student page) carry the class */
-    classes.forEach(function (c) { sel.appendChild(el('option', { value: c.id }, [c.name])); });
+    var sel = el('select', { id: 'classSel', onchange: function () { classId = sel.value; keepClass(); renderClassBar(); refresh(); } });   /* the bar again: its links (board, student page) carry the class */
+    classes.forEach(function (c) { sel.appendChild(el('option', { value: c.id }, [classLabel(c.id)])); });
     sel.value = classId;
     bar.appendChild(el('span', { class: 'muted small' }, ['Class']));
     bar.appendChild(sel);
+    if (classes.length > 1) bar.appendChild(el('a', { class: 'btn sm ghost', href: '#', title: 'Each tab of the console keeps its own class: open another tab to run another game at the same time', onclick: function (e) { e.preventDefault(); var u = new URL(location.href); u.searchParams.delete('class'); window.open(u.href, '_blank'); } }, ['+ Console in a new tab ↗']));
     bar.appendChild(el('button', { class: 'btn sm ghost', onclick: createClass }, ['+ New class']));
     bar.appendChild(el('span', { class: 'spacer' }));
     if (classId) {
@@ -140,7 +178,7 @@
     if (typed.trim() !== cls.name) { UI.toast('Name does not match — nothing deleted', 4000); return; }
     var r = await MSApi.call('admin.class.delete', { key: key, classId: classId, name: typed.trim() });
     if (!r.ok) { UI.toast(r.error || 'Error', 5000); return; }
-    classes = r.classes; classId = classes.length ? classes[0].id : ''; UI.store('macsim.classId', classId);
+    classes = r.classes; classId = classes.length ? classes[0].id : ''; keepClass();
     UI.toast('Class deleted (' + r.removed + ' rows removed)', 4000);
     renderClassBar(); if (classId) refresh(); else renderNoClass();
   }
@@ -152,7 +190,7 @@
     kind = /^d/i.test(String(kind).trim()) ? 'duel' : 'union';
     var r = await MSApi.call('admin.class.create', { key: key, name: name });
     if (!r.ok) { UI.toast(r.error); return; }
-    classes = r.classes; classId = r.classId; UI.store('macsim.classId', classId);
+    classes = r.classes; classId = r.classId; keepClass();
     /* new classes play v1 · Trade (the model and its options can be changed in Parameters before the game); classes created before
        the key keep v1.1 (see MS.modelId). A duel starts directly at game year 1 on the duel engine, no votes, no council. */
     var patch0 = kind === 'duel' ? { kind: 'duel', phase: 'game', round: 1, status: 'closed', years: 10, sim: { model: 'v2.0', votes: false }, game: { minText: 40 } } : { sim: { model: 'v1' } };
@@ -193,7 +231,7 @@
     var s = st(), strip = $('#strip'); strip.innerHTML = '';
     strip.appendChild(el('span', { class: 'big' }, [phaseLabel(s)]));
     strip.appendChild(el('span', { class: 'pill ' + (ov.roundOpen ? 'open' : 'closed') }, [ov.roundOpen ? 'open' : 'closed']));
-    if (s.deadline && ov.roundOpen) strip.appendChild(el('span', { class: 'countdown', id: 'countdown' }, ['–:––']));
+    if (s.deadline && ov.roundOpen) strip.appendChild(el('span', { class: 'countdown', id: 'countdown', title: 'ends ' + UI.fmtDateTime(s.deadline) }, ['–:––']));
     if (s.phase === 'game' && s.councilOpen) strip.appendChild(el('span', { class: 'pill gold' }, ['council in session']));
     var n = decisionsFor(s.phase, s.round).length;
     strip.appendChild(el('span', { class: 'pill blue' }, [n + ' / ' + ov.groups.length + ' submitted']));
@@ -384,12 +422,35 @@
     var row2 = el('div', { class: 'btnrow' });
     if (ov.roundOpen) row2.appendChild(el('button', { class: 'btn danger', onclick: function () { patch({ status: 'closed' }, 'Submissions closed'); } }, ['■ Close submissions']));
     else row2.appendChild(el('button', { class: 'btn primary', onclick: function () { if (crisisVoteOpen()) { UI.toast('Close the crisis vote first (card below).', 5000); return; } if (retalOpen()) { UI.toast('Close the council on retaliation first (card below).', 5000); return; } patch({ status: 'open' }, 'Submissions open'); } }, ['▶ Open submissions']));
-    var mins = el('input', { type: 'number', min: 1, max: 180, value: 10, style: 'width:70px' });
+    /* the timer in minutes (a class) or in hours (a game played at a distance over days: 24 h, 48 h…) — the unit is remembered */
+    var unit = el('select', { id: 'timerUnit' }, [el('option', { value: 'min' }, ['min']), el('option', { value: 'h' }, ['hours'])]);
+    unit.value = UI.read('macsim.timerUnit') === 'h' ? 'h' : 'min';
+    var mins = el('input', { id: 'timerN', type: 'number', min: 1, value: unit.value === 'h' ? 24 : 10, style: 'width:70px' });
+    function syncUnit() { mins.max = unit.value === 'h' ? 336 : 600; }
+    unit.addEventListener('change', function () { UI.store('macsim.timerUnit', unit.value); mins.value = unit.value === 'h' ? 24 : 10; syncUnit(); }); syncUnit();
     row2.appendChild(el('span', { class: 'muted small' }, ['Timer:']));
-    row2.appendChild(mins); row2.appendChild(el('span', { class: 'muted small' }, ['min']));
-    row2.appendChild(el('button', { class: 'btn sm', onclick: function () { if (crisisVoteOpen()) { UI.toast('Close the crisis vote first (card below).', 5000); return; } if (retalOpen()) { UI.toast('Close the council on retaliation first (card below).', 5000); return; } patch({ status: 'open', deadlineMinutes: Number(mins.value) }, 'Open for ' + mins.value + ' min'); } }, ['Open with timer']));
+    row2.appendChild(mins); row2.appendChild(unit);
+    row2.appendChild(el('button', { class: 'btn sm', id: 'timerGo', onclick: function () {
+      if (crisisVoteOpen()) { UI.toast('Close the crisis vote first (card below).', 5000); return; } if (retalOpen()) { UI.toast('Close the council on retaliation first (card below).', 5000); return; }
+      var n = MS.num(mins.value); if (!(n > 0) || n > Number(mins.max)) { UI.toast('Timer: between 1 and ' + mins.max + ' ' + (unit.value === 'h' ? 'hours' : 'minutes'), 4000); return; }
+      var m = Math.round(unit.value === 'h' ? n * 60 : n);
+      patch({ status: 'open', deadlineMinutes: m }, 'Open for ' + (unit.value === 'h' ? MS.fmt(n, n % 1 ? 1 : 0) + ' h' : m + ' min'));
+    } }, ['Open with timer']));
     if (s.deadline) row2.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { patch({ deadline: null }, 'Timer cleared'); } }, ['Clear timer']));
     c1.appendChild(row2);
+    if (s.deadline) c1.appendChild(el('p', { class: 'muted small', style: 'margin:6px 0 0' }, ['Timer ends ' + UI.fmtDateTime(s.deadline) + '.']));
+    /* 1.21: an email when every group has submitted (games at a distance over days or weeks) */
+    var nf = s.notify || {}, rowN = el('div', { class: 'checks', style: 'margin-top:10px' });
+    var cbN = el('input', { type: 'checkbox', id: 'notifyOn' }); cbN.checked = !!nf.on;
+    var toN = el('input', { type: 'email', placeholder: trAttr('your Google account (default)'), value: nf.to || '', style: 'width:240px' });
+    var link = sitePage('admin.html') + '?class=' + encodeURIComponent(classId);
+    function saveN(msg) { patch({ notify: { on: cbN.checked, to: toN.value.trim(), link: link } }, msg); }
+    cbN.addEventListener('change', function () { saveN(cbN.checked ? 'You will get an email when every group has submitted' : 'Email notification off'); });
+    toN.addEventListener('change', function () { saveN('Address saved'); });
+    rowN.appendChild(el('label', {}, [cbN, ' ✉ email me when every group has submitted the round']));
+    rowN.appendChild(el('span', { class: 'small' }, [el('span', { class: 'muted' }, ['to ']), toN, ' ', el('button', { class: 'btn sm ghost', id: 'notifyTest', onclick: async function () { if (toN.value.trim() !== (nf.to || '')) await patch({ notify: { on: cbN.checked, to: toN.value.trim(), link: link } }); var r = await admin('admin.notify.test'); if (r.ok) UI.toast('Test email sent' + (r.to ? ' to ' + r.to : ''), 5000); } }, ['Send a test email'])]));
+    c1.appendChild(rowN);
+    c1.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['One email per round, sent by your Apps Script backend to the address above (empty: the Google account that runs it). The class selector also shows, for every class, how many groups have submitted (✓: all of them).']));
     c1.appendChild(el('p', { class: 'muted small', style: 'margin:10px 0 0' }, ['Students may update their submission while the round is open; the last submission counts. The timer is indicative (a 60-second grace period applies); closing is what really stops submissions.']));
     v.appendChild(c1);
     if (isGame && !isDuel()) { var cc = renderCrisisCard(s); if (cc) v.appendChild(cc); renderRetaliationCards(s).forEach(function (rc) { v.appendChild(rc); }); }

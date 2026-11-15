@@ -59,6 +59,15 @@ function cellSafe_(v) {
   return v;
 }
 
+/* Run once from the script editor after pasting version 1.21: Google asks for the permission to send emails (the notification
+   « every group has submitted »), then a test email goes to your own address. */
+function testEmail() {
+  var me = Session.getEffectiveUser().getEmail();
+  MailApp.sendEmail(me, 'Macroscope · test email', 'Your backend can send the notification « every group has submitted ».');
+  Logger.log('Test email sent to ' + me);
+  return me;
+}
+
 /* Run once from the script editor: creates the tabs and the administrator key. */
 function setup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -153,6 +162,14 @@ function makeStorage_(ss) {
   }
   return {
     now: function () { return new Date(); },
+    /* 1.21: the email to the administrator (to = '' → the Google account that runs the script). MailApp asks for one more
+       permission: run testEmail() once in the editor after pasting this version. */
+    owner: function () { try { return Session.getEffectiveUser().getEmail(); } catch (e) { return ''; } },
+    mail: function (to, subject, body) {
+      var dest = to || this.owner();
+      if (!dest) throw new Error('no address: type one in the console, or run testEmail() in the editor');
+      MailApp.sendEmail(dest, subject, body);
+    },
     getConfig: function (key) {
       var rows = readAll('config');
       for (var i = 0; i < rows.length; i++) if (String(rows[i].key) === key) return rows[i].value === '' ? null : String(rows[i].value);

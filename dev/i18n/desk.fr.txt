@@ -1794,3 +1794,5 @@ Last chance: if your reserves are still exhausted at the end of the year, the pe
 => Dernière chance : si vos réserves sont encore épuisées à la fin de l’année, l’ancrage rompt.
 Your foreign reserves are still exhausted: the peg is broken, your currency floats.
 => Vos réserves de change sont toujours épuisées : l’ancrage a rompu, votre monnaie flotte.
+closes #/# #:#
+=> ferme le #/# à #:#

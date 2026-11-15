@@ -12,7 +12,7 @@
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.20';
+  var VERSION = '1.21';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -321,7 +321,50 @@ var MSService = (function () {
       payload: JSON.stringify(v.clean), text: v.clean.text, used: v.used.join(', ') };
     st.appendRow('decisions', row);
     log(st, 'submit', g.classId, g.name, phase + ' r' + round + ' ' + v.used.join(','));
+    notifyIfComplete(st, g.classId, state, phase, round);
     return { ok: true, ts: row.ts, used: v.used };
+  }
+
+  /* how many groups of a class have submitted the current round (warm-up: every group; game: the groups with a country) */
+  function submissionCount(st, classId, state, decisions, groups) {
+    var expected = groups.filter(function (g) { return g.classId === classId && (state.phase === 'warmup' || g.country); });
+    var ids = {}; decisions.forEach(function (d) { if (d.classId === classId && d.phase === state.phase && Number(d.round) === Number(state.round)) ids[d.groupId] = true; });
+    return { done: expected.filter(function (g) { return ids[g.groupId]; }).length, total: expected.length };
+  }
+  /* 1.21: the email to the administrator once every group has submitted the round — once per round; a failure is logged, never
+     returned to the group that submitted */
+  function notifyIfComplete(st, classId, state, phase, round) {
+    var n = state.notify || {};
+    var tag = phase + ':' + round;
+    if (!n.on || n.sent === tag || !st.mail) return;
+    var c = submissionCount(st, classId, state, st.readRows('decisions'), st.listGroups());
+    if (!c.total || c.done < c.total) return;
+    var cls = getClasses(st).filter(function (x) { return x.id === classId; })[0], name = cls ? cls.name : classId;
+    var what = phase === 'warmup' ? 'the warm-up plans' : 'the decisions of year ' + round;
+    var subject = 'Macroscope · ' + name + ': every group has submitted ' + what;
+    var body = 'Class « ' + name + ' »: the ' + c.total + ' groups have submitted ' + what + '.\n\nYou can close the round and run the model.' +
+      (n.link ? '\n\nConsole: ' + n.link : '') + '\n\n(Email sent by your Macroscope backend. To stop it: Control tab, untick « email me when every group has submitted ».)';
+    try { st.mail(n.to || '', subject, body); } catch (e) { log(st, 'notify.fail', classId, 'backend', String(e && e.message || e)); return; }
+    var fresh = getState(st, classId);
+    fresh.notify = Object.assign({}, fresh.notify, { sent: tag });
+    setState(st, classId, fresh);
+    log(st, 'notify', classId, 'backend', tag + ' → ' + (n.to || 'owner'));
+  }
+  /* the status of every class, for the console's class selector (several games at once) */
+  function actAdminClassesStatus(st, p) {
+    var decisions = st.readRows('decisions'), groups = st.listGroups(), now = st.now();
+    return { ok: true, version: VERSION, now: iso(now), classes: getClasses(st).map(function (c) {
+      var state = getState(st, c.id), k = submissionCount(st, c.id, state, decisions, groups);
+      return { id: c.id, name: c.name, phase: state.phase, round: Number(state.round), years: Number(state.years), open: roundOpen(state, now), deadline: state.deadline || null, done: k.done, total: k.total };
+    }) };
+  }
+  function actAdminNotifyTest(st, p) {
+    if (!classExists(st, p.classId)) return fail('Unknown class.');
+    if (!st.mail) return fail('This backend cannot send emails.');
+    var n = getState(st, p.classId).notify || {};
+    try { st.mail(n.to || '', 'Macroscope · test email', 'Notifications work: you will receive an email when every group of the class has submitted.' + (n.link ? '\n\nConsole: ' + n.link : '')); }
+    catch (e) { return fail('The email could not be sent: ' + (e && e.message || e) + '. In the Apps Script editor, run the function testEmail once to allow it.'); }
+    return { ok: true, to: n.to || (st.owner ? st.owner() : '') };
   }
 
   function actComment(st, p) {
@@ -521,6 +564,8 @@ var MSService = (function () {
     if (prev.phase !== 'game' && state.phase === 'game') state.forum = Object.assign({}, state.forum, { frozen: 0 });
     else if (prev.phase === 'game' && prev.status === 'open' && (state.status !== 'open' || Number(state.round) !== Number(prev.round)))
       state.forum = Object.assign({}, state.forum, { frozen: Math.max(MS.forumConf(prev).frozen, Number(prev.round)) });
+    /* a new round (or phase) can be notified again */
+    if (state.phase !== prev.phase || Number(state.round) !== Number(prev.round)) state.notify = Object.assign({}, state.notify, { sent: '' });
     if (p.patch && p.patch.deadlineMinutes !== undefined) {
       var m = Number(p.patch.deadlineMinutes);
       state.deadline = (m > 0) ? new Date(st.now().getTime() + m * 60000).toISOString() : null;
@@ -612,7 +657,7 @@ var MSService = (function () {
   var PUBLIC = { ping: function () { return { ok: true, version: VERSION }; }, stamp: function (st) { return { ok: true, stamp: st.stamp ? st.stamp() : null }; }, state: actState, submit: actSubmit, comment: actComment, pledge: actPledge, board: actBoard,
     'forum.post': actForumPost, 'forum.react': actForumReact, 'forum.withdraw': actForumWithdraw, 'tg.send': actTelegramSend };
   var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename, 'admin.class.delete': actAdminClassDelete,
-    'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.results.set': actAdminResultsSet,
+    'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.classes.status': actAdminClassesStatus, 'admin.notify.test': actAdminNotifyTest, 'admin.results.set': actAdminResultsSet,
     'admin.forum.hide': actAdminForumHide, 'admin.tg.hide': actAdminTelegramHide };
 
   function handle(action, params, storage) {
