@@ -817,5 +817,22 @@ console.log('\n# Households option');
   for (let i = b; i < xs.length; i++) { if (xs[i].peg || !xs[i].broken) throw new Error('a peg after the break, year ' + (i + 1)); if (Math.abs(xs[i].RXshare - xs[b - 1].RXshare) > 1e-9) throw new Error('reserves move in the float'); }
   console.log('ok - still exhausted after the forced year: the peg breaks in year ' + (b + 1) + ', the currency floats, the reserves stop falling');
 }
+/* §26: the desk's discretionary budget balance uses the reference weights of the engine */
+{
+  const MS = require('../core.js'), R = MS.BUDGET_RATIOS;
+  ['v1', 'v2', 'v2+climate', 'v1.1', 'v1.3', 'v2.0'].forEach(m => {
+    const b = OPENMU.budgetRatios(OPENMU.paramsFor(m));
+    ['g', 'tr', 'inc', 'ce', 'tau', 'imu', 'ctax', 'green'].forEach(k => { if (Math.abs(b[k] - R[k]) > 0.002) throw new Error('budget ratio ' + k + ' of ' + m + ': engine ' + b[k] + ', core ' + R[k]); });
+  });
+  const ph = OPENMU.paramsFor('v2'); Object.assign(ph, OPENMU.HOUSEHOLDS);
+  if (Math.abs(OPENMU.budgetRatios(ph).inc - R.incHh) > 0.002) throw new Error('budget ratio inc with households');
+  const bb = MS.budgetBalance({ levers: { pubdem: 5, benefits: -10, inctax: 5, vat: 10 } }, {});
+  if (Math.abs(bb.total - (-1 + 1.5 + 1.536 + 0.636)) > 0.01) throw new Error('budgetBalance ' + bb.total);
+  /* the static figure against the engine, before multipliers: the first-year public balance moves less (stabilisers), same sign */
+  const pr = OPENMU.report({ params: OPENMU.paramsFor('v2'), years: 1, policies: { FRA: [{ pubdem: 10 }] }, shocks: [] });
+  const dPB = pr.years[0].countries.FRA.pubbal, ex = MS.budgetBalance({ levers: { pubdem: 10 } }, {}).total;
+  if (!(dPB < 0 && dPB > ex)) throw new Error('pubdem +10: engine public balance ' + dPB + ' vs ex ante ' + ex);
+  console.log('ok - discretionary budget balance: core weights = engine reference (6 models, households); pubdem +10: ex ante ' + ex.toFixed(2) + ', engine year 1 ' + dPB.toFixed(2));
+}
 console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' : '\nENGINE OK');
 process.exit(failed ? 1 : 0);

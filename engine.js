@@ -1611,7 +1611,17 @@ var OPENMU = (function () {
       union: { R0: ref.union.R0, reserveMonths: p.reserveMonths, xr0: p.xr0, r0: p.r, alertShare: p.alertShare } };
   }
 
-  return { VERSION: VERSION, INDICATORS: INDIC, INDICATORS_ECO: INDIC_ECO, defaultParams: defaultParams, paramsFor: paramsFor, HOUSEHOLDS: HOUSEHOLDS, calibrate: calibrate, simulate: simulate, report: report, describe: describe, shares: shares,
+  /* the desk's « discretionary budget balance » (spec §26): the reference weights, in % of GDP, of what each fiscal lever moves —
+     public demand, benefits, income-tax and VAT revenue, consumption (the VAT base), imports from the union (the tariff base);
+     carbon tax and green investment in % of GDP per point. Same for every country (the calibration scales with size). */
+  function budgetRatios(params) {
+    var p = mergeParams(params), ref = calibrate(p), id = p.countries[0].id, rc = ref.countries[id], Y = rc.Y;
+    var vatRev = rc.tauc * rc.CE;
+    return { g: 100 * rc.G / Y, tr: 100 * rc.TR / Y, inc: 100 * (rc.T - vatRev) / Y, ce: 100 * rc.CE / Y, tau: rc.tau, tauc: rc.tauc,
+      imu: 100 * (rc.IMU || 0) / Y, ctax: 100 * (p.ctaxUnit || 0) * (p.ci0 || 0), green: 100 * (p.greenUnit || 0) };
+  }
+
+  return { VERSION: VERSION, budgetRatios: budgetRatios, INDICATORS: INDIC, INDICATORS_ECO: INDIC_ECO, defaultParams: defaultParams, paramsFor: paramsFor, HOUSEHOLDS: HOUSEHOLDS, calibrate: calibrate, simulate: simulate, report: report, describe: describe, shares: shares,
     duelParams: duelParams, calibrateDuel: calibrateDuel, simulateDuel: simulateDuel, reportDuel: reportDuel, SIDES: SIDES };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = OPENMU;

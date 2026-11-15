@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111501">
-<script src="i18n.js?v=2026111501"></script>
-<script src="i18n/fr-desk.js?v=2026111501"></script>
-<script src="guide.js?v=2026111501"></script>
-<script src="config.js?v=2026111501"></script>
-<script src="core.js?v=2026111501"></script>
-<script src="app-common.js?v=2026111501"></script>
+<link rel="stylesheet" href="style.css?v=2026111601">
+<script src="i18n.js?v=2026111601"></script>
+<script src="i18n/fr-desk.js?v=2026111601"></script>
+<script src="guide.js?v=2026111601"></script>
+<script src="config.js?v=2026111601"></script>
+<script src="core.js?v=2026111601"></script>
+<script src="app-common.js?v=2026111601"></script>
 </head>
 <body>
 
@@ -225,6 +225,29 @@
     var ta = $('#decisionText'), tc = $('#textCounter');
     if (ta && tc) { tc.textContent = ta.value.trim().length + ' / ' + f.minText + ' characters minimum'; tc.classList.toggle('bad', ta.value.trim().length < f.minText); }
     strategyCounters();
+    renderBudget();
+  }
+  /* §26: what the fiscal levers add to (+) or take from (−) the public balance, at the reference GDP and prices, in % of GDP */
+  var BUDGET_LABEL = { pubdem: 'public demand', benefits: 'benefits', inctax: 'income tax', vat: 'VAT', ctax: 'carbon tax', green: 'green investment', tariffU: 'tariff' };
+  function renderBudget() {
+    var box = $('#budgetBox'); if (!box || !data) return;
+    var st = data.state, f = formConfig(), yrs = readForm().years, SCALE = 4;
+    var last = st.phase === 'game' ? myDecision('game', Number(st.round) - 1) : null;
+    var lastB = last && last.payload && last.payload.years && last.payload.years[0] ? MS.budgetBalance(last.payload.years[0], st).total : null;
+    var sg = function (x) { var r = Math.round(x * 10) / 10; return (r > 0 ? '+' : r < 0 ? '−' : '') + MS.fmt(Math.abs(r), 1); };
+    var rows = yrs.map(function (y, i) {
+      var b = MS.budgetBalance(y, st), t = Math.round(b.total * 10) / 10;
+      var dir = t <= -0.05 ? 'expansionary' : t >= 0.05 ? 'restrictive' : 'neutral';
+      var w = Math.min(50, 50 * Math.abs(t) / SCALE);
+      var bar = '<span class="bbar" title="±' + SCALE + ' % of GDP"><span class="bmid"></span>' + (w ? '<span class="bfill ' + (t < 0 ? 'neg' : 'pos') + '" style="' + (t < 0 ? 'right:50%' : 'left:50%') + ';width:' + w + '%"></span>' : '') + '</span>';
+      var parts = b.parts.filter(function (x) { return Math.abs(x.v) >= 0.05; }).map(function (x) { return '<span class="bp"><span>' + esc(BUDGET_LABEL[x.id] || x.id) + '</span> <b>' + esc(sg(x.v)) + '</b></span>'; }).join(' · ');
+      var vsLast = lastB !== null && i === 0 ? ' <span class="muted small"><span>last year:</span> <span>' + esc(sg(lastB)) + '</span></span>' : '';
+      return '<div class="brow">' + (yrs.length > 1 ? '<b class="byear">Year ' + (i + 1) + '</b>' : '') + bar +
+        '<b class="bval"><span>' + esc(sg(t)) + '</span> <span>% of GDP</span></b> <span class="bdir">' + dir + '</span>' + vsLast +
+        (parts ? '<div class="small muted bparts">' + parts + '</div>' : '') + '</div>';
+    });
+    box.innerHTML = '<div class="bhead"><b>Discretionary budget balance</b> <span class="muted small">— what your levers add to (+) or take from (−) the public balance</span></div>' + rows.join('') +
+      '<p class="small muted" style="margin:4px 0 0">Ex ante: at your reference GDP and prices, before any multiplier. The public balance you will see in your results also moves with activity (tax receipts, benefits), prices and the interest on the debt — public demand +10 % costs 2 % of GDP ex ante, about 1.1 % after a year in the model.</p>';
   }
   function readForm() {
     var f = formConfig(); var years = [];
@@ -357,6 +380,8 @@
     });
     tbl.appendChild(tbody);
     card.appendChild(el('div', { class: 'tablewrap' }, [tbl]));
+    /* §26: the discretionary budget balance of the levers, ex ante, updated as they change */
+    card.appendChild(el('div', { id: 'budgetBox', class: 'budgetbox', 'data-guide': 'demand' }));
 
     /* tariffs */
     if (f.tariff) {

@@ -1796,3 +1796,34 @@ Your foreign reserves are still exhausted: the peg is broken, your currency floa
 => Vos réserves de change sont toujours épuisées : l’ancrage a rompu, votre monnaie flotte.
 closes #/# #:#
 => ferme le #/# à #:#
+// §26 discretionary budget balance
+Discretionary budget balance
+=> Solde budgétaire discrétionnaire
+— what your levers add to (+) or take from (−) the public balance
+=> — ce que vos leviers ajoutent (+) au solde public ou lui retirent (−)
+expansionary
+=> expansionniste
+restrictive
+=> restrictif
+neutral
+=> neutre
+last year:
+=> l’an dernier :
+public demand
+=> demande publique
+benefits
+=> prestations
+income tax
+=> impôt sur le revenu
+VAT
+=> TVA
+carbon tax
+=> taxe carbone
+green investment
+=> investissement vert
+tariff
+=> droit de douane
+±# % of GDP
+=> ±# % du PIB
+Ex ante: at your reference GDP and prices, before any multiplier. The public balance you will see in your results also moves with activity (tax receipts, benefits), prices and the interest on the debt — public demand +10 % costs 2 % of GDP ex ante, about 1.1 % after a year in the model.
+=> Ex ante : à votre PIB et à vos prix de référence, avant tout multiplicateur. Le solde public de vos résultats bouge aussi avec l’activité (recettes fiscales, prestations), les prix et les intérêts de la dette — une demande publique à +10 % coûte 2 % du PIB ex ante, environ 1,1 % au bout d’un an dans le modèle.

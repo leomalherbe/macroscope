@@ -411,3 +411,15 @@ table.rk{width:100%;border-collapse:collapse}.rk th{font-size:.74rem;text-transf
 .accrow{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 0}.acc{flex:1 1 220px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:#f6f9fd}.accv span{font-size:1.6rem;font-weight:800;color:var(--navy)}.accv small{color:var(--muted)}
 table.withsplit tr.bdsub{display:none} table.withsplit.show-others tr.sub-others,table.withsplit.show-env tr.sub-env{display:table-row}
 tr.bdsub td{font-style:italic}
+
+/* §26 the desk's discretionary budget balance */
+.budgetbox{margin:10px 0 4px;padding:10px 12px;border:1px solid var(--line);border-radius:6px}
+.budgetbox .brow{margin-top:6px}
+.budgetbox .byear{display:inline-block;min-width:4.5em}
+.budgetbox .bbar{position:relative;display:inline-block;vertical-align:middle;width:160px;height:10px;margin-right:10px;background:rgba(127,127,127,.12);border-radius:5px}
+.budgetbox .bmid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:currentColor;opacity:.5}
+.budgetbox .bfill{position:absolute;top:0;bottom:0;border-radius:5px}
+.budgetbox .bfill.neg{background:#d98a1c}   /* expansionary: neither good nor bad, so not the red of the losses */
+.budgetbox .bfill.pos{background:#3b6fc4}   /* restrictive */
+.budgetbox .bdir{font-style:italic}
+.budgetbox .bparts{margin-top:2px}
