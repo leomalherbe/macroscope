@@ -10,7 +10,7 @@ Three static pages (the `macroscope` repository published by GitHub Pages), a sm
 | `admin.html` | you | open and close the rounds, publish a communiqué, **set the shocks and run the model** (*Run* tab), publish the results, ranking, council, CSV export |
 | `board.html?class=…` | the projector | state of the round, countdown, communiqué, **the union's foreign reserves and alert**, ranking, pledges, "pledges vs decisions" |
 
-Everything the students see is in English.
+Languages: the home page, the teams' page (`desk.html`), the console (`admin.html`) and the model page are in English and French. The language follows the visitor's choice (EN / FR buttons, remembered by the browser) or their browser's language; `?lang=fr` or `?lang=en` in the address forces it. Only the projected board (`board.html`) is still in English only.
 
 ---
 
