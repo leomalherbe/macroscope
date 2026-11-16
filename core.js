@@ -824,6 +824,27 @@ var MS = (function () {
     return { years: years, cum: cum };
   }
 
+  /* §26: the discretionary budget balance of a decision year, ex ante — what the fiscal levers add to (+) or take from (−) the public
+     balance at the reference GDP and prices, before any multiplier, in % of GDP. The weights are the reference ones of OPEN-MU (the
+     same for every country and model; engine.budgetRatios, checked by dev/engine-test.js): public demand 20 % of GDP, benefits 15 %,
+     income-tax revenue 30.7 % (29.7 % with the households option), consumption 77 % (the VAT base, VAT rate 10 %), imports from the
+     union 15 % (the base of an exited country's tariff); carbon tax and green investment 0.2 % of GDP per point. */
+  var BUDGET_RATIOS = { g: 20, tr: 15, inc: 30.722, incHh: 29.688, ce: 77, tau: 0.1, imu: 15, ctax: 0.2, green: 0.2 };
+  function budgetBalance(year, state) {
+    var R = BUDGET_RATIOS, L = (year && year.levers) || {}, v = function (k) { var x = num(L[k]); return isNaN(x) ? 0 : x; };
+    var tc = function (t) { return t / (1 + t); };
+    var parts = [
+      { id: 'pubdem', v: -R.g * v('pubdem') / 100 },
+      { id: 'benefits', v: -R.tr * v('benefits') / 100 },
+      { id: 'inctax', v: (householdsOn(state) ? R.incHh : R.inc) * v('inctax') / 100 },
+      { id: 'vat', v: R.ce * (tc(R.tau * (1 + v('vat') / 100)) - tc(R.tau)) },
+      { id: 'ctax', v: R.ctax * Math.max(0, v('ctax')) },
+      { id: 'green', v: -R.green * Math.max(0, v('green')) },
+      { id: 'tariffU', v: R.imu * Math.max(0, v('tariffU')) / 100 }
+    ].filter(function (x) { return Math.abs(x.v) > 1e-9; });
+    return { total: parts.reduce(function (a, x) { return a + x.v; }, 0), parts: parts };
+  }
+
   /* §12: a country out of the union whose foreign reserves were exhausted at the end of last year (extra of its last published row:
      RXshare ≤ 0) cannot hold its peg as is: float, or peg with a devaluation of at least 15 % — once (Léo, 14/11); still exhausted after that
      forced year, or floating with no reserves, it cannot peg at all. Returns an error or null. */
@@ -866,7 +887,7 @@ var MS = (function () {
     leaderboard: leaderboard, pledgeKept: pledgeKept, pledgeVerdict: pledgeVerdict,
     FORUM_TYPES: FORUM_TYPES, forumConf: forumConf, forumOn: forumOn, forumFrozenThrough: forumFrozenThrough, forumYear: forumYear, validateProposal: validateProposal, forumCheck: forumCheck, forumBalance: forumBalance,
     telegramConf: telegramConf, telegramsOn: telegramsOn, validateTelegram: validateTelegram,
-    STRAT_PARTS: STRAT_PARTS, strategyConf: strategyConf, strategyOn: strategyOn, strategyParts: strategyParts, validateStrategy: validateStrategy, strategyText: strategyText, forecastCheck: forecastCheck, cellCredit: cellCredit, EXIT_FORCED_DEVAL: EXIT_FORCED_DEVAL, exitReservesError: exitReservesError, ACC_PARTS: ACC_PARTS, accuracyYear: accuracyYear, accuracyTeam: accuracyTeam,
+    STRAT_PARTS: STRAT_PARTS, strategyConf: strategyConf, strategyOn: strategyOn, strategyParts: strategyParts, validateStrategy: validateStrategy, strategyText: strategyText, forecastCheck: forecastCheck, cellCredit: cellCredit, EXIT_FORCED_DEVAL: EXIT_FORCED_DEVAL, BUDGET_RATIOS: BUDGET_RATIOS, budgetBalance: budgetBalance, exitReservesError: exitReservesError, ACC_PARTS: ACC_PARTS, accuracyYear: accuracyYear, accuracyTeam: accuracyTeam,
     VOTE_RATE: VOTE_RATE, VOTE_CRISIS: VOTE_CRISIS, PEG_PARITIES: PEG_PARITIES, tallyCurrency: tallyCurrency, floatVoteOn: floatVoteOn, cleanVotes: cleanVotes,
     newId: newId, makePin: makePin
   };
