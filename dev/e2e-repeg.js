@@ -111,8 +111,11 @@ const KEY = 'TESTKEY';
   must(/Currency crisis · year 2 — vote/.test(await stu.textContent('#form')) && (await stu.$$('#form input[name="C_vote"]')).length === 3, 'student page: currency-crisis vote card (defend / peg / let it float)');
   await stu.screenshot({ path: OUT + '/v13-s2-currency-vote.png', fullPage: true });
   /* votes: France peg at a devaluation of 10 %, Germany peg at 5 %, Italy let it float → median = peg, parity = median of 5 and 10 → 5 */
-  await stu.click('#form input[name="C_vote"][value="peg"]');
+  await stu.click('#form input[name="C_vote"][value="devaluation"]');
+  must(await stu.$eval('#C_parity', x => x.classList.contains('dim')) && await stu.$eval('.pegopt', x => x.contains(document.getElementById('C_parity'))), 'the parity sits next to « peg », dimmed while « let it float » is ticked');
   await stu.selectOption('#C_parity', '10');
+  must(await stu.$eval('#form input[name="C_vote"][value="peg"]', x => x.checked) && !(await stu.$eval('#C_parity', x => x.classList.contains('dim'))), 'choosing a parity ticks « peg »');
+  await (await stu.$('#form .votes')).screenshot({ path: OUT + '/r-parity.png' });
   await stu.click('#crisisBtn');
   await stu.waitForSelector('text=Vote received');
   must((await api({ action: 'submit', pin: pins.DEU, phase: 'crisis', round: 2, payload: { crisis: 'peg', parity: 5 } })).ok && (await api({ action: 'submit', pin: pins.ITA, phase: 'crisis', round: 2, payload: { crisis: 'devaluation' } })).ok, 'Germany votes peg (5 %), Italy let it float');

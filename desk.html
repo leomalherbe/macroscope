@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111801">
-<script src="i18n.js?v=2026111801"></script>
-<script src="i18n/fr-desk.js?v=2026111801"></script>
-<script src="guide.js?v=2026111801"></script>
-<script src="config.js?v=2026111801"></script>
-<script src="core.js?v=2026111801"></script>
-<script src="app-common.js?v=2026111801"></script>
+<link rel="stylesheet" href="style.css?v=2026111802">
+<script src="i18n.js?v=2026111802"></script>
+<script src="i18n/fr-desk.js?v=2026111802"></script>
+<script src="guide.js?v=2026111802"></script>
+<script src="config.js?v=2026111802"></script>
+<script src="core.js?v=2026111802"></script>
+<script src="app-common.js?v=2026111802"></script>
 </head>
 <body>
 
@@ -530,11 +530,19 @@
     var box = el('div', { class: 'q crisis' }); box.appendChild(el('b', {}, ['Defend the currency, peg it again, or let it float?']));
     box.appendChild(el('span', { class: 'hint' }, ['Defend: the central bank raises its rate by ' + MS.fmt(rules.defendStep, 1) + ' pt this year — capital comes back and the currency recovers, investment and every budget pay for it next year. Let it float: nothing is done; the depreciation restores competitiveness with a lag but import prices and inflation stay high. Peg: back to a fixed rate against the rest of the world from this year on, at the parity you vote (the median of the peg votes); the reserves, frozen while floating, defend it again.']));
     var row = el('div', { class: 'opts' });
-    [['austerity', 'Defend (rate +' + MS.fmt(rules.defendStep, 1) + ' pt)'], ['peg', 'Peg to the rest of the world'], ['devaluation', 'Let it float']].forEach(function (o) { var r = el('input', { type: 'radio', name: 'C_vote', value: o[0] }); r.checked = cur === o[0]; row.appendChild(el('label', {}, [r, o[1]])); });
-    /* the parity of the peg: the euro's new rate against today's (+ = devaluation) */
+    /* the parity of the peg: the euro's new rate against today's (+ = devaluation), next to « peg »; choosing one ticks « peg » */
     var par = el('select', { id: 'C_parity' }), curPar = mine && mine.payload && mine.payload.parity !== undefined ? MS.num(mine.payload.parity) : 0;
     MS.PEG_PARITIES.forEach(function (v) { var o = el('option', { value: v }, [v === 0 ? 'today’s rate' : (v > 0 ? 'devaluation of ' : 'revaluation of ') + Math.abs(v) + ' %']); if (v === curPar) o.selected = true; par.appendChild(o); });
-    row.appendChild(el('label', { class: 'small', style: 'margin-left:8px' }, ['Parity of the peg: ', par]));
+    var radios = {};
+    function syncPar() { var on = !!(radios.peg && radios.peg.checked); par.classList.toggle('dim', !on); }
+    [['austerity', 'Defend (rate +' + MS.fmt(rules.defendStep, 1) + ' pt)'], ['peg', 'Peg to the rest of the world'], ['devaluation', 'Let it float']].forEach(function (o) {
+      var r = el('input', { type: 'radio', name: 'C_vote', value: o[0] }); r.checked = cur === o[0]; radios[o[0]] = r; r.addEventListener('change', syncPar);
+      if (o[0] !== 'peg') { row.appendChild(el('label', {}, [r, o[1]])); return; }
+      row.appendChild(el('span', { class: 'pegopt' }, [el('label', {}, [r, o[1]]), el('span', { class: 'small muted' }, ['at the parity:']), par]));
+    });
+    par.addEventListener('change', function () { radios.peg.checked = true; syncPar(); });
+    par.addEventListener('click', function () { radios.peg.checked = true; syncPar(); });
+    syncPar();
     box.appendChild(row); wrap.appendChild(box); card.appendChild(wrap);
     card.appendChild(el('div', { id: 'formErrors' }));
     card.appendChild(el('div', { class: 'btnrow' }, [el('button', { class: 'btn primary', id: 'crisisBtn', onclick: submitCrisis }, [mine ? 'Update our vote' : 'Cast our vote']), el('span', { class: 'small muted' }, ['You can change your vote until the administrator closes it.'])]));
