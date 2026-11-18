@@ -1829,3 +1829,7 @@ Ex ante: at your reference GDP and prices, before any multiplier. The public bal
 => Ex ante : à votre PIB et à vos prix de référence, avant tout multiplicateur. Le solde public de vos résultats bouge aussi avec l’activité (recettes fiscales, prestations), les prix et les intérêts de la dette — une demande publique à +10 % coûte 2 % du PIB ex ante, environ 1,1 % au bout d’un an dans le modèle.
 at the parity:
 => à la parité :
+new proposals
+=> nouvelles propositions
+new telegrams
+=> nouveaux télégrammes

@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111802">
-<script src="i18n.js?v=2026111802"></script>
-<script src="i18n/fr-desk.js?v=2026111802"></script>
-<script src="guide.js?v=2026111802"></script>
-<script src="config.js?v=2026111802"></script>
-<script src="core.js?v=2026111802"></script>
-<script src="app-common.js?v=2026111802"></script>
+<link rel="stylesheet" href="style.css?v=2026111803">
+<script src="i18n.js?v=2026111803"></script>
+<script src="i18n/fr-desk.js?v=2026111803"></script>
+<script src="guide.js?v=2026111803"></script>
+<script src="config.js?v=2026111803"></script>
+<script src="core.js?v=2026111803"></script>
+<script src="app-common.js?v=2026111803"></script>
 </head>
 <body>
 
@@ -148,7 +148,7 @@
     }
     if (st.phase === 'game' && st.councilOpen) strip.appendChild(el('span', { class: 'pill gold' }, ['Council in session']));
     if (data.forum && data.forum.on) { var nf = data.forum.proposals.filter(function (p) { return p.round === data.forum.year && !p.withdrawn && !p.hidden; }).length; strip.appendChild(el('a', { class: 'pill gold', href: '#forum' }, ['Forum: ' + nf + ' proposal' + (nf === 1 ? '' : 's')])); }
-    if (data.telegrams) { var nt = tgUnread().length; if (nt) strip.appendChild(el('a', { class: 'pill gold', href: '#telegrams' }, [nt === 1 ? '1 new telegram' : nt + ' new telegrams'])); }
+    if (data.telegrams) { var nt = tgUnread().length; if (nt) strip.appendChild(el('a', { class: 'pill gold', href: '#telegrams', onclick: function () { toggleFold('telegrams', true); } }, [nt === 1 ? '1 new telegram' : nt + ' new telegrams'])); }
     strip.appendChild(el('span', { class: 'spacer' }));
     strip.appendChild(el('button', { class: 'btn sm ghost', onclick: function () { load(); UI.toast('Refreshed'); } }, ['↻ Refresh']));
     updateCountdown();
@@ -726,18 +726,21 @@
     var left = Math.max(0, f.perYear - f.used), key = f.year + '|' + left + '|' + f.open;
     if (forumKey !== key) {
       box.innerHTML = '';
-      var card = el('div', { class: 'card tint' });
-      card.appendChild(el('div', { class: 'cardhead' }, [el('h2', { 'data-guide': 'coop' }, ['Forum of the union · proposals for year ' + f.year]),
-        el('span', { class: 'small muted' }, [f.open ? (left ? left + ' proposal' + (left === 1 ? '' : 's') + ' left this year' : 'your proposal is posted') : 'the game is over'])]));
+      var card0 = el('div', { class: 'card tint fold' });
+      card0.appendChild(foldHead('forum', el('h2', { 'data-guide': 'coop' }, ['Forum of the union · proposals for year ' + f.year]),
+        el('span', { class: 'small muted' }, [f.open ? (left ? left + ' proposal' + (left === 1 ? '' : 's') + ' left this year' : 'your proposal is posted') : 'the game is over'])));
+      var card = el('div', { class: 'foldbody' }); card0.appendChild(card); setFold(card0, 'forum');
       card.appendChild(el('p', { class: 'muted small' }, ['A public forum, open all game long. Each country posts ' + (f.perYear === 1 ? 'one proposal' : f.perYear + ' proposals') + ' a year (' + f.maxLen + ' characters); every country can support 👍 or reject 👎 the others’ proposals, by name, as often as it likes. When the submissions of the year close, its forum is frozen and its proposals are compared with the decisions: words vs acts, in public.']));
       if (f.open && left) card.appendChild(forumComposer(f));
       card.appendChild(el('h3', { style: 'margin-top:16px' }, ['On the table · year ' + f.year]));
       card.appendChild(el('div', { id: 'forumList' }));
       card.appendChild(el('div', { id: 'forumPast' }));
       card.addEventListener('click', forumClick);
-      box.appendChild(card);
+      box.appendChild(card0);
       forumKey = key;
     }
+    if (foldOpen('forum')) forumMarkSeen();
+    setBadge('forum', forumUnread().length);
     var cur = f.proposals.filter(function (p) { return p.round === f.year; }).sort(function (a, b) { return String(a.ts) < String(b.ts) ? 1 : -1; });
     $('#forumList').innerHTML = cur.length ? cur.map(function (p) { return UI.forumPostHtml(p, { me: me, react: true, withdraw: true }); }).join('') : '<p class="muted">No proposal yet for year ' + f.year + '.</p>';
     var past = f.proposals.filter(function (p) { return p.round < f.year; });
@@ -825,12 +828,39 @@
     } catch (err) { UI.toast('Network error: ' + err.message, 5000); b.disabled = false; }
   }
 
+  /* ---------------- folding cards (forum, telegrams): folded by default, a counter of what is new next to the title ---------------- */
+  function foldKey(id) { return 'macsim.fold.' + id + '.' + data.group.groupId; }
+  function foldOpen(id) { return UI.read(foldKey(id)) === 'open'; }
+  function foldHead(id, h2, side) {
+    /* a div, not a button: the guide's (i) button sits inside the title */
+    var btn = el('div', { role: 'button', tabindex: '0', class: 'foldbtn', id: id + 'Fold', 'aria-expanded': 'false' }, [el('span', { class: 'caret' }, ['▸']), h2, el('span', { class: 'nbadge', id: id + 'Badge', hidden: true })]);
+    btn.addEventListener('click', function (e) { if (e.target.closest('.gi')) return; toggleFold(id); });
+    btn.addEventListener('keydown', function (e) { if (e.target === btn && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleFold(id); } });
+    return el('div', { class: 'cardhead foldhead' }, [btn, side]);
+  }
+  function setFold(card, id) { var o = foldOpen(id); card.classList.toggle('folded', !o); var b = card.querySelector('.foldbtn'); if (b) b.setAttribute('aria-expanded', o ? 'true' : 'false'); }
+  function toggleFold(id, open) {
+    var o = open === undefined ? !foldOpen(id) : open;
+    UI.store(foldKey(id), o ? 'open' : null);
+    var card = $('#' + id + ' .card.fold'); if (card) setFold(card, id);
+    if (o && id === 'forum') { forumMarkSeen(); setBadge('forum', 0); }
+    if (o && id === 'telegrams') tgOpened();
+  }
+  function setBadge(id, n) { var b = $('#' + id + 'Badge'); if (!b) return; b.hidden = !n; b.textContent = n > 99 ? '99+' : String(n || ''); b.title = n ? (id === 'forum' ? 'new proposals' : 'new telegrams') : ''; }
+  /* forum: the proposals of the other countries posted since the card was last open */
+  function forumSeenKey() { return 'macsim.forumseen.' + data.group.groupId; }
+  function forumUnread() { var f = data.forum, me = data.group.country, seen = UI.read(forumSeenKey()) || ''; return f && f.proposals ? f.proposals.filter(function (p) { return p.country !== me && String(p.ts) > String(seen); }) : []; }
+  function forumMarkSeen() { var l = ((data.forum && data.forum.proposals) || []).map(function (p) { return String(p.ts); }).sort().pop(); if (l) UI.store(forumSeenKey(), l); }
+  /* telegrams: opening the card reads them — the new ones stay highlighted until the next reload */
+  var tgFresh = null;
+  function tgOpened() { var u = tgUnread(); if (!u.length) return; tgFresh = u.map(function (t) { return String(t.ts); }); var l = (data.telegrams.inbox || []).map(function (t) { return String(t.ts); }).sort().pop(); if (l) UI.store(tgSeenKey(), l); tgKey = null; render(); }
+
   /* ---------------- diplomatic telegrams (private, bilateral) ---------------- */
   function tgSeenKey() { return 'macsim.tgseen.' + data.group.groupId; }
   function tgUnread() { var seen = UI.read(tgSeenKey()) || ''; return ((data.telegrams && data.telegrams.inbox) || []).filter(function (t) { return String(t.ts) > String(seen); }); }
   function tgHtml(t, dir) {
     var who = dir === 'in' ? 'From ' : 'To ', c = dir === 'in' ? t.from : t.to;
-    return '<div class="tg' + (dir === 'in' && tgUnread().indexOf(t) >= 0 ? ' new' : '') + (dir === 'out' ? ' out' : '') + '"><div class="tghead"><b><span>' + who + '</span><span>' + esc(MS.countryName(c)) + '</span></b> <span class="muted small">' + esc(UI.fmtDateTime(t.ts)) + '</span></div>' +
+    return '<div class="tg' + (dir === 'in' && (tgUnread().indexOf(t) >= 0 || (tgFresh && tgFresh.indexOf(String(t.ts)) >= 0)) ? ' new' : '') + (dir === 'out' ? ' out' : '') + '"><div class="tghead"><b><span>' + who + '</span><span>' + esc(MS.countryName(c)) + '</span></b> <span class="muted small">' + esc(UI.fmtDateTime(t.ts)) + '</span></div>' +
       (t.hidden ? '<div class="muted small">hidden by the administrator</div>' : '<div class="tgtext"><span translate="no">' + esc(t.text) + '</span></div>') + '</div>';
   }
   function renderTelegrams() {
@@ -839,9 +869,10 @@
     var left = Math.max(0, tg.perYear - tg.used), key = tg.round + '|' + left + '|' + tg.open;
     if (tgKey !== key) {
       box.innerHTML = '';
-      var card = el('div', { class: 'card' });
-      card.appendChild(el('div', { class: 'cardhead' }, [el('h2', {}, ['Diplomatic telegrams']),
-        el('span', { class: 'small muted' }, [tg.open ? (left ? left + ' telegram' + (left === 1 ? '' : 's') + ' left this year' : 'no telegram left this year') : 'telegraph office closed'])]));
+      var card0 = el('div', { class: 'card fold' });
+      card0.appendChild(foldHead('telegrams', el('h2', {}, ['Diplomatic telegrams']),
+        el('span', { class: 'small muted' }, [tg.open ? (left ? left + ' telegram' + (left === 1 ? '' : 's') + ' left this year' : 'no telegram left this year') : 'telegraph office closed'])));
+      var card = el('div', { class: 'foldbody' }); card0.appendChild(card); setFold(card0, 'telegrams');
       card.appendChild(el('p', { class: 'muted small' }, ['Private messages from country to country: only the country you write to reads them (the administrator can read every telegram after the game). ' + tg.perYear + ' a year, ' + tg.maxLen + ' characters each. The administrator opens and closes the telegraph office.']));
       if (tg.open && left) {
         var sel = el('select', { id: 'tgTo' }); sel.appendChild(el('option', { value: '' }, ['— to which country? —']));
@@ -858,9 +889,10 @@
       card.appendChild(el('div', { class: 'cardhead', style: 'margin-top:14px' }, [el('h3', {}, ['Received']), el('button', { class: 'btn ghost sm', id: 'tgSeen', onclick: function () { var l = (data.telegrams.inbox || []).map(function (t) { return String(t.ts); }).sort().pop(); if (l) UI.store(tgSeenKey(), l); tgKey = null; render(); } }, ['Mark as read'])]));
       card.appendChild(el('div', { id: 'tgIn' }));
       card.appendChild(el('details', { id: 'tgOutBox', style: 'margin-top:10px' }, [el('summary', {}, ['Sent']), el('div', { id: 'tgOut' })]));
-      box.appendChild(card);
+      box.appendChild(card0);
       tgKey = key;
     }
+    setBadge('telegrams', tgUnread().length);
     var inbox = tg.inbox.slice().sort(function (a, b) { return String(a.ts) < String(b.ts) ? 1 : -1; });
     $('#tgIn').innerHTML = inbox.length ? inbox.map(function (t) { return tgHtml(t, 'in'); }).join('') : '<p class="muted">No telegram received.</p>';
     $('#tgSeen').style.display = tgUnread().length ? '' : 'none';
