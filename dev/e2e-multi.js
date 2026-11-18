@@ -57,6 +57,13 @@ const KEY = 'TESTKEY';
   const strip = await d.textContent('#strip');
   must(/23:59:\d\d/.test(strip) && /ferme le \d+\/\d+ à \d\d:\d\d/.test(strip), 'desk (French): 23:59:xx and the closing time');
   await b.screenshot({ path: OUT + '/m1-console.png' });
+  /* a timer that has run out: the round is closed; « Open submissions » reopens it (the expired timer is cleared) */
+  await api({ action: 'admin.state.set', key: KEY, classId: B, patch: { deadline: new Date(Date.now() - 5 * 60000).toISOString() } });
+  await b.click('#strip button:has-text("Refresh"), #strip button:has-text("Actualiser")'); await b.waitForTimeout(600);
+  must(!(await b.$('#countdown')) && /closed|clos/i.test(await b.textContent('#strip')), 'timer run out: the round is closed');
+  await b.click('button:has-text("Open submissions"), button:has-text("Ouvrir les soumissions")'); await b.waitForTimeout(800);
+  const ovB = await api({ action: 'admin.overview', key: KEY, classId: B });
+  must(ovB.roundOpen && !ovB.state.deadline, 'reopened after the timer ran out (timer cleared)');
   await (await d.$('#strip')).screenshot({ path: OUT + '/m2-desk.png' });
   must(!errors.length, 'no page error' + (errors.length ? ': ' + errors.join(' | ') : ''));
   await browser.close();
