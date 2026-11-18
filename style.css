@@ -423,3 +423,7 @@ tr.bdsub td{font-style:italic}
 .budgetbox .bfill.pos{background:#3b6fc4}   /* restrictive */
 .budgetbox .bdir{font-style:italic}
 .budgetbox .bparts{margin-top:2px}
+
+/* currency-crisis vote: the parity select next to « peg » (dimmed while another option is ticked; choosing a parity ticks « peg ») */
+.votes .pegopt{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+.votes .pegopt select.dim{opacity:.55}
