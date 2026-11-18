@@ -427,3 +427,14 @@ tr.bdsub td{font-style:italic}
 /* currency-crisis vote: the parity select next to « peg » (dimmed while another option is ticked; choosing a parity ticks « peg ») */
 .votes .pegopt{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
 .votes .pegopt select.dim{opacity:.55}
+
+/* folding cards (desk: forum, telegrams) — folded by default; a round counter of what is new next to the title */
+.card.fold.folded .foldbody{display:none}
+.card.fold.folded .foldhead{margin-bottom:0}
+.foldbtn{cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.foldbtn:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:4px}
+.foldbtn h2{margin:0}
+.foldbtn .caret{display:inline-block;transition:transform .15s;font-size:.9em;opacity:.7}
+.foldbtn[aria-expanded="true"] .caret{transform:rotate(90deg)}
+.nbadge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#d92d20;color:#fff;font-size:12px;font-weight:700;line-height:1}
+.nbadge[hidden]{display:none}
