@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111601">
-<script src="i18n.js?v=2026111601"></script>
-<script src="i18n/fr-desk.js?v=2026111601"></script>
-<script src="i18n/fr-admin.js?v=2026111601"></script>
-<script src="config.js?v=2026111601"></script>
-<script src="core.js?v=2026111601"></script>
-<script src="app-common.js?v=2026111601"></script>
-<script src="engine.js?v=2026111601"></script>
+<link rel="stylesheet" href="style.css?v=2026111801">
+<script src="i18n.js?v=2026111801"></script>
+<script src="i18n/fr-desk.js?v=2026111801"></script>
+<script src="i18n/fr-admin.js?v=2026111801"></script>
+<script src="config.js?v=2026111801"></script>
+<script src="core.js?v=2026111801"></script>
+<script src="app-common.js?v=2026111801"></script>
+<script src="engine.js?v=2026111801"></script>
 </head>
 <body>
 
@@ -421,7 +421,7 @@
     /* open / close / timer */
     var row2 = el('div', { class: 'btnrow' });
     if (ov.roundOpen) row2.appendChild(el('button', { class: 'btn danger', onclick: function () { patch({ status: 'closed' }, 'Submissions closed'); } }, ['■ Close submissions']));
-    else row2.appendChild(el('button', { class: 'btn primary', onclick: function () { if (crisisVoteOpen()) { UI.toast('Close the crisis vote first (card below).', 5000); return; } if (retalOpen()) { UI.toast('Close the council on retaliation first (card below).', 5000); return; } patch({ status: 'open' }, 'Submissions open'); } }, ['▶ Open submissions']));
+    else row2.appendChild(el('button', { class: 'btn primary', onclick: function () { if (crisisVoteOpen()) { UI.toast('Close the crisis vote first (card below).', 5000); return; } if (retalOpen()) { UI.toast('Close the council on retaliation first (card below).', 5000); return; } var p0 = { status: 'open' }; if (s.deadline && Date.parse(s.deadline) < Date.now() + offset) p0.deadline = null; /* a timer that has run out would keep the round closed */ patch(p0, 'Submissions open'); } }, ['▶ Open submissions']));
     /* the timer in minutes (a class) or in hours (a game played at a distance over days: 24 h, 48 h…) — the unit is remembered */
     var unit = el('select', { id: 'timerUnit' }, [el('option', { value: 'min' }, ['min']), el('option', { value: 'h' }, ['hours'])]);
     unit.value = UI.read('macsim.timerUnit') === 'h' ? 'h' : 'min';
