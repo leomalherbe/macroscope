@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111902">
-<script src="i18n.js?v=2026111902"></script>
-<script src="i18n/fr-desk.js?v=2026111902"></script>
-<script src="i18n/fr-admin.js?v=2026111902"></script>
-<script src="config.js?v=2026111902"></script>
-<script src="core.js?v=2026111902"></script>
-<script src="app-common.js?v=2026111902"></script>
-<script src="engine.js?v=2026111902"></script>
+<link rel="stylesheet" href="style.css?v=2026111903">
+<script src="i18n.js?v=2026111903"></script>
+<script src="i18n/fr-desk.js?v=2026111903"></script>
+<script src="i18n/fr-admin.js?v=2026111903"></script>
+<script src="config.js?v=2026111903"></script>
+<script src="core.js?v=2026111903"></script>
+<script src="app-common.js?v=2026111903"></script>
+<script src="engine.js?v=2026111903"></script>
 </head>
 <body>
 
@@ -573,7 +573,7 @@
     gStr.addEventListener('change', strSync);
     if (!isDuel()) {
       box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', {}, [gStr, ' guided strategy (five parts instead of a free text)']), strSub]));
-      box.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['The shock and the votes of the year, the other countries, our own policy (each with a forecast ↑ ≈ ↓ per indicator, compared after the run with the matching part of the split), priorities and sacrifices among the dimensions of R, the long-term project (kept or revised each year). Replaces the minimum length of the free text; the warm-up has no forecasts and no "other countries" part.']));
+      box.appendChild(el('p', { class: 'muted small', style: 'margin:4px 0 0' }, ['The shock and the votes of the year, the other countries, our own policy, priorities and sacrifices among the dimensions of R, the long-term project (kept or revised each year); two forecast grids ↑ ≈ ↓ per indicator, compared after the run with the split: the shock alone (without the votes of the union) and the team’s own policy. Replaces the minimum length of the free text; the warm-up has no forecasts and no "other countries" part.']));
     }
     strSync();
     box.appendChild(el('div', { class: 'checks', style: 'margin-top:8px' }, [el('label', {}, [gTfp, ' TFP shock allowed'])]));

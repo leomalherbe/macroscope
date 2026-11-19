@@ -1484,8 +1484,8 @@ Year # · # / # right
 => Année # · # / # justes
 Earlier years
 => Années précédentes
-For each part of your strategy: the direction you expected (left) and the direction in which the matching source actually moved each indicator this year (right): its contribution in the split « of which… », up or down — the shock and the votes, the other countries’ policies, your own policy. ≈ means a contribution of less than # either way.
-=> Pour chaque rubrique de votre stratégie : le sens attendu (à gauche) et le sens dans lequel la source correspondante a réellement fait bouger chaque indicateur cette année (à droite) : sa contribution dans la décomposition « dont… », vers le haut ou vers le bas — le choc et les votes, les politiques des autres pays, votre propre politique. ≈ signifie une contribution de moins de # dans un sens ou dans l’autre.
+For each part of your strategy: the direction you expected (left) and the direction in which the matching source actually moved each indicator this year (right): its contribution in the split « of which… », up or down — the shock alone (without the votes of the union), your own policy. ≈ means a contribution of less than # either way.
+=> Pour chaque rubrique de votre stratégie : le sens attendu (à gauche) et le sens dans lequel la source correspondante a réellement fait bouger chaque indicateur cette année (à droite) : sa contribution dans la décomposition « dont… », vers le haut ou vers le bas — le choc seul (sans les votes de l’union), votre propre politique. ≈ signifie une contribution de moins de # dans un sens ou dans l’autre.
 Please fix the following:
 => À corriger :
 
@@ -1716,8 +1716,8 @@ Forecast of own policy
 => Prévision de la politique propre
 over the game
 => sur la partie
-Only the cells you filled in count, each weighing by the size of what actually happened. A minimal change: « ≈ » and an arrow in its direction are both right. Otherwise: the right direction 1, « ≈ » against a moderate effect ½, wrong 0. The « other countries » part is not scored.
-=> Seules les cases que vous avez remplies comptent, chacune selon l’ampleur de ce qui s’est réellement passé. Une variation minime : « ≈ » et une flèche dans son sens sont tous deux justes. Sinon : bon sens 1, « ≈ » face à un effet modéré ½, faux 0. La rubrique « autres pays » n’est pas notée.
+Only the cells you filled in count, each weighing by the size of what actually happened. A minimal change: « ≈ » and an arrow in its direction are both right. Otherwise: the right direction 1, « ≈ » against a moderate effect ½, wrong 0.
+=> Seules les cases que vous avez remplies comptent, chacune selon l’ampleur de ce qui s’est réellement passé. Une variation minime : « ≈ » et une flèche dans son sens sont tous deux justes. Sinon : bon sens 1, « ≈ » face à un effet modéré ½, faux 0.
 Cumulative R: your play and the effect of the other countries
 => R cumulé : votre jeu et l’effet des autres pays
 
@@ -1848,3 +1848,8 @@ tariff on the union
 => droit de douane sur l’union
 tariff on the rest of the world
 => droit de douane sur le reste du monde
+// 19/11: two forecast grids only
+Expected effect of the shock alone this year (without the votes of the union)
+=> Effet attendu du choc seul cette année (sans les votes de l’union)
+The shock alone
+=> Le choc seul

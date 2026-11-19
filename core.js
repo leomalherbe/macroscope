@@ -693,14 +693,15 @@ var MS = (function () {
   }
 
   /* ---------- Guided strategy ----------
-     Five parts: the shock and the votes of the year, the other countries, our own policy (each with a forecast grid:
-     the expected direction ↑ ≈ ↓ of every indicator, compared ex post with the matching part of the published split:
-     shocks, foreign policies, own policy), priorities and sacrifices among the dimensions of R, the long-term project
-     (kept or revised from one year to the next). The warm-up has no "other countries" part and no grids. */
+     Five parts: the shock and the votes of the year, the other countries, our own policy, priorities and sacrifices among the dimensions of R, the long-term project
+     (kept or revised from one year to the next). Two forecast grids only (Léo, 19/11): the shock alone (part 1, compared ex post
+     with the « ext » part of the split: the administrator's shocks, without the votes of the union) and our own policy (part 3,
+     the « nat » part) — the expected direction ↑ ≈ ↓ of every indicator. Neither the votes nor the other countries are forecast.
+     The warm-up has no "other countries" part and no grids. */
   var STRAT_PARTS = [
-    { id: 'shock', label: 'The shock and the votes of the year', src: 'shock' },
-    { id: 'others', label: 'The other countries of the union', src: 'foreign', game: true },
-    { id: 'own', label: 'Our own policy', src: 'nat' },
+    { id: 'shock', label: 'The shock and the votes of the year', src: 'ext', grid: 'The shock alone' },
+    { id: 'others', label: 'The other countries of the union', game: true },
+    { id: 'own', label: 'Our own policy', src: 'nat', grid: 'Our own policy' },
     { id: 'prio', label: 'Priorities and sacrifices' },
     { id: 'project', label: 'Our long-term project' }
   ];
@@ -767,6 +768,13 @@ var MS = (function () {
     if (e === 0) return Math.abs(d) <= sc ? 0.5 : 0;
     return 0;
   }
+  /* the contribution of a source in a row's split; « ext » (the shocks alone, without the union's votes) falls back on « shock »
+     for rows published before the split had it (no votes then, or the votes counted with the shock) */
+  function srcValue(row, ind, src) {
+    var x = row.detail[ind]; if (!x) return NaN;
+    if (src === 'ext' && (x.ext === undefined || x.ext === null)) return num(x.shock);
+    return num(x[src]);
+  }
   function forecastCheck(state, strat, row, prevRow, tol) {
     tol = tol === undefined ? 0.05 : tol;
     var out = { parts: [], hits: 0, n: 0 };
@@ -776,13 +784,13 @@ var MS = (function () {
       var ex = (strat[p.id] && strat[p.id].expect) || {}, cells = [];
       indicatorsFor(state).forEach(function (ind) {
         if (ex[ind.id] === undefined) return;
-        var a = row.detail[ind.id] ? num(row.detail[ind.id][p.src]) : NaN;
+        var a = srcValue(row, ind.id, p.src);
         if (isNaN(a)) return;
         var d = a, dir = d > tol ? 1 : (d < -tol ? -1 : 0), hit = cellCredit(ex[ind.id], d, ACC_SCALE[ind.id], tol) === 1;
         cells.push({ id: ind.id, expected: ex[ind.id], actual: dir, change: round3(d), hit: hit });
         out.n++; if (hit) out.hits++;
       });
-      if (cells.length) out.parts.push({ id: p.id, label: p.label, cells: cells });
+      if (cells.length) out.parts.push({ id: p.id, label: p.grid || p.label, cells: cells });
     });
     return out;
   }
@@ -792,7 +800,7 @@ var MS = (function () {
      team's own policy (part 3 vs the « own policy » part). Each indicator weighs by the size of the contribution of the year
      (w = |a| / scale, between 0.05 and 1; the level in the split, not its change from the year before: Léo, 19/11), so that a big effect counts and « ≈ » everywhere does not pay; the credit of
      each filled cell is cellCredit; empty cells do not count. The « other countries » part is not scored (Léo, 13/11). */
-  var ACC_PARTS = [{ id: 'shock', src: 'shock', label: 'Diagnosis of the shock' }, { id: 'own', src: 'nat', label: 'Forecast of own policy' }];
+  var ACC_PARTS = [{ id: 'shock', src: 'ext', label: 'Diagnosis of the shock' }, { id: 'own', src: 'nat', label: 'Forecast of own policy' }];
   function accuracyYear(state, strat, row, prevRow, tol) {
     tol = tol === undefined ? 0.05 : tol;
     var out = {};
@@ -800,7 +808,7 @@ var MS = (function () {
     ACC_PARTS.forEach(function (p) {
       var ex = (strat[p.id] && strat[p.id].expect) || {}, num0 = 0, den = 0;
       indicatorsFor(state).forEach(function (ind) {
-        var a = row.detail[ind.id] ? num(row.detail[ind.id][p.src]) : NaN;
+        var a = srcValue(row, ind.id, p.src);
         if (isNaN(a)) return;
         var d = a, sc = ACC_SCALE[ind.id] || 0.25, e = ex[ind.id];
         if (e !== 1 && e !== 0 && e !== -1) return;   /* only the cells the team filled in count (the administrator can make the grids required) */
