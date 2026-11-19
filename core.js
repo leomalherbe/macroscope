@@ -20,6 +20,8 @@ var MS = (function () {
     /* duel (arcade mode): each player sets its own policy rate, in points around the reference, ±bounds.rate */
     /* §13 (class switch sim.tariffs): a country out of the union taxes the goods it buys from the members, 0 to bounds.tariffU % */
     { id: 'tariffU',  n: 8, label: 'Tariff on goods from the union', hint: 'a tax on everything your country buys from the members of the union, 0 to 20 %: your budget collects it, your households pay it, the union sells you less (and your currency appreciates, which gives part of it back)', cat: 'trade', exitOnly: true, unit: '%' },
+    /* §13 (19/11): its tariff on the goods of the rest of the world — out of the union, it no longer applies the common external tariff */
+    { id: 'tariffW',  n: 9, label: 'Tariff on goods from the rest of the world', hint: 'a tax on everything your country buys from the rest of the world, 0 to 20 %: out of the union, the common external tariff no longer applies to you, this one is yours. Your budget collects it, your households pay it, you import less from the rest of the world (and your currency appreciates, which gives part of it back)', cat: 'trade', exitOnly: true, unit: '%' },
     { id: 'rate',     n: 7, label: 'Policy rate',                hint: 'points above (+) or below (−) the reference rate of 3 %; acts on investment next year, on debt service and on capital flows (a higher rate pulls capital in and appreciates your currency)', cat: 'money', eco: true, duel: true, unit: 'pt' }
   ];
   /* the levers available to a class: the four demand/supply levers, plus the two ecological levers when the model is v2.0 */
@@ -55,7 +57,7 @@ var MS = (function () {
   /* the levers of a country in a given game year: an exited country gains its policy rate */
   function leversForCountry(state, country, year) {
     var list = leversFor(state);
-    if (!isDuel(state) && isOutIn(state, country, year)) list = list.concat(LEVERS.filter(function (l) { return l.id === 'rate' || (l.id === 'tariffU' && tariffsOn(state)); }));
+    if (!isDuel(state) && isOutIn(state, country, year)) list = list.concat(LEVERS.filter(function (l) { return l.id === 'rate' || ((l.id === 'tariffU' || l.id === 'tariffW') && tariffsOn(state)); }));
     return list;
   }
   /* exchange-rate decisions of an exited country (payload.years[0]): regime, parity change (peg), buy-back of the bills the union sells */
@@ -603,7 +605,7 @@ var MS = (function () {
         var v = num(x[k]); if (isNaN(v)) { errors.push(who + l.label + ': not a number.'); return; }
         var lo = l.eco ? 0 : -(b.lever || 10), hi = l.eco ? (l.id === 'rate' ? (b.rate || 2) : (b.eco || 10)) : (b.lever || 10);
         if (l.id === 'rate') lo = -(b.rate || 2);
-        if (l.id === 'tariffU') { lo = 0; hi = b.tariffU || 20; }
+        if (l.id === 'tariffU' || l.id === 'tariffW') { lo = 0; hi = b.tariffU || 20; }
         if (v < lo - 1e-9 || v > hi + 1e-9) { errors.push(who + l.label + ': between ' + lo + ' and ' + hi + '.'); return; }
         o[k] = round2(v);
       });
@@ -829,7 +831,7 @@ var MS = (function () {
      same for every country and model; engine.budgetRatios, checked by dev/engine-test.js): public demand 20 % of GDP, benefits 15 %,
      income-tax revenue 30.7 % (29.7 % with the households option), consumption 77 % (the VAT base, VAT rate 10 %), imports from the
      union 15 % (the base of an exited country's tariff); carbon tax and green investment 0.2 % of GDP per point. */
-  var BUDGET_RATIOS = { g: 20, tr: 15, inc: 30.722, incHh: 29.688, ce: 77, tau: 0.1, imu: 15, ctax: 0.2, green: 0.2 };
+  var BUDGET_RATIOS = { g: 20, tr: 15, inc: 30.722, incHh: 29.688, ce: 77, tau: 0.1, imu: 15, imr: 15, ctax: 0.2, green: 0.2 };
   function budgetBalance(year, state) {
     var R = BUDGET_RATIOS, L = (year && year.levers) || {}, v = function (k) { var x = num(L[k]); return isNaN(x) ? 0 : x; };
     var tc = function (t) { return t / (1 + t); };
@@ -840,7 +842,8 @@ var MS = (function () {
       { id: 'vat', v: R.ce * (tc(R.tau * (1 + v('vat') / 100)) - tc(R.tau)) },
       { id: 'ctax', v: R.ctax * Math.max(0, v('ctax')) },
       { id: 'green', v: -R.green * Math.max(0, v('green')) },
-      { id: 'tariffU', v: R.imu * Math.max(0, v('tariffU')) / 100 }
+      { id: 'tariffU', v: R.imu * Math.max(0, v('tariffU')) / 100 },
+      { id: 'tariffW', v: R.imr * Math.max(0, v('tariffW')) / 100 }
     ].filter(function (x) { return Math.abs(x.v) > 1e-9; });
     return { total: parts.reduce(function (a, x) { return a + x.v; }, 0), parts: parts };
   }

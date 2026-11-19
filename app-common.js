@@ -273,7 +273,9 @@ var UI = (function () {
     h += '<div class="urow"><span>Your bills held by the union’s central bank</span><span class="num">' + esc(MS.fmt(x.BcbU, 1)) + ' % of GDP' + (x.sold ? ' <span class="neg">(' + esc(MS.fmt(x.sold, 1)) + ' % sold this year)</span>' : '') + '</span></div>';
     h += '<div class="urow"><span>TARGET balance (+: your central bank owes the union, in euros)</span><span class="num ' + (x.T2 > 0 ? 'neg' : '') + '">' + esc(MS.fmt(x.T2, 1, true)) + ' % of GDP' + (x.settled ? ' · settled this year' : '') + '</span></div>';
     if (x.tariff) h += '<div class="urow"><span>Union tariff on your exports</span><span class="num neg">' + esc(MS.fmt(x.tariff, 0)) + ' %</span></div>';
-    if (x.tariffU) h += '<div class="urow"><span>Your tariff on goods from the union</span><span class="num">' + esc(MS.fmt(x.tariffU, 0)) + ' %' + (x.tariffRev ? ' · revenue ' + esc(MS.fmt(x.tariffRev, 2)) + ' % of GDP' : '') + '</span></div>';
+    if (x.tariffU) h += '<div class="urow"><span>Your tariff on goods from the union</span><span class="num">' + esc(MS.fmt(x.tariffU, 0)) + ' %</span></div>';
+    if (x.tariffW) h += '<div class="urow"><span>Your tariff on goods from the rest of the world</span><span class="num">' + esc(MS.fmt(x.tariffW, 0)) + ' %</span></div>';
+    if ((x.tariffU || x.tariffW) && x.tariffRev) h += '<div class="urow"><span>Revenue of your tariffs</span><span class="num">' + esc(MS.fmt(x.tariffRev, 2)) + ' % of GDP</span></div>';
     return h + '</div>';
   }
   /* v1.3: regime / capital-flow lines of a union row (empty for v1.1 / v1.2 rows) */

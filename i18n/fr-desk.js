@@ -605,7 +605,12 @@ MXL.add('fr', {"str":{"Macroscope · Policy desk":"Macroscope · Bureau des déc
 "Ex ante: at your reference GDP and prices, before any multiplier. The public balance you will see in your results also moves with activity (tax receipts, benefits), prices and the interest on the debt — public demand +10 % costs 2 % of GDP ex ante, about 1.1 % after a year in the model.":"Ex ante : à votre PIB et à vos prix de référence, avant tout multiplicateur. Le solde public de vos résultats bouge aussi avec l’activité (recettes fiscales, prestations), les prix et les intérêts de la dette — une demande publique à +10 % coûte 2 % du PIB ex ante, environ 1,1 % au bout d’un an dans le modèle.",
 "at the parity:":"à la parité :",
 "new proposals":"nouvelles propositions",
-"new telegrams":"nouveaux télégrammes"},"re":[["The model: equations (.+?) notation ↗",
+"new telegrams":"nouveaux télégrammes",
+"Tariff on goods from the rest of the world":"Droit de douane sur les biens du reste du monde",
+"Your tariff on goods from the rest of the world":"Votre droit de douane sur les biens du reste du monde",
+"Revenue of your tariffs":"Recettes de vos droits de douane",
+"tariff on the union":"droit de douane sur l’union",
+"tariff on the rest of the world":"droit de douane sur le reste du monde"},"re":[["The model: equations (.+?) notation ↗",
 "Le modèle : équations et notations (en anglais) ↗"],
 ["Macroscope · runs on OPEN-MU, a stock-flow consistent model of a monetary union after Godley (.+?) Lavoie ·",
 "Macroscope · fonctionne avec OPEN-MU, un modèle stock-flux cohérent d’union monétaire d’après Godley et Lavoie ·"],
@@ -1148,4 +1153,8 @@ MXL.add('fr', {"str":{"Macroscope · Policy desk":"Macroscope · Bureau des déc
 ["closes ([+−±-]?\\d+(?:[.,]\\d+)?)\\/([+−±-]?\\d+(?:[.,]\\d+)?) ([+−±-]?\\d+(?:[.,]\\d+)?):([+−±-]?\\d+(?:[.,]\\d+)?)",
 "ferme le $1/$2 à $3:$4"],
 ["±([+−±-]?\\d+(?:[.,]\\d+)?) % of GDP",
-"±$1 % du PIB"]],"title":"Macroscope · Bureau des décisions"});
+"±$1 % du PIB"],
+["Tariff on goods from the rest of the world ([+−±-]?\\d+(?:[.,]\\d+)?)%",
+"Droit de douane sur les biens du reste du monde $1%"],
+["a tax on everything your country buys from the rest of the world, ([+−±-]?\\d+(?:[.,]\\d+)?) to ([+−±-]?\\d+(?:[.,]\\d+)?) %: out of the union, the common external tariff no longer applies to you, this one is yours\\. Your budget collects it, your households pay it, you import less from the rest of the world \\(and your currency appreciates, which gives part of it back\\) ·",
+"une taxe sur tout ce que votre pays achète au reste du monde, de $1 à $2 % : hors de l’union, le tarif extérieur commun ne s’applique plus à vous, celui-ci est le vôtre. Votre budget l’encaisse, vos ménages la paient, vous importez moins du reste du monde (et votre monnaie s’apprécie, ce qui en reprend une partie) ·"]],"title":"Macroscope · Bureau des décisions"});

@@ -116,7 +116,7 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
   r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
   const [pF, pD, pI] = r2.groups.map(g => g.pin);
-  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.21', 'backend reports v1.21');
+  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.22', 'backend reports v1.22');
 
 
 
@@ -162,6 +162,9 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   r2 = dec(pF, { levers: { tariffU: 10, rate: 0 } }, { cet: 20 }); must(r2.ok && !call({ action: 'state', pin: pF }).myDecisions.filter(d => d.round === 2 && d.phase === 'game')[0].payload.votes.cet, 'exited France sets a tariff of 10 % on the union′s goods; its CET vote is dropped');
   r2 = dec(pF, { levers: { tariffU: 25 } }); must(!r2.ok && /between 0 and 20/.test(r2.errors.join(' ')), 'the exited country′s tariff is bounded at 20 %');
   r2 = dec(pD, { levers: { tariffU: 5 } }); must(!r2.ok, 'a member cannot set the exited-country tariff');
+  r2 = dec(pF, { levers: { tariffW: 10 } }); must(r2.ok && call({ action: 'state', pin: pF }).myDecisions.filter(d => d.round === 2 && d.phase === 'game')[0].payload.years[0].levers.tariffW === 10, 'exited France taxes the goods of the rest of the world at 10 % (backend 1.22)');
+  r2 = dec(pF, { levers: { tariffW: 25 } }); must(!r2.ok && /between 0 and 20/.test(r2.errors.join(' ')), 'its tariff on the rest of the world is bounded at 20 %');
+  r2 = dec(pD, { levers: { tariffW: 5 } }); must(!r2.ok, 'a member cannot set it (the common external tariff is voted)');
   call({ action: 'admin.class.delete', key, classId: cx, name: 'Exit class' });
 }
 /* forum of the union (backend 1.16): permanent council, 1 proposal a year, reactions by name, withdrawal, yearly freeze, words vs acts */

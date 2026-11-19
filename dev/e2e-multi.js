@@ -25,7 +25,7 @@ const KEY = 'TESTKEY';
   const open = async (q) => { const p = await ctx.newPage(); p.on('pageerror', e => errors.push(e.message)); p.on('dialog', d => d.accept()); await p.goto(BASE + '/admin.html?lang=' + (process.env.MX_LANG || 'en') + '&api=' + encodeURIComponent(API) + (q || '')); return p; };
   const a = await open();
   await a.fill('input[type=password]', KEY); await a.click('button:has-text("Connect")'); await a.waitForSelector('#classSel');
-  must(/backend v1\.21/.test(await a.textContent('#footTime')), 'backend reports v1.21');
+  must(/backend v1\.22/.test(await a.textContent('#footTime')), 'backend reports v1.22');
   await a.selectOption('#classSel', A); await a.waitForTimeout(600);
   const b = await open(); await b.waitForSelector('#classSel');
   await b.selectOption('#classSel', B); await b.waitForTimeout(600);
