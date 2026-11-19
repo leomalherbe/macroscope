@@ -7,14 +7,14 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111903">
-<script src="i18n.js?v=2026111903"></script>
-<script src="i18n/fr-desk.js?v=2026111903"></script>
-<script src="i18n/fr-admin.js?v=2026111903"></script>
-<script src="config.js?v=2026111903"></script>
-<script src="core.js?v=2026111903"></script>
-<script src="app-common.js?v=2026111903"></script>
-<script src="engine.js?v=2026111903"></script>
+<link rel="stylesheet" href="style.css?v=2026111904">
+<script src="i18n.js?v=2026111904"></script>
+<script src="i18n/fr-desk.js?v=2026111904"></script>
+<script src="i18n/fr-admin.js?v=2026111904"></script>
+<script src="config.js?v=2026111904"></script>
+<script src="core.js?v=2026111904"></script>
+<script src="app-common.js?v=2026111904"></script>
+<script src="engine.js?v=2026111904"></script>
 </head>
 <body>
 
@@ -420,7 +420,7 @@
     c1.appendChild(row);
     /* open / close / timer */
     var row2 = el('div', { class: 'btnrow' });
-    if (ov.roundOpen) row2.appendChild(el('button', { class: 'btn danger', onclick: function () { patch({ status: 'closed' }, 'Submissions closed'); } }, ['■ Close submissions']));
+    if (ov.roundOpen) row2.appendChild(el('button', { class: 'btn danger', onclick: function () { patch({ status: 'closed', forumFreeze: true }, 'Submissions closed'); } }, ['■ Close submissions']));   /* forumFreeze: the forum of the year freezes (a crisis vote or a council closing the round for a while does not) */
     else row2.appendChild(el('button', { class: 'btn primary', onclick: function () { if (crisisVoteOpen()) { UI.toast('Close the crisis vote first (card below).', 5000); return; } if (retalOpen()) { UI.toast('Close the council on retaliation first (card below).', 5000); return; } var p0 = { status: 'open' }; if (s.deadline && Date.parse(s.deadline) < Date.now() + offset) p0.deadline = null; /* a timer that has run out would keep the round closed */ patch(p0, 'Submissions open'); } }, ['▶ Open submissions']));
     /* the timer in minutes (a class) or in hours (a game played at a distance over days: 24 h, 48 h…) — the unit is remembered */
     var unit = el('select', { id: 'timerUnit' }, [el('option', { value: 'min' }, ['min']), el('option', { value: 'h' }, ['hours'])]);
@@ -1488,6 +1488,16 @@
       var recH = UI.forumRecordHtml(fo);
       if (recH) { cf.appendChild(el('h3', { style: 'margin-top:14px' }, ['Words vs acts, frozen years'])); cf.appendChild(el('div', { html: recH })); }
       cf.addEventListener('click', async function (e) {
+        var mv = e.target.closest('button[data-act="move"]');
+        if (mv) {
+          var pid = mv.closest('[data-prop]').getAttribute('data-prop'), cur = fo.proposals.filter(function (p) { return p.propId === pid; })[0];
+          var ans = prompt('Move this proposal to which year? (now: year ' + (cur ? cur.round : '?') + '; 1 to ' + fo.year + ')', cur && cur.round > 1 ? String(cur.round - 1) : '');
+          if (ans === null || !String(ans).trim()) return;
+          mv.disabled = true;
+          var rm = await admin('admin.forum.move', { propId: pid, round: Number(ans) });
+          if (rm.ok) { ov.forum = rm.forum; UI.toast('Proposal moved to year ' + Number(ans)); renderCouncil(); } else mv.disabled = false;
+          return;
+        }
         var b = e.target.closest('button[data-act="hide"]'); if (!b) return;
         var id = b.closest('[data-prop]').getAttribute('data-prop'), hide = b.getAttribute('data-v') === '1';
         b.disabled = true;

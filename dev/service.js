@@ -12,7 +12,7 @@
    ===================================================================== */
 var MSService = (function () {
   'use strict';
-  var VERSION = '1.22';
+  var VERSION = '1.23';
   /* results rows describing the monetary union as a whole (OPEN-MU): key 'UNION' in the game, 'UNION:<groupId>' in the warm-up */
   function isUnionKey(k) { var k2 = String(k || ''); return k2.indexOf('UNION') === 0 || k2.indexOf('DUEL:') === 0; }
   var GRACE_MS = 60 * 1000;
@@ -80,6 +80,7 @@ var MSService = (function () {
         if (r.kind === 'withdraw' && !map[id].withdrawn) map[id].withdrawn = r.ts;
         if (r.kind === 'hide') map[id].hidden = true;
         if (r.kind === 'show') map[id].hidden = false;
+        if (r.kind === 'move' && Number(r.round) > 0) map[id].round = Number(r.round);   /* 19/11: the administrator moves it to another year */
       }
     });
     return order.map(function (id) { return map[id]; });
@@ -560,10 +561,16 @@ var MSService = (function () {
     if (!classExists(st, p.classId)) return fail('Unknown class.');
     var prev = getState(st, p.classId);
     var state = MS.mergeState(prev, p.patch || {});
-    /* forum: the year whose submissions close is frozen for good (a new game starts with an empty slate) */
+    /* forum (Léo, 13/11; fixed 19/11): the forum of a year freezes when the submissions of the year's decisions close — the
+       « Close submissions » button (patch.forumFreeze) or the move to the next year — not when a crisis vote or a council on
+       retaliation sets status 'closed' for a while (they used to freeze the year: its proposals then went to the next year).
+       Reopening the submissions of the same year after a Close unfreezes it. A new game starts with an empty slate. */
+    var pf = MS.forumConf(prev).frozen, pr = Number(prev.round), nr = Number(state.round);
     if (prev.phase !== 'game' && state.phase === 'game') state.forum = Object.assign({}, state.forum, { frozen: 0 });
-    else if (prev.phase === 'game' && prev.status === 'open' && (state.status !== 'open' || Number(state.round) !== Number(prev.round)))
-      state.forum = Object.assign({}, state.forum, { frozen: Math.max(MS.forumConf(prev).frozen, Number(prev.round)) });
+    else if (prev.phase === 'game' && state.phase === 'game') {
+      if (nr > pr || (p.patch && p.patch.forumFreeze === true && nr === pr)) state.forum = Object.assign({}, state.forum, { frozen: Math.max(pf, pr) });
+      else if (nr === pr && prev.status !== 'open' && state.status === 'open' && pf >= pr && !(p.patch && p.patch.forumFreeze)) state.forum = Object.assign({}, state.forum, { frozen: pr - 1 });
+    }
     /* a new round (or phase) can be notified again */
     if (state.phase !== prev.phase || Number(state.round) !== Number(prev.round)) state.notify = Object.assign({}, state.notify, { sent: '' });
     if (p.patch && p.patch.deadlineMinutes !== undefined) {
@@ -642,6 +649,20 @@ var MSService = (function () {
     return { ok: true, forum: forumView(st, state, p.classId, st.now(), { admin: true }) };
   }
 
+  /* 19/11: move a proposal to another year (a proposal sent to the wrong year, e.g. while a crisis vote had frozen its own) */
+  function actAdminForumMove(st, p) {
+    if (!classExists(st, p.classId)) return fail('Unknown class.');
+    var pr = findProposal(st, p.classId, p.propId);
+    if (!pr) return fail('Unknown proposal.');
+    var state = getState(st, p.classId), y = Math.round(MS.num(p.round)), maxY = MS.forumYear(state, st.now());
+    if (!(y >= 1 && y <= maxY)) return fail('Choose a year between 1 and ' + maxY + '.');
+    if (y === pr.round) return fail('The proposal is already in year ' + y + '.');
+    st.appendRow('proposals', { ts: iso(st.now()), classId: p.classId, round: y, propId: pr.propId, groupId: pr.groupId, country: pr.country,
+      kind: 'move', type: pr.type, text: '', payload: '' });
+    log(st, 'forum.move', p.classId, 'admin', pr.propId + ' ' + pr.round + ' → ' + y);
+    return { ok: true, forum: forumView(st, state, p.classId, st.now(), { admin: true }) };
+  }
+
   function actAdminTelegramHide(st, p) {
     if (!classExists(st, p.classId)) return fail('Unknown class.');
     var t = telegramsOf(st, p.classId).filter(function (x) { return x.tgId === String(p.tgId || ''); })[0];
@@ -658,7 +679,7 @@ var MSService = (function () {
     'forum.post': actForumPost, 'forum.react': actForumReact, 'forum.withdraw': actForumWithdraw, 'tg.send': actTelegramSend };
   var ADMIN = { 'admin.login': actAdminLogin, 'admin.class.create': actAdminClassCreate, 'admin.class.rename': actAdminClassRename, 'admin.class.delete': actAdminClassDelete,
     'admin.state.set': actAdminStateSet, 'admin.groups.set': actAdminGroupsSet, 'admin.overview': actAdminOverview, 'admin.classes.status': actAdminClassesStatus, 'admin.notify.test': actAdminNotifyTest, 'admin.results.set': actAdminResultsSet,
-    'admin.forum.hide': actAdminForumHide, 'admin.tg.hide': actAdminTelegramHide };
+    'admin.forum.hide': actAdminForumHide, 'admin.forum.move': actAdminForumMove, 'admin.tg.hide': actAdminTelegramHide };
 
   function handle(action, params, storage) {
     params = params || {};
