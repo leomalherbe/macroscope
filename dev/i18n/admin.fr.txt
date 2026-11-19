@@ -1152,8 +1152,8 @@ forecasts required
 => # caractères par rubrique au moins
 no minimum length
 => pas de longueur minimale
-The shock and the votes of the year, the other countries, our own policy (each with a forecast ↑ ≈ ↓ per indicator, compared after the run with the matching part of the split), priorities and sacrifices among the dimensions of R, the long-term project (kept or revised each year). Replaces the minimum length of the free text; the warm-up has no forecasts and no "other countries" part.
-=> Le choc et les votes de l’année, les autres pays, notre propre politique (chacune avec une prévision ↑ ≈ ↓ par indicateur, comparée après le calcul à la part correspondante de la décomposition), priorités et sacrifices entre les dimensions de R, le projet de long terme (gardé ou révisé chaque année). Remplace la longueur minimale du texte libre ; le warm-up n’a ni prévisions ni rubrique « autres pays ».
+The shock and the votes of the year, the other countries, our own policy, priorities and sacrifices among the dimensions of R, the long-term project (kept or revised each year); two forecast grids ↑ ≈ ↓ per indicator, compared after the run with the split: the shock alone (without the votes of the union) and the team’s own policy. Replaces the minimum length of the free text; the warm-up has no forecasts and no "other countries" part.
+=> Le choc et les votes de l’année, les autres pays, notre propre politique, priorités et sacrifices entre les dimensions de R, le projet de long terme (gardé ou révisé chaque année) ; deux grilles de prévision ↑ ≈ ↓ par indicateur, comparées après le calcul à la décomposition : le choc seul (sans les votes de l’union) et la politique de l’équipe. Remplace la longueur minimale du texte libre ; le warm-up n’a ni prévisions ni rubrique « autres pays ».
 
 // currency crisis: the peg
 Close the vote: @?

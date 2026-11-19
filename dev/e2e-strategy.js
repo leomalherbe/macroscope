@@ -72,7 +72,7 @@ const MS = require('../core.js');
   await fill('project', 'A joint stimulus of the union within two years, then back to balance.');
   const pick = (part, ind, v) => fra.click('#strategy .spart[data-part="' + part + '"] input[name="G_' + part + '_' + ind + '"][value="' + v + '"] + span');
   await pick('shock', 'gdp', -1); await pick('shock', 'tradebal', -1);
-  await pick('others', 'gdp', 0);
+  must(!(await fra.$('#strategy .spart[data-part="others"] .sgrid')) && (await fra.$$('#strategy .sgrid')).length === 2, 'two grids only: the shock alone and our own policy (Léo, 19/11)');
   await pick('own', 'gdp', 1); await pick('own', 'unemp', -1); await pick('own', 'pubbal', -1);
   await fra.click('#strategy label.schip:has(input[name="SP_up"][value="unemp"])');
   await fra.click('#strategy label.schip:has(input[name="SP_up"][value="gdp"])');
@@ -90,10 +90,10 @@ const MS = require('../core.js');
   /* year 1 published: France's row with its split (shock / foreign / own policy) */
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'closed' } });
   await api({ action: 'admin.results.set', key: KEY, classId: cid, phase: 'game', round: 1, rows: [{ key: 'FRA', year: 1, gdp: 0.3, unemp: -0.2, infl: 0.1, pubbal: -0.5, tradebal: -0.1, published: true,
-    detail: { gdp: { shock: -0.4, foreign: 0.02, nat: 0.68 }, unemp: { shock: 0.1, foreign: 0, nat: -0.3 }, infl: { shock: 0, foreign: 0, nat: 0.1 }, pubbal: { shock: -0.1, foreign: 0, nat: -0.4 }, tradebal: { shock: 0.03, foreign: 0.01, nat: -0.14 } } }] });
+    detail: { gdp: { shock: 0.1, ext: -0.4, union: 0.5, foreign: 0.02, nat: 0.68 }, unemp: { shock: 0.1, ext: 0.1, union: 0, foreign: 0, nat: -0.3 }, infl: { shock: 0, ext: 0, union: 0, foreign: 0, nat: 0.1 }, pubbal: { shock: -0.1, ext: -0.1, union: 0, foreign: 0, nat: -0.4 }, tradebal: { shock: 0.03, ext: 0.03, union: 0, foreign: 0.01, nat: -0.14 } } }] });
   await fra.reload(); await fra.waitForSelector('#forecasts h2');
   const fc = await fra.textContent('#forecasts');
-  must(/5 \/ 6 right/.test(fc) && /↓ → ↓/.test(fc) && /↓ → ≈/.test(fc), 'forecasts vs what happened: 5 right out of 6 (the trade balance did not fall with the shock)');
+  must(/4 \/ 5 right/.test(fc) && /↓ → ↓/.test(fc) && /↓ → ≈/.test(fc) && /The shock alone/.test(fc) && (await fra.$$('#forecasts table.fctab tbody tr')).length === 2, 'forecasts vs what happened: two lines, 4 right out of 5 — the shock alone lowered GDP (−0.4) even though the votes lifted it (+0.5); the trade balance did not fall');
   must(/Diagnosis of the shock\s*87\s*\/ 100/.test(fc) && /Forecast of own policy\s*100\s*\/ 100/.test(fc), 'accuracy over the cells filled in: diagnosis of the shock 87 (the trade-balance arrow missed a tiny rise), forecast of the own policy 100');
   await (await fra.$('#forecasts')).screenshot({ path: OUT + '/s2-forecasts.png' });
   /* the console's table and the board's ranking (published by the administrator) */
@@ -117,7 +117,7 @@ const MS = require('../core.js');
   await fra.reload(); await fra.waitForSelector('#exportBtn');
   const [dlT] = await Promise.all([fra.waitForEvent('download'), fra.click('#exportBtn')]);
   const teamCsv = fs.readFileSync(await dlT.path(), 'utf8');
-  must(/strategy: shock and votes/.test(teamCsv) && /The fall of world demand/.test(teamCsv) && /forecasts right/.test(teamCsv) && /5 \/ 6/.test(teamCsv) && /improve first/.test(teamCsv), 'team CSV: the five parts, the priorities, the forecasts and their score');
+  must(/strategy: shock and votes/.test(teamCsv) && /The fall of world demand/.test(teamCsv) && /forecasts right/.test(teamCsv) && /4 \/ 5/.test(teamCsv) && /improve first/.test(teamCsv), 'team CSV: the five parts, the priorities, the forecasts and their score');
   await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { game: { teamExport: false } } });
 
   /* year 2: the project comes back */
