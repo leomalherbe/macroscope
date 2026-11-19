@@ -116,7 +116,7 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   let r2 = call({ action: 'admin.class.create', key, name: 'Exit class' }); const cx = r2.classId;
   r2 = call({ action: 'admin.groups.set', key, classId: cx, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'I', country: 'ITA' }] });
   const [pF, pD, pI] = r2.groups.map(g => g.pin);
-  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.22', 'backend reports v1.22');
+  must(r2.ok && call({ action: 'state', pin: pF }).version === '1.23', 'backend reports v1.23');
 
 
 
@@ -200,7 +200,7 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   call({ action: 'admin.state.set', key, classId: cf, patch: { status: 'open' } });
   const dc = (pin, lv) => call({ action: 'submit', pin, phase: 'game', round: 1, payload: { years: [{ levers: lv }], text: 'x'.repeat(130), votes: { rate: 'hold' } } });
   must(dc(qF, { pubdem: 1 }).ok && dc(qD, { vat: 0.5 }).ok, 'decisions of year 1');
-  f = call({ action: 'admin.state.set', key, classId: cf, patch: { status: 'closed' } }); must(f.state.forum.frozen === 1, 'closing the submissions freezes the forum of year 1');
+  f = call({ action: 'admin.state.set', key, classId: cf, patch: { status: 'closed', forumFreeze: true } }); must(f.state.forum.frozen === 1, 'closing the submissions (Close submissions) freezes the forum of year 1');
   must(!call({ action: 'forum.react', pin: qI, propId: pid, value: 1 }).ok, 'reactions frozen');
   f = post(qI, { type: 'joint', text: 'Next year, everyone cuts income tax.', ranges: { inctax: { max: -0.5 } } }); must(f.ok && f.round === 2, 'a proposal posted after the close belongs to year 2');
   f = call({ action: 'board', classId: cf });
@@ -212,6 +212,44 @@ r = call({ action: 'state', pin: pin2 }); must(r.ok && r.group.name === 'G', 'ot
   must(pv.hidden && pv.text === '' && !pv.reactions.length, 'hidden proposal emptied for students');
   must(call({ action: 'admin.overview', key, classId: cf }).forum.proposals.filter(x => x.propId === pid)[0].text.length > 0, 'the administrator still reads it');
   f = call({ action: 'admin.class.delete', key, classId: cf, name: 'Forum class' }); must(f.ok && f.removed > 0, 'forum rows removed with the class');
+}
+
+/* backend 1.23 (19/11): the forum freezes when the year's submissions close, not when a crisis vote or a council closes them for a while */
+{
+  let f = call({ action: 'admin.class.create', key, name: 'Freeze class' }); const cz = f.classId;
+  f = call({ action: 'admin.groups.set', key, classId: cz, groups: [{ name: 'F', country: 'FRA' }, { name: 'D', country: 'DEU' }, { name: 'E', country: 'ESP' }] });
+  const [zF, zD, zE] = f.groups.map(g => g.pin);
+  const set = (patch) => call({ action: 'admin.state.set', key, classId: cz, patch });
+  const post = (pin, text) => call({ action: 'forum.post', pin, payload: { type: 'joint', text } });
+  set({ phase: 'game', round: 1, status: 'closed', years: 4, forum: { on: true } });
+  /* year 1, the normal course: open, Close, (Run), next year */
+  set({ status: 'open' }); must(post(zF, 'Year 1: everyone holds VAT.').round === 1, 'year 1 open: a proposal for year 1');
+  f = set({ status: 'closed', forumFreeze: true }); must(f.state.forum.frozen === 1 && post(zD, 'For next year: a joint stimulus.').round === 2, 'Close submissions freezes year 1: the next proposal is for year 2');
+  /* reopening after a Close: year 1 is open again */
+  f = set({ status: 'open' }); must(f.state.forum.frozen === 0 && post(zE, 'A late word on year 1.').round === 1, 'reopening the submissions of year 1 unfreezes its forum');
+  f = set({ status: 'closed', forumFreeze: true }); must(f.state.forum.frozen === 1, 'closed again: frozen');
+  f = set({ round: 2, status: 'closed' }); must(f.state.forum.frozen === 1, 'next year: year 1 stays frozen');
+  /* year 2 (the ADEK case): submissions open, then a currency-crisis vote closes them for a while, then they reopen */
+  set({ status: 'open' });
+  f = set({ crisis: { '2': { status: 'open', kind: 'currency' } }, status: 'closed', deadline: null });
+  must(f.state.forum.frozen === 1, 'opening a crisis vote does not freeze the forum of year 2');
+  f = post(zF, 'During the crisis vote: let us float, and cut the rate.');
+  must(f.ok && f.round === 2, 'a proposal posted during the crisis vote is about year 2');
+  set({ crisis: { '2': { status: 'closed', kind: 'currency', outcome: 'float' } } });
+  f = set({ status: 'open' }); must(f.state.forum.frozen === 1, 'decisions reopened after the vote: year 2 still open');
+  must(post(zE, 'Year 2: Spain backs the float.').round === 2, 'a proposal posted while the decisions are open is about year 2');
+  f = set({ retaliation: { ITA: { status: 'open' } }, status: 'closed' }); must(f.state.forum.frozen === 1, 'a council on retaliation does not freeze it either');
+  set({ status: 'open' });
+  f = set({ status: 'closed', forumFreeze: true }); must(f.state.forum.frozen === 2, 'Close submissions freezes year 2');
+  let fv = call({ action: 'state', pin: zE }).forum;
+  must(fv.proposals.filter(x => x.round === 2).length === 3 && fv.proposals.filter(x => x.round === 2).every(x => x.frozen), 'the forum of year 2 holds its three proposals (one posted after the close of year 1, one during the crisis vote, one after), frozen');
+  /* the repair of a proposal sent to the wrong year */
+  const wrong = post(zD, 'Meant for year 2, posted after the close.'); must(wrong.round === 3, 'after the close, a proposal goes to year 3');
+  must(!call({ action: 'admin.forum.move', key, classId: cz, propId: wrong.propId, round: 9 }).ok, 'move: the year must exist');
+  f = call({ action: 'admin.forum.move', key, classId: cz, propId: wrong.propId, round: 2 });
+  must(f.ok && f.forum.proposals.filter(x => x.propId === wrong.propId)[0].round === 2, 'the administrator moves it back to year 2');
+  must(post(zD, 'Germany′s proposal for year 3.').round === 3, 'moved: Germany can post its proposal of year 3 again');
+  call({ action: 'admin.class.delete', key, classId: cz, name: 'Freeze class' });
 }
 
 /* diplomatic telegrams (backend 1.17): private, bilateral, send window opened by the administrator, 3 a year, 280 characters */

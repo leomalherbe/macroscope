@@ -529,7 +529,8 @@ var UI = (function () {
     h += '<span class="small"><span>👍 ' + ups.length + '</span>' + (ups.length ? ' <span class="muted">' + forumNames(ups) + '</span>' : '') + '</span>' +
       '<span class="small"><span>👎 ' + downs.length + '</span>' + (downs.length ? ' <span class="muted">' + forumNames(downs) + '</span>' : '') + '</span>';
     if (opts.withdraw && mine && !p.withdrawn && !p.frozen) h += '<button class="btn ghost sm" data-act="withdraw">Withdraw</button>';
-    if (opts.admin) h += '<button class="btn ghost sm" data-act="hide" data-v="' + (p.hidden ? 0 : 1) + '">' + (p.hidden ? 'Show again' : 'Hide') + '</button>';
+    if (opts.admin) h += '<button class="btn ghost sm" data-act="hide" data-v="' + (p.hidden ? 0 : 1) + '">' + (p.hidden ? 'Show again' : 'Hide') + '</button>' +
+      '<button class="btn ghost sm" data-act="move" title="Move it to another year (a proposal sent to the wrong year)">Move to year…</button>';
     h += '</div>';
     if (p.balance) h += forumBalanceHtml(p);
     return h + '</div>';

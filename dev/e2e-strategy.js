@@ -33,7 +33,7 @@ const MS = require('../core.js');
   await admin.waitForSelector('text=No class yet');
   await admin.click('button:has-text("+ New class")');
   await admin.waitForSelector('#statusGrid');
-  must(/backend v1\.22/.test(await admin.textContent('#footTime')), 'backend reports v1.22');
+  must(/backend v1\.23/.test(await admin.textContent('#footTime')), 'backend reports v1.23');
   const cid = JSON.parse((await api({ action: '__dump' })).dump.config.classes)[0].id;
   await admin.click('#tabs button:has-text("Groups")');
   await admin.click('button:has-text("Add 7 default groups")');

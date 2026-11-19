@@ -1258,3 +1258,16 @@ This backend cannot send emails.
 => Ce serveur ne peut pas envoyer d’e-mails.
 The email could not be sent: &. In the Apps Script editor, run the function testEmail once to allow it.
 => L’e-mail n’a pas pu être envoyé : &. Dans l’éditeur Apps Script, exécutez une fois la fonction testEmail pour l’autoriser.
+// 19/11: moving a forum proposal to another year
+Move to year…
+=> Déplacer vers l’année…
+Move it to another year (a proposal sent to the wrong year)
+=> La déplacer vers une autre année (une proposition partie dans la mauvaise année)
+Move this proposal to which year? (now: year #; # to #)
+=> Déplacer cette proposition vers quelle année ? (actuellement : année # ; de # à #)
+Proposal moved to year #
+=> Proposition déplacée vers l’année #
+The proposal is already in year #.
+=> La proposition est déjà dans l’année #.
+Choose a year between # and #.
+=> Choisissez une année entre # et #.
