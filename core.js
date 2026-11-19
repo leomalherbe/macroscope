@@ -751,10 +751,11 @@ var MS = (function () {
       return line;
     }).join('\n');
   }
-  /* forecasts vs what happened: for each part with a grid, the change over the year of the matching part of the split
-     (row of the year minus the row of the year before, or zero in year 1); ≈ within ±tol */
+  /* forecasts vs what happened: for each part with a grid, the contribution of the year of the matching part of the split
+     « of which… » (its level in the row of the year, up or down — not its change from the year before: Léo, 19/11); ≈ within ±tol.
+     prevRow is no longer read (kept so that the calls stay unchanged). */
 
-  /* credit of one forecast cell (Léo, 14/11): e = expected direction (1, 0, −1), d = actual change over the year, sc = scale of the indicator.
+  /* credit of one forecast cell (Léo, 14/11): e = expected direction (1, 0, −1), d = contribution of the year (Léo, 19/11), sc = scale of the indicator.
      A minimal change (|d| ≤ max(tol, 0.2·scale)): « ≈ » and the arrow in the direction of the change both count as right.
      Otherwise: the right arrow 1; « ≈ » against a moderate effect (|d| ≤ scale) ½; anything else 0. */
   var ACC_SCALE = { gdp: 0.5, unemp: 0.25, infl: 0.25, pubbal: 0.25, tradebal: 0.25, emis: 1, ineq: 0.25 };
@@ -775,9 +776,9 @@ var MS = (function () {
       var ex = (strat[p.id] && strat[p.id].expect) || {}, cells = [];
       indicatorsFor(state).forEach(function (ind) {
         if (ex[ind.id] === undefined) return;
-        var a = row.detail[ind.id] ? num(row.detail[ind.id][p.src]) : NaN, b = prevRow && prevRow.detail && prevRow.detail[ind.id] ? num(prevRow.detail[ind.id][p.src]) : 0;
+        var a = row.detail[ind.id] ? num(row.detail[ind.id][p.src]) : NaN;
         if (isNaN(a)) return;
-        var d = a - (isNaN(b) ? 0 : b), dir = d > tol ? 1 : (d < -tol ? -1 : 0), hit = cellCredit(ex[ind.id], d, ACC_SCALE[ind.id], tol) === 1;
+        var d = a, dir = d > tol ? 1 : (d < -tol ? -1 : 0), hit = cellCredit(ex[ind.id], d, ACC_SCALE[ind.id], tol) === 1;
         cells.push({ id: ind.id, expected: ex[ind.id], actual: dir, change: round3(d), hit: hit });
         out.n++; if (hit) out.hits++;
       });
@@ -788,8 +789,8 @@ var MS = (function () {
 
   /* ---------- forecast accuracy (guided strategy) ----------
      Two scores, 0–100: the diagnosis of the shock (part 1 vs the « shocks » part of the split) and the forecast of the
-     team's own policy (part 3 vs the « own policy » part). Each indicator weighs by the size of the actual change over the
-     year (w = |Δ| / scale, between 0.05 and 1), so that a big effect counts and « ≈ » everywhere does not pay; the credit of
+     team's own policy (part 3 vs the « own policy » part). Each indicator weighs by the size of the contribution of the year
+     (w = |a| / scale, between 0.05 and 1; the level in the split, not its change from the year before: Léo, 19/11), so that a big effect counts and « ≈ » everywhere does not pay; the credit of
      each filled cell is cellCredit; empty cells do not count. The « other countries » part is not scored (Léo, 13/11). */
   var ACC_PARTS = [{ id: 'shock', src: 'shock', label: 'Diagnosis of the shock' }, { id: 'own', src: 'nat', label: 'Forecast of own policy' }];
   function accuracyYear(state, strat, row, prevRow, tol) {
@@ -801,8 +802,7 @@ var MS = (function () {
       indicatorsFor(state).forEach(function (ind) {
         var a = row.detail[ind.id] ? num(row.detail[ind.id][p.src]) : NaN;
         if (isNaN(a)) return;
-        var b = prevRow && prevRow.detail && prevRow.detail[ind.id] ? num(prevRow.detail[ind.id][p.src]) : 0;
-        var d = a - (isNaN(b) ? 0 : b), sc = ACC_SCALE[ind.id] || 0.25, e = ex[ind.id];
+        var d = a, sc = ACC_SCALE[ind.id] || 0.25, e = ex[ind.id];
         if (e !== 1 && e !== 0 && e !== -1) return;   /* only the cells the team filled in count (the administrator can make the grids required) */
         var w = Math.max(0.05, Math.min(1, Math.abs(d) / sc));
         num0 += w * cellCredit(e, d, sc, tol); den += w;

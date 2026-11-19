@@ -136,6 +136,19 @@ const MS = require('../core.js');
   ov = await api({ action: 'admin.overview', key: KEY, classId: cid });
   must(/Our long-term project \(revised: The deficit rose faster/.test(ov.decisions.filter(d => d.country === 'FRA' && d.phase === 'game' && d.round === 2)[0].text), 'the revision and its reason are kept');
 
+  /* 19/11 (Léo): the grid is checked against the contribution of the year in the split, not its change from the year before.
+     Year 2: our policy still lifts GDP (+0.30) and cuts unemployment (−0.10), less than in year 1 (+0.68, −0.30): ↑ and ↓ are right */
+  const d2 = ov.decisions.filter(d => d.country === 'FRA' && d.phase === 'game' && d.round === 2)[0];
+  const p2 = JSON.parse(JSON.stringify(d2.payload));
+  p2.strategy.shock.expect = d1.payload.strategy.shock.expect; p2.strategy.own.expect = d1.payload.strategy.own.expect;   /* the year-1 arrows again */
+  must((await api({ action: 'submit', pin: pins.FRA, phase: 'game', round: 2, payload: p2 })).ok, 'year 2 resubmitted with the year-1 arrows (GDP ↑, unemployment ↓, public balance ↓ for our policy)');
+  await api({ action: 'admin.state.set', key: KEY, classId: cid, patch: { status: 'closed' } });
+  await api({ action: 'admin.results.set', key: KEY, classId: cid, phase: 'game', round: 2, rows: [{ key: 'FRA', year: 2, gdp: 0.1, unemp: 0, infl: 0.1, pubbal: -0.6, tradebal: -0.1, published: true,
+    detail: { gdp: { shock: -0.2, foreign: 0, nat: 0.3 }, unemp: { shock: 0.1, foreign: 0, nat: -0.1 }, infl: { shock: 0, foreign: 0, nat: 0.1 }, pubbal: { shock: -0.1, foreign: 0, nat: -0.5 }, tradebal: { shock: -0.1, foreign: 0, nat: 0 } } }] });
+  await fra.reload(); await fra.waitForSelector('#forecasts h2');
+  const fc2 = await fra.$eval('#forecasts', x => { const h = [...x.querySelectorAll('h3')].find(e => /^Year 2/.test(e.textContent)); return h.textContent + ' ' + h.nextElementSibling.textContent; });
+  must(/Year 2 · 5 \/ 5 right/.test(fc2) && /↑ → ↑/.test(fc2) && !/↑ → ↓/.test(fc2), 'year 2: smaller contributions than in year 1, same directions — still right (' + fc2.slice(0, 40) + ')');
+
   await admin.click('button:has-text("Refresh")'); await admin.waitForTimeout(400);
   await admin.click('#tabs button:has-text("Export")');
   const [dl] = await Promise.all([admin.waitForEvent('download'), admin.click('button:has-text("Decisions (CSV)")')]);
