@@ -1484,8 +1484,8 @@ Year # · # / # right
 => Année # · # / # justes
 Earlier years
 => Années précédentes
-For each part of your strategy: the direction you expected (left) and the direction the matching source actually gave over the year (right): the shocks, the other countries’ policies, your own policy. ≈ means a change of less than #.
-=> Pour chaque rubrique de votre stratégie : le sens attendu (à gauche) et le sens que la source correspondante a réellement donné sur l’année (à droite) : les chocs, les politiques des autres pays, votre propre politique. ≈ signifie une variation de moins de #.
+For each part of your strategy: the direction you expected (left) and the direction in which the matching source actually moved each indicator this year (right): its contribution in the split « of which… », up or down — the shock and the votes, the other countries’ policies, your own policy. ≈ means a contribution of less than # either way.
+=> Pour chaque rubrique de votre stratégie : le sens attendu (à gauche) et le sens dans lequel la source correspondante a réellement fait bouger chaque indicateur cette année (à droite) : sa contribution dans la décomposition « dont… », vers le haut ou vers le bas — le choc et les votes, les politiques des autres pays, votre propre politique. ≈ signifie une contribution de moins de # dans un sens ou dans l’autre.
 Please fix the following:
 => À corriger :
 
