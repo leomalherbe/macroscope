@@ -640,7 +640,7 @@ console.log('\n===== TARIFFS (spec section 13) =====');
     inp.shocks.forEach(s => { s.cet = rnd() < 0.6 ? [0, 5, 10, 20][Math.floor(rnd() * 4)] : 0; s.worldTariff = rnd() < 0.3 ? rnd() * 20 : 0; });
     let ret;
     if ((v === 'v1.3' || v === 'v2.0') && seed % 2) {
-      inp.policies.ITA[1].leave = 1; for (let t = 2; t < Y; t++) { inp.policies.ITA[t].tariffU = rnd() * 20; inp.policies.ITA[t].peg = rnd() < 0.4 ? 1 : 0; }
+      inp.policies.ITA[1].leave = 1; for (let t = 2; t < Y; t++) { inp.policies.ITA[t].tariffU = rnd() * 20; inp.policies.ITA[t].tariffW = rnd() * 20; inp.policies.ITA[t].peg = rnd() < 0.4 ? 1 : 0; }
       ret = []; for (let t = 0; t < Y; t++) ret.push({ ITA: { tariff: rnd() < 0.5 ? 10 : 0 } });
     }
     try {
@@ -663,6 +663,9 @@ console.log('\n===== TARIFFS (spec section 13) =====');
   const a0 = OPENMU.report({ params: P3, years: 4, policies: pol0 }), a1 = OPENMU.report({ params: P3, years: 4, policies: pol1 });
   const I = (r, t) => r.years[t].countries.ITA;
   must(I(a1, 1).pubbal > I(a0, 1).pubbal && Math.abs(I(a1, 1).detail.extra.tariffU - 10) < 1e-9 && a1.years[1].countries.DEU.gdp < a0.years[1].countries.DEU.gdp && Math.abs(a1.years[1].countries.DEU.detail.gdp.nat) < 1e-9, 'exited Italy taxes the union′s goods at 10 %: its budget gains ' + f(I(a1, 1).pubbal - I(a0, 1).pubbal, 2) + ' pt, German GDP ' + f(a1.years[1].countries.DEU.gdp - a0.years[1].countries.DEU.gdp, 2) + ' % (counted as a foreign policy)');
+  /* 19/11: an exited Italy taxes the goods of the rest of the world (it no longer applies the common external tariff) */
+  const pol2 = { ITA: [{ leave: 1 }, { tariffW: 10 }, { tariffW: 10 }, { tariffW: 10 }] }, a2 = OPENMU.report({ params: P3, years: 4, policies: pol2 });
+  must(I(a2, 1).pubbal > I(a0, 1).pubbal && I(a2, 1).tradebal > I(a0, 1).tradebal && Math.abs(I(a2, 1).detail.extra.tariffW - 10) < 1e-9 && I(a2, 1).detail.extra.tariffRev > 0 && !I(a2, 1).detail.extra.tariffU, 'exited Italy taxes the rest of the world′s goods at 10 %: budget ' + f(I(a2, 1).pubbal - I(a0, 1).pubbal, 2) + ' pt, trade balance ' + f(I(a2, 1).tradebal - I(a0, 1).tradebal, 2) + ' pt, revenue ' + f(I(a2, 1).detail.extra.tariffRev, 2) + ' % of GDP');
   console.log('tariffs — exited Italy, tariff 10 % on the union: ITA GDP ' + [1, 2, 3].map(t => f(I(a1, t).gdp - I(a0, t).gdp, 2)).join(' ') + ' | ITA PB ' + [1, 2, 3].map(t => f(I(a1, t).pubbal - I(a0, t).pubbal, 2)).join(' ') + ' | ITA currency ' + [1, 2, 3].map(t => f(100 * (I(a1, t).detail.extra.fx / I(a0, t).detail.extra.fx - 1), 1)).join(' ') + ' % | DEU GDP ' + [1, 2, 3].map(t => f(a1.years[t].countries.DEU.gdp - a0.years[t].countries.DEU.gdp, 2)).join(' '));
 }
 

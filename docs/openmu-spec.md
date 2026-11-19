@@ -566,6 +566,12 @@ Activation par classe : `sim.tariffs` (Control → Parameters → « tariffs »)
 ### 13.2 Tarif d'un pays sorti sur les produits de l'union
 - Levier `tariffU` (0–20 %, `bounds.tariffU`), proposé seulement à un pays sorti quand `sim.tariffs` est actif. Facteur `(1 + tariffU)` sur le prix relatif des importations du pays sorti venant des membres (même équation que le tarif de représailles de l'union, §12.5) ; recette en monnaie nationale pour son gouvernement, payée par ses ménages.
 
+### 13.2 bis Tarif d'un pays sorti sur les produits du reste du monde (19/11, backend 1.22)
+- Léo : un pays sorti ne pouvait taxer que l'union, pas le reste du monde. Hors de l'union, le TEC ne s'applique plus à lui (13.1) : il n'avait donc aucun droit de douane sur le RdM.
+- Levier `tariffW` (0–20 %, même borne `bounds.tariffU`), proposé au pays sorti quand `sim.tariffs` est actif, à côté de `tariffU`. Même mécanique que le TEC : importations venant du RdM `IMR_X × (1 + tariffW)^(−ε)` l'année même ; recette `tariffW·E·xr·IMR_X` en monnaie nationale pour son gouvernement, payée par ses ménages ; pas de transmission à l'inflation. `detail.extra.tariffW` ; `tariffRev` additionne ses deux tarifs.
+- Mesuré (v2, Italie sortie en flottant, 10 %) : PIB +0,93 / +0,63 / +0,41, solde public +1,64, solde commercial +1,83 pt, monnaie −6 % (un effet proche du tarif sur l'union). Ancrée : PIB −0,5 % (pas d'appréciation pour absorber, les ménages paient la recette), solde public +1,2.
+- Backend 1.22 : `validateDecision` accepte `tariffW` pour un pays sorti seulement (core.js dans Code.gs) ; le backend 1.21 l'ignorait. Desk : levier, ligne du panneau monétaire, solde discrétionnaire (base : importations du RdM, 15 % du PIB).
+
 ### 13.3 Ordres de grandeur (v1.3, France ; imprimés par `engine-test`)
 - CET 10 % for 4 y, France: GDP -0.62 -0.58 -0.54 -0.50 | PB +1.17 +1.18 +1.20 +1.21 | TB +1.06 +1.10 +1.12 +1.15 | reserves % 128 157 187 218
 - CET 10 % + RoW tariff 10 %, France: GDP -2.03 -1.90 -1.77 -1.65 | PB +0.62 +0.67 +0.72 +0.76 | TB +0.27 +0.38 +0.47 +0.56

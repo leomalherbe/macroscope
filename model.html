@@ -6,7 +6,7 @@
 <title>Macroscope · The model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111803">
+<link rel="stylesheet" href="style.css?v=2026111901">
 <style>
 table.eq{width:100%;border-collapse:collapse;background:#faf8f1;border:1px solid var(--line);border-radius:10px;margin:8px 0;font-size:.86rem}
 table.eq td{padding:4px 10px;vertical-align:top;border-bottom:1px solid #efebe0}
@@ -63,10 +63,10 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
 .part{margin:34px 0 12px;font-size:1.15rem;font-weight:700;color:var(--accent,#1a3cff);border-bottom:2px solid currentColor;padding-bottom:4px}
 .part .pill{margin-right:8px;vertical-align:2px}
 </style>
-<script src="i18n.js?v=2026111803"></script>
-<script src="i18n/fr-model.js?v=2026111803"></script>
-<script src="engine.js?v=2026111803"></script>
-<script src="accounts.js?v=2026111803"></script>
+<script src="i18n.js?v=2026111901"></script>
+<script src="i18n/fr-model.js?v=2026111901"></script>
+<script src="engine.js?v=2026111901"></script>
+<script src="accounts.js?v=2026111901"></script>
 </head>
 <body>
 <header class="topbar"><div class="wrap">
@@ -386,6 +386,7 @@ table.eq td.e,.sign{font-family:"STIX Two Text","Cambria Math","Times New Roman"
         <tr><td class="e" translate="no">XR_i·(1 + wt)<sup>−η</sup></td><td class="c">the rest of the world's tariff on the members' exports (administrator shock)</td></tr>
         <tr><td class="e" translate="no">XR_X·(1 + wtX)<sup>−η</sup></td><td class="c">its tariff on the exports of a country that has left the union: equal to wt by default; the administrator may set another rate (an asymmetric shock)</td></tr>
         <tr><td class="e" translate="no">(1 + tariffU)</td><td class="c">a country out of the union taxes what it buys from the members (0–20 %), like the union's retaliation tariff</td></tr>
+        <tr><td class="e" translate="no">IMR_X·(1 + tariffW)<sup>−ε</sup></td><td class="c">a country out of the union no longer applies the common external tariff; it may tax what it buys from the rest of the world (0–20 %), like the common external tariff; revenue tariffW·E·xr·IMR_X to its government</td></tr>
       </table>
     </div>
     <div class="note"><strong>A tax on your own consumers.</strong> A common external tariff of 10 % brings every member about 1.4 % of GDP of revenue and improves the trade balance (+1.1 pt) and the reserves, but GDP falls by 0.6 %: households pay the tariff, while imports from the rest of the world fall by only 7 %. If the rest of the world answers with 10 % on the union's exports, the trade gain is gone and GDP falls by 2 %. A country out of the union that taxes the union's goods at 10 % gains revenue (1.6 pt of GDP) and some GDP (+0.8 %), but its currency appreciates and gives part of it back; the union loses about 0.6 % of GDP.</div>

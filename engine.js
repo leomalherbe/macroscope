@@ -846,6 +846,9 @@ var OPENMU = (function () {
          the RoW and the RoW's tariff on the members' exports (shocks of the year, from the console's vote / the administrator) */
       var tarX = {}; outs.forEach(function (id) { tarX[id] = 1 + Math.max(0, Math.min(20, pol(id, t, 'tariffU'))) / 100; });
       function tf(i, j) { return (!isOut[i] && isOut[j]) ? tar[j] : ((isOut[i] && !isOut[j]) ? tarX[i] : 1); }
+      /* §13 (19/11): an exited country's tariff on the goods of the rest of the world (its own lever, 0–20 %): out of the union the
+         common external tariff no longer applies to it; same mechanics as the CET (volume the same year, revenue to its government) */
+      var tarW = {}; outs.forEach(function (id) { tarW[id] = 1 + Math.max(0, Math.min(20, pol(id, t, 'tariffW'))) / 100; });
       var cetR = Math.max(0, shockAt(shocks, t, 'cet')) / 100, wtR = Math.max(0, shockAt(shocks, t, 'worldTariff')) / 100;
       /* the rest of the world's tariff on the exports of the countries that left (its own shock: equal to wtR, or not) */
       var woX = shocks && shocks[t] ? shocks[t].worldTariffOut : undefined;   /* not set (default): the same as on the union */
@@ -855,6 +858,7 @@ var OPENMU = (function () {
         var Pi = prev[id].Prel, Ei = prev[id].E;
         priceLagF[id] = Math.pow(Ei * prevU.xr / (ref.union.xr0 * Pi), -p.eps);
         if (cetR && !isOut[id]) priceLagF[id] *= Math.pow(1 + cetR, -p.eps);
+        if (isOut[id] && tarW[id] > 1) priceLagF[id] *= Math.pow(tarW[id], -p.eps);
         w[id] = {};
         ids.forEach(function (j) {
           w[id][j] = s[id][j] * Math.pow((prev[j].Prel / prev[j].E) * Ei / Pi * tf(id, j), -p.epsU);
@@ -878,6 +882,7 @@ var OPENMU = (function () {
           var tot = 0; ids.forEach(function (j) { var f = tf(id, j); if (f !== 1) tot += w[id][j] * (f - 1) * E[id] / E[j]; });
           var rev = (1 - p.sR) * imBase(id, Y) * tot;
           if (cetR && !isOut[id]) rev += cetR * xr * p.sR * imBase(id, Y) * priceLagF[id];
+          if (isOut[id] && tarW[id] > 1) rev += (tarW[id] - 1) * E[id] * xr * p.sR * imBase(id, Y) * priceLagF[id];
           return rev;
         }
         var cur = {};
@@ -1035,7 +1040,7 @@ var OPENMU = (function () {
             CAi: out_ ? CApX : TB + rw1 * xr * pv.Bf - (r1 + pv.s) * pv.Bw,
             E: eco ? ci[id] * Y : 0, ci: eco ? ci[id] : 0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0, GREEN: c.GREEN || 0, Tc: Tc, D: D,
             exited: out_, announced: !!announce[id], fx: out_ ? Ei : 1, dfx: out_ ? dE : 0, peg: !!pegged[id], forced: !!forced[id], broken: !!broken[id], tariffRev: Tt,
-            BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, sold: sold, settled: !!settle[id], tariff: out_ ? 100 * (tar[id] - 1) : 0, tariffU: out_ ? 100 * (tarX[id] - 1) : 0, KAX: KAX };
+            BcbU: BcbU, BcbN: BcbN, T2: T2, RX: RX, RX0: pv.RX0, sold: sold, settled: !!settle[id], tariff: out_ ? 100 * (tar[id] - 1) : 0, tariffU: out_ ? 100 * (tarX[id] - 1) : 0, tariffW: out_ ? 100 * (tarW[id] - 1) : 0, KAX: KAX };
           if (eco) U.E += ci[id] * Y;
           newPrev[id] = { Y: Y, V: V, VP: VP, VR: VR, Bh: pf.Bh, M: pf.M, H0: pf.H, B: B, Bcb: Bcb, A: pf.A, K: K, L: L, tau: c.tau, P: P, Prel: Prel, Bf: pf.Bf, Bw: Bw, Bb: pf.Bb, s: sEff,
             ci: eco ? ci[id] : p.ci0, ctax: eco ? ctaxNow[id] : 0, green: eco ? greenNow[id] : 0,
@@ -1233,7 +1238,7 @@ var OPENMU = (function () {
           ex.exited = !!cy.exited; ex.announced = !!cy.announced;
           if (cy.exited) {
             ex.fx = cy.fx; ex.dfx = cy.dfx; ex.fxWorld = cy.fx * runAll.years[t].union.xr; ex.peg = cy.peg; ex.forced = cy.forced; ex.broken = cy.broken;
-            ex.rate = 100 * cy.r; ex.rEff = 100 * cy.rEff; ex.tariff = cy.tariff; ex.tariffU = cy.tariffU; ex.sold = 100 * cy.sold / cy.Y; ex.settled = cy.settled;
+            ex.rate = 100 * cy.r; ex.rEff = 100 * cy.rEff; ex.tariff = cy.tariff; ex.tariffU = cy.tariffU; ex.tariffW = cy.tariffW; ex.sold = 100 * cy.sold / cy.Y; ex.settled = cy.settled;
             ex.T2 = 100 * cy.T2 * cy.fx / cy.Y; ex.BcbU = 100 * cy.BcbU / cy.Y; ex.RXshare = cy.RX0 > 0 ? cy.RX / cy.RX0 : 0;
             ex.RXalert = cy.peg && cy.RX < p.alertShare * cy.RX0;
             /* the reserves themselves: % of GDP and months of imports (value in the national currency: RX × price of the world currency) */
@@ -1618,7 +1623,7 @@ var OPENMU = (function () {
     var p = mergeParams(params), ref = calibrate(p), id = p.countries[0].id, rc = ref.countries[id], Y = rc.Y;
     var vatRev = rc.tauc * rc.CE;
     return { g: 100 * rc.G / Y, tr: 100 * rc.TR / Y, inc: 100 * (rc.T - vatRev) / Y, ce: 100 * rc.CE / Y, tau: rc.tau, tauc: rc.tauc,
-      imu: 100 * (rc.IMU || 0) / Y, ctax: 100 * (p.ctaxUnit || 0) * (p.ci0 || 0), green: 100 * (p.greenUnit || 0) };
+      imu: 100 * (rc.IMU || 0) / Y, imr: 100 * (p.xr0 || 1) * (rc.IMR || 0) / Y, ctax: 100 * (p.ctaxUnit || 0) * (p.ci0 || 0), green: 100 * (p.greenUnit || 0) };
   }
 
   return { VERSION: VERSION, budgetRatios: budgetRatios, INDICATORS: INDIC, INDICATORS_ECO: INDIC_ECO, defaultParams: defaultParams, paramsFor: paramsFor, HOUSEHOLDS: HOUSEHOLDS, calibrate: calibrate, simulate: simulate, report: report, describe: describe, shares: shares,

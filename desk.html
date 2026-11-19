@@ -7,13 +7,13 @@
 <meta name="description" content="Submit your group's macroeconomic policy decisions for the OPEN-MU simulation game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2026111803">
-<script src="i18n.js?v=2026111803"></script>
-<script src="i18n/fr-desk.js?v=2026111803"></script>
-<script src="guide.js?v=2026111803"></script>
-<script src="config.js?v=2026111803"></script>
-<script src="core.js?v=2026111803"></script>
-<script src="app-common.js?v=2026111803"></script>
+<link rel="stylesheet" href="style.css?v=2026111901">
+<script src="i18n.js?v=2026111901"></script>
+<script src="i18n/fr-desk.js?v=2026111901"></script>
+<script src="guide.js?v=2026111901"></script>
+<script src="config.js?v=2026111901"></script>
+<script src="core.js?v=2026111901"></script>
+<script src="app-common.js?v=2026111901"></script>
 </head>
 <body>
 
@@ -39,7 +39,7 @@
   var $ = UI.$, $$ = UI.$$, el = UI.el, esc = UI.esc;
   MXL.apply(); MXL.watch(document.body);
   /* the beginners' guide (guide.js): which card a lever's ⓘ opens */
-  var LEVER_GUIDE = { pubdem: 'demand', benefits: 'demand households', inctax: 'demand households', vat: 'vat', ctax: 'climate', green: 'climate', rate: 'rate?', tariffU: 'exit' };
+  var LEVER_GUIDE = { pubdem: 'demand', benefits: 'demand households', inctax: 'demand households', vat: 'vat', ctax: 'climate', green: 'climate', rate: 'rate?', tariffU: 'exit', tariffW: 'exit' };
   var cfg = window.MACSIM_CONFIG || {};
   $('#courseLabel').textContent = cfg.COURSE_LABEL || 'Macroscope';
   $('#homeLink').href = cfg.COURSE_HOME || '#';
@@ -228,7 +228,7 @@
     renderBudget();
   }
   /* §26: what the fiscal levers add to (+) or take from (−) the public balance, at the reference GDP and prices, in % of GDP */
-  var BUDGET_LABEL = { pubdem: 'public demand', benefits: 'benefits', inctax: 'income tax', vat: 'VAT', ctax: 'carbon tax', green: 'green investment', tariffU: 'tariff' };
+  var BUDGET_LABEL = { pubdem: 'public demand', benefits: 'benefits', inctax: 'income tax', vat: 'VAT', ctax: 'carbon tax', green: 'green investment', tariffU: 'tariff on the union', tariffW: 'tariff on the rest of the world' };
   function renderBudget() {
     var box = $('#budgetBox'); if (!box || !data) return;
     var st = data.state, f = formConfig(), yrs = readForm().years, SCALE = 4;
@@ -690,7 +690,7 @@
   function forumLeverTable(prefix, title) {
     var st = data.state, list = el('div', { class: 'franges' });
     MS.leversFor(st).forEach(function (l) {
-      if (l.id === 'tariffU') return;
+      if (l.id === 'tariffU' || l.id === 'tariffW') return;
       var cell = function (k) {
         var inp = el('input', { type: 'number', name: prefix + l.id + '_' + k, step: l.eco ? 0.5 : 0.1, min: l.eco ? 0 : -st.bounds.lever, max: l.eco ? (st.bounds.eco || 10) : st.bounds.lever, placeholder: '—' });
         inp.addEventListener('input', function () { inp.classList.toggle('nz', inp.value !== ''); });
