@@ -1534,8 +1534,8 @@ Rest of the world
 => (# pt)
 Average rate paid on the debt this year
 => Taux moyen payé sur la dette cette année
-(last year’s central-bank rate, plus the risk premium on the bills held by the market)
-=> (le taux de la banque centrale de l’an dernier, plus la prime de risque sur les titres détenus par le marché)
+(last year’s central-bank rate, plus last year’s risk premium on the bills held by the market)
+=> (le taux de la banque centrale de l’an dernier, plus la prime de risque de l’an dernier sur les titres détenus par le marché)
 (last year’s central-bank rate)
 => (le taux de la banque centrale de l’an dernier)
 Interest bill
