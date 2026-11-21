@@ -155,7 +155,7 @@ var UI = (function () {
     var rate = '';
     if (x.intRate !== undefined) {
       rate = '<div class="urow"><span>Average rate paid on the debt this year</span><span class="num"><b>' + esc(MS.fmt(x.intRate, 2)) + ' %</b>' +
-        ' <span class="small muted">(last year’s central-bank rate' + (x.spread !== undefined ? ', plus the risk premium on the bills held by the market' : '') + ')</span></span></div>' +
+        ' <span class="small muted">(last year’s central-bank rate' + (x.spread !== undefined ? ', plus last year’s risk premium on the bills held by the market' : '') + ')</span></span></div>' +
         '<div class="urow"><span>Interest bill</span><span class="num">' + esc(MS.fmt(x.intBill, 2)) + ' % of GDP</span></div>';
     }
     return '<div class="union">' + bar + rows + '<div class="urow"><span><b>Public debt</b></span><span class="num"><b>' + esc(MS.fmt(tot, 1)) + ' % of GDP</b></span></div>' + rate + '</div>' +

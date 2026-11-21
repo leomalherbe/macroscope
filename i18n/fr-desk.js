@@ -484,7 +484,7 @@ MXL.add('fr', {"str":{"Macroscope · Policy desk":"Macroscope · Bureau des déc
 "Central bank":"Banque centrale",
 "Rest of the world":"Reste du monde",
 "Average rate paid on the debt this year":"Taux moyen payé sur la dette cette année",
-"(last year’s central-bank rate, plus the risk premium on the bills held by the market)":"(le taux de la banque centrale de l’an dernier, plus la prime de risque sur les titres détenus par le marché)",
+"(last year’s central-bank rate, plus last year’s risk premium on the bills held by the market)":"(le taux de la banque centrale de l’an dernier, plus la prime de risque de l’an dernier sur les titres détenus par le marché)",
 "(last year’s central-bank rate)":"(le taux de la banque centrale de l’an dernier)",
 "Interest bill":"Charge d’intérêts",
 "The interest paid to the central bank comes back to the government with its profits. Households and banks hold bills at the common rate (plus the risk premium in Finance); the rest of the world, in Finance, buys or sells them as rates and risk change.":"Les intérêts versés à la banque centrale reviennent à l’État avec ses bénéfices. Ménages et banques détiennent des titres au taux commun (plus la prime de risque en Finance) ; le reste du monde, en Finance, en achète ou en vend selon les taux et le risque.",
